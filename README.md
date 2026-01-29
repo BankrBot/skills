@@ -1,6 +1,6 @@
-# Moltbot Skills Library by Bankr & Community
+# Moltbot Skills Library
 
-Public repository of skills for [Moltbot](https://github.com/BankrBot/moltbot-skills) (formerly Clawdbot) — including first-party [Bankr](https://bankr.bot) skills and community-contributed skills from other providers.
+Public repository of skills for [Moltbot](https://github.com/BankrBot/moltbot-skills) (formerly Clawdbot) — including [Bankr](https://bankr.bot) skills and community-contributed skills from other providers.
 
 ## Structure
 
@@ -8,7 +8,7 @@ Each top-level directory is a provider. Each subdirectory within a provider is a
 
 ```
 moltbot-skills/
-├── bankr/                        # Bankr (first-party)
+├── bankr/
 │   ├── SKILL.md
 │   ├── references/
 │   │   ├── token-trading.md
@@ -28,15 +28,6 @@ moltbot-skills/
     └── SKILL.md
 ```
 
-## Available Skills
-
-| Provider | Skill | Description |
-|----------|-------|-------------|
-| [bankr](https://bankr.bot) | [bankr](bankr/) | AI-powered crypto trading agent via natural language. Trade, manage portfolios, automate DeFi operations. |
-| base | — | Placeholder |
-| neynar | — | Placeholder |
-| zapper | — | Placeholder |
-
 ## Install Instructions
 
 Give Moltbot the URL to this repo and it will let you choose which skill to install.
@@ -44,3 +35,49 @@ Give Moltbot the URL to this repo and it will let you choose which skill to inst
 ```
 https://github.com/BankrBot/moltbot-skills
 ```
+
+## Available Skills
+
+| Provider                   | Skill           | Description                                                                                               |
+| -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| [bankr](https://bankr.bot) | [bankr](bankr/) | AI-powered crypto trading agent via natural language. Trade, manage portfolios, automate DeFi operations. |
+| base                       | —               | Placeholder                                                                                               |
+| neynar                     | —               | Placeholder                                                                                               |
+| zapper                     | —               | Placeholder                                                                                               |
+
+## Contributing
+
+We welcome community contributions! Here's how to add your own skill:
+
+### Adding a New Skill
+
+1. **Fork this repository** and create a new branch for your skill.
+
+2. **Create a provider directory** (if it doesn't exist):
+   ```
+   mkdir your-provider-name/
+   ```
+
+3. **Add the required files**:
+   - `SKILL.md` — The main skill definition file (required)
+   - `references/` — Supporting documentation (optional)
+   - `scripts/` — Any helper scripts (optional)
+
+4. **Follow the structure**:
+   ```
+   your-provider-name/
+   ├── SKILL.md
+   ├── references/
+   │   └── your-docs.md
+   └── scripts/
+       └── your-script.sh
+   ```
+
+5. **Submit a Pull Request** with a clear description of your skill.
+
+### Guidelines
+
+- Keep skill definitions clear and well-documented
+- Include examples of usage in your `SKILL.md`
+- Test your skill before submitting
+- Use descriptive commit messages
