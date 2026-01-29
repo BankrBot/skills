@@ -1,6 +1,6 @@
 ---
 name: bankr
-description: AI-powered crypto trading agent via natural language. Use when the user wants to trade crypto (buy/sell/swap tokens), check portfolio balances, view token prices, transfer crypto, manage NFTs, use leverage, bet on Polymarket, deploy tokens, or set up automated trading strategies. Supports Base, Ethereum, Polygon, Solana, and Unichain. Comprehensive capabilities include trading, portfolio management, market research, NFT operations, prediction markets, leverage trading, DeFi operations, and automation.
+description: AI-powered crypto trading agent via natural language. Use when the user wants to trade crypto (buy/sell/swap tokens), check portfolio balances, view token prices, transfer crypto, manage NFTs, use leverage, bet on Polymarket, deploy tokens, set up automated trading strategies, submit raw transactions, execute calldata, or send transaction JSON. Supports Base, Ethereum, Polygon, Solana, and Unichain. Comprehensive capabilities include trading, portfolio management, market research, NFT operations, prediction markets, leverage trading, DeFi operations, automation, and arbitrary transaction submission.
 metadata: {"clawdbot":{"emoji":"📺","homepage":"https://bankr.bot","requires":{"bins":["curl","jq"]}}}
 ---
 
@@ -163,6 +163,14 @@ scripts/bankr-cancel.sh "$JOB_ID"
 - Scheduled commands
 
 **Reference**: [references/automation.md](references/automation.md)
+
+### Arbitrary Transactions
+- Submit raw EVM transactions with explicit calldata
+- Custom contract calls to any address
+- Execute pre-built calldata from other tools
+- Value transfers with data
+
+**Reference**: [references/arbitrary-transaction.md](references/arbitrary-transaction.md)
 
 ## Supported Chains
 
@@ -333,6 +341,11 @@ For comprehensive error troubleshooting, setup instructions, and debugging steps
 - "DCA $100 into ETH weekly"
 - "Set limit order to buy ETH at $3,000"
 - "Stop loss for all holdings at -20%"
+
+### Arbitrary Transactions
+- "Submit this transaction: {to: 0x..., data: 0x..., value: 0, chainId: 8453}"
+- "Execute this calldata on Base: {...}"
+- "Send raw transaction with this JSON: {...}"
 
 ## Resources
 
