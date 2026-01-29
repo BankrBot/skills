@@ -26,9 +26,34 @@ jobs:
       actions: read # Required for Claude to read CI results on PRs
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      # For PRs from forks, fetch the fork's branch
+      - name: Fetch fork branch for external PRs
+        if: github.event.pull_request.head.repo.fork == true || (github.event.issue.pull_request && github.event_name == 'issue_comment')
+        run: |
+          # Get PR details if this is an issue comment on a PR
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            PR_DATA=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.issue.number }})
+            FORK_REPO=$(echo "$PR_DATA" | jq -r '.head.repo.full_name')
+            FORK_BRANCH=$(echo "$PR_DATA" | jq -r '.head.ref')
+            IS_FORK=$(echo "$PR_DATA" | jq -r '.head.repo.fork')
+          else
+            FORK_REPO="${{ github.event.pull_request.head.repo.full_name }}"
+            FORK_BRANCH="${{ github.event.pull_request.head.ref }}"
+            IS_FORK="${{ github.event.pull_request.head.repo.fork }}"
+          fi
+
+          if [ "$IS_FORK" = "true" ]; then
+            echo "Fetching branch '$FORK_BRANCH' from fork '$FORK_REPO'"
+            git remote add fork https://github.com/$FORK_REPO.git
+            git fetch fork $FORK_BRANCH
+            git checkout -B $FORK_BRANCH fork/$FORK_BRANCH
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Run Claude Code
         id: claude
