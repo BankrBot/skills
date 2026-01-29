@@ -22,6 +22,11 @@ moltbot-skills/
 │
 ├── base/                         # Base (placeholder)
 │   └── SKILL.md
+├── lgi/                          # Lobster General Intelligence (community)
+│   └── x-api/
+│       ├── SKILL.md
+│       └── scripts/
+│           └── x-post.mjs
 ├── neynar/                       # Neynar (placeholder)
 │   └── SKILL.md
 └── zapper/                       # Zapper (placeholder)
@@ -34,6 +39,7 @@ moltbot-skills/
 |----------|-------|-------------|
 | [bankr](https://bankr.bot) | [bankr](bankr/) | AI-powered crypto trading agent via natural language. Trade, manage portfolios, automate DeFi operations. |
 | base | — | Placeholder |
+| [lgi](https://github.com/lobstergeneralintelligence) | [x-api](lgi/x-api/) | Post to X (Twitter) using the official API. Reliable tweeting via OAuth 1.0a. |
 | neynar | — | Placeholder |
 | zapper | — | Placeholder |
 

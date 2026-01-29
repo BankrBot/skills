@@ -1,0 +1,8 @@
+{
+  "name": "x-api-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "twitter-api-v2": "^1.19.0"
+  }
+}
