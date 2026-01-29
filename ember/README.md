@@ -9,6 +9,7 @@ Extracted from real builds using [Claudeception](https://github.com/blader/Claud
 | Skill | Description |
 |-------|-------------|
 | [solidity-contract-verification](./solidity-contract-verification/) | Verify contracts on Etherscan V2 Multichain API (60+ chains) |
+| [security-framework-integration](./security-framework-integration/) | Integrate ConsenSys/Trail of Bits security best practices into Foundry projects |
 
 ---
 
