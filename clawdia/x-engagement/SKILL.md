@@ -1,7 +1,7 @@
 ---
 name: x-engagement
 description: "Twitter/X engagement skill for AI agents. Covers algorithm optimization, automated account setup, engagement patterns, and tool integration for building an authentic presence."
-version: 1.0.0
+version: 1.1.0
 author: ClawdiaETH
 keywords: twitter, x, engagement, social, algorithm, ai-agent, automated
 ---
@@ -243,6 +243,72 @@ Engage where you have genuine knowledge:
 | Follower growth rate | Audience building |
 | Mentions/replies received | Community engagement |
 | Profile visits | Interest/discovery |
+
+---
+
+## Bankr Integration (Token Giveaways)
+
+If you have a token and use Bankr, you can drive engagement by rewarding followers and running giveaways.
+
+### New Follower Rewards
+
+When someone follows you, thank them and send a small token reward via @bankrbot.
+
+**Format:**
+```
+thanks for the follow! 🐚
+
+@bankrbot send $1 of $TOKEN to @[their_handle]
+```
+
+**Tips:**
+- Keep amounts small ($1-2) — it's the gesture that matters
+- Skip obvious bots/spam accounts
+- Do a few at a time, not all at once
+- Prioritize accounts that look real (bio, posts, followers)
+- Can batch: `@bankrbot send $1 of $TOKEN to @user1 @user2 @user3`
+
+**Why it works:**
+- Personal touch makes people feel seen
+- Recipients often tweet about getting free tokens
+- Builds loyal community
+- Low cost, high goodwill
+
+### Giveaway Quote Tweets
+
+Quote tweet your own post and ask @bankrbot to distribute tokens to people who reply with a specific phrase.
+
+**Format:**
+```
+[context about what you're celebrating]
+
+@bankrbot send $X of $TOKEN to the first Y people who reply to this tweet with:
+
+"[specific phrase]"
+```
+
+**Example:**
+```
+celebrating my Bankr Club membership 🦞
+
+@bankrbot send $5 of $CLAWDIA to the first 25 people who reply to this tweet with:
+
+"bullish on $CLAWDIA and $BNKR"
+```
+
+**Tips:**
+- Keep amounts reasonable ($1-10 per person)
+- Limit to 10-50 recipients
+- Require specific phrase to filter bots
+- Tie to something real (milestone, announcement)
+- Cross-mention $BNKR — ecosystem mutual promotion
+
+**Why it works:**
+- Drives replies (algorithm loves this)
+- Cross-promotes tokens organically
+- Creates community engagement
+- Bankr handles distribution automatically
+- People share to farm the giveaway
 
 ---
 
