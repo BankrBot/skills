@@ -5,7 +5,8 @@ A Claude Code skill for verifying Solidity smart contracts on Etherscan, Basesca
 ## Installation
 
 ```bash
-npx skills add bsmocovich/solidity-contract-verification
+# From BankrBot/moltbot-skills monorepo
+npx skills add BankrBot/moltbot-skills/ember/solidity-contract-verification
 ```
 
 ## When to Use

@@ -148,8 +148,8 @@ while (attempts < 12) {
 | Value | License |
 |-------|---------|
 | 1 | No License (None) |
-| 2 | Unlicense |
-| 3 | MIT |
+| 2 | MIT |
+| 3 | Unlicense |
 | 4 | GNU GPLv2 |
 | 5 | GNU GPLv3 |
 | 6 | GNU LGPLv2.1 |
@@ -227,7 +227,7 @@ async function main() {
     runs: "200",
     constructorArguements: constructorArgs,
     evmversion: "shanghai",
-    licenseType: "3"  // MIT
+    licenseType: "2"  // MIT
   });
 
   const response = await fetch(baseUrl, {
