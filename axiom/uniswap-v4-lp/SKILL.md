@@ -49,8 +49,11 @@ node monitor-position.mjs --token-id <ID>
 # Collect fees (without removing liquidity)
 node collect-fees.mjs --token-id <ID>
 
-# Remove liquidity (partial or full)
+# Remove liquidity (partial)
 node remove-liquidity.mjs --token-id <ID> --percent 50
+
+# Burn position (100% removal + burn NFT)
+node burn-position.mjs --token-id <ID>
 
 # Rebalance (remove + re-add at current price)
 node rebalance.mjs --token-id <ID> --range 25
