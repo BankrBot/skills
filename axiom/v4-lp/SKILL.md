@@ -1,6 +1,6 @@
 ---
-name: uniswap-v4-lp
-description: Manage Uniswap V4 LP positions on Base. Add, remove, monitor, auto-compound, and harvest fees — including Clanker protocol fee claims.
+name: v4-lp
+description: Uniswap V4 LP on Base — single-sided range orders, add/remove liquidity, monitor, auto-compound, and harvest Clanker fees.
 triggers:
   - uniswap
   - v4
