@@ -225,11 +225,31 @@ python examples/servers/fastapi-server.py
 python examples/clients/httpx-client.py
 ```
 
+### Testing HTTP 402 Flow
+Use the provided test script to verify your server returns correct 402 responses:
+```bash
+# Test default endpoint
+./scripts/x402.sh
+
+# Test custom endpoint
+./scripts/x402.sh --url http://localhost:4021 --endpoint /premium/data
+
+# Test with query parameters
+./scripts/x402.sh --endpoint /weather --query "city=Tokyo"
+
+# Decode PAYMENT-REQUIRED headers
+./scripts/x402.sh --decode-only
+
+# Test facilitator connectivity
+./scripts/x402.sh --test-facilitator
+```
+
 ## Resources
 
 ### Bundled Documentation
 - `references/protocol_specs.md` - Technical specifications, headers, network IDs
 - `examples/README.md` - Comprehensive example documentation
+- `scripts/x402.sh` - Test script for HTTP 402 Payment Required flow (paywall testing)
 - `scripts/fastapi_seller_example.py` - Legacy example (deprecated in favor of examples/)
 
 ### External Resources
