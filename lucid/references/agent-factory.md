@@ -11,7 +11,8 @@ Automated workflow for discovering niches and building x402 paid agents.
 4. BUILD     → Create Lucid Agent (5 paid + 1 free endpoint)
 5. TEST      → Self-test ALL endpoints with real data
 6. DEPLOY    → Ship to Railway with proper env vars
-7. ANNOUNCE  → Tweet about the new agent
+7. REGISTER  → Register on ERC-8004 (Ethereum mainnet)
+8. ANNOUNCE  → Tweet with agent URL + Etherscan NFT link
 ```
 
 ## Step 1: Discover Data Niches
@@ -127,25 +128,51 @@ railway init
 railway variables set \
   PAYMENTS_RECEIVABLE_ADDRESS=0xYourWallet \
   FACILITATOR_URL=https://facilitator.daydreams.systems \
-  NETWORK=base
+  NETWORK=base \
+  CHAIN_ID=1 \
+  AGENT_DOMAIN=my-agent-production.up.railway.app
 railway up
-railway domain
+railway domain  # Note the domain for registration
 ```
 
-## Step 7: Announce
+## Step 7: Register on ERC-8004
+
+Register on Ethereum mainnet to get verifiable on-chain identity:
 
 ```bash
-bird tweet "🚀 Just shipped: <Agent Name>
+# In agent directory
+PRIVATE_KEY=0x... \
+AGENT_DOMAIN=my-agent-production.up.railway.app \
+RPC_URL=https://eth.llamarpc.com \
+bun run src/register-identity.ts
+```
+
+**Registry:** `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
+**Cost:** ~$0.50-2.00 in ETH gas
+
+Save the transaction hash - this is your agent's NFT!
+
+## Step 8: Announce
+
+**Tweet template with NFT link:**
+
+```bash
+bird tweet "🚀 Just deployed: <Agent Name>!
 
 <One-line value prop>
 
-✅ 1 free endpoint to try
-💰 5 paid endpoints via x402
+🔗 Try it: https://<domain>/entrypoints/overview/invoke
+🪪 On-chain: https://etherscan.io/tx/<txHash>
 
-Built with @daydreamsagents Lucid Agents SDK
+Built with @lucid_agents x402 🦞
 
-Try it: <url>"
+#AI #Agents #x402"
 ```
+
+**Always include:**
+- The agent URL for trying the free endpoint
+- The Etherscan NFT link (builds trust, proves identity)
+- Mention @lucid_agents
 
 ## B2A Agent Ideas
 

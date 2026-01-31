@@ -199,10 +199,41 @@ railway init
 railway variables set \
   PAYMENTS_RECEIVABLE_ADDRESS=0xYourWallet \
   FACILITATOR_URL=https://facilitator.daydreams.systems \
-  NETWORK=base
+  NETWORK=base \
+  CHAIN_ID=1 \
+  AGENT_DOMAIN=my-agent-production.up.railway.app
 railway up
 railway domain  # Get your public URL
 ```
+
+## Register on ERC-8004 (Ethereum Mainnet)
+
+After deployment, register your agent on-chain for identity verification:
+
+```typescript
+// src/register-identity.ts
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { mainnet } from 'viem/chains';
+
+const REGISTRY = '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432';
+
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
+const walletClient = createWalletClient({ account, chain: mainnet, transport: http() });
+
+const hash = await walletClient.writeContract({
+  address: REGISTRY,
+  abi: [{ name: 'register', type: 'function', inputs: [{ name: 'agentURI', type: 'string' }], outputs: [{ name: 'agentId', type: 'uint256' }] }],
+  functionName: 'register',
+  args: [`https://${process.env.AGENT_DOMAIN}/.well-known/agent-metadata.json`],
+});
+
+console.log('Registered! https://etherscan.io/tx/' + hash);
+```
+
+Run: `PRIVATE_KEY=0x... AGENT_DOMAIN=my-agent.up.railway.app bun run src/register-identity.ts`
+
+The transaction hash is your agent's on-chain identity proof. Include it in announcements!
 
 ## Common Errors
 
@@ -241,8 +272,26 @@ Automated workflow for building agents:
 3. **RESEARCH** - Find real, live data APIs
 4. **BUILD** - Create 5 paid + 1 free endpoint
 5. **TEST** - Self-test all endpoints with real data
-6. **DEPLOY** - Ship to Railway
-7. **ANNOUNCE** - Tweet/post about launch
+6. **DEPLOY** - Ship to Railway, get public domain
+7. **REGISTER** - Register on ERC-8004 (Ethereum mainnet), get tx hash
+8. **ANNOUNCE** - Tweet with agent URL + Etherscan NFT link
+
+### Announcement Tweet Template
+
+```
+🚀 Just deployed: {Agent Name}!
+
+{Description of what it does}
+
+🔗 Try it: https://{domain}/entrypoints/overview/invoke
+🪪 On-chain identity: https://etherscan.io/tx/{txHash}
+
+Built with @lucid_agents x402 🦞
+
+#{tag1} #{tag2}
+```
+
+**Always include the Etherscan link** - it proves the agent is registered on-chain and builds trust.
 
 ## Resources
 
