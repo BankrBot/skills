@@ -24,6 +24,8 @@ moltbot-skills/
 │   └── SKILL.md
 ├── neynar/                       # Neynar (placeholder)
 │   └── SKILL.md
+├── qrcoin/                       # QR Coin (community)
+│   └── SKILL.md
 └── zapper/                       # Zapper (placeholder)
     └── SKILL.md
 ```
@@ -43,6 +45,7 @@ https://github.com/BankrBot/moltbot-skills
 | [bankr](https://bankr.bot) | [bankr](bankr/) | AI-powered crypto trading agent via natural language. Trade, manage portfolios, automate DeFi operations. |
 | base                       | —               | Placeholder                                                                                               |
 | neynar                     | —               | Placeholder                                                                                               |
+| [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Bid to display URLs on QR codes.                                      |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag game on Base.                                                                    |
 | zapper                     | —               | Placeholder                                                                                               |
 
