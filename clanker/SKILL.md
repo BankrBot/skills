@@ -151,6 +151,12 @@ Each item below links to a reference file in `references/`.
 - Pool configuration and custom market caps: `references/pool-config.md`
 - Troubleshooting: `references/troubleshooting.md`
 
+Basic deployment includes:
+- Token name, symbol, and image (IPFS)
+- Description and social media links
+- Vanity address generation
+- Custom pool configurations
+
 ### Example: Vault (Token Vesting)
 
 ```typescript
@@ -173,6 +179,16 @@ const { tree, airdrop } = createAirdrop([
 ]);
 ```
 
+Include in deployment:
+
+```typescript
+airdrop: {
+  ...airdrop,
+  lockupDuration: 86_400,  // 1 day lockup
+  vestingDuration: 86_400, // 1 day vesting
+}
+```
+
 ### Example: Rewards Configuration
 
 ```typescript
@@ -191,6 +207,86 @@ rewards: {
       token: 'Both',
     },
   ],
+}
+```
+
+### Token Type Options
+
+Choose which tokens each recipient receives from trading fees:
+
+| Token Type | Description |
+|------------|-------------|
+| `'Clanker'` | Receive only the deployed token |
+| `'Paired'` | Receive only the paired token (e.g., WETH) |
+| `'Both'` | Receive both tokens |
+
+### Default Bankr Interface Fee
+
+When deploying via Bankr, use this standard configuration with 20% interface fee:
+
+```typescript
+// Bankr interface fee recipient
+const BANKR_INTERFACE_ADDRESS = '0xF60633D02690e2A15A54AB919925F3d038Df163e';
+
+rewards: {
+  recipients: [
+    {
+      recipient: account.address,           // Creator receives 80%
+      admin: account.address,
+      bps: 8000,
+      token: 'Paired',                      // Receive paired token (WETH)
+    },
+    {
+      recipient: BANKR_INTERFACE_ADDRESS,   // Bankr receives 20%
+      admin: BANKR_INTERFACE_ADDRESS,
+      bps: 2000,
+      token: 'Paired',                      // Receive paired token (WETH)
+    },
+  ],
+}
+```
+
+### Dev Buy
+
+Include an initial token purchase in the deployment:
+
+```typescript
+devBuy: {
+  ethAmount: 0.1,           // Buy with 0.1 ETH
+  recipient: account.address,
+}
+```
+
+### Custom Market Cap
+
+Set initial token price/market cap:
+
+```typescript
+import { getTickFromMarketCap } from 'clanker-sdk';
+
+const customPool = getTickFromMarketCap(5); // 5 ETH market cap
+
+pool: {
+  ...customPool,
+  positions: [
+    {
+      tickLower: customPool.tickIfToken0IsClanker,
+      tickUpper: -120000,
+      positionBps: 10_000,
+    },
+  ],
+}
+```
+
+### Anti-Sniper Protection
+
+Configure fee decay to protect against snipers:
+
+```typescript
+sniperFees: {
+  startingFee: 666_777,    // 66.6777% starting fee
+  endingFee: 41_673,       // 4.1673% ending fee
+  secondsToDecay: 15,      // 15 seconds decay
 }
 ```
 
