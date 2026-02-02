@@ -15,9 +15,18 @@ Claim boxes in onchain Super Bowl Squares contests on Base. The app is deployed 
 # Claim first available box in contest 74
 ./scripts/claim-box.sh 74
 
-# Claim specific box 7410
-./scripts/claim-box.sh 74 7410
+# Claim specific box 80 in contest 74 (auto-converts to 7480)
+./scripts/claim-box.sh 74 80
+
+# Or use full token ID directly
+./scripts/claim-box.sh 74 7480
 ```
+
+## Box Numbering
+
+- Boxes 0-99 represent positions on the 10x10 grid
+- Token IDs are `contestId * 100 + boxNumber` (e.g., contest 74, box 80 → token 7480)
+- The script auto-converts: pass `80` and it becomes `7480` for contest 74
 
 ## How It Works
 
