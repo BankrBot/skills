@@ -21,7 +21,10 @@ Contact the ClawLaunch team to obtain an API key.
 | Endpoint | Limit | Window |
 |----------|-------|--------|
 | `/agent/launch` | 10 requests | 1 hour |
-| General API | 100 requests | 1 minute |
+| `/token/buy` | 50 requests | 1 hour |
+| `/token/sell` | 50 requests | 1 hour |
+| `/token/quote` | 100 requests | 1 minute |
+| `/tokens` | 100 requests | 1 minute |
 
 Rate limit info is returned in response headers:
 - `X-RateLimit-Remaining`: Requests remaining in window
@@ -127,6 +130,197 @@ x-api-key: your_api_key
   "hint": "The agent wallet needs ETH for gas. Send ETH to the walletAddress."
 }
 ```
+
+---
+
+## Trading Endpoints
+
+### GET /tokens
+
+List all ClawLaunch tokens.
+
+#### Query Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| creator | address | No | Filter by token creator |
+| limit | number | No | Max tokens (default 50, max 100) |
+| includeGraduated | boolean | No | Include graduated tokens |
+
+#### Response (200 OK)
+```json
+{
+  "success": true,
+  "tokens": [{
+    "address": "0x...",
+    "name": "Moon Token",
+    "symbol": "MOON",
+    "creator": "0x...",
+    "price": "1000000000000000",
+    "reserve": "500000000000000000",
+    "totalSupply": "1000000000000000000000",
+    "isGraduated": false,
+    "createdAt": 1706745600
+  }],
+  "total": 42
+}
+```
+
+---
+
+### POST /token/quote
+
+Get a price quote for trading.
+
+#### Request
+```json
+{
+  "tokenAddress": "0x...",
+  "action": "buy",
+  "amount": "1000000000000000",
+  "amountType": "eth"
+}
+```
+
+#### Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| tokenAddress | address | Yes | Token contract address |
+| action | string | Yes | "buy" or "sell" |
+| amount | string | Yes | Amount in wei (ETH for buy, tokens for sell) |
+| amountType | string | No | "eth" or "token" (default: "eth", buy only) |
+
+#### Response (200 OK)
+```json
+{
+  "success": true,
+  "quote": {
+    "action": "buy",
+    "tokenAddress": "0x...",
+    "tokenName": "Moon Token",
+    "tokenSymbol": "MOON",
+    "inputAmount": "1000000000000000",
+    "outputAmount": "500000000000000000000",
+    "price": "2000000000000000",
+    "priceImpact": "0.5",
+    "fee": "10000000000000",
+    "humanReadable": "Buy ~500 MOON for 0.001 ETH"
+  }
+}
+```
+
+---
+
+### POST /token/buy
+
+Get transaction calldata to buy tokens.
+
+#### Request
+```json
+{
+  "tokenAddress": "0x...",
+  "walletAddress": "0x...",
+  "ethAmount": "1000000000000000",
+  "slippageBps": 200
+}
+```
+
+#### Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| tokenAddress | address | Yes | Token contract address |
+| walletAddress | address | Yes | Buyer's wallet address |
+| ethAmount | string | Yes | ETH to spend in wei |
+| slippageBps | number | No | Slippage tolerance in bps (default: 200 = 2%, max: 1000 = 10%) |
+
+#### Response (200 OK)
+```json
+{
+  "success": true,
+  "transaction": {
+    "to": "0x...",
+    "data": "0x...",
+    "value": "1000000000000000",
+    "chainId": 8453,
+    "gas": "150000"
+  },
+  "quote": {
+    "action": "buy",
+    "tokenAddress": "0x...",
+    "tokenName": "Moon Token",
+    "tokenSymbol": "MOON",
+    "inputAmount": "1000000000000000",
+    "outputAmount": "500000000000000000000",
+    "minOutputAmount": "490000000000000000000",
+    "slippageBps": 200
+  },
+  "humanReadableMessage": "Buy ~500 MOON for 0.001 ETH with 2% max slippage"
+}
+```
+
+---
+
+### POST /token/sell
+
+Get transaction calldata to sell tokens.
+
+#### Request
+```json
+{
+  "tokenAddress": "0x...",
+  "walletAddress": "0x...",
+  "tokenAmount": "1000000000000000000000",
+  "slippageBps": 200,
+  "sellAll": false
+}
+```
+
+#### Fields
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| tokenAddress | address | Yes | Token contract address |
+| walletAddress | address | Yes | Seller's wallet address |
+| tokenAmount | string | Conditional | Tokens to sell in wei (required if sellAll is false) |
+| slippageBps | number | No | Slippage tolerance in bps (default: 200 = 2%) |
+| sellAll | boolean | No | Sell entire token balance (default: false) |
+
+#### Response (200 OK)
+```json
+{
+  "success": true,
+  "transaction": {
+    "to": "0x...",
+    "data": "0x...",
+    "value": "0",
+    "chainId": 8453,
+    "gas": "150000"
+  },
+  "quote": {
+    "action": "sell",
+    "tokenAddress": "0x...",
+    "tokenName": "Moon Token",
+    "tokenSymbol": "MOON",
+    "inputAmount": "1000000000000000000000",
+    "outputAmount": "500000000000000000",
+    "minOutputAmount": "490000000000000000",
+    "slippageBps": 200,
+    "sellAll": false
+  },
+  "humanReadableMessage": "Sell 1000 MOON for ~0.5 ETH with 2% max slippage"
+}
+```
+
+---
+
+## Error Codes (Trading)
+
+| Code | Status | Description |
+|------|--------|-------------|
+| NOT_FOUND | 404 | Token not in ClawLaunch factory |
+| TOKEN_GRADUATED | 400 | Token migrated to Uniswap V3 |
+| BELOW_MIN_TRADE | 400 | Trade below 0.0001 ETH minimum |
+| INSUFFICIENT_BALANCE | 400 | Not enough tokens to sell |
+| ZERO_AMOUNT | 400 | Cannot sell zero tokens |
+| VALIDATION_ERROR | 400 | Invalid request parameters |
 
 ---
 
@@ -259,5 +453,5 @@ const tokens = await publicClient.readContract({
 ## Support
 
 - **Website:** https://www.clawlaunch.fun
-- **GitHub:** https://github.com/SmokeAlot420/agentlaunch
+- **GitHub:** https://github.com/clawlaunch
 - **API Issues:** Contact via GitHub issues
