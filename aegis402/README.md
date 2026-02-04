@@ -35,4 +35,3 @@ const { isHoneypot, trustScore } = await fetch402(
 
 - [Website](https://aegis402.xyz)
 - [Full Documentation](./SKILL.md)
-- [Use Cases](./references/use-cases.md)
