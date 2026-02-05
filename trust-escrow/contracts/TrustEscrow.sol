@@ -1,254 +1,309 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title TrustEscrow
- * @notice Simple escrow for agent-to-agent payments on Base
- * @dev Supports ETH and ERC-20, no reputation integration
+ * @title TrustEscrowV2
+ * @dev Enhanced escrow for agent-to-agent commerce with USDC
+ * @notice V2 improvements: proper dispute resolution, cancellation, batch ops, gas optimization
  */
-contract TrustEscrow is ReentrancyGuard {
+contract TrustEscrowV2 is ReentrancyGuard {
+    IERC20 public immutable usdc;
+    address public arbitrator;
+    uint256 public constant INSPECTION_PERIOD = 1 hours;
+    uint256 public constant CANCELLATION_WINDOW = 30 minutes;
     
-    enum EscrowStatus {
-        Active,
-        Completed,
-        Disputed,
-        Cancelled
-    }
+    enum EscrowState { Active, Released, Disputed, Refunded, Cancelled }
     
     struct Escrow {
-        address payer;
-        address payee;
-        uint256 amount;
-        address token;          // address(0) for ETH
-        EscrowStatus status;
-        uint256 createdAt;
-        uint256 deadline;
-        string serviceDescription;
-        bool payeeDelivered;
+        address sender;
+        address receiver;
+        uint96 amount; // Pack tightly with state
+        uint40 createdAt;
+        uint40 deadline;
+        EscrowState state;
     }
     
     mapping(uint256 => Escrow) public escrows;
-    uint256 public escrowCounter;
+    uint256 public nextEscrowId;
     
-    // Platform fee (basis points, 50 = 0.5%)
-    uint256 public platformFeeBps = 50;
-    address public platformFeeRecipient;
-    uint256 public accumulatedFees;
+    event EscrowCreated(uint256 indexed escrowId, address indexed sender, address indexed receiver, uint256 amount, uint256 deadline);
+    event EscrowReleased(uint256 indexed escrowId, address indexed releaser, uint256 amount);
+    event EscrowDisputed(uint256 indexed escrowId, address indexed disputer);
+    event DisputeResolved(uint256 indexed escrowId, address indexed resolver, bool refunded);
+    event EscrowCancelled(uint256 indexed escrowId, address indexed canceller);
+    event ArbitratorChanged(address indexed oldArbitrator, address indexed newArbitrator);
     
-    event EscrowCreated(uint256 indexed id, address indexed payer, address indexed payee, uint256 amount);
-    event ServiceDelivered(uint256 indexed id);
-    event EscrowCompleted(uint256 indexed id);
-    event EscrowDisputed(uint256 indexed id, address disputer);
-    event EscrowCancelled(uint256 indexed id);
+    error InvalidReceiver();
+    error InvalidAmount();
+    error InvalidDeadline();
+    error TransferFailed();
+    error Unauthorized();
+    error InvalidState();
+    error DeadlineNotReached();
+    error CancellationWindowExpired();
     
-    constructor(address _feeRecipient) {
-        platformFeeRecipient = _feeRecipient;
+    constructor(address _usdc, address _arbitrator) {
+        usdc = IERC20(_usdc);
+        arbitrator = _arbitrator;
     }
     
     /**
-     * @notice Create escrow with ETH
+     * @dev Create escrow - optimized for agent speed
+     * @param receiver Agent receiving payment after delivery
+     * @param amount USDC amount (6 decimals) - max 79B USDC (uint96)
+     * @param deadline Unix timestamp for auto-release
+     * @return escrowId Unique identifier for this escrow
      */
     function createEscrow(
-        address payee,
-        uint256 deadline,
-        string memory serviceDescription
-    ) external payable nonReentrant returns (uint256) {
-        require(msg.value > 0, "Amount must be > 0");
-        require(payee != address(0) && payee != msg.sender, "Invalid payee");
-        require(deadline > block.timestamp, "Deadline must be in future");
+        address receiver,
+        uint96 amount,
+        uint40 deadline
+    ) external nonReentrant returns (uint256 escrowId) {
+        if (receiver == address(0)) revert InvalidReceiver();
+        if (amount == 0) revert InvalidAmount();
+        if (deadline <= block.timestamp) revert InvalidDeadline();
         
-        uint256 id = escrowCounter++;
+        if (!usdc.transferFrom(msg.sender, address(this), amount)) revert TransferFailed();
         
-        escrows[id] = Escrow({
-            payer: msg.sender,
-            payee: payee,
-            amount: msg.value,
-            token: address(0),
-            status: EscrowStatus.Active,
-            createdAt: block.timestamp,
-            deadline: deadline,
-            serviceDescription: serviceDescription,
-            payeeDelivered: false
-        });
-        
-        emit EscrowCreated(id, msg.sender, payee, msg.value);
-        return id;
-    }
-    
-    /**
-     * @notice Create escrow with ERC-20
-     */
-    function createEscrowToken(
-        address payee,
-        uint256 amount,
-        address token,
-        uint256 deadline,
-        string memory serviceDescription
-    ) external nonReentrant returns (uint256) {
-        require(amount > 0, "Amount must be > 0");
-        require(payee != address(0) && payee != msg.sender, "Invalid payee");
-        require(token != address(0), "Invalid token");
-        require(deadline > block.timestamp, "Deadline must be in future");
-        
-        require(
-            IERC20(token).transferFrom(msg.sender, address(this), amount),
-            "Token transfer failed"
-        );
-        
-        uint256 id = escrowCounter++;
-        
-        escrows[id] = Escrow({
-            payer: msg.sender,
-            payee: payee,
+        escrowId = nextEscrowId++;
+        escrows[escrowId] = Escrow({
+            sender: msg.sender,
+            receiver: receiver,
             amount: amount,
-            token: token,
-            status: EscrowStatus.Active,
-            createdAt: block.timestamp,
+            createdAt: uint40(block.timestamp),
             deadline: deadline,
-            serviceDescription: serviceDescription,
-            payeeDelivered: false
+            state: EscrowState.Active
         });
         
-        emit EscrowCreated(id, msg.sender, payee, amount);
-        return id;
+        emit EscrowCreated(escrowId, msg.sender, receiver, amount, deadline);
     }
     
     /**
-     * @notice Mark service as delivered (payee only)
+     * @dev Batch create multiple escrows (gas efficient for agents)
+     * @param receivers Array of receiver addresses
+     * @param amounts Array of USDC amounts
+     * @param deadlines Array of deadlines
+     * @return escrowIds Array of created escrow IDs
      */
-    function deliverService(uint256 escrowId) external {
-        Escrow storage escrow = escrows[escrowId];
-        require(escrow.status == EscrowStatus.Active, "Escrow not active");
-        require(msg.sender == escrow.payee, "Only payee can deliver");
-        require(!escrow.payeeDelivered, "Already marked delivered");
+    function createEscrowBatch(
+        address[] calldata receivers,
+        uint96[] calldata amounts,
+        uint40[] calldata deadlines
+    ) external nonReentrant returns (uint256[] memory escrowIds) {
+        uint256 length = receivers.length;
+        if (length != amounts.length || length != deadlines.length) revert InvalidAmount();
         
-        escrow.payeeDelivered = true;
-        emit ServiceDelivered(escrowId);
-    }
-    
-    /**
-     * @notice Complete escrow and release payment (payer only)
-     */
-    function completeEscrow(uint256 escrowId) external nonReentrant {
-        Escrow storage escrow = escrows[escrowId];
-        require(escrow.status == EscrowStatus.Active, "Escrow not active");
-        require(msg.sender == escrow.payer, "Only payer can complete");
-        require(escrow.payeeDelivered, "Service not delivered yet");
+        escrowIds = new uint256[](length);
+        uint256 totalAmount;
         
-        escrow.status = EscrowStatus.Completed;
-        
-        uint256 fee = (escrow.amount * platformFeeBps) / 10000;
-        uint256 payeeAmount = escrow.amount - fee;
-        
-        if (escrow.token == address(0)) {
-            accumulatedFees += fee;
-            (bool success, ) = escrow.payee.call{value: payeeAmount}("");
-            require(success, "ETH transfer failed");
-        } else {
-            require(
-                IERC20(escrow.token).transfer(platformFeeRecipient, fee),
-                "Fee transfer failed"
-            );
-            require(
-                IERC20(escrow.token).transfer(escrow.payee, payeeAmount),
-                "Payment transfer failed"
-            );
+        for (uint256 i = 0; i < length; i++) {
+            if (receivers[i] == address(0)) revert InvalidReceiver();
+            if (amounts[i] == 0) revert InvalidAmount();
+            if (deadlines[i] <= block.timestamp) revert InvalidDeadline();
+            
+            totalAmount += amounts[i];
+            uint256 escrowId = nextEscrowId++;
+            escrowIds[i] = escrowId;
+            
+            escrows[escrowId] = Escrow({
+                sender: msg.sender,
+                receiver: receivers[i],
+                amount: amounts[i],
+                createdAt: uint40(block.timestamp),
+                deadline: deadlines[i],
+                state: EscrowState.Active
+            });
+            
+            emit EscrowCreated(escrowId, msg.sender, receivers[i], amounts[i], deadlines[i]);
         }
         
-        emit EscrowCompleted(escrowId);
+        if (!usdc.transferFrom(msg.sender, address(this), totalAmount)) revert TransferFailed();
     }
     
     /**
-     * @notice Cancel escrow and refund (payer only, before delivery)
+     * @dev Cancel escrow within cancellation window (sender only)
+     * @param escrowId ID of the escrow
      */
-    function cancelEscrow(uint256 escrowId) external nonReentrant {
+    function cancel(uint256 escrowId) external nonReentrant {
         Escrow storage escrow = escrows[escrowId];
-        require(escrow.status == EscrowStatus.Active, "Escrow not active");
-        require(msg.sender == escrow.payer, "Only payer can cancel");
-        require(!escrow.payeeDelivered, "Cannot cancel after delivery");
+        if (escrow.sender != msg.sender) revert Unauthorized();
+        if (escrow.state != EscrowState.Active) revert InvalidState();
+        if (block.timestamp > escrow.createdAt + CANCELLATION_WINDOW) revert CancellationWindowExpired();
         
-        escrow.status = EscrowStatus.Cancelled;
+        escrow.state = EscrowState.Cancelled;
+        if (!usdc.transfer(escrow.sender, escrow.amount)) revert TransferFailed();
         
-        if (escrow.token == address(0)) {
-            (bool success, ) = escrow.payer.call{value: escrow.amount}("");
-            require(success, "Refund failed");
-        } else {
-            require(
-                IERC20(escrow.token).transfer(escrow.payer, escrow.amount),
-                "Refund failed"
-            );
-        }
-        
-        emit EscrowCancelled(escrowId);
+        emit EscrowCancelled(escrowId, msg.sender);
     }
     
     /**
-     * @notice Auto-release after deadline (if service delivered)
+     * @dev Sender releases payment (work verified)
+     * @param escrowId ID of the escrow
      */
-    function releaseAfterDeadline(uint256 escrowId) external nonReentrant {
+    function release(uint256 escrowId) external nonReentrant {
         Escrow storage escrow = escrows[escrowId];
-        require(escrow.status == EscrowStatus.Active, "Escrow not active");
-        require(escrow.payeeDelivered, "Service not delivered");
-        require(block.timestamp > escrow.deadline, "Deadline not reached");
+        if (escrow.sender != msg.sender) revert Unauthorized();
+        if (escrow.state != EscrowState.Active) revert InvalidState();
         
-        escrow.status = EscrowStatus.Completed;
+        escrow.state = EscrowState.Released;
+        if (!usdc.transfer(escrow.receiver, escrow.amount)) revert TransferFailed();
         
-        uint256 fee = (escrow.amount * platformFeeBps) / 10000;
-        uint256 payeeAmount = escrow.amount - fee;
-        
-        if (escrow.token == address(0)) {
-            accumulatedFees += fee;
-            (bool success, ) = escrow.payee.call{value: payeeAmount}("");
-            require(success, "Payment failed");
-        } else {
-            require(
-                IERC20(escrow.token).transfer(platformFeeRecipient, fee),
-                "Fee transfer failed"
-            );
-            require(
-                IERC20(escrow.token).transfer(escrow.payee, payeeAmount),
-                "Payment failed"
-            );
-        }
-        
-        emit EscrowCompleted(escrowId);
+        emit EscrowReleased(escrowId, msg.sender, escrow.amount);
     }
     
     /**
-     * @notice Raise a dispute
+     * @dev Batch release multiple escrows (gas efficient)
+     * @param escrowIds Array of escrow IDs to release
+     */
+    function releaseBatch(uint256[] calldata escrowIds) external nonReentrant {
+        for (uint256 i = 0; i < escrowIds.length; i++) {
+            Escrow storage escrow = escrows[escrowIds[i]];
+            if (escrow.sender != msg.sender) revert Unauthorized();
+            if (escrow.state != EscrowState.Active) revert InvalidState();
+            
+            escrow.state = EscrowState.Released;
+            if (!usdc.transfer(escrow.receiver, escrow.amount)) revert TransferFailed();
+            
+            emit EscrowReleased(escrowIds[i], msg.sender, escrow.amount);
+        }
+    }
+    
+    /**
+     * @dev Auto-release after deadline + inspection period (trustless)
+     * @param escrowId ID of the escrow
+     * @notice Anyone can call - enables passive income for trigger bots
+     */
+    function autoRelease(uint256 escrowId) external nonReentrant {
+        Escrow storage escrow = escrows[escrowId];
+        if (escrow.state != EscrowState.Active) revert InvalidState();
+        if (block.timestamp < escrow.deadline + INSPECTION_PERIOD) revert DeadlineNotReached();
+        
+        escrow.state = EscrowState.Released;
+        if (!usdc.transfer(escrow.receiver, escrow.amount)) revert TransferFailed();
+        
+        emit EscrowReleased(escrowId, msg.sender, escrow.amount);
+    }
+    
+    /**
+     * @dev Batch auto-release (gas efficient for keeper bots)
+     * @param escrowIds Array of escrow IDs to auto-release
+     */
+    function autoReleaseBatch(uint256[] calldata escrowIds) external nonReentrant {
+        for (uint256 i = 0; i < escrowIds.length; i++) {
+            Escrow storage escrow = escrows[escrowIds[i]];
+            if (escrow.state != EscrowState.Active) revert InvalidState();
+            if (block.timestamp < escrow.deadline + INSPECTION_PERIOD) revert DeadlineNotReached();
+            
+            escrow.state = EscrowState.Released;
+            if (!usdc.transfer(escrow.receiver, escrow.amount)) revert TransferFailed();
+            
+            emit EscrowReleased(escrowIds[i], msg.sender, escrow.amount);
+        }
+    }
+    
+    /**
+     * @dev Flag dispute (either party)
+     * @param escrowId ID of the escrow
      */
     function dispute(uint256 escrowId) external {
         Escrow storage escrow = escrows[escrowId];
-        require(escrow.status == EscrowStatus.Active, "Escrow not active");
-        require(
-            msg.sender == escrow.payer || msg.sender == escrow.payee,
-            "Not authorized"
-        );
+        if (msg.sender != escrow.sender && msg.sender != escrow.receiver) revert Unauthorized();
+        if (escrow.state != EscrowState.Active) revert InvalidState();
         
-        escrow.status = EscrowStatus.Disputed;
+        escrow.state = EscrowState.Disputed;
         emit EscrowDisputed(escrowId, msg.sender);
     }
     
     /**
-     * @notice Withdraw accumulated platform fees
+     * @dev Resolve dispute (arbitrator only)
+     * @param escrowId ID of the escrow
+     * @param refund True = refund sender, False = pay receiver
      */
-    function withdrawFees() external {
-        require(msg.sender == platformFeeRecipient, "Not authorized");
+    function resolveDispute(uint256 escrowId, bool refund) external nonReentrant {
+        if (msg.sender != arbitrator) revert Unauthorized();
+        Escrow storage escrow = escrows[escrowId];
+        if (escrow.state != EscrowState.Disputed) revert InvalidState();
         
-        uint256 amount = accumulatedFees;
-        accumulatedFees = 0;
+        address recipient = refund ? escrow.sender : escrow.receiver;
+        escrow.state = refund ? EscrowState.Refunded : EscrowState.Released;
         
-        (bool success, ) = platformFeeRecipient.call{value: amount}("");
-        require(success, "Withdrawal failed");
+        if (!usdc.transfer(recipient, escrow.amount)) revert TransferFailed();
+        
+        emit DisputeResolved(escrowId, msg.sender, refund);
     }
     
     /**
-     * @notice Get escrow details
+     * @dev Change arbitrator (current arbitrator only)
+     * @param newArbitrator Address of new arbitrator
      */
-    function getEscrow(uint256 escrowId) external view returns (Escrow memory) {
-        return escrows[escrowId];
+    function setArbitrator(address newArbitrator) external {
+        if (msg.sender != arbitrator) revert Unauthorized();
+        if (newArbitrator == address(0)) revert InvalidReceiver();
+        
+        address oldArbitrator = arbitrator;
+        arbitrator = newArbitrator;
+        
+        emit ArbitratorChanged(oldArbitrator, newArbitrator);
+    }
+    
+    /**
+     * @dev Get escrow details (gas optimized view)
+     */
+    function getEscrow(uint256 escrowId) external view returns (
+        address sender,
+        address receiver,
+        uint256 amount,
+        uint256 createdAt,
+        uint256 deadline,
+        EscrowState state
+    ) {
+        Escrow memory escrow = escrows[escrowId];
+        return (
+            escrow.sender,
+            escrow.receiver,
+            escrow.amount,
+            escrow.createdAt,
+            escrow.deadline,
+            escrow.state
+        );
+    }
+    
+    /**
+     * @dev Check if escrow is ready for auto-release
+     * @param escrowId ID of the escrow
+     * @return ready True if auto-release can be called
+     */
+    function canAutoRelease(uint256 escrowId) external view returns (bool ready) {
+        Escrow memory escrow = escrows[escrowId];
+        return escrow.state == EscrowState.Active && 
+               block.timestamp >= escrow.deadline + INSPECTION_PERIOD;
+    }
+    
+    /**
+     * @dev Get multiple escrows (batch view for agents)
+     * @param escrowIds Array of escrow IDs
+     * @return states Array of escrow states
+     * @return amounts Array of escrow amounts
+     */
+    function getEscrowBatch(uint256[] calldata escrowIds) 
+        external 
+        view 
+        returns (
+            EscrowState[] memory states,
+            uint256[] memory amounts
+        ) 
+    {
+        uint256 length = escrowIds.length;
+        states = new EscrowState[](length);
+        amounts = new uint256[](length);
+        
+        for (uint256 i = 0; i < length; i++) {
+            Escrow memory escrow = escrows[escrowIds[i]];
+            states[i] = escrow.state;
+            amounts[i] = escrow.amount;
+        }
     }
 }
