@@ -117,7 +117,15 @@ if [[ -z "$BOX_NUMBER" ]]; then
   done
   
   if [[ -z "$BOX_NUMBER" ]]; then
-    echo "No available boxes in contest $CONTEST_ID" >&2
+    echo "No available boxes in contest $CONTEST_ID - checking OpenSea for secondary listings..." >&2
+    
+    # Try to find OpenSea listings
+    SCRIPT_DIR="$(dirname "$0")"
+    if [[ -x "$SCRIPT_DIR/check-opensea-listings.sh" ]]; then
+      "$SCRIPT_DIR/check-opensea-listings.sh" "$CONTEST_ID"
+    else
+      echo "OpenSea check script not found. Run check-opensea-listings.sh manually." >&2
+    fi
     exit 1
   fi
 else

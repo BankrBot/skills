@@ -1,6 +1,6 @@
 ---
 name: superbowl-squares
-description: Claim boxes in onchain Super Bowl Squares contests on Base. Use when user wants to play Super Bowl squares, claim a box in a contest, join a squares game, or participate in football betting pools. Automatically handles entry fee token lookup, approval, and box claiming via Bankr wallet.
+description: Claim boxes in onchain Super Bowl Squares contests on Base. Use when user wants to play Super Bowl squares, claim a box in a contest, join a squares game, or participate in football betting pools. Automatically handles entry fee token lookup, approval, and box claiming via Bankr wallet. If all boxes are sold out, checks OpenSea for secondary market listings.
 ---
 
 # Super Bowl Squares
@@ -8,6 +8,7 @@ description: Claim boxes in onchain Super Bowl Squares contests on Base. Use whe
 Claim boxes in onchain Super Bowl Squares contests on Base. The app is deployed at:
 - Squares Contract: `0x55d8F49307192e501d9813fC4d116a79f66cffae`
 - Boxes NFT: `0x7b02f27E6946b77F046468661bF0770C910d72Ef`
+- OpenSea Collection: `super-bowl-squares-onchain`
 
 ## Quick Start
 
@@ -20,6 +21,75 @@ Claim boxes in onchain Super Bowl Squares contests on Base. The app is deployed 
 
 # Or use full token ID directly
 ./scripts/claim-box.sh 74 7480
+
+# Check OpenSea for boxes if sold out
+./scripts/check-opensea-listings.sh 74
+```
+
+## Sold Out? Check OpenSea
+
+If all boxes are sold out, check OpenSea for secondary listings:
+
+```bash
+./scripts/check-opensea-listings.sh <contest_id>
+```
+
+This will:
+1. Query OpenSea for any listed boxes from the contest
+2. Show price in ETH and USD
+3. Show the box's grid position (row/col for score lookup)
+
+## ⚠️ IMPORTANT: Always Confirm Before Buying
+
+**Unless explicitly told to "buy all" or "grab them all", ALWAYS:**
+1. Show the available boxes with prices
+2. Ask the human if they want to buy
+3. Wait for confirmation before purchasing
+
+**Format when presenting listings:**
+> "There's a box available on OpenSea:
+> - **Box 46** (Row 4, Col 6) - 0.0001 ETH (~$0.20)
+> 
+> Do you want me to buy it?"
+
+For multiple boxes:
+> "Found 3 boxes available (all 0.0001 ETH / ~$0.20 each):
+> - Box 23 (Row 2, Col 3)
+> - Box 41 (Row 4, Col 1)  
+> - Box 96 (Row 9, Col 6)
+>
+> Which ones do you want? Or say 'grab them all' to buy everything."
+
+**Only auto-buy when human explicitly says:** "grab them all", "buy all", "get everything", etc.
+
+To buy via OpenSea, use the opensea skill's fulfill-listing workflow:
+1. Get the listing order hash from the check-opensea-listings output
+2. Use `opensea-fulfill-listing.sh base <order_hash> <buyer_wallet>` to get tx data
+3. Submit the transaction via Bankr
+
+### Understanding Box Numbers
+
+Each box is on a 10x10 grid. The box number (0-99) maps to:
+- **Row** = box_number / 10 (0-9) → corresponds to one team's score digit
+- **Col** = box_number % 10 (0-9) → corresponds to other team's score digit
+
+Example: Box 52 = Row 5, Col 2. If rows are "KC" and cols are "SF", this box wins when KC's last digit is 5 and SF's last digit is 2 (scores like 35-12, 15-22, etc.)
+
+The actual team assignments and random score mappings are revealed after the contest fills.
+
+### After Buying via OpenSea
+
+**Always call the cache-clear endpoint after a successful purchase:**
+
+```bash
+./scripts/notify-order-fulfilled.sh <order_hash> <contest_id> [chain_id]
+```
+
+This notifies the app to remove the listing from the UI so other users see updated availability.
+
+Example:
+```bash
+./scripts/notify-order-fulfilled.sh 0x6d89... 2 8453
 ```
 
 ## Box Numbering
