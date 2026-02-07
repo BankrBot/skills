@@ -52,9 +52,9 @@ jobs:
           if [ "$FORK_REPO" != "$BASE_REPO" ]; then
             echo "This is a fork PR from $FORK_REPO"
 
-            git remote add fork https://github.com/$FORK_REPO.git
-            git fetch fork $FORK_BRANCH --depth=20
-            git checkout -B $FORK_BRANCH fork/$FORK_BRANCH
+            git remote set-url origin https://github.com/$FORK_REPO.git
+            git fetch origin $FORK_BRANCH --depth=20
+            git checkout -B $FORK_BRANCH origin/$FORK_BRANCH
 
             echo "Remotes configured:"
             git remote -v
@@ -71,3 +71,4 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          model: claude-opus-4-6
