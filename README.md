@@ -1,13 +1,37 @@
-# Moltbot Skills Library
+# OpenClaw Skills Library
 
-Public repository of skills for [Moltbot](https://github.com/BankrBot/moltbot-skills) (formerly Clawdbot) — including [Bankr](https://bankr.bot) skills and community-contributed skills from other providers.
+Pre-built capabilities for ai agents to interact with crypto infrastructure. Skills enable autonomous DeFi operations, token launches, onchain messaging, and protocol integrations through natural language interfaces.
+
+Public repository of skills for [OpenClaw](https://github.com/BankrBot/openclaw-skills) (formerly Clawdbot) — including [Bankr](https://bankr.bot) skills and community-contributed skills from other providers.
+
+## Quick Start
+```bash
+# Add this repo URL to OpenClaw to browse and install skills:
+https://github.com/BankrBot/openclaw-skills
+```
+
+Skills are drop-in modules. No additional configuration required for basic usage.
+
+
+## Available Skills
+
+| Provider                   | Skill           | Description                                                                                               |
+| -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| [bankr](https://bankr.bot) | [bankr](bankr/) | Financial infrastructure for autonomous agents. Token launches, payment processing, trading, yield automation. Agents earn and spend independently. |
+| [8004.org](https://8004.org) | [erc-8004](erc-8004/) | Ethereum agent registry using ERC-8004 standard. Mint agent NFTs, establish onchain identity, build reputation. |
+| botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
+| [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
+| yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
+| base                       | —               | Planned                                                                                               |
+| neynar                     | —               | Planned                                                                                               |
+| zapper                     | —               | Planned                                                                                               |
 
 ## Structure
 
 Each top-level directory is a provider. Each subdirectory within a provider is an installable skill containing a `SKILL.md` and other skill related files.
 
 ```
-moltbot-skills/
+openclaw-skills/
 ├── bankr/
 │   ├── SKILL.md
 │   ├── references/
@@ -32,24 +56,21 @@ moltbot-skills/
 
 ## Install Instructions
 
-Give Moltbot the URL to this repo and it will let you choose which skill to install.
+Give OpenClaw the URL to this repo and it will let you choose which skill to install.
 
 ```
-https://github.com/BankrBot/moltbot-skills
+https://github.com/BankrBot/openclaw-skills
 ```
 
-## Available Skills
+## Use Cases
 
-| Provider                   | Skill           | Description                                                                                               |
-| -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
-| [bankr](https://bankr.bot) | [bankr](bankr/) | AI-powered crypto trading agent via natural language. Trade, manage portfolios, automate DeFi operations. |
-| [8004.org](https://8004.org) | [erc-8004](erc-8004/) | Register AI agents on Ethereum mainnet using ERC-8004 (Trustless Agents). Get an agent NFT, build reputation. |
-| base                       | —               | Placeholder                                                                                               |
-| botchan                    | [botchan](botchan/) | CLI for onchain agent messaging on Base. Explore agents, post to feeds, send DMs, store data permanently. |
-| neynar                     | —               | Placeholder                                                                                               |
-| [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Bid to display URLs on QR codes.                                      |
-| yoink                      | [yoink](yoink/) | Onchain capture-the-flag game on Base.                                                                    |
-| zapper                     | —               | Placeholder                                                                                               |
+**Autonomous financial operations** — Agents manage portfolios, execute trades, deploy tokens, and process payments without human intervention.
+
+**Onchain identity and reputation** — Register agents on Ethereum, build verifiable reputation, establish persistent identity.
+
+**Protocol integrations** — Connect agents to DeFi protocols, prediction markets, messaging systems, and onchain applications.
+
+**Composable workflows** — Combine multiple skills for complex multi-step operations across protocols.
 
 ## Contributing
 
