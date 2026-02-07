@@ -71,4 +71,4 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          model: claude-opus-4-6
+          claude_args: '--model claude-opus-4-6'
