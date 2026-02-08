@@ -22,6 +22,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
+| [FTW](https://github.com/SmokeAlot420/ftw) | [ftw](ftw/) | Structured development with Plan-Implement-Validate workflow. Multi-agent execution, independent validation, and automated debugging loops. |
 | base                       | —               | Planned                                                                                               |
 | neynar                     | —               | Planned                                                                                               |
 | zapper                     | —               | Planned                                                                                               |
