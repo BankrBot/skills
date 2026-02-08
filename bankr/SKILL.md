@@ -272,6 +272,20 @@ The `bankr.sh` wrapper handles this automatically. For details on the API struct
 
 **Reference**: [references/api-workflow.md](references/api-workflow.md)
 
+### Synchronous Endpoints
+
+For direct signing and transaction submission, Bankr also provides synchronous endpoints:
+
+- **POST /agent/sign** - Sign messages, typed data, or transactions without broadcasting
+- **POST /agent/submit** - Submit raw transactions directly to the blockchain
+
+These endpoints return immediately (no polling required) and are ideal for:
+- Authentication flows (sign messages)
+- Gasless approvals (sign EIP-712 permits)
+- Pre-built transactions (submit raw calldata)
+
+**Reference**: [references/sign-submit-api.md](references/sign-submit-api.md)
+
 ## Error Handling
 
 Common issues and fixes:
@@ -407,6 +421,47 @@ For comprehensive error troubleshooting, setup instructions, and debugging steps
 - "Submit this transaction: {to: 0x..., data: 0x..., value: 0, chainId: 8453}"
 - "Execute this calldata on Base: {...}"
 - "Send raw transaction with this JSON: {...}"
+
+### Sign API (Synchronous)
+
+Direct message signing without AI processing:
+
+```bash
+# Sign a plain text message
+curl -X POST "https://api.bankr.bot/agent/sign" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"signatureType": "personal_sign", "message": "Hello, Bankr!"}'
+
+# Sign EIP-712 typed data (permits, orders)
+curl -X POST "https://api.bankr.bot/agent/sign" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"signatureType": "eth_signTypedData_v4", "typedData": {...}}'
+
+# Sign a transaction without broadcasting
+curl -X POST "https://api.bankr.bot/agent/sign" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"signatureType": "eth_signTransaction", "transaction": {"to": "0x...", "chainId": 8453}}'
+```
+
+### Submit API (Synchronous)
+
+Direct transaction submission without AI processing:
+
+```bash
+# Submit a raw transaction
+curl -X POST "https://api.bankr.bot/agent/submit" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transaction": {"to": "0x...", "chainId": 8453, "value": "1000000000000000000"},
+    "waitForConfirmation": true
+  }'
+```
+
+**Reference**: [references/sign-submit-api.md](references/sign-submit-api.md)
 
 ## Resources
 
