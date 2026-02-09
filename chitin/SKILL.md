@@ -14,6 +14,7 @@ metadata:
       {
         "emoji": "🦀",
         "homepage": "https://chitin.id",
+        "github": "https://github.com/Tiida-Tech/chitin-contracts",
         "requires": { "bins": ["curl", "jq"] },
       },
   }
@@ -214,4 +215,5 @@ Contracts deployed on Base Sepolia for testing.
 - [vote.chitin.id](https://vote.chitin.id) — Governance voting
 - [Documentation](https://chitin.id/docs)
 - [MCP Server (npm)](https://www.npmjs.com/package/chitin-mcp-server)
+- [GitHub (Open Source)](https://github.com/Tiida-Tech/chitin-contracts) — MIT-licensed smart contracts
 - [Documentation](https://chitin.id/docs)
