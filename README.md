@@ -25,7 +25,7 @@ metamask-openclaw-skills/
 
 | Provider | Skill | Description |
 |----------|-------|-------------|
-| *Coming soon* | — | Skills will be added via community PRs |
+| clawdtalk | clawdtalk | Phone calling and SMS for OpenClaw. Call your AI agent from any phone with deep tool integration for calendar, Jira, web search, and more. Powered by Telnyx. |
 
 ## Installation
 
