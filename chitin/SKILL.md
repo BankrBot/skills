@@ -214,4 +214,4 @@ Contracts deployed on Base Sepolia for testing.
 - [vote.chitin.id](https://vote.chitin.id) — Governance voting
 - [Documentation](https://chitin.id/docs)
 - [MCP Server (npm)](https://www.npmjs.com/package/chitin-mcp-server)
-- [GitHub](https://github.com/EijiAC24/Chitin)
+- [Documentation](https://chitin.id/docs)
