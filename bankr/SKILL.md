@@ -96,6 +96,8 @@ bankr prompt "What is my balance?"
 | `bankr logout` | Clear stored credentials |
 | `bankr whoami` | Show current authentication info |
 | `bankr prompt <text>` | Send a prompt to the Bankr AI agent |
+| `bankr prompt --continue <text>` | Continue the most recent conversation thread |
+| `bankr prompt --thread <id> <text>` | Continue a specific conversation thread |
 | `bankr status <jobId>` | Check the status of a running job |
 | `bankr cancel <jobId>` | Cancel a running job |
 | `bankr skills` | Show all Bankr AI agent skills with examples |
@@ -152,6 +154,25 @@ bankr prompt
 # Or pipe input
 echo 'Buy $50 of ETH on Base' | bankr prompt
 ```
+
+### Conversation Threads
+
+Continue a multi-turn conversation with the agent:
+
+```bash
+# First prompt — starts a new thread automatically
+bankr prompt "What is the price of ETH?"
+# → Thread: thr_ABC123
+
+# Continue the conversation (agent remembers the ETH context)
+bankr prompt --continue "And what about BTC?"
+bankr prompt -c "Compare them"
+
+# Resume any thread by ID
+bankr prompt --thread thr_ABC123 "Show me ETH chart"
+```
+
+Thread IDs are automatically saved to config after each prompt. The `--continue` / `-c` flag reuses the last thread.
 
 ### Manual Job Control
 
@@ -438,9 +459,10 @@ bankr prompt "Compare ETH vs SOL"
 
 Bankr uses an asynchronous job-based API:
 
-1. **Submit** — Send prompt, get job ID
+1. **Submit** — Send prompt (with optional `threadId`), get job ID and thread ID
 2. **Poll** — Check status every 2 seconds
 3. **Complete** — Process results when done
+4. **Continue** — Reuse `threadId` for multi-turn conversations
 
 The `bankr prompt` command handles this automatically. For manual job control, use `bankr status <jobId>` and `bankr cancel <jobId>`.
 

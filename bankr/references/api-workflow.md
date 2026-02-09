@@ -52,14 +52,24 @@ curl -X POST "https://api.bankr.bot/agent/prompt" \
   -d '{"prompt": "What is my ETH balance?"}'
 ```
 
+**Continue a conversation:**
+```bash
+curl -X POST "https://api.bankr.bot/agent/prompt" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "And what about SOL?", "threadId": "thr_ABC123"}'
+```
+
 **Request Body:**
 - **prompt** (string, required): The prompt to send to the AI agent (max 10,000 characters)
+- **threadId** (string, optional): Continue an existing conversation thread. If omitted, a new thread is created.
 
 **Response (202 Accepted):**
 ```json
 {
   "success": true,
   "jobId": "job_abc123",
+  "threadId": "thr_XYZ789",
   "status": "pending",
   "message": "Job submitted successfully"
 }
@@ -89,6 +99,7 @@ curl -X GET "https://api.bankr.bot/agent/job/job_abc123" \
 {
   "success": true,
   "jobId": "job_abc123",
+  "threadId": "thr_XYZ789",
   "status": "completed",
   "prompt": "What is my ETH balance?",
   "response": "You have 0.5 ETH worth approximately $1,825.",
@@ -158,6 +169,7 @@ curl -X POST "https://api.bankr.bot/agent/job/job_abc123/cancel" \
 ### Standard Fields
 - **success**: Boolean, true if request succeeded
 - **jobId**: Unique job identifier
+- **threadId**: Conversation thread ID (reuse to continue the conversation)
 - **status**: Current job status (`pending`, `processing`, `completed`, `failed`, `cancelled`)
 - **prompt**: Original user prompt
 - **createdAt**: ISO 8601 timestamp
