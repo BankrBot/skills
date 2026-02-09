@@ -61,7 +61,7 @@ RESPONSE=$(curl -s -w "\n%{http_code}" \
   -d "$BODY")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-RESULT=$(echo "$RESPONSE" | head -n -1)
+RESULT=$(echo "$RESPONSE" | sed '$d')
 
 if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
   CLAIM_URL=$(echo "$RESULT" | jq -r '.claimUrl // .data.claimUrl // empty')

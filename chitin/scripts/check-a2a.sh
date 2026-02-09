@@ -20,7 +20,7 @@ RESPONSE=$(curl -s -w "\n%{http_code}" \
   "${API_URL}/api/v1/agents/${AGENT_NAME}/a2a-ready")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-RESULT=$(echo "$RESPONSE" | head -n -1)
+RESULT=$(echo "$RESPONSE" | sed '$d')
 
 if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
   A2A_READY=$(echo "$RESULT" | jq -r '.a2aReady // .data.a2aReady // false')
