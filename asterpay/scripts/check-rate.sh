@@ -4,6 +4,13 @@
 
 API_BASE="https://x402-api-production-ba87.up.railway.app"
 
+# Shared fallback function to avoid code duplication
+fetch_coingecko_rate() {
+  echo "Using CoinGecko fallback..."
+  FALLBACK=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=eur")
+  echo "$FALLBACK" | jq '.' 2>/dev/null || echo "$FALLBACK"
+}
+
 echo "Fetching EUR/USDC rate from AsterPay..."
 
 # Single curl call capturing both body and HTTP status
@@ -15,13 +22,11 @@ if [ "$HTTP_CODE" = "200" ] && [ -n "$RATE" ]; then
   echo "Current EUR/USDC Rate:"
   echo "$RATE" | jq '.' 2>/dev/null || echo "$RATE"
 elif [ "$HTTP_CODE" = "402" ]; then
-  echo "AsterPay API requires x402 payment. Using CoinGecko fallback..."
-  FALLBACK=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=eur")
-  echo "$FALLBACK" | jq '.' 2>/dev/null || echo "$FALLBACK"
+  echo "AsterPay API requires x402 payment."
+  fetch_coingecko_rate
 else
-  echo "AsterPay API unavailable (HTTP $HTTP_CODE). Using CoinGecko fallback..."
-  FALLBACK=$(curl -s "https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=eur")
-  echo "$FALLBACK" | jq '.' 2>/dev/null || echo "$FALLBACK"
+  echo "AsterPay API unavailable (HTTP $HTTP_CODE)."
+  fetch_coingecko_rate
 fi
 
 echo ""

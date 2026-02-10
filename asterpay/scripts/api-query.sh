@@ -35,7 +35,12 @@ fi
 
 URL="$API_BASE/api/$ENDPOINT"
 if [ -n "$SYMBOL" ]; then
-  URL="$URL?symbol=$SYMBOL"
+  # defi-analytics uses ?protocol= instead of ?symbol=
+  if [ "$ENDPOINT" = "defi-analytics" ]; then
+    URL="$URL?protocol=$SYMBOL"
+  else
+    URL="$URL?symbol=$SYMBOL"
+  fi
 fi
 
 echo "Querying AsterPay: $ENDPOINT ${SYMBOL:+($SYMBOL)}"

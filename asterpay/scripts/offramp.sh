@@ -16,13 +16,31 @@ if [ -z "$AMOUNT" ] || [ -z "$IBAN" ]; then
   echo "Usage: ./offramp.sh <amount_usdc> <iban>"
   echo ""
   echo "Parameters:"
-  echo "  amount_usdc  Amount of USDC to convert to EUR"
+  echo "  amount_usdc  Amount of USDC to convert to EUR (numeric, 1-100000)"
   echo "  iban         Recipient's European bank IBAN"
   echo ""
   echo "Example:"
   echo "  ./offramp.sh 100 DE89370400440532013000"
   echo "  -> Converts 100 USDC to EUR and sends to German bank account"
   exit 1
+fi
+
+# Validate amount is numeric to prevent prompt injection
+if ! echo "$AMOUNT" | grep -qE '^[0-9]+(\.[0-9]{1,2})?$'; then
+  echo "Error: Amount must be a numeric value (e.g., 100 or 99.50)"
+  exit 1
+fi
+
+# Validate amount range (1 USDC minimum, 100000 EUR SEPA Instant limit)
+if command -v bc &> /dev/null; then
+  if [ "$(echo "$AMOUNT < 1" | bc -l)" = "1" ]; then
+    echo "Error: Minimum amount is 1 USDC"
+    exit 1
+  fi
+  if [ "$(echo "$AMOUNT > 100000" | bc -l)" = "1" ]; then
+    echo "Error: Maximum amount is 100,000 USDC (SEPA Instant limit)"
+    exit 1
+  fi
 fi
 
 # Validate IBAN format (basic check)
