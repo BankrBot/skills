@@ -22,7 +22,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
-| base                       | —               | Planned                                                                                               |
+| [base](https://base.org)   | [base](base/)   | Smart contract development on Base. Deploy contracts, manage wallets, agent-to-agent payments. |
 | neynar                     | —               | Planned                                                                                               |
 | zapper                     | —               | Planned                                                                                               |
 
@@ -44,8 +44,13 @@ openclaw-skills/
 │   └── scripts/
 │       └── bankr.sh
 │
-├── base/                         # Base (placeholder)
-│   └── SKILL.md
+├── base/                         # Base
+│   ├── SKILL.md
+│   └── references/
+│       ├── cdp-setup.md
+│       ├── deployment.md
+│       ├── testing.md
+│       └── ...
 ├── neynar/                       # Neynar (placeholder)
 │   └── SKILL.md
 ├── qrcoin/                       # QR Coin (community)
