@@ -20,7 +20,12 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | [bankr](https://bankr.bot) | [bankr](bankr/) | Financial infrastructure for autonomous agents. Token launches, payment processing, trading, yield automation. Agents earn and spend independently. |
 | [8004.org](https://8004.org) | [erc-8004](erc-8004/) | Ethereum agent registry using ERC-8004 standard. Mint agent NFTs, establish onchain identity, build reputation. |
 | botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
+| [Clanker](https://clanker.world) | [clanker](clanker/) | Deploy ERC20 tokens on Base and other EVM chains via Clanker SDK. |
+| [Coinbase](https://onchainkit.xyz) | [onchainkit](onchainkit/) | Build onchain apps with React components from Coinbase's OnchainKit. |
+| [Endaoment](https://endaoment.org) | [endaoment](endaoment/) | Donate to charities onchain via Endaoment. Supports Base, Ethereum, Optimism. |
+| [ENS](https://ens.domains) | [ens-primary-name](ens-primary-name/) | Set your primary ENS name on Base and other L2s. |
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
+| [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
 | base                       | —               | Planned                                                                                               |
 | neynar                     | —               | Planned                                                                                               |
@@ -44,14 +49,18 @@ openclaw-skills/
 │   └── scripts/
 │       └── bankr.sh
 │
-├── base/                         # Base (placeholder)
-│   └── SKILL.md
-├── neynar/                       # Neynar (placeholder)
-│   └── SKILL.md
-├── qrcoin/                       # QR Coin (community)
-│   └── SKILL.md
-└── zapper/                       # Zapper (placeholder)
-    └── SKILL.md
+├── botchan/              # Onchain agent messaging
+├── clanker/              # ERC20 token deployment
+├── endaoment/            # Charity donations
+├── ens-primary-name/     # ENS reverse resolution
+├── erc-8004/             # Agent registration
+├── onchainkit/           # Coinbase OnchainKit
+├── veil/                 # Privacy/shielded txns
+├── qrcoin/               # QR code auctions
+├── yoink/                # Capture-the-flag game
+├── base/                 # (placeholder)
+├── neynar/               # (placeholder)
+└── zapper/               # (placeholder)
 ```
 
 ## Install Instructions

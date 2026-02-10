@@ -13,21 +13,19 @@ A primary name creates a bi-directional link:
 
 ## Requirements
 
-### Required: Transaction Signing
+### Required: Bankr CLI
 
-This skill requires a way to sign and submit transactions. It looks for the **bankr skill** which provides wallet functionality via the Bankr API.
+This skill requires the **Bankr CLI** for transaction signing:
 
-**If you don't have bankr installed:**
+```bash
+bun install -g @bankr/cli
+bankr login
+```
 
-1. Install from: https://github.com/BankrBot/openclaw-skills (bankr skill)
-2. Or modify the scripts to use your own transaction submission method
-
-The scripts call bankr.sh with a prompt like:
+The scripts use `bankr prompt` to submit transactions like:
 ```
 Submit this transaction: {"to": "0x...", "data": "0x...", "value": "0", "chainId": 8453}
 ```
-
-You can replace the `find_bankr()` function in each script with your own wallet/signer.
 
 ### Required: Node.js
 
@@ -112,27 +110,13 @@ Output:
 | "Transaction reverted" | Ensure the ENS name resolves to your address |
 | "Name not showing" | Forward resolution may not be set for that chain's cointype |
 | "Not authorized" | You must call from the address the name resolves to |
-| "bankr.sh not found" | Install bankr skill or modify scripts to use your signer |
+| "Bankr CLI not found" | Install with `bun install -g @bankr/cli && bankr login` |
 | "Chain-specific address not set" | Set the address for the target chain via app.ens.domains |
 | "Could not find resolver" | Ensure the ENS name exists and has a resolver set |
-
-## Customization
-
-### Using a Different Wallet/Signer
-
-Replace the `find_bankr()` function in the scripts:
-
-```bash
-# Example: use cast (foundry) instead
-send_tx() {
-  local to="$1" data="$2" chain_id="$3"
-  cast send "$to" --data "$data" --rpc-url "https://..." --private-key "$PRIVATE_KEY"
-}
-```
 
 ## Links
 
 - ENS Docs: https://docs.ens.domains/web/reverse
 - ENS App: https://app.ens.domains
 - Primary Names UI: https://primary.ens.domains
-- Bankr Skill: https://github.com/BankrBot/openclaw-skills
+- Bankr CLI: https://www.npmjs.com/package/@bankr/cli

@@ -5,6 +5,12 @@
 
 set -e
 
+# Require Bankr CLI
+if ! command -v bankr >/dev/null 2>&1; then
+  echo "Bankr CLI not found. Install with: bun install -g @bankr/cli" >&2
+  exit 1
+fi
+
 AMOUNT="${1:?Usage: bridge-to-mainnet.sh <amount-in-eth>}"
 
 echo "=== Bridging ETH to Mainnet ===" >&2
@@ -13,7 +19,7 @@ echo "From: Base" >&2
 echo "To: Ethereum Mainnet" >&2
 
 # Use Bankr to bridge
-RESULT=$(~/clawd/skills/bankr/scripts/bankr.sh "Bridge $AMOUNT ETH from Base to Ethereum mainnet" 2>/dev/null)
+RESULT=$(bankr prompt "Bridge $AMOUNT ETH from Base to Ethereum mainnet" 2>/dev/null)
 
 if echo "$RESULT" | grep -qi "success\|bridge\|complete\|transaction"; then
   echo "=== SUCCESS ===" >&2

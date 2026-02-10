@@ -10,36 +10,14 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENS_NAME="${1:?Usage: set-avatar.sh <ens-name> <avatar-url>}"
 AVATAR_URL="${2:?Usage: set-avatar.sh <ens-name> <avatar-url>}"
 
-# Find bankr.sh in common locations
-# Bankr provides wallet/signing via the Bankr API
-# If you don't have bankr, modify this function to use your own signer
-find_bankr() {
-  local locations=(
-    "$SCRIPT_DIR/../../bankr/scripts/bankr.sh"
-    "$SCRIPT_DIR/../../moltbot-skills/bankr/scripts/bankr.sh"
-    "$(command -v bankr.sh 2>/dev/null)"
-  )
-  for loc in "${locations[@]}"; do
-    if [ -x "$loc" ]; then
-      echo "$loc"
-      return 0
-    fi
-  done
-  echo "ERROR: bankr.sh not found." >&2
-  echo "" >&2
-  echo "This skill requires a transaction signer. Options:" >&2
-  echo "1. Install the bankr skill from https://github.com/BankrBot/openclaw-skills" >&2
-  echo "2. Modify find_bankr() in this script to use your own wallet/signer" >&2
-  echo "" >&2
-  echo "The script needs to submit: {to, data, value, chainId} transactions" >&2
+# Require Bankr CLI
+if ! command -v bankr >/dev/null 2>&1; then
+  echo "Bankr CLI not found. Install with: bun install -g @bankr/cli" >&2
   exit 1
-}
-
-BANKR_SH=$(find_bankr)
+fi
 
 # Avatars are text records stored on L1
 RPC_URL="https://eth.publicnode.com"
@@ -107,7 +85,7 @@ echo "Submitting to resolver on Ethereum mainnet..." >&2
 echo "⚠️  Note: This requires ETH on mainnet for gas" >&2
 
 # Submit transaction via Bankr
-RESULT=$("$BANKR_SH" "Submit this transaction: {\"to\": \"$RESOLVER\", \"data\": \"$CALLDATA\", \"value\": \"0\", \"chainId\": $CHAIN_ID}" 2>/dev/null)
+RESULT=$(bankr prompt "Submit this transaction: {\"to\": \"$RESOLVER\", \"data\": \"$CALLDATA\", \"value\": \"0\", \"chainId\": $CHAIN_ID}" 2>/dev/null)
 
 if echo "$RESULT" | grep -q "$EXPLORER"; then
   TX_HASH=$(echo "$RESULT" | grep -oE "$EXPLORER/tx/0x[a-fA-F0-9]{64}" | grep -oE '0x[a-fA-F0-9]{64}')

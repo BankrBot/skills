@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Minimal wrapper: submit a prompt to Bankr Agent API and return final response JSON.
+# Submit a prompt to Bankr and return the response.
+# Delegates to the Bankr CLI when available, falls back to curl.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/_common.sh"
 
-need_bankr_config
+need_bankr
 
 PROMPT="$*"
 if [[ -z "$PROMPT" ]]; then
@@ -13,6 +14,12 @@ if [[ -z "$PROMPT" ]]; then
   exit 1
 fi
 
+# CLI path (preferred) — need_bankr already verified one of these is available
+if command -v bankr >/dev/null 2>&1; then
+  exec bankr prompt "$PROMPT"
+fi
+
+# Curl fallback — config file was validated by need_bankr
 API_KEY=$(jq -r '.apiKey // empty' "$BANKR_CONFIG")
 API_URL=$(jq -r '.apiUrl // "https://api.bankr.bot"' "$BANKR_CONFIG")
 

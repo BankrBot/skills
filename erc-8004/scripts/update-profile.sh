@@ -5,6 +5,12 @@
 
 set -e
 
+# Require Bankr CLI
+if ! command -v bankr >/dev/null 2>&1; then
+  echo "Bankr CLI not found. Install with: bun install -g @bankr/cli" >&2
+  exit 1
+fi
+
 AGENT_ID="${1:?Usage: update-profile.sh <agent-id> <new-ipfs-uri> [--testnet]}"
 NEW_URI="${2:?Usage: update-profile.sh <agent-id> <new-ipfs-uri> [--testnet]}"
 
@@ -55,7 +61,7 @@ console.log(selector + id + offset + len + data);
 echo "Calldata: $CALLDATA" >&2
 
 # Submit via Bankr
-RESULT=$(~/clawd/skills/bankr/scripts/bankr.sh "Submit this transaction on $CHAIN: {\"to\": \"$IDENTITY_REGISTRY\", \"data\": \"$CALLDATA\", \"value\": \"0\", \"chainId\": $CHAIN_ID}" 2>/dev/null)
+RESULT=$(bankr prompt "Submit this transaction on $CHAIN: {\"to\": \"$IDENTITY_REGISTRY\", \"data\": \"$CALLDATA\", \"value\": \"0\", \"chainId\": $CHAIN_ID}" 2>/dev/null)
 
 if echo "$RESULT" | grep -qE "$EXPLORER/tx/0x[a-fA-F0-9]{64}"; then
   TX_HASH=$(echo "$RESULT" | grep -oE "$EXPLORER/tx/0x[a-fA-F0-9]{64}" | grep -oE '0x[a-fA-F0-9]{64}' | head -1)
