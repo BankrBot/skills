@@ -46,8 +46,8 @@ if [ "$AMOUNT_INT" -gt 110000 ]; then
   exit 1
 fi
 
-# Validate IBAN format (basic check)
-if [[ ! "$IBAN" =~ ^[A-Z]{2}[0-9]{2}[A-Z0-9]{4,30}$ ]]; then
+# Validate IBAN format (ISO 13616: 2-letter country + 2 check digits + 11-30 BBAN chars)
+if [[ ! "$IBAN" =~ ^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$ ]]; then
   echo "Error: Invalid IBAN format"
   echo "IBAN must start with 2-letter country code followed by check digits"
   exit 1
