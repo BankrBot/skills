@@ -13,6 +13,14 @@ if [ -z "$TXID" ]; then
   exit 1
 fi
 
+# Validate TXID format: alphanumeric, hyphens, underscores only (max 128 chars)
+# Prevents URL path manipulation via metacharacters (../ ? # etc.)
+if ! echo "$TXID" | grep -qE '^[a-zA-Z0-9_-]{1,128}$'; then
+  echo "Error: Invalid transaction ID format."
+  echo "Transaction IDs contain only alphanumeric characters, hyphens, and underscores."
+  exit 1
+fi
+
 echo "Checking settlement status..."
 echo "Transaction: $TXID"
 echo ""
