@@ -32,8 +32,9 @@ if ! echo "$AMOUNT" | grep -qE '^[0-9]{1,6}(\.[0-9]{1,2})?$'; then
   exit 1
 fi
 
-# Strip decimal part for range check (conservative: 99.50 -> 99)
+# Split amount into integer and decimal parts for range checks
 AMOUNT_INT=$(echo "$AMOUNT" | grep -oE '^[0-9]+')
+AMOUNT_DEC=$(echo "$AMOUNT" | grep -oE '\.[0-9]+$' || echo "")
 
 if [ "$AMOUNT_INT" -lt 1 ]; then
   echo "Error: Minimum amount is 1 USDC"
@@ -41,7 +42,12 @@ if [ "$AMOUNT_INT" -lt 1 ]; then
 fi
 
 # SEPA Instant limit is EUR 100,000. At ~1.05-1.10 USD/EUR, that's ~110,000 USDC max.
+# Check integer part strictly: reject if over 110000, or if exactly 110000 with decimals
 if [ "$AMOUNT_INT" -gt 110000 ]; then
+  echo "Error: Maximum amount is ~110,000 USDC (SEPA Instant limit of EUR 100,000)"
+  exit 1
+fi
+if [ "$AMOUNT_INT" -eq 110000 ] && [ -n "$AMOUNT_DEC" ] && [ "$AMOUNT_DEC" != ".00" ] && [ "$AMOUNT_DEC" != ".0" ]; then
   echo "Error: Maximum amount is ~110,000 USDC (SEPA Instant limit of EUR 100,000)"
   exit 1
 fi
