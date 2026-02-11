@@ -47,7 +47,14 @@ function parseArgs() {
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--min-tvl') options.minTvl = parseFloat(args[i + 1]);
         if (args[i] === '--limit') options.limit = parseInt(args[i + 1]);
-        if (args[i] === '--offset') options.offset = parseInt(args[i + 1]);
+        if (args[i] === '--offset') {
+            const val = parseInt(args[i + 1]);
+            if (isNaN(val)) {
+                console.error('Error: --offset must be a number');
+                process.exit(1);
+            }
+            options.offset = val;
+        }
     }
     return options;
 }
@@ -67,7 +74,7 @@ async function main() {
         console.error(`Connecting to Base via ${RPC_URL}...`);
 
         // Fetch pools from Sugar contract
-        const fetchLimit = 300; // Fetch more to filter down
+        const fetchLimit = 500; // Safe upper bound for contract call (300+ pools currently)
         const pools = await client.readContract({
             address: SUGAR_ADDRESS,
             abi: SUGAR_ABI,
@@ -129,6 +136,11 @@ async function main() {
             const staked1USD = getVal(t1, pool.staked1);
             const stakedTVL = staked0USD + staked1USD;
 
+            // Skip pools with unknown tokens (where one side returns 0)
+            if (staked0USD === 0 || staked1USD === 0) {
+                return null;
+            }
+
             // APR is based on STAKED liquidity only
             let apr = 0;
             if (stakedTVL > 0) {
@@ -143,7 +155,7 @@ async function main() {
                 emissionsPerYear: emissionsPerYear,
                 type: Number(pool.type) === 0 ? 'Stable' : (Number(pool.type) === -1 ? 'Volatile' : 'Concentrated')
             };
-        });
+        }).filter(p => p !== null);
 
         // Filter and Sort
         const filtered = processedPools
