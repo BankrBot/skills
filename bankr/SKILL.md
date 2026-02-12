@@ -430,6 +430,27 @@ For full model list, provider config JSON shape, SDK examples (Python, TypeScrip
 | Solana   | SOL          | High-speed trading            | Minimal  |
 | Unichain | ETH          | Newer L2 option               | Very Low |
 
+## Safety & Access Control
+
+**Dedicated Agent Wallet**: When building autonomous agents, create a separate Bankr account rather than using your personal wallet. This isolates agent funds — if a key is compromised, only the agent wallet is exposed. Fund it with limited amounts and replenish as needed.
+
+**API Key Types**: Bankr uses a single key format (`bk_...`) with capability flags (`agentApiEnabled`, `llmGatewayEnabled`). You can optionally configure a separate LLM Gateway key via `bankr config set llmKey` or `BANKR_LLM_KEY` — useful when you want independent revocation or different permissions for agent vs LLM access.
+
+**Read-Only API Keys**: Keys with `readOnly: true` filter all write tools (swaps, transfers, staking, token launches, etc.) from agent sessions. The `/agent/sign` and `/agent/submit` endpoints return 403. Ideal for monitoring bots and research agents.
+
+**IP Whitelisting**: Set `allowedIps` on your API key to restrict usage to specific IPs. Requests from non-whitelisted IPs are rejected with 403 at the auth layer.
+
+**Rate Limits**: 100 messages/day (standard), 1,000/day (Bankr Club), or custom per key. Resets 24h from first message (rolling window). LLM Gateway uses a credit-based system.
+
+**Key safety rules:**
+- Store keys in environment variables (`BANKR_API_KEY`, `BANKR_LLM_KEY`), never in source code
+- Add `~/.bankr/` and `.env` to `.gitignore` — the CLI stores credentials in `~/.bankr/config.json`
+- Test with small amounts on low-cost chains (Base, Polygon) before production use
+- Use `waitForConfirmation: true` with `/agent/submit` — transactions execute immediately with no confirmation prompt
+- Rotate keys periodically and revoke immediately if compromised at [bankr.bot/api](https://bankr.bot/api)
+
+**Reference**: [references/safety.md](references/safety.md)
+
 ## Common Patterns
 
 ### Check Before Trading
@@ -531,11 +552,15 @@ For comprehensive error troubleshooting, setup instructions, and debugging steps
 
 ### Security
 
-1. Never share your API key
-2. Start with small test amounts
-3. Verify addresses before large transfers
-4. Use stop losses for leverage trading
-5. Double-check transaction details
+1. Never share your API key or LLM key
+2. Use a dedicated agent wallet with limited funds for autonomous agents
+3. Use read-only API keys for monitoring and research-only agents
+4. Set IP whitelisting for server-side agents with known IPs
+5. Verify addresses before large transfers
+6. Use stop losses for leverage trading
+7. Store keys in environment variables, not source code — add `~/.bankr/` to `.gitignore`
+
+See [references/safety.md](references/safety.md) for comprehensive safety guidance.
 
 ### Trading
 
