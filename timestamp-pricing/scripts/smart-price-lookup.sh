@@ -13,7 +13,7 @@ if [[ "$TIMESTAMP" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
     EPOCH=$(date -d "$TIMESTAMP" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$TIMESTAMP" +%s 2>/dev/null)
   else
     # Full datetime format
-    EPOCH=$(date -d "$TIMESTAMP" +%s 2>/dev/null || date -j -f "%Y-%m-%d %H:%M:%S" "$TIMESTAMP" +%s 2>/dev/null)
+    EPOCH=$(date -d "$TIMESTAMP" +%s 2>/dev/null || date -j -f "%Y-%m-%d" "$TIMESTAMP" +%s 2>/dev/null)
   fi
 elif [[ "$TIMESTAMP" =~ ^[0-9]{10}$ ]]; then
   # Already Unix timestamp
