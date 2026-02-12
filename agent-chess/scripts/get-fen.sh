@@ -35,8 +35,8 @@ index_to_square() {
 # Decode move
 decode_move() {
   local move=$1
-  local from=$((move & 63))
-  local to=$(((move >> 6) & 63))
+  local to=$((move & 63))
+  local from=$(((move >> 6) & 63))
   local promo=$(((move >> 12) & 15))
   
   local from_sq=$(index_to_square $from)
