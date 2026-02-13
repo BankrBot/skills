@@ -1,0 +1,13 @@
+# Config with private data
+config.json
+
+# Logs
+*.log
+
+# OpenClaw metadata
+.clawhub/
+_meta.json
+
+# System files
+.DS_Store
+Thumbs.db
