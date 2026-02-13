@@ -18,6 +18,11 @@ for GOTCHI_ID in $GOTCHI_IDS; do
   # Check cooldown status (check-cooldown.sh already outputs error:0:0 on failure)
   STATUS=$("$CHECK_SCRIPT" "$GOTCHI_ID" 2>/dev/null || true)
   
+  # Handle silent failures (empty STATUS)
+  if [ -z "$STATUS" ]; then
+    STATUS="error:0:0"
+  fi
+  
   STATE=$(echo "$STATUS" | cut -d: -f1)
   TIME_LEFT=$(echo "$STATUS" | cut -d: -f2)
   LAST_PET=$(echo "$STATUS" | cut -d: -f3)
