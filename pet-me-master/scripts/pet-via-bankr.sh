@@ -9,7 +9,7 @@ CONTRACT=$(jq -r ".contractAddress" "$CONFIG_FILE")
 CHAIN_ID=$(jq -r ".chainId" "$CONFIG_FILE")
 GOTCHI_ID="${1:-$(jq -r ".gotchiIds[0]" "$CONFIG_FILE")}"
 
-if [ -z "$GOTCHI_ID" ]; then
+if [ -z "$GOTCHI_ID" ] || [ "$GOTCHI_ID" = "null" ]; then
   echo "Error: No gotchi ID provided"
   exit 1
 fi

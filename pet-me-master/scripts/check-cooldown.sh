@@ -10,8 +10,9 @@ CONTRACT=$(jq -r ".contractAddress" "$CONFIG_FILE")
 RPC_URL=$(jq -r ".rpcUrl" "$CONFIG_FILE")
 GOTCHI_ID="${1:-$(jq -r ".gotchiIds[0]" "$CONFIG_FILE")}"
 
-if [ -z "$GOTCHI_ID" ]; then
-  echo "Error: No gotchi ID provided"
+if [ -z "$GOTCHI_ID" ] || [ "$GOTCHI_ID" = "null" ]; then
+  echo "error:0:0"
+  echo "Error: No gotchi ID provided" >&2
   exit 1
 fi
 
@@ -19,7 +20,8 @@ fi
 DATA=$(cast call "$CONTRACT" "getAavegotchi(uint256)" "$GOTCHI_ID" --rpc-url "$RPC_URL" 2>/dev/null)
 
 if [ -z "$DATA" ]; then
-  echo "Error: Failed to query gotchi #$GOTCHI_ID"
+  echo "error:0:0"
+  echo "Error: Failed to query gotchi #$GOTCHI_ID" >&2
   exit 1
 fi
 
@@ -27,7 +29,8 @@ fi
 LAST_PET_HEX=${DATA:2498:64}
 
 if [ -z "$LAST_PET_HEX" ] || [ "$LAST_PET_HEX" = "0000000000000000000000000000000000000000000000000000000000000000" ]; then
-  echo "Error: Invalid last pet timestamp for gotchi #$GOTCHI_ID"
+  echo "error:0:0"
+  echo "Error: Invalid last pet timestamp for gotchi #$GOTCHI_ID" >&2
   exit 1
 fi
 

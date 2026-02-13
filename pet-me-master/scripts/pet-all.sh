@@ -59,10 +59,13 @@ READY_COUNT=${#READY_IDS[@]}
 WAITING_COUNT=${#WAITING_IDS[@]}
 ERROR_COUNT=${#ERROR_IDS[@]}
 
+# Count total gotchis
+TOTAL_COUNT=$((READY_COUNT + WAITING_COUNT + ERROR_COUNT))
+
 # Handle errors
 if [ $ERROR_COUNT -gt 0 ]; then
   echo "⚠️ Warning: Failed to check ${ERROR_COUNT} gotchi(s)"
-  if [ $ERROR_COUNT -eq ${#GOTCHI_IDS[@]} ]; then
+  if [ $ERROR_COUNT -eq $TOTAL_COUNT ]; then
     echo "❌ All cooldown checks failed. Please verify:"
     echo "  - RPC connection (${RPC_URL})"
     echo "  - Gotchi IDs are valid"

@@ -10,7 +10,7 @@ CONFIG_FILE="$SKILL_DIR/config.json"
 
 GOTCHI_ID="${1:-$(jq -r ".gotchiIds[0]" "$CONFIG_FILE")}"
 
-if [ -z "$GOTCHI_ID" ]; then
+if [ -z "$GOTCHI_ID" ] || [ "$GOTCHI_ID" = "null" ]; then
   echo "❌ Error: No gotchi ID provided"
   exit 1
 fi
