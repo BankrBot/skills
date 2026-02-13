@@ -16,7 +16,7 @@ Fetch data for a gotchi by ID or name:
 cd scripts && node get-gotchi.js 9638  # aaigotchi
 
 # By name
-cd scripts && node get-gotchi.js "XIBOT"
+cd scripts && node get-gotchi.js "aaigotchi"
 ```
 
 The script outputs:

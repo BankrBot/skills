@@ -36,7 +36,7 @@ Aavegotchi migrated from Polygon to Base in July 2025. If you're looking for his
 - ✅ 100% reliable
 - ✅ Works for all gotchis
 
-**Name search** (e.g., "XIBOT", "SHAAMAAN") is experimental:
+**Name search** (e.g., "aaigotchi", "Slide") is experimental:
 - ⏱️ Slow (30-60 seconds to scan 23,000+ gotchis)
 - 🔄 Requires subgraph or on-chain scan
 - ⚠️ Not yet reliable (encoding issues, special characters)
