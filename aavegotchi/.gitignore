@@ -1,0 +1,11 @@
+# NEVER commit these!
+config.json
+*.log
+*.key
+.env
+secrets/
+*.gpg
+
+# OpenClaw metadata (do not commit)
+.clawhub/
+_meta.json
