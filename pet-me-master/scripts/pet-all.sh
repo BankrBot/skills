@@ -11,6 +11,7 @@ BANKR_SCRIPT="$HOME/.openclaw/skills/bankr/scripts/bankr.sh"
 # Load config
 CONTRACT=$(jq -r ".contractAddress" "$CONFIG_FILE")
 CHAIN_ID=$(jq -r ".chainId" "$CONFIG_FILE")
+RPC_URL=$(jq -r ".rpcUrl" "$CONFIG_FILE")
 GOTCHI_IDS=$(jq -r ".gotchiIds[]" "$CONFIG_FILE")
 
 if [ -z "$GOTCHI_IDS" ]; then
@@ -28,6 +29,7 @@ echo ""
 
 READY_IDS=()
 WAITING_IDS=()
+ERROR_IDS=()
 
 # Check each gotchi
 for GOTCHI_ID in $GOTCHI_IDS; do
@@ -45,7 +47,8 @@ for GOTCHI_ID in $GOTCHI_IDS; do
     echo "  ⏰ #${GOTCHI_ID} wait ${HOURS_LEFT}h ${MINS_LEFT}m"
     WAITING_IDS+=("$GOTCHI_ID")
   else
-    echo "  ❌ #${GOTCHI_ID} error"
+    echo "  ❌ #${GOTCHI_ID} error checking status"
+    ERROR_IDS+=("$GOTCHI_ID")
   fi
 done
 
@@ -54,14 +57,36 @@ echo ""
 # Check results
 READY_COUNT=${#READY_IDS[@]}
 WAITING_COUNT=${#WAITING_IDS[@]}
+ERROR_COUNT=${#ERROR_IDS[@]}
 
+# Handle errors
+if [ $ERROR_COUNT -gt 0 ]; then
+  echo "⚠️ Warning: Failed to check ${ERROR_COUNT} gotchi(s)"
+  if [ $ERROR_COUNT -eq ${#GOTCHI_IDS[@]} ]; then
+    echo "❌ All cooldown checks failed. Please verify:"
+    echo "  - RPC connection (${RPC_URL})"
+    echo "  - Gotchi IDs are valid"
+    echo "  - Foundry cast is installed"
+    exit 1
+  fi
+fi
+
+# No ready gotchis
 if [ $READY_COUNT -eq 0 ]; then
-  echo "⏰ No gotchis ready to pet yet!"
-  echo "All are still on cooldown. Check back later! 👻💜"
+  if [ $WAITING_COUNT -gt 0 ]; then
+    echo "⏰ No gotchis ready to pet yet!"
+    echo "All are still on cooldown. Check back later! 👻💜"
+  else
+    echo "❌ No valid gotchis to check"
+  fi
   exit 0
 fi
 
-echo "📝 Summary: ${READY_COUNT} ready, ${WAITING_COUNT} waiting"
+if [ $ERROR_COUNT -gt 0 ]; then
+  echo "📝 Summary: ${READY_COUNT} ready, ${WAITING_COUNT} waiting, ${ERROR_COUNT} errors"
+else
+  echo "📝 Summary: ${READY_COUNT} ready, ${WAITING_COUNT} waiting"
+fi
 echo ""
 
 # Build batch calldata
@@ -109,4 +134,7 @@ echo "✅ Batch pet complete!"
 echo "Petted: ${READY_COUNT} gotchis"
 if [ $WAITING_COUNT -gt 0 ]; then
   echo "Skipped: ${WAITING_COUNT} (still on cooldown)"
+fi
+if [ $ERROR_COUNT -gt 0 ]; then
+  echo "Errors: ${ERROR_COUNT} (failed to check status)"
 fi
