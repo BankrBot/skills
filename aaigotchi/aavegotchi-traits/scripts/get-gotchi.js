@@ -33,6 +33,12 @@ const AAVEGOTCHI_ABI = [
   'function tokenByIndex(uint256 _index) view returns (uint256)'
 ];
 
+// ERC20 ABI for querying token decimals
+const ERC20_ABI = [
+  'function decimals() view returns (uint8)',
+  'function symbol() view returns (string)'
+];
+
 // Trait names for numericTraits array
 const TRAIT_NAMES = [
   'Energy',
@@ -54,7 +60,7 @@ const TRAIT_EMOJIS = {
 };
 
 /**
- * Query The Graph subgraph for gotchi by name (instant)
+ * Query The Graph subgraph for gotchi by name (instant, case-insensitive)
  * Returns gotchi ID if found, null otherwise
  */
 async function querySubgraphByName(name) {
@@ -62,9 +68,12 @@ async function querySubgraphByName(name) {
     return null; // No subgraph configured
   }
 
+  // Use lowercase for case-insensitive search
+  const nameLower = name.toLowerCase();
+  
   const query = `
     query GetGotchiByName($name: String!) {
-      aavegotchis(where: { name: $name }, first: 1) {
+      aavegotchis(where: { name_contains_nocase: $name }, first: 1) {
         id
         tokenId: id
         name
@@ -73,13 +82,13 @@ async function querySubgraphByName(name) {
   `;
 
   try {
-    console.log(`Querying subgraph for "${name}"...`);
+    console.log(`Querying subgraph for "${name}" (case-insensitive)...`);
     const response = await fetch(SUBGRAPH_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query,
-        variables: { name }
+        variables: { name: nameLower }
       })
     });
 
@@ -104,7 +113,7 @@ async function querySubgraphByName(name) {
 }
 
 async function searchGotchiByName(contract, searchName) {
-  console.log(`Searching for Gotchi with name: "${searchName}"...`);
+  console.log(`Searching for Gotchi with name: "${searchName}" (case-insensitive)...`);
   
   try {
     // Get total supply
@@ -138,11 +147,11 @@ async function searchGotchiByName(contract, searchName) {
         console.log(`Progress: ${checked}/${total} (${Math.round(checked/total*100)}%)`);
       }
       
-      // Check for name match
+      // Check for name match (case-insensitive)
       for (const gotchi of results) {
         if (gotchi && gotchi.name && gotchi.name.toLowerCase() === searchLower) {
-          console.log(`\nFound! Gotchi ID: ${gotchi.tokenId}\n`);
-          return gotchi.tokenId.toString();
+          console.log(`\nFound! Gotchi #${gotchi.tokenId}: ${gotchi.name}\n`);
+          return gotchi; // Return full gotchi object to avoid redundant RPC call
         }
       }
     }
@@ -155,12 +164,27 @@ async function searchGotchiByName(contract, searchName) {
   }
 }
 
+/**
+ * Get token decimals from collateral contract
+ */
+async function getTokenDecimals(provider, tokenAddress) {
+  try {
+    const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
+    const decimals = await tokenContract.decimals();
+    return Number(decimals);
+  } catch (error) {
+    console.log(`Warning: Could not fetch decimals for ${tokenAddress}, assuming 18`);
+    return 18; // Default fallback
+  }
+}
+
 async function getGotchiInfo(identifier) {
   try {
     const provider = new ethers.JsonRpcProvider(BASE_RPC);
     const contract = new ethers.Contract(AAVEGOTCHI_CONTRACT, AAVEGOTCHI_ABI, provider);
 
-    let tokenId;
+    let gotchi = null;
+    let tokenId = null;
     
     // Check if identifier is a number (gotchi ID)
     if (/^\d+$/.test(identifier)) {
@@ -171,16 +195,23 @@ async function getGotchiInfo(identifier) {
       
       if (!tokenId) {
         console.log('Subgraph not available or gotchi not found. Falling back to on-chain search...');
-        tokenId = await searchGotchiByName(contract, identifier);
-      }
-      
-      if (!tokenId) {
-        process.exit(1);
+        gotchi = await searchGotchiByName(contract, identifier);
+        
+        if (!gotchi) {
+          process.exit(1);
+        }
+        // gotchi is already the full object, no need to fetch again
       }
     }
 
-    // Fetch gotchi data
-    const gotchi = await contract.getAavegotchi(tokenId);
+    // Fetch gotchi data only if we don't have it yet
+    if (!gotchi) {
+      gotchi = await contract.getAavegotchi(tokenId);
+    }
+    
+    // Query actual token decimals for correct formatting
+    const tokenDecimals = await getTokenDecimals(provider, gotchi.collateral);
+    const stakedAmountFormatted = ethers.formatUnits(gotchi.stakedAmount, tokenDecimals);
     
     // Parse the response
     const data = {
@@ -198,7 +229,7 @@ async function getGotchiInfo(identifier) {
       modifiedTraits: {},
       equippedWearables: [],
       collateral: gotchi.collateral,
-      stakedAmount: ethers.formatEther(gotchi.stakedAmount),
+      stakedAmount: stakedAmountFormatted,
       lastInteracted: new Date(Number(gotchi.lastInteracted) * 1000).toISOString(),
       age: Math.floor((Date.now() / 1000 - Number(gotchi.lastInteracted)) / 86400) // Days since last interaction
     };
