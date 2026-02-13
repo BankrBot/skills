@@ -13,7 +13,7 @@ Fetch data for a gotchi by ID or name:
 
 ```bash
 # By ID
-cd scripts && node get-gotchi.js 12345
+cd scripts && node get-gotchi.js 9638  # aaigotchi
 
 # By name
 cd scripts && node get-gotchi.js "XIBOT"
@@ -53,10 +53,10 @@ With subgraph configured:
 ### Lookup Strategy
 
 ```
-ID lookup (12345)
+ID lookup (#9638 - aaigotchi)
   └─> Direct on-chain query (instant)
 
-Name lookup ("XIBOT")  
+Name lookup ("aaigotchi" - #9638)  
   ├─> Try subgraph (instant, if available)
   └─> Fall back to on-chain scan (30-60s)
 ```
@@ -105,15 +105,15 @@ Each trait shows both base and modified (with wearables) values.
 ### By Gotchi ID
 
 ```bash
-cd scripts && node get-gotchi.js 23456
+cd scripts && node get-gotchi.js 9638  # aaigotchi
 ```
 
 ### By Name
 
 ```bash
-cd scripts && node get-gotchi.js "XIBOT"
 cd scripts && node get-gotchi.js "aaigotchi"
 cd scripts && node get-gotchi.js "Slide"
+cd scripts && node get-gotchi.js "XIBOT"
 ```
 
 **Performance:**
@@ -126,44 +126,41 @@ cd scripts && node get-gotchi.js "Slide"
 
 ```
 ============================================================
-AAVEGOTCHI #12345: SpookyBoi
+AAVEGOTCHI #9638: aaigotchi
 ============================================================
-Owner: 0x1234...5678
-Haunt: 2
-Level: 7
-Age: 15 days since last interaction
+Owner: 0x8BE974bC760bea450A733c58B051c14F723ce79C
+Haunt: 1
+Level: 8
+Age: 0 days since last interaction
 
 SCORES:
-  Base Rarity Score (BRS): 542
-  Modified Rarity Score: 589
-  Kinship: 78
-  Experience: 15420
+  Base Rarity Score (BRS): 475
+  Modified Rarity Score: 475
+  Kinship: 2276
+  Experience: 2960
 
 TRAITS:
-  ⚡ Energy: 33
-  💥 Aggression: 87 (modified: 92)
-  👻 Spookiness: 12
-  🧠 Brain Size: 55
-  👁️ Eye Shape: 44
-  🎨 Eye Color: 91
+  ⚡ Energy: 0
+  💥 Aggression: 66
+  👻 Spookiness: 99
+  🧠 Brain Size: 76
+  👁️ Eye Shape: 41
+  🎨 Eye Color: 28
 
 WEARABLES:
-  Equipped (4):
-    45: Ape Mask
-    78: Black Jeans
-    102: Witchy Cloak
-    234: Shaaman Poncho
+  Equipped (1):
+    210: Haunt 1 Background
 
 STAKING:
-  Collateral: 0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7
-  Staked Amount: 50.0 tokens
-  Last Interacted: 2026-01-28T10:30:00.000Z
+  Collateral: 0x20D3922b4a1A8560E1aC99FBA4faDe0c849e2142
+  Staked Amount: 0.0 tokens
+  Last Interacted: 2026-02-12T18:30:13.000Z
 ============================================================
 
 JSON OUTPUT:
 {
-  "tokenId": "12345",
-  "name": "SpookyBoi",
+  "tokenId": "9638",
+  "name": "aaigotchi",
   ...
 }
 ```
