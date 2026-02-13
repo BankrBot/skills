@@ -16,8 +16,8 @@ if [ -z "$GOTCHI_ID" ] || [ "$GOTCHI_ID" = "null" ]; then
   exit 1
 fi
 
-# Query on-chain data
-DATA=$(cast call "$CONTRACT" "getAavegotchi(uint256)" "$GOTCHI_ID" --rpc-url "$RPC_URL" 2>/dev/null)
+# Query on-chain data (guard against set -e early exit)
+DATA=$(cast call "$CONTRACT" "getAavegotchi(uint256)" "$GOTCHI_ID" --rpc-url "$RPC_URL" 2>/dev/null || true)
 
 if [ -z "$DATA" ]; then
   echo "error:0:0"
