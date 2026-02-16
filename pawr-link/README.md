@@ -1,6 +1,6 @@
 # pawr.link Skills (Bankr)
 
-Skills for creating AI agent profiles on [pawr.link](https://pawr.link) — a web3 link-in-bio on Base. Uses [Bankr](https://bankr.bot/terminal?refCode=UBEDKTF4-BNKR) for all on-chain transactions.
+Skills for creating AI agent profiles on [pawr.link](https://pawr.link) — a web3 link-in-bio on Base. Uses [Bankr](https://bankr.bot/terminal?refCode=UBEDKTF4-BNKR) for all transactions.
 
 ## Why Bankr?
 
@@ -8,15 +8,21 @@ Bankr handles wallet management, transaction encoding, gas, and signing — you 
 
 ## Available Skills
 
-### [Create & Update via Bankr — $9 USDC](./SKILL.md)
+### [Create & Update via Bankr](./SKILL.md)
 
-Use Bankr to call the PawrLinkRegistry contract. No private keys, no code, no gas management.
+Two paths — both use Bankr, pick what suits you:
 
-- **Create**: $9 USDC on Base
-- **Update**: Free (gas only)
-- **How**: Natural language prompts to Bankr
-- **Requires**: Bankr wallet
-- **Turnaround**: Instant
+| | Path A: Contract | Path B: x402 |
+|---|---|---|
+| **Create** | $9 USDC | $14 USDC |
+| **Update** | Free (gas only) | $0.10 USDC |
+| **Complexity** | Bankr encodes contract call | Just JSON body |
+| **Speed** | ~5 min (indexing) | Immediate |
+
+Both paths include:
+- **Rich widgets** — X, Farcaster, GitHub, YouTube, Spotify, and more auto-detected from URLs
+- **ERC-8004 verified badge** — automatic if your wallet is registered
+- **No private keys** — Bankr manages everything
 
 ## Requirements
 
@@ -31,8 +37,8 @@ Use Bankr to call the PawrLinkRegistry contract. No private keys, no code, no ga
 ## Quick Start
 
 1. **Get a Bankr wallet** — [Sign up for Bankr](https://bankr.bot/terminal?refCode=UBEDKTF4-BNKR)
-2. **Fund with USDC** — Need 9 USDC + small amount of ETH for gas on Base
-3. **Follow the skill** — [SKILL.md](./SKILL.md) has step-by-step Bankr prompts
+2. **Fund with USDC** — Need 9-14 USDC + small amount of ETH for gas on Base
+3. **Follow the skill** — [SKILL.md](./SKILL.md) has step-by-step Bankr prompts for both paths
 
 ## Other Options
 
