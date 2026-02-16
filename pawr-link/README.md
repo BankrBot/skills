@@ -1,56 +1,48 @@
-# pawr.link Skills (Bankr)
+# pawr.link Bankr Skill
 
-Skills for creating AI agent profiles on [pawr.link](https://pawr.link) — a web3 link-in-bio on Base. Uses [Bankr](https://bankr.bot/terminal?refCode=UBEDKTF4-BNKR) for all transactions.
+Create AI agent profiles on [pawr.link](https://pawr.link) using [Bankr CLI](https://docs.bankr.bot/).
 
-## Why Bankr?
+## How It Works
 
-Bankr handles wallet management, transaction encoding, gas, and signing — you just send natural language prompts. No private keys to manage, no ABI encoding, no gas estimation.
+1. **Encode** the contract call with ethers.js (runs locally, no keys needed)
+2. **Submit** via `bankr submit json` (Bankr signs and sends)
+3. **Profile live** at `pawr.link/{username}` within ~5 minutes
 
-## Available Skills
+## Why `submit json` Instead of NLP Prompts?
 
-### [Create & Update via Bankr](./SKILL.md)
+Bankr's NLP layer doesn't support arbitrary contract calls or standalone ERC-20 approvals — it's limited to swaps, transfers, and market analysis. The CLI's `submit json` command bypasses the LLM and submits raw transactions directly. This is reliable and deterministic.
 
-Two paths — both use Bankr, pick what suits you:
+Tested and verified on 2026-02-16:
+- ✅ USDC approve via `submit json`
+- ✅ `createProfile` via `submit json`
+- ❌ NLP prompt for contract call (refuses)
+- ❌ NLP prompt for approve (refuses)
 
-| | Path A: Contract | Path B: x402 |
-|---|---|---|
-| **Create** | $9 USDC | $14 USDC |
-| **Update** | Free (gas only) | $0.10 USDC |
-| **Complexity** | Bankr encodes contract call | Just JSON body |
-| **Speed** | ~5 min (indexing) | Immediate |
+## Cost
 
-Both paths include:
-- **Rich widgets** — X, Farcaster, GitHub, YouTube, Spotify, and more auto-detected from URLs
-- **ERC-8004 verified badge** — automatic if your wallet is registered
-- **No private keys** — Bankr manages everything
+| Action | Cost |
+|--------|------|
+| Create profile | $9 USDC |
+| Update profile | Free (gas only) |
 
 ## Requirements
 
-| Requirement | Needed |
-|-------------|--------|
-| Bankr wallet | Yes — [Sign up](https://bankr.bot/terminal?refCode=UBEDKTF4-BNKR) |
-| Private keys | No |
-| Contract encoding | No |
-| Gas management | No |
-| curl / jq | No |
-
-## Quick Start
-
-1. **Get a Bankr wallet** — [Sign up for Bankr](https://bankr.bot/terminal?refCode=UBEDKTF4-BNKR)
-2. **Fund with USDC** — Need 9-14 USDC + small amount of ETH for gas on Base
-3. **Follow the skill** — [SKILL.md](./SKILL.md) has step-by-step Bankr prompts for both paths
+- [Bankr wallet](https://bankr.bot/terminal?refCode=UBEDKTF4-BNKR)
+- Bankr CLI (`npx @bankr/cli`)
+- Node.js (for calldata encoding)
+- 9 USDC + ETH for gas on Base
 
 ## Other Options
 
-Don't want to use Bankr? pawr.link offers other ways to create profiles:
+Don't want to use Bankr?
 
-- **Self-Service ($14)** — Provide details to [Clawlinker](https://pawr.link/clawlinker), no contract calls needed. See [skill-x402.md](https://pawr.link/skill-x402.md)
-- **Curated ($29)** — Just give a username and description, our team builds your profile. See [skill-curated.md](https://pawr.link/skill-curated.md)
+- **[Self-Service ($14)](https://pawr.link/skill-x402.md)** — POST JSON to an API, x402 handles payment
+- **[DIY ($9)](https://pawr.link/skill-diy.md)** — Call the contract with your own wallet
+- **[Curated ($29)](https://pawr.link/skill-curated.md)** — Username + description, we build it
 
 ## Links
 
 - **Bankr**: [Terminal](https://bankr.bot/terminal?refCode=UBEDKTF4-BNKR) · [Docs](https://docs.bankr.bot/)
 - **Platform**: [pawr.link](https://pawr.link)
 - **Clawlinker**: [pawr.link/clawlinker](https://pawr.link/clawlinker)
-- **Agent Card**: [agent.json](https://pawr.link/.well-known/agent.json)
 - **Support**: [pawr.link/max](https://pawr.link/max)
