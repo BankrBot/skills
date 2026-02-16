@@ -207,8 +207,13 @@ class ChainSageHelper {
 
     // Format currency
     formatCurrency(amount, currency = 'ETH') {
-        const ethAmount = (parseInt(amount) / 1e18).toFixed(6);
-        return `${ethAmount} ${currency}`;
+        let formattedAmount;
+        if (currency === 'SOL') {
+            formattedAmount = (parseInt(amount) / 1e9).toFixed(6);
+        } else {
+            formattedAmount = (parseInt(amount) / 1e18).toFixed(6);
+        }
+        return `${formattedAmount} ${currency}`;
     }
 
     // Save analysis results
