@@ -25,6 +25,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | [Endaoment](https://endaoment.org) | [endaoment](endaoment/) | Donate to charities onchain via Endaoment. Supports Base, Ethereum, Optimism. |
 | [ENS](https://ens.domains) | [ens-primary-name](ens-primary-name/) | Set your primary ENS name on Base and other L2s. |
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
+| [MemoClaw](https://memoclaw.com) | [memoclaw](memoclaw/) | Memory-as-a-Service for AI agents. Store and recall with semantic vector search. Free tier, then x402 micropayments. |
 | [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
 | base                       | —               | Planned                                                                                               |
