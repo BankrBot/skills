@@ -84,7 +84,7 @@ class AntiMuzzle:
         if not can_reply:
             logger.info(
                 f"Rate limit: {user_id} ({'bot' if is_bot else 'human'}) "
-                f"- {recent_count}/{max_allowed} in last {self.reply_window.seconds // 3600}h"
+                f"- {recent_count}/{max_allowed} in last {int(self.reply_window.total_seconds()) // 3600}h"
             )
 
         return can_reply
@@ -149,7 +149,7 @@ class MentionRateLimiter:
     def __init__(
         self,
         cooldown_seconds: int = 3600,
-        bot_handle: str = "@solvrbot",
+        bot_handle: str = "@mybot",
     ):
         """
         Args:
@@ -347,7 +347,7 @@ if __name__ == "__main__":
         # Mention rate limiter example
         mention_limiter = MentionRateLimiter(
             cooldown_seconds=3600,
-            bot_handle="@solvrbot",
+            bot_handle="@mybot",
         )
 
         # Cache display names (from X API)

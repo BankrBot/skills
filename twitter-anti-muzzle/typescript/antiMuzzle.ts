@@ -340,7 +340,7 @@ if (require.main === module) {
     // Mention rate limiter example
     const mentionLimiter = new MentionRateLimiter({
       cooldownSeconds: 3600,
-      botHandle: "@solvrbot",
+      botHandle: "@mybot",
     });
 
     // Cache display names (from X API)
