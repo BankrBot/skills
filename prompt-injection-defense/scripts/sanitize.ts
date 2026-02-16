@@ -25,7 +25,6 @@ export function sanitizeReply(text: string): string {
 
   if (BOT_COMMAND_RE.test(text)) {
     BOT_COMMAND_RE.lastIndex = 0; // reset stateful regex
-    BOT_COMMAND_RE.lastIndex = 0;
     const stripped = text.replace(BOT_COMMAND_RE, "");
     if (stripped.trim().length < 10) {
       return "Nice try. That's a prompt injection attempt.";
