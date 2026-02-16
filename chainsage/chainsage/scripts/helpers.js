@@ -64,10 +64,22 @@ class ChainSageHelper {
         });
     }
 
-    // Get wallet balance from Etherscan
+    // Get correct API base URL for different chains
+    getApiBaseUrl(chain) {
+        const chainMap = {
+            'ethereum': 'api.etherscan.io',
+            'base': 'api.basescan.org',
+            'polygon': 'api.polygonscan.com',
+            'arbitrum': 'api.arbiscan.io',
+            'solana': 'api.solscan.io'
+        };
+        return chainMap[chain] || 'api.etherscan.io';
+    }
+
+    // Get wallet balance from blockchain explorer
     async getWalletBalance(address, chain = 'ethereum') {
-        const apiKey = this.config.api_keys.alchemy || process.env.ETHERSCAN_API_KEY;
-        const baseUrl = chain === 'ethereum' ? 'api.etherscan.io' : `${chain}.etherscan.io`;
+        const apiKey = this.config.api_keys.explorer || process.env.EXPLORER_API_KEY || this.config.api_keys.alchemy || process.env.ETHERSCAN_API_KEY;
+        const baseUrl = this.getApiBaseUrl(chain);
         const url = `https://${baseUrl}/api?module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`;
         
         try {
@@ -89,9 +101,9 @@ class ChainSageHelper {
 
     // Get transaction history
     async getTransactionHistory(address, chain = 'ethereum', limit = 10) {
-        const apiKey = this.config.api_keys.alchemy || process.env.ETHERSCAN_API_KEY;
-        const baseUrl = chain === 'ethereum' ? 'api.etherscan.io' : `${chain}.etherscan.io`;
-        const url = `https://${baseUrl}/api?module=account&action=txlist&address=${address}&sort=desc&limit=${limit}&apikey=${apiKey}`;
+        const apiKey = this.config.api_keys.explorer || process.env.EXPLORER_API_KEY || this.config.api_keys.alchemy || process.env.ETHERSCAN_API_KEY;
+        const baseUrl = this.getApiBaseUrl(chain);
+        const url = `https://${baseUrl}/api?module=account&action=txlist&address=${address}&sort=desc&page=1&offset=0&apikey=${apiKey}`;
         
         try {
             const response = await this.makeRequest(url);
@@ -117,13 +129,12 @@ class ChainSageHelper {
         }
 
         const patterns = [];
-        let gasSpent = 0;
+        let gasSpent = 0n;
         let uniqueContracts = new Set();
         let defiInteractions = 0;
-        let nftInteractions = 0;
 
         transactions.forEach(tx => {
-            gasSpent += parseInt(tx.gasUsed) * parseInt(tx.gasPrice);
+            gasSpent += BigInt(tx.gasUsed || '0') * BigInt(tx.gasPrice || '0');
             
             if (tx.to) {
                 uniqueContracts.add(tx.to);
@@ -142,7 +153,7 @@ class ChainSageHelper {
             patterns.push('defi_trader');
         }
 
-        if (gasSpent > 1000000000000000) { // > 0.001 ETH
+        if (gasSpent > BigInt('1000000000000000')) { // > 0.001 ETH
             patterns.push('high_gas_spender');
         }
 

@@ -127,7 +127,7 @@ cat > "$CONFIG_DIR/test.sh" << 'EOF'
 #!/bin/bash
 echo "Testing ChainSage functionality..."
 echo "Sample API call for wallet analysis:"
-echo "curl -s 'https://api.etherscan.io/api?module=account&action=balance&address=0x742d35Cc6634C0532925a3b8D4C9db96C4b4Db45&tag=latest&apikey=YourApiKey' | jq '.'
+echo "curl -s \"https://api.etherscan.io/api?module=account&action=balance&address=0x742d35Cc6634C0532925a3b8D4C9db96C4b4Db45&tag=latest&apikey=YourApiKey\" | jq '.'"
 EOF
 
 chmod +x "$CONFIG_DIR/test.sh"

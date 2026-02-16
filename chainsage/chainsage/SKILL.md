@@ -108,5 +108,5 @@ ChainSage aggregates data from multiple sources to provide comprehensive analyti
 ### Integration Support
 - Webhook notifications
 - Slack/Discord bot integration
-- API access for programmatic usage
+- Node.js helper utilities for programmatic usage (helpers.js)
 - CSV/JSON data export
