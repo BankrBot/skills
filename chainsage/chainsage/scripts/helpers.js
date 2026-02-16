@@ -79,14 +79,18 @@ class ChainSageHelper {
     // Get Solana-specific balance (different API format)
     async getSolanaBalance(address) {
         const apiKey = this.config.api_keys.explorer || process.env.EXPLORER_API_KEY;
-        const url = `https://api.solscan.io/account?address=${address}`;
+        const url = `https://api.solscan.io/account?address=${address}${apiKey ? `&apiKey=${apiKey}` : ''}`;
         // Solana API response format is different
         try {
             const response = await this.makeRequest(url);
+            const lamports = response.data?.lamports;
+            if (typeof lamports !== 'number' || lamports < 0) {
+                throw new Error('Invalid Solana balance response');
+            }
             return {
                 address,
-                balance: response.data?.lamports || '0',
-                balance_sol: (response.data?.lamports / 1e9).toFixed(6),
+                balance: lamports.toString(),
+                balance_sol: (lamports / 1e9).toFixed(6),
                 chain: 'solana'
             };
         } catch (error) {
