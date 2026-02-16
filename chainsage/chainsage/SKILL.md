@@ -7,7 +7,7 @@ metadata:
       {
         "emoji": "🔍",
         "homepage": "https://github.com/chainsage-analytics",
-        "requires": { "bins": ["curl", "jq"] },
+        "requires": { "bins": ["curl", "jq", "node"] },
       },
   }
 ---

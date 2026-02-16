@@ -21,14 +21,14 @@ fi
 install_ubuntu() {
     echo "Installing packages for Ubuntu/Debian..."
     sudo apt-get update
-    sudo apt-get install -y curl jq wget
+    sudo apt-get install -y curl jq wget nodejs npm
 }
 
 # Function to install packages on macOS
 install_macos() {
     echo "Installing packages for macOS..."
     if command -v brew &> /dev/null; then
-        brew install curl jq
+        brew install curl jq node
     else
         echo "Homebrew not found. Please install Homebrew first:"
         echo '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'

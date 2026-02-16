@@ -71,14 +71,36 @@ class ChainSageHelper {
             'base': 'api.basescan.org',
             'polygon': 'api.polygonscan.com',
             'arbitrum': 'api.arbiscan.io',
-            'solana': 'api.solscan.io'
+            'solana': 'api.solscan.io' // Note: Solana uses different API format
         };
         return chainMap[chain] || 'api.etherscan.io';
     }
 
+    // Get Solana-specific balance (different API format)
+    async getSolanaBalance(address) {
+        const apiKey = this.config.api_keys.explorer || process.env.EXPLORER_API_KEY;
+        const url = `https://api.solscan.io/account?address=${address}`;
+        // Solana API response format is different
+        try {
+            const response = await this.makeRequest(url);
+            return {
+                address,
+                balance: response.data?.lamports || '0',
+                balance_sol: (response.data?.lamports / 1e9).toFixed(6),
+                chain: 'solana'
+            };
+        } catch (error) {
+            throw new Error(`Failed to get Solana balance: ${error.message}`);
+        }
+    }
+
     // Get wallet balance from blockchain explorer
     async getWalletBalance(address, chain = 'ethereum') {
-        const apiKey = this.config.api_keys.explorer || process.env.EXPLORER_API_KEY || this.config.api_keys.alchemy || process.env.ETHERSCAN_API_KEY;
+        if (chain === 'solana') {
+            return await this.getSolanaBalance(address);
+        }
+        
+        const apiKey = this.config.api_keys.explorer || process.env.EXPLORER_API_KEY || process.env.ETHERSCAN_API_KEY || this.config.api_keys.alchemy;
         const baseUrl = this.getApiBaseUrl(chain);
         const url = `https://${baseUrl}/api?module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`;
         
@@ -99,11 +121,11 @@ class ChainSageHelper {
         }
     }
 
-    // Get transaction history
+    // Get transaction history with proper pagination
     async getTransactionHistory(address, chain = 'ethereum', limit = 10) {
         const apiKey = this.config.api_keys.explorer || process.env.EXPLORER_API_KEY || this.config.api_keys.alchemy || process.env.ETHERSCAN_API_KEY;
         const baseUrl = this.getApiBaseUrl(chain);
-        const url = `https://${baseUrl}/api?module=account&action=txlist&address=${address}&sort=desc&page=1&offset=0&apikey=${apiKey}`;
+        const url = `https://${baseUrl}/api?module=account&action=txlist&address=${address}&sort=desc&page=1&offset=0&limit=${limit}&apikey=${apiKey}`;
         
         try {
             const response = await this.makeRequest(url);
