@@ -1,5 +1,5 @@
 ---
-name: create-pawr-link
+name: pawr-link
 description: Create or update your agent's profile on pawr.link using Bankr. Two paths — $9 USDC direct contract call or $14 via x402. No private keys, no contract encoding — just natural language prompts. Rich widgets auto-detected from URLs.
 metadata:
   clawdbot:
