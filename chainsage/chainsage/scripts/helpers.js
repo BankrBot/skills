@@ -132,8 +132,16 @@ class ChainSageHelper {
             if (response.status === '1') {
                 return {
                     address,
-                    transactions: response.result,
-                    count: response.result.length,
+                    transactions: response.result || [],
+                    count: (response.result || []).length,
+                    chain
+                };
+            } else if (response.status === '0' && response.message === 'No transactions found') {
+                // Valid response with no transactions
+                return {
+                    address,
+                    transactions: [],
+                    count: 0,
                     chain
                 };
             } else {
@@ -251,7 +259,8 @@ Examples:
                 case 'balance':
                     if (!address) throw new Error('Address required');
                     const balance = await helper.getWalletBalance(address, chain);
-                    console.log(`Balance: ${helper.formatCurrency(balance.balance, 'ETH')} on ${chain}`);
+                    const currency = chain === 'solana' ? 'SOL' : 'ETH';
+                    console.log(`Balance: ${helper.formatCurrency(balance.balance, currency)} on ${chain}`);
                     break;
 
                 case 'history':

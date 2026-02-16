@@ -42,11 +42,11 @@ install_generic() {
     if command -v apt-get &> /dev/null; then
         install_ubuntu
     elif command -v yum &> /dev/null; then
-        sudo yum install -y curl jq wget
+        sudo yum install -y curl jq wget nodejs npm
     elif command -v pacman &> /dev/null; then
-        sudo pacman -S curl jq wget
+        sudo pacman -S curl jq wget nodejs npm
     else
-        echo "Cannot determine package manager. Please install curl and jq manually."
+        echo "Cannot determine package manager. Please install curl, jq, and node.js manually."
         exit 1
     fi
 }
