@@ -23,13 +23,27 @@ Both use the same API key and the same async job workflow under the hood.
 
 ## Getting an API Key
 
-Before using either option, you need a Bankr API key:
+Before using either option, you need a Bankr API key. Two ways to get one:
+
+**Option A: Headless email login (recommended for agents)**
+
+```bash
+# Step 1 — send OTP to email
+bankr login email user@example.com
+
+# Step 2 — verify OTP and generate API key in one command
+bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent" --read-write
+```
+
+This creates a wallet, accepts terms, and generates an API key — no browser needed.
+
+**Option B: Bankr Terminal**
 
 1. Visit [bankr.bot/api](https://bankr.bot/api)
 2. **Sign up / Sign in** — Enter your email and the one-time passcode (OTP) sent to it
 3. **Generate an API key** — Create a key with **Agent API** access enabled (the key starts with `bk_...`)
 
-Creating a new account automatically provisions **EVM wallets** (Base, Ethereum, Polygon, Unichain) and a **Solana wallet** — no manual wallet setup needed.
+Both options automatically provision **EVM wallets** (Base, Ethereum, Polygon, Unichain) and a **Solana wallet** — no manual wallet setup needed.
 
 ## Option 1: Bankr CLI (Recommended)
 
@@ -47,38 +61,42 @@ npm install -g @bankr/cli
 
 ### First-Time Setup
 
-```bash
-# Authenticate with Bankr (interactive — opens browser or paste key)
-bankr login
+#### Headless email login (recommended for agents)
 
-# Verify your identity
-bankr whoami
+```bash
+# Step 1 — send verification code
+bankr login email user@example.com
+
+# Step 2 — verify code and complete setup
+bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent" --read-write
 ```
 
-The `bankr login` command gives you two choices:
+| Option | Description |
+|--------|-------------|
+| `--code <otp>` | OTP code received via email (step 2) |
+| `--accept-terms` | Accept [Terms of Service](https://bankr.bot/terms) without prompting (required for new users) |
+| `--key-name <name>` | Display name for the API key (e.g. "My Agent"). Prompted if omitted |
+| `--read-write` | Enable write operations: swaps, transfers, orders, token launches, leverage, Polymarket bets. **Without this flag, the key is read-only** (portfolio, balances, prices, research only) |
+| `--llm` | Enable [LLM gateway](https://docs.bankr.bot/llm-gateway/overview) access (multi-model API at `llm.bankr.bot`). Currently limited to beta testers |
 
-**A) Open the Bankr dashboard** — The CLI opens [bankr.bot/api](https://bankr.bot/api) where you generate a key and paste it back.
+Any option not provided will be prompted interactively, so you can mix headless and interactive as needed.
 
-**B) Paste an existing API key** — Select "Paste an existing Bankr API key" and enter it directly.
+#### Login with existing API key
 
-#### Separate LLM Gateway Key (Optional)
-
-If your LLM gateway key differs from your API key, pass `--llm-key` during login or run `bankr config set llmKey YOUR_LLM_KEY` afterward. When not set, the API key is used for both. See [references/llm-gateway.md](references/llm-gateway.md) for full details.
-
-#### Non-Interactive Login (for AI agents)
-
-If you cannot interact with terminal prompts, use these flags:
-
-**If the user needs to create an API key:**
-1. Run `bankr login --url` — prints the dashboard URL
-2. Present the URL to the user, ask them to generate a `bk_...` key
-3. Run `bankr login --api-key bk_THE_KEY`
-
-**If the user already has an API key:**
+If the user already has an API key:
 
 ```bash
 bankr login --api-key bk_YOUR_KEY_HERE
 ```
+
+If they need to create one at the Bankr Terminal:
+1. Run `bankr login --url` — prints the terminal URL
+2. Present the URL to the user, ask them to generate a `bk_...` key
+3. Run `bankr login --api-key bk_THE_KEY`
+
+#### Separate LLM Gateway Key (Optional)
+
+If your LLM gateway key differs from your API key, pass `--llm-key` during login or run `bankr config set llmKey YOUR_LLM_KEY` afterward. When not set, the API key is used for both. See [references/llm-gateway.md](references/llm-gateway.md) for full details.
 
 #### Verify Setup
 
@@ -166,10 +184,12 @@ For full API details (request/response schemas, job states, rich data, polling s
 
 | Command | Description |
 |---------|-------------|
-| `bankr login` | Authenticate with the Bankr API (interactive) |
-| `bankr login --url` | Print dashboard URL for API key generation |
-| `bankr login --api-key <key>` | Login with an API key directly (non-interactive) |
+| `bankr login` | Authenticate with the Bankr API (interactive menu) |
+| `bankr login email <address>` | Send OTP to email (headless step 1) |
+| `bankr login email <address> --code <otp> [options]` | Verify OTP and complete setup (headless step 2) |
+| `bankr login --api-key <key>` | Login with an existing API key directly |
 | `bankr login --api-key <key> --llm-key <key>` | Login with separate LLM gateway key |
+| `bankr login --url` | Print Bankr Terminal URL for API key generation |
 | `bankr logout` | Clear stored credentials |
 | `bankr whoami` | Show current authentication info |
 | `bankr prompt <text>` | Send a prompt to the Bankr AI agent |
