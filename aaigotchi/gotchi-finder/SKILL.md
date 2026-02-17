@@ -22,7 +22,9 @@ Find and display any Aavegotchi by ID with complete traits and image.
 
 - ✅ Fetch any gotchi by ID from Base mainnet
 - ✅ Display full traits (BRS, Kinship, Level, XP, Haunt, Name, Owner)
-- ✅ Generate PNG image from on-chain SVG
+- ✅ Generate PNG images (standard 512x512 or hi-res 1024x1024)
+- ✅ Export as SVG (scalable vector graphics)
+- ✅ Flexible format options (PNG, hi-res, SVG, or all)
 - ✅ Support for all gotchi states (Portal, Gotchi, etc.)
 - ✅ Automatic image conversion and delivery
 
@@ -31,18 +33,39 @@ Find and display any Aavegotchi by ID with complete traits and image.
 ### Find Gotchi by ID
 
 ```bash
-bash scripts/find-gotchi.sh <gotchi-id>
+bash scripts/find-gotchi.sh <gotchi-id> [--format <type>] [--output <dir>]
 ```
 
-**Example:**
+**Format Options:**
+- `png` - Standard PNG (512x512)
+- `hires` - Hi-res PNG (1024x1024)
+- `svg` - SVG only (no PNG conversion)
+- `all` - All formats (default)
+
+**Examples:**
 ```bash
+# All formats (JSON + SVG + PNG + Hi-res PNG)
 bash scripts/find-gotchi.sh 9638
+
+# Standard PNG only
+bash scripts/find-gotchi.sh 9638 --format png
+
+# Hi-res PNG only
+bash scripts/find-gotchi.sh 9638 --format hires
+
+# SVG only (no PNG conversion)
+bash scripts/find-gotchi.sh 9638 --format svg
+
+# Custom output directory
+bash scripts/find-gotchi.sh 9638 --output /tmp/gotchis
+bash scripts/find-gotchi.sh 9638 /tmp/gotchis --format all
 ```
 
-**Output:**
-- Complete gotchi stats
-- PNG image saved to workspace
-- Ready for display/sharing
+**Output Files:**
+- `gotchi-{ID}.json` - Complete metadata (always generated)
+- `gotchi-{ID}.svg` - Vector image (always generated)
+- `gotchi-{ID}.png` - Standard PNG (512x512, if png/all)
+- `gotchi-{ID}-hires.png` - Hi-res PNG (1024x1024, if hires/all)
 
 ## What It Shows
 

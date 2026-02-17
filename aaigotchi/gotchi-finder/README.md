@@ -17,35 +17,64 @@ bash scripts/find-gotchi.sh 9638
 ✅ Fetch any gotchi from Base mainnet  
 ✅ Display complete traits (BRS, Kinship, Level, XP, etc.)  
 ✅ Show all 6 numeric traits (Energy, Aggression, Spookiness, etc.)  
-✅ Generate PNG image from on-chain SVG  
+✅ Generate PNG images (standard 512x512 or hi-res 1024x1024)  
+✅ Export as SVG (scalable vector graphics)  
 ✅ Save JSON metadata  
 ✅ Support portals and all gotchi states  
+✅ Flexible format options (PNG, hi-res, SVG, or all)  
 
 ## Output
 
-For each gotchi, you get:
+For each gotchi, you can get:
 
 1. **JSON file** - Complete metadata
-2. **SVG file** - Original on-chain vector image
-3. **PNG file** - 512x512 pixel image
+2. **SVG file** - Original on-chain vector image (always generated)
+3. **PNG file** - Standard 512x512 pixel image
+4. **PNG file (hi-res)** - High resolution 1024x1024 pixel image
 
 ## Usage Examples
 
-**Find one gotchi:**
+**Find gotchi with all formats (default):**
 ```bash
 bash scripts/find-gotchi.sh 9638
+# Creates: JSON + SVG + PNG (512x512) + PNG (1024x1024)
+```
+
+**Standard PNG only:**
+```bash
+bash scripts/find-gotchi.sh 9638 --format png
+# Creates: JSON + SVG + PNG (512x512)
+```
+
+**Hi-res PNG only:**
+```bash
+bash scripts/find-gotchi.sh 9638 --format hires
+# Creates: JSON + SVG + PNG (1024x1024)
+```
+
+**SVG only (no PNG conversion):**
+```bash
+bash scripts/find-gotchi.sh 9638 --format svg
+# Creates: JSON + SVG
+```
+
+**Custom output directory:**
+```bash
+bash scripts/find-gotchi.sh 9638 --output /tmp/my-gotchis
+bash scripts/find-gotchi.sh 9638 /tmp/my-gotchis  # Also works
+```
+
+**Combine options:**
+```bash
+bash scripts/find-gotchi.sh 9638 --format hires --output /tmp/gotchis
+bash scripts/find-gotchi.sh 9638 /tmp/gotchis --format all
 ```
 
 **Find multiple gotchis:**
 ```bash
 for id in 9638 21785 10052; do
-  bash scripts/find-gotchi.sh $id
+  bash scripts/find-gotchi.sh $id --format all
 done
-```
-
-**Custom output directory:**
-```bash
-bash scripts/find-gotchi.sh 9638 /tmp/my-gotchis
 ```
 
 ## What It Shows
