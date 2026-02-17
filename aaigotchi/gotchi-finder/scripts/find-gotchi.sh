@@ -4,7 +4,7 @@ set -e
 # Parse arguments
 GOTCHI_ID=""
 OUTPUT_DIR="."
-FORMAT="all"  # Default: generate all formats
+FORMAT="preview"  # Default: preview only (fetch data + standard PNG)
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -19,7 +19,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     -*)
       echo "Unknown option: $1"
-      echo "Usage: bash find-gotchi.sh <gotchi-id> [--format png|hires|svg|all] [--output <dir>]"
+      echo "Usage: bash find-gotchi.sh <gotchi-id> [--format preview|png|hires|svg|all] [--output <dir>]"
       exit 1
       ;;
     *)
@@ -34,21 +34,27 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$GOTCHI_ID" ]; then
-  echo "Usage: bash find-gotchi.sh <gotchi-id> [output-dir] [--format png|hires|svg|all]"
+  echo "Usage: bash find-gotchi.sh <gotchi-id> [output-dir] [--format preview|png|hires|svg|all]"
   echo ""
   echo "Options:"
-  echo "  --format <type>    Image format to generate (default: all)"
-  echo "                     png    - Standard PNG (512x512)"
-  echo "                     hires  - Hi-res PNG (1024x1024)"
-  echo "                     svg    - SVG only (no PNG conversion)"
-  echo "                     all    - All formats (PNG + Hi-res + SVG)"
+  echo "  --format <type>    Image format to generate (default: preview)"
+  echo "                     preview - Fetch data + standard PNG preview (512x512)"
+  echo "                     png     - Standard PNG only (512x512)"
+  echo "                     hires   - Hi-res PNG only (1024x1024)"
+  echo "                     svg     - SVG only (no PNG)"
+  echo "                     all     - All formats (PNG + Hi-res + SVG)"
   echo "  --output <dir>     Output directory (default: current directory)"
   echo ""
   echo "Examples:"
+  echo "  # Preview mode (default) - show traits + standard image"
   echo "  bash find-gotchi.sh 9638"
-  echo "  bash find-gotchi.sh 9638 --format png"
-  echo "  bash find-gotchi.sh 9638 --format hires --output /tmp/gotchis"
-  echo "  bash find-gotchi.sh 9638 /tmp/gotchis --format all"
+  echo ""
+  echo "  # Generate specific format"
+  echo "  bash find-gotchi.sh 9638 --format hires"
+  echo "  bash find-gotchi.sh 9638 --format svg"
+  echo ""
+  echo "  # Generate all formats at once"
+  echo "  bash find-gotchi.sh 9638 --format all"
   exit 1
 fi
 
@@ -79,6 +85,10 @@ PNG_FILE="$OUTPUT_DIR/gotchi-$GOTCHI_ID.png"
 HIRES_FILE="$OUTPUT_DIR/gotchi-$GOTCHI_ID-hires.png"
 
 case $FORMAT in
+  preview)
+    # Default preview mode: just standard PNG
+    node scripts/svg-to-png.js "$SVG_FILE" "$PNG_FILE" 512
+    ;;
   png)
     node scripts/svg-to-png.js "$SVG_FILE" "$PNG_FILE" 512
     ;;
@@ -94,7 +104,7 @@ case $FORMAT in
     ;;
   *)
     echo "❌ Invalid format: $FORMAT"
-    echo "Valid formats: png, hires, svg, all"
+    echo "Valid formats: preview, png, hires, svg, all"
     exit 1
     ;;
 esac
@@ -105,7 +115,7 @@ echo "🎉 Success! Files created:"
 echo "   📄 JSON: $OUTPUT_DIR/gotchi-$GOTCHI_ID.json"
 
 if [ "$FORMAT" != "svg" ]; then
-  if [ "$FORMAT" = "all" ] || [ "$FORMAT" = "png" ]; then
+  if [ "$FORMAT" = "all" ] || [ "$FORMAT" = "png" ] || [ "$FORMAT" = "preview" ]; then
     echo "   🖼️  PNG:  $PNG_FILE (512x512)"
   fi
   if [ "$FORMAT" = "all" ] || [ "$FORMAT" = "hires" ]; then
@@ -114,3 +124,13 @@ if [ "$FORMAT" != "svg" ]; then
 fi
 
 echo "   🎨 SVG:  $SVG_FILE"
+
+# Show download options (unless already downloaded all)
+if [ "$FORMAT" = "preview" ]; then
+  echo ""
+  echo "📥 Download options:"
+  echo "   • Standard PNG (512x512): --format png"
+  echo "   • Hi-res PNG (1024x1024): --format hires"
+  echo "   • SVG (vector): --format svg"
+  echo "   • All formats: --format all"
+fi

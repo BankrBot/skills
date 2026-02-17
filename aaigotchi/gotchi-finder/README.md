@@ -34,29 +34,49 @@ For each gotchi, you can get:
 
 ## Usage Examples
 
-**Find gotchi with all formats (default):**
+### 🎯 Recommended Workflow (Conversational)
+
+**Step 1: Preview gotchi (default)**
 ```bash
 bash scripts/find-gotchi.sh 9638
-# Creates: JSON + SVG + PNG (512x512) + PNG (1024x1024)
 ```
+Shows complete traits + standard PNG preview + download options menu
+
+**Step 2: User chooses which format to download**
+```bash
+# If user wants hi-res
+bash scripts/find-gotchi.sh 9638 --format hires
+
+# If user wants SVG
+bash scripts/find-gotchi.sh 9638 --format svg
+
+# If user wants everything
+bash scripts/find-gotchi.sh 9638 --format all
+```
+
+### 📦 Direct Downloads (Skip Preview)
 
 **Standard PNG only:**
 ```bash
 bash scripts/find-gotchi.sh 9638 --format png
-# Creates: JSON + SVG + PNG (512x512)
 ```
 
 **Hi-res PNG only:**
 ```bash
 bash scripts/find-gotchi.sh 9638 --format hires
-# Creates: JSON + SVG + PNG (1024x1024)
 ```
 
-**SVG only (no PNG conversion):**
+**SVG only:**
 ```bash
 bash scripts/find-gotchi.sh 9638 --format svg
-# Creates: JSON + SVG
 ```
+
+**All formats at once:**
+```bash
+bash scripts/find-gotchi.sh 9638 --format all
+```
+
+### 🔧 Advanced Options
 
 **Custom output directory:**
 ```bash
@@ -67,13 +87,12 @@ bash scripts/find-gotchi.sh 9638 /tmp/my-gotchis  # Also works
 **Combine options:**
 ```bash
 bash scripts/find-gotchi.sh 9638 --format hires --output /tmp/gotchis
-bash scripts/find-gotchi.sh 9638 /tmp/gotchis --format all
 ```
 
-**Find multiple gotchis:**
+**Batch processing:**
 ```bash
 for id in 9638 21785 10052; do
-  bash scripts/find-gotchi.sh $id --format all
+  bash scripts/find-gotchi.sh $id --format preview
 done
 ```
 

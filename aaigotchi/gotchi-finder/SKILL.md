@@ -30,42 +30,63 @@ Find and display any Aavegotchi by ID with complete traits and image.
 
 ## Usage
 
-### Find Gotchi by ID
+### Interactive Workflow (Recommended)
 
+**Step 1: Preview gotchi with traits**
 ```bash
-bash scripts/find-gotchi.sh <gotchi-id> [--format <type>] [--output <dir>]
+bash scripts/find-gotchi.sh 9638
+```
+This shows:
+- Complete trait information
+- Standard PNG preview (512x512)
+- Download options menu
+
+**Step 2: User chooses format**
+User can then request specific format(s):
+```bash
+# Hi-res PNG
+bash scripts/find-gotchi.sh 9638 --format hires
+
+# SVG vector
+bash scripts/find-gotchi.sh 9638 --format svg
+
+# All formats
+bash scripts/find-gotchi.sh 9638 --format all
 ```
 
-**Format Options:**
+### Format Options
+
+- `preview` - Show traits + standard PNG (default)
 - `png` - Standard PNG (512x512)
 - `hires` - Hi-res PNG (1024x1024)
 - `svg` - SVG only (no PNG conversion)
-- `all` - All formats (default)
+- `all` - All formats at once
 
-**Examples:**
+### Examples
+
+**Preview first (conversational flow):**
 ```bash
-# All formats (JSON + SVG + PNG + Hi-res PNG)
+# Show gotchi info + preview image
 bash scripts/find-gotchi.sh 9638
 
-# Standard PNG only
-bash scripts/find-gotchi.sh 9638 --format png
+# Then user picks format
+bash scripts/find-gotchi.sh 9638 --format hires
+```
 
-# Hi-res PNG only
+**Direct download (skip preview):**
+```bash
+# Get hi-res immediately
 bash scripts/find-gotchi.sh 9638 --format hires
 
-# SVG only (no PNG conversion)
-bash scripts/find-gotchi.sh 9638 --format svg
-
-# Custom output directory
-bash scripts/find-gotchi.sh 9638 --output /tmp/gotchis
-bash scripts/find-gotchi.sh 9638 /tmp/gotchis --format all
+# Get all formats at once
+bash scripts/find-gotchi.sh 9638 --format all
 ```
 
 **Output Files:**
-- `gotchi-{ID}.json` - Complete metadata (always generated)
-- `gotchi-{ID}.svg` - Vector image (always generated)
-- `gotchi-{ID}.png` - Standard PNG (512x512, if png/all)
-- `gotchi-{ID}-hires.png` - Hi-res PNG (1024x1024, if hires/all)
+- `gotchi-{ID}.json` - Complete metadata (always)
+- `gotchi-{ID}.svg` - Vector image (always)
+- `gotchi-{ID}.png` - Standard PNG (preview/png/all)
+- `gotchi-{ID}-hires.png` - Hi-res PNG (hires/all)
 
 ## What It Shows
 
