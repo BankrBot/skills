@@ -20,8 +20,7 @@ Find and display any Aavegotchi by ID with complete traits and image.
 
 ## Features
 
-- ✅ **Search by ID or name** - Instant ID lookup or name search
-- ✅ **Self-contained** - No dependencies on other Aavegotchi skills
+- ✅ **Instant ID lookup** - Fetch any gotchi by ID number
 - ✅ Fetch any gotchi by ID from Base mainnet
 - ✅ Display full traits (BRS, Kinship, Level, XP, Haunt, Name, Owner)
 - ✅ Generate PNG images (standard 512x512 or hi-res 1024x1024)
@@ -67,18 +66,12 @@ bash scripts/find-gotchi.sh 9638 --format all
 
 ### Examples
 
-**Search by ID (instant) or name (30-60s):**
+**Preview first (conversational flow):**
 ```bash
-# By ID - instant
+# Show gotchi info + preview image
 bash scripts/find-gotchi.sh 9638
 
-# By name - searches all gotchis (slower)
-bash scripts/find-gotchi.sh "aaigotchi"
-```
-
-**Then user picks format:**
-```bash
-# Get hi-res after preview
+# Then user picks format
 bash scripts/find-gotchi.sh 9638 --format hires
 ```
 

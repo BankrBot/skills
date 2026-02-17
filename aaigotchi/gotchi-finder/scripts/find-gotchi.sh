@@ -34,10 +34,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$GOTCHI_ID" ]; then
-  echo "Usage: bash find-gotchi.sh <gotchi-id-or-name> [output-dir] [--format preview|png|hires|svg|all]"
+  echo "Usage: bash find-gotchi.sh <gotchi-id> [output-dir] [--format preview|png|hires|svg|all]"
   echo ""
   echo "Arguments:"
-  echo "  <gotchi-id-or-name>  Gotchi ID (e.g., 9638) or name (e.g., \"aaigotchi\")"
+  echo "  <gotchi-id>  Gotchi ID number (e.g., 9638)"
   echo ""
   echo "Options:"
   echo "  --format <type>    Image format to generate (default: preview)"
@@ -49,43 +49,26 @@ if [ -z "$GOTCHI_ID" ]; then
   echo "  --output <dir>     Output directory (default: current directory)"
   echo ""
   echo "Examples:"
-  echo "  # By ID (instant)"
+  echo "  # Preview mode (default)"
   echo "  bash find-gotchi.sh 9638"
-  echo ""
-  echo "  # By name (30-60 seconds)"
-  echo "  bash find-gotchi.sh \"aaigotchi\""
   echo ""
   echo "  # With specific format"
   echo "  bash find-gotchi.sh 9638 --format hires"
-  echo "  bash find-gotchi.sh \"Maaster T\" --format all"
+  echo "  bash find-gotchi.sh 9638 --format all"
   exit 1
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Detect if input is a name (non-numeric) or ID (numeric)
-if [[ "$GOTCHI_ID" =~ ^[0-9]+$ ]]; then
-  # Numeric ID - use directly
-  FINAL_ID="$GOTCHI_ID"
-  echo "🔍 Finding Gotchi #$FINAL_ID..."
-else
-  # Name - search for ID first
-  echo "🔍 Searching for Gotchi by name: \"$GOTCHI_ID\"..."
-  echo ""
-  
-  cd "$SKILL_DIR"
-  FINAL_ID=$(node scripts/find-by-name.js "$GOTCHI_ID" 2>&1 | tail -1)
-  
-  if [[ ! "$FINAL_ID" =~ ^[0-9]+$ ]]; then
-    echo ""
-    echo "❌ Could not find gotchi with name: \"$GOTCHI_ID\""
-    exit 1
-  fi
-  
-  echo ""
+# Validate ID is numeric
+if [[ ! "$GOTCHI_ID" =~ ^[0-9]+$ ]]; then
+  echo "❌ Invalid gotchi ID: \"$GOTCHI_ID\""
+  echo "Please provide a numeric gotchi ID (e.g., 9638)"
+  exit 1
 fi
 
+echo "🔍 Finding Gotchi #$GOTCHI_ID..."
 echo "📂 Output: $OUTPUT_DIR"
 echo "🎨 Format: $FORMAT"
 echo ""
@@ -95,9 +78,9 @@ mkdir -p "$OUTPUT_DIR"
 
 # Fetch gotchi data and SVG
 cd "$SKILL_DIR"
-node scripts/fetch-gotchi.js "$FINAL_ID" "$OUTPUT_DIR"
+node scripts/fetch-gotchi.js "$GOTCHI_ID" "$OUTPUT_DIR"
 
-SVG_FILE="$OUTPUT_DIR/gotchi-$FINAL_ID.svg"
+SVG_FILE="$OUTPUT_DIR/gotchi-$GOTCHI_ID.svg"
 
 if [ ! -f "$SVG_FILE" ]; then
   echo "❌ SVG file not found: $SVG_FILE"
@@ -105,8 +88,8 @@ if [ ! -f "$SVG_FILE" ]; then
 fi
 
 # Generate PNG files based on format option
-PNG_FILE="$OUTPUT_DIR/gotchi-$FINAL_ID.png"
-HIRES_FILE="$OUTPUT_DIR/gotchi-$FINAL_ID-hires.png"
+PNG_FILE="$OUTPUT_DIR/gotchi-$GOTCHI_ID.png"
+HIRES_FILE="$OUTPUT_DIR/gotchi-$GOTCHI_ID-hires.png"
 
 case $FORMAT in
   preview)
@@ -136,7 +119,7 @@ esac
 # Print summary
 echo ""
 echo "🎉 Success! Files created:"
-echo "   📄 JSON: $OUTPUT_DIR/gotchi-$FINAL_ID.json"
+echo "   📄 JSON: $OUTPUT_DIR/gotchi-$GOTCHI_ID.json"
 
 if [ "$FORMAT" != "svg" ]; then
   if [ "$FORMAT" = "all" ] || [ "$FORMAT" = "png" ] || [ "$FORMAT" = "preview" ]; then

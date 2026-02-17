@@ -8,17 +8,13 @@ Find any Aavegotchi by ID and display with full traits and image.
 # Install dependencies
 npm install
 
-# Find a gotchi by ID (instant)
+# Find a gotchi by ID
 bash scripts/find-gotchi.sh 9638
-
-# Find a gotchi by name (30-60 seconds)
-bash scripts/find-gotchi.sh "aaigotchi"
 ```
 
 ## Features
 
-✅ **Search by ID or name** - Find gotchis instantly by ID or search by name
-✅ **Self-contained** - No dependencies on other Aavegotchi skills  
+✅ **Instant ID lookup** - Fetch any gotchi by ID number
 ✅ Fetch any gotchi from Base mainnet  
 ✅ Display complete traits (BRS, Kinship, Level, XP, etc.)  
 ✅ Show all 6 numeric traits (Energy, Aggression, Spookiness, etc.)  
