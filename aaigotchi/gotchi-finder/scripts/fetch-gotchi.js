@@ -65,6 +65,7 @@ async function fetchGotchi(tokenId, outputDir = '.') {
         eyeColor: gotchiData.numericTraits[5].toString()
       };
       
+      console.log(`📛 Name: ${result.name}`);
       console.log(`⭐ BRS: ${result.brs} (Modified: ${result.modifiedBrs})`);
       console.log(`💜 Kinship: ${result.kinship}`);
       console.log(`🎯 Level: ${result.level}`);
