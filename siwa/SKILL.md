@@ -30,8 +30,6 @@ npm install @buildersgarden/siwa
 Choose based on your wallet provider:
 
 - [Bankr](references/bankr-signer.md) — Bankr Agent API wallets
-- [Private Key](references/private-key-signer.md) — Raw private key (viem LocalAccount)
-- [Keyring Proxy](references/keyring-proxy-signer.md) — Self-hosted proxy with optional 2FA
 
 ### Server-Side (Verification)
 
