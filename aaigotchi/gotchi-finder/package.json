@@ -1,0 +1,22 @@
+{
+  "name": "gotchi-finder",
+  "version": "1.0.0",
+  "description": "Find and display Aavegotchi by ID with traits and image",
+  "main": "scripts/fetch-gotchi.js",
+  "scripts": {
+    "find": "node scripts/fetch-gotchi.js"
+  },
+  "keywords": [
+    "aavegotchi",
+    "nft",
+    "base",
+    "blockchain",
+    "gotchi"
+  ],
+  "author": "AAI",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.11.1",
+    "sharp": "^0.33.0"
+  }
+}

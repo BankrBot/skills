@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+*.log
+*.tgz
+
+# Test files
+gotchi-*.svg
+gotchi-*.png
+gotchi-*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
