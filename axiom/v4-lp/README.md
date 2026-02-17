@@ -1,17 +1,71 @@
 # V4 LP Skill
 
-Manage concentrated liquidity positions on Uniswap V4 (Base chain). Built for AI agents — add liquidity, single-sided range orders, collect fees, monitor positions, rebalance, auto-compound, and **claim + harvest Clanker protocol fees**.
+Manage concentrated liquidity positions on Uniswap V4 (Base chain) for **ANY token pair**. Built for AI agents — discover pools, add liquidity, single-sided range orders, collect fees, monitor positions, rebalance, auto-compound, and **claim + harvest Clanker protocol fees**.
 
 ## Features
 
-- **Single-sided LP** — deposit one token as a range order (limit sell/buy)
-- **Add liquidity** to V4 pools with configurable range
+- **🔍 Pool Discovery** — find and analyze pools for any token pair (WETH/USDC, AXIOM/BNKR, etc.)
+- **Generic Support** — works with any token addresses or common symbols
+- **Single-sided LP** — deposit one token as a range order (limit sell/buy)  
+- **Add liquidity** to any V4 pool with configurable range
 - **Remove liquidity** (partial or full) and burn positions
 - **Collect fees** without removing liquidity
 - **Monitor positions** — in-range detection, edge alerts
 - **Rebalance** — remove + re-add at current price
 - **Auto-compound** — collect fees → re-add as liquidity, fully automated
+- **Approval Generation** — create Permit2 or direct approvals for any tokens
 - **🌾 Clanker Harvest** — claim protocol fees, compound, swap to USDC, vault
+
+## 🔍 Pool Discovery & Analysis
+
+Before adding liquidity, discover and analyze pools for any token pair:
+
+```bash
+# Find all pools for a token pair
+node discover-pool.mjs --token0 WETH --token1 AXIOM
+node discover-pool.mjs --token0 USDC --token1 BNKR
+
+# Get current pool state (price, liquidity, tick)
+node fetch-pool-state.mjs --token0 WETH --token1 AXIOM --fee 0x800000
+
+# Comprehensive analysis (volume, positions, hooks)
+node query-pool-details.mjs --token0 WETH --token1 AXIOM
+
+# Generate approvals for any token pair
+node generate-approvals.mjs --token0 WETH --token1 AXIOM --amount0 1 --amount1 50000 --permit2
+```
+
+### Supported Tokens
+
+Works with common Base tokens (WETH, USDC, BNKR, AXIOM) or any token address:
+
+```bash
+# By symbol
+node discover-pool.mjs --token0 WETH --token1 USDC
+
+# By address
+node discover-pool.mjs \
+  --token0 0x4200000000000000000000000000000000000006 \
+  --token1 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+```
+
+### Generic LP Operations
+
+Add liquidity to ANY pool:
+
+```bash
+# Using symbols
+node add-liquidity.mjs --token0 WETH --token1 USDC --amount 100 --range 10
+
+# Using addresses
+node add-liquidity.mjs \
+  --token0 0x4200000000000000000000000000000000000006 \
+  --token1 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+  --amount 100 --range 10
+
+# Using discovered pool key
+node add-liquidity.mjs --pool-key '{"currency0":"0x4200...","currency1":"0x8335...","fee":3000,"tickSpacing":60,"hooks":"0x0000..."}' --amount 100
+```
 
 ## 🌾 Clanker Harvest (NEW)
 

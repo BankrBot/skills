@@ -1,6 +1,6 @@
 ---
 name: v4-lp
-description: Uniswap V4 LP on Base — single-sided range orders, add/remove liquidity, monitor, auto-compound, and harvest Clanker fees.
+description: Uniswap V4 LP on Base — discover pools, add/remove liquidity for ANY token pair, monitor, auto-compound, and harvest fees.
 triggers:
   - uniswap
   - v4
@@ -8,11 +8,12 @@ triggers:
   - LP position
   - add liquidity
   - remove liquidity
+  - pool discovery
   - clanker
   - harvest
   - compound
   - claim fees
-version: 0.2.0
+version: 0.3.0
 author: Axiom (@AxiomBot)
 license: MIT
 chain: base
@@ -20,15 +21,16 @@ chain: base
 
 # Uniswap V4 LP Skill
 
-Manage concentrated liquidity positions on Uniswap V4 (Base chain).
+Manage concentrated liquidity positions on Uniswap V4 (Base chain) for ANY token pair.
 
 ## Features
 
-- Add liquidity to V4 pools
-- Remove liquidity / collect fees
-- Monitor position health
-- Rebalance when out of range
+- **Pool Discovery**: Find and analyze pools for any token pair
+- **Generic Support**: Works with WETH, USDC, AXIOM, BNKR, or any token address
+- Add/remove liquidity to any V4 pool
+- Monitor position health and rebalancing
 - **Auto-compound** fees back into liquidity (set-and-forget)
+- **Approval Generation**: Create Permit2 or direct approvals for any tokens
 
 ## Requirements
 
@@ -89,6 +91,62 @@ node burn-position.mjs --token-id <ID>
 node rebalance.mjs --token-id <ID> --range 25
 ```
 
+## Pool Discovery & Analysis
+
+Discover and analyze pools for any token pair before adding liquidity:
+
+```bash
+# Find all pools for a token pair (symbols or addresses)
+node discover-pool.mjs --token0 WETH --token1 AXIOM
+node discover-pool.mjs --token0 USDC --token1 BNKR
+node discover-pool.mjs --token0 0x4200000000000000000000000000000000000006 --token1 0xf3ce5ddaab6c133f9875a4a46c55cf0b58111b07
+
+# Get current pool state (price, liquidity, tick)
+node fetch-pool-state.mjs --token0 WETH --token1 AXIOM --fee 0x800000
+node fetch-pool-state.mjs --token0 USDC --token1 BNKR --fee 3000 --tick-spacing 60
+
+# Comprehensive pool analysis (volume, positions, hooks)
+node query-pool-details.mjs --token0 WETH --token1 AXIOM
+node query-pool-details.mjs --token0 USDC --token1 BNKR --fee 3000
+
+# Generate approval transactions for any token pair
+node generate-approvals.mjs --token0 WETH --token1 AXIOM --amount0 1 --amount1 50000
+node generate-approvals.mjs --token0 USDC --token1 BNKR --max --permit2
+node generate-approvals.mjs --token0 WETH --token1 AXIOM --amount0 0.5 --amount1 25000 --bankr --execute
+```
+
+### Supported Tokens
+
+| Symbol | Address | Chain |
+|--------|---------|-------|
+| WETH | `0x4200000000000000000000000000000000000006` | Base |
+| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | Base |
+| BNKR | `0x22af33fe49fd1fa80c7149773dde5890d3c76f3b` | Base |
+| AXIOM | `0xf3ce5ddaab6c133f9875a4a46c55cf0b58111b07` | Base |
+| ETH | `0x0000000000000000000000000000000000000000` | Native |
+
+Or use any token address directly.
+
+## Generic LP Operations
+
+Add liquidity to ANY pool by providing token addresses:
+
+```bash
+# Generic usage with token symbols
+node add-liquidity.mjs --token0 WETH --token1 USDC --amount 100 --range 10
+
+# Generic usage with addresses  
+node add-liquidity.mjs \
+  --token0 0x4200000000000000000000000000000000000006 \
+  --token1 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+  --amount 100 --range 10
+
+# Use discovered pool key directly
+node add-liquidity.mjs \
+  --pool-key '{"currency0":"0x4200000000000000000000000000000000000006","currency1":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","fee":3000,"tickSpacing":60,"hooks":"0x0000000000000000000000000000000000000000"}' \
+  --amount 100 --range 10
+```
+
 ## Base Chain Contracts
 
 | Contract | Address |
@@ -105,16 +163,36 @@ node rebalance.mjs --token-id <ID> --range 25
 3. **Monitor positions** - rebalance when 80% to range edge
 4. **Start small** - test with minimal amounts first
 
-## Pool-Specific: AXIOM/WETH
+## Pool Key Examples
+
+Common pool configurations on Base:
 
 ```javascript
+// Standard 0.30% fee pool (most common)
+const WETH_USDC_POOL = {
+  currency0: '0x4200000000000000000000000000000000000006', // WETH
+  currency1: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC
+  fee: 3000, // 0.30%
+  tickSpacing: 60,
+  hooks: '0x0000000000000000000000000000000000000000'
+};
+
+// Clanker pool with dynamic fees (AXIOM/WETH example)
 const AXIOM_WETH_POOL = {
-  poolId: '0x10a0b8eba9d4e0f772c8c47968ee819bb4609ef4454409157961570cdce9a735',
-  token0: '0x4200000000000000000000000000000000000006', // WETH
-  token1: '0xf3Ce5dDAAb6C133F9875a4a46C55cf0b58111B07', // AXIOM
-  fee: 0x800000, // ⚠️ DYNAMIC_FEE_FLAG - Clanker hook controls fee
+  currency0: '0x4200000000000000000000000000000000000006', // WETH
+  currency1: '0xf3Ce5dDAAb6C133F9875a4a46C55cf0b58111B07', // AXIOM
+  fee: 0x800000, // DYNAMIC_FEE_FLAG - hook controls fee
   tickSpacing: 200,
   hooks: '0xb429d62f8f3bffb98cdb9569533ea23bf0ba28cc' // Clanker hook
+};
+
+// High fee 1% pool for volatile pairs
+const VOLATILE_PAIR = {
+  currency0: '0xTOKEN0_ADDR',
+  currency1: '0xTOKEN1_ADDR', 
+  fee: 10000, // 1.00%
+  tickSpacing: 200,
+  hooks: '0x0000000000000000000000000000000000000000'
 };
 ```
 
