@@ -42,9 +42,10 @@ bash scripts/find-gotchi.sh 9638
 ```
 
 **What you get:**
-1. 🖼️ **Image first** - Gotchi PNG (512×512) with name caption
-2. 📊 **Traits below** - Complete stats and numeric traits
-3. 📥 **Download menu** - Options for other formats
+- 🖼️ **Single message** - Gotchi PNG (512×512) with complete traits as caption
+  - Image on top
+  - Traits text below (in same message)
+  - Download options menu at end of caption
 
 **Step 2: User chooses which format to download**
 ```bash

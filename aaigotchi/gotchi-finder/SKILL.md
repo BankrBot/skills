@@ -93,10 +93,11 @@ bash scripts/find-gotchi.sh 9638 --format all
 
 ### Live Gotchis (Status 3)
 
-**Message 1: Image**
-- 🎨 Gotchi PNG image (Telegram file with caption showing gotchi name)
+**Single message with image + caption:**
 
-**Message 2: Traits (below image)**
+Image: Gotchi PNG (512×512)
+
+Caption:
 ```
 👻 Gotchi #{ID} "{Name}"
 
@@ -124,8 +125,7 @@ bash scripts/find-gotchi.sh 9638 --format all
 ```
 
 ### Portals (Status 0-1)
-- Portal image first
-- Portal status info below
+**Single message:** Portal image with status info as caption
 
 ## Technical Details
 
