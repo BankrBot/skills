@@ -189,26 +189,26 @@ async function collectFees(publicClient, walletClient, account, tokenId, poolKey
 
 // ─── Core: Add Liquidity ─────────────────────────────────────────────────────
 
-async function addFeesAsLiquidity(publicClient, walletClient, account, tokenId, poolKey, feesWeth, feesToken1, sqrtPriceX96, tickLower, tickUpper, deadline) {
+async function addFeesAsLiquidity(publicClient, walletClient, account, tokenId, poolKey, feesToken0, feesToken1, sqrtPriceX96, tickLower, tickUpper, deadline) {
   // Calculate liquidity from fee amounts
   const sqrtPriceLower = tickToSqrtPriceX96(tickLower);
   const sqrtPriceUpper = tickToSqrtPriceX96(tickUpper);
-  const newLiquidity = getLiquidityForAmounts(sqrtPriceX96, sqrtPriceLower, sqrtPriceUpper, feesWeth, feesToken1);
+  const newLiquidity = getLiquidityForAmounts(sqrtPriceX96, sqrtPriceLower, sqrtPriceUpper, feesToken0, feesToken1);
 
   if (newLiquidity <= 0n) return { success: false, reason: 'zero-liquidity' };
 
   console.log(`   Liquidity to add: ${newLiquidity}`);
 
   // Ensure tokens approved to Permit2 (V4 uses Permit2 for token transfers)
-  if (feesWeth > 0n) {
+  if (feesToken0 > 0n) {
     const allowance = await publicClient.readContract({
-      address: CONTRACTS.WETH, abi: ERC20_ABI, functionName: 'allowance',
+      address: poolKey.currency0, abi: ERC20_ABI, functionName: 'allowance',
       args: [account.address, CONTRACTS.PERMIT2],
     });
-    if (allowance < feesWeth) {
-      console.log('   Approving WETH to Permit2...');
+    if (allowance < feesToken0) {
+      console.log('   Approving Token0 to Permit2...');
       const tx = await walletClient.writeContract({
-        address: CONTRACTS.WETH, abi: ERC20_ABI, functionName: 'approve',
+        address: poolKey.currency0, abi: ERC20_ABI, functionName: 'approve',
         args: [CONTRACTS.PERMIT2, maxUint256],
       });
       await publicClient.waitForTransactionReceipt({ hash: tx });
@@ -238,7 +238,7 @@ async function addFeesAsLiquidity(publicClient, walletClient, account, tokenId, 
   // Verified on-chain: tx 0xa2f8...04f9 increased liquidity successfully
   const addActionsHex = '0x0011';
 
-  const amount0Max = feesWeth > 0n ? feesWeth * 150n / 100n : 0n;
+  const amount0Max = feesToken0 > 0n ? feesToken0 * 150n / 100n : 0n;
   const amount1Max = feesToken1 > 0n ? feesToken1 * 150n / 100n : 0n;
 
   // INCREASE_LIQUIDITY: tokenId, liquidity, amount0Max, amount1Max, hookData
@@ -337,17 +337,17 @@ async function compound(publicClient, walletClient, account) {
   const tickUpper = Math.max(rawA, rawB);
   console.log(`   Range: tick ${tickLower} → ${tickUpper} (current: ${currentTick})`);
 
-  // 3. Wallet balances before
+  // 3. Wallet balances before (use actual pool currencies, not hardcoded WETH)
   await sleep(500);
-  const wethBefore = await retry(() => publicClient.readContract({
-    address: CONTRACTS.WETH, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address],
+  const token0Before = await retry(() => publicClient.readContract({
+    address: poolKey.currency0, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address],
   }));
   await sleep(500);
   const token1Before = await retry(() => publicClient.readContract({
     address: poolKey.currency1, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address],
   }));
 
-  console.log(`\n💰 Wallet: WETH ${formatEther(wethBefore)} | Token1 ${formatEther(token1Before)}`);
+  console.log(`\n💰 Wallet: Token0 ${formatEther(token0Before)} | Token1 ${formatEther(token1Before)}`);
 
   if (argv.dryRun) {
     console.log('\n✅ Dry run — would collect fees and re-add as liquidity');
@@ -369,20 +369,20 @@ async function compound(publicClient, walletClient, account) {
   await sleep(3000);
 
   // ─── Step 2: Measure fees ────────────────────────────────────────────────
-  const wethAfter = await retry(() => publicClient.readContract({
-    address: CONTRACTS.WETH, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address],
+  const token0After = await retry(() => publicClient.readContract({
+    address: poolKey.currency0, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address],
   }));
   await sleep(500);
   const token1After = await retry(() => publicClient.readContract({
     address: poolKey.currency1, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address],
   }));
 
-  const feesWeth = wethAfter - wethBefore;
+  const feesToken0 = token0After - token0Before;
   const feesToken1 = token1After - token1Before;
 
-  console.log(`\n💸 Fees: WETH ${formatEther(feesWeth)} | Token1 ${formatEther(feesToken1)}`);
+  console.log(`\n💸 Fees: Token0 ${formatEther(feesToken0)} | Token1 ${formatEther(feesToken1)}`);
 
-  if (feesWeth <= 0n && feesToken1 <= 0n) {
+  if (feesToken0 <= 0n && feesToken1 <= 0n) {
     console.log('⚠️  No fees accrued');
     return { compounded: false, reason: 'no-fees', collectTx: collectHash };
   }
@@ -391,13 +391,13 @@ async function compound(publicClient, walletClient, account) {
   const [ethPrice, token1Price] = await Promise.all([getEthPrice(), getTokenPrice(poolKey.currency1)]);
   const gasPrice = await retry(() => publicClient.getGasPrice());
   const gasCostUsd = (Number(gasPrice * 350000n) / 1e18) * ethPrice;
-  const feesWethUsd = (Number(feesWeth) / 1e18) * ethPrice;
+  const feesToken0Usd = (Number(feesToken0) / 1e18) * ethPrice;
   const feesToken1Usd = (Number(feesToken1) / 1e18) * token1Price;
-  const feesUsd = feesWethUsd + feesToken1Usd;
+  const feesUsd = feesToken0Usd + feesToken1Usd;
 
   console.log(`\n📊 Economics:`);
   console.log(`   ETH:    $${ethPrice.toFixed(0)} | Token1: $${token1Price.toFixed(8)}`);
-  console.log(`   Fees:   $${feesUsd.toFixed(4)} (WETH $${feesWethUsd.toFixed(4)} + Token1 $${feesToken1Usd.toFixed(4)})`);
+  console.log(`   Fees:   $${feesUsd.toFixed(4)} (Token0 $${feesToken0Usd.toFixed(4)} + Token1 $${feesToken1Usd.toFixed(4)})`);
   console.log(`   Gas:    ~$${gasCostUsd.toFixed(4)}`);
   console.log(`   Strategy: ${strategy.toUpperCase()}`);
 
@@ -438,7 +438,7 @@ async function compound(publicClient, walletClient, account) {
 
   const result = await addFeesAsLiquidity(
     publicClient, walletClient, account, tokenId, poolKey,
-    feesWeth, feesToken1, sqrtPriceX96, tickLower, tickUpper, deadline
+    feesToken0, feesToken1, sqrtPriceX96, tickLower, tickUpper, deadline
   );
 
   if (!result.success) {
@@ -453,7 +453,7 @@ async function compound(publicClient, walletClient, account) {
 
   const totalGas = collectReceipt.gasUsed + result.receipt.gasUsed;
   console.log(`\n✅ Auto-compound complete!`);
-  console.log(`   WETH: ${formatEther(feesWeth)} | Token1: ${formatEther(feesToken1)}`);
+  console.log(`   Token0: ${formatEther(feesToken0)} | Token1: ${formatEther(feesToken1)}`);
   console.log(`   Value: ~$${feesUsd.toFixed(4)}`);
   console.log(`   Gas: ${totalGas} (~$${((Number(totalGas * gasPrice) / 1e18) * ethPrice).toFixed(4)})`);
   console.log(`   https://basescan.org/tx/${result.hash}`);

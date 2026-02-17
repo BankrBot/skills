@@ -4,7 +4,7 @@
  * Usage: node add-liquidity.mjs --amount 20 --range 25
  */
 
-import { createPublicClient, createWalletClient, http, parseEther, encodeFunctionData, encodeAbiParameters, parseAbiParameters, formatEther, maxUint256 } from 'viem';
+import { createPublicClient, createWalletClient, http, parseEther, parseUnits, encodeFunctionData, encodeAbiParameters, parseAbiParameters, formatEther, formatUnits, maxUint256, keccak256, encodePacked } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
 import * as dotenv from 'dotenv';
@@ -148,6 +148,30 @@ function buildPoolConfig() {
   };
 }
 
+// Compute poolId from poolKey (keccak256 of abi-encoded PoolKey struct)
+function computePoolId(poolKey) {
+  return keccak256(
+    encodeAbiParameters(
+      parseAbiParameters('address, address, uint24, int24, address'),
+      [poolKey.currency0, poolKey.currency1, poolKey.fee, poolKey.tickSpacing, poolKey.hooks]
+    )
+  );
+}
+
+// Get token decimals (handles native ETH)
+async function getTokenDecimals(publicClient, tokenAddress) {
+  if (tokenAddress === '0x0000000000000000000000000000000000000000') return 18;
+  try {
+    return await publicClient.readContract({
+      address: tokenAddress,
+      abi: [{ name: 'decimals', type: 'function', inputs: [], outputs: [{ type: 'uint8' }] }],
+      functionName: 'decimals',
+    });
+  } catch {
+    return 18; // fallback
+  }
+}
+
 // Calculate sqrt price from tick: sqrt(1.0001^tick) * 2^96
 function tickToSqrtPriceX96(tick) {
   const sqrtRatio = Math.sqrt(Math.pow(1.0001, tick));
@@ -249,11 +273,13 @@ async function main() {
 
   // 1. Get current pool state
   console.log('\n📊 Fetching pool state...');
+  const poolId = computePoolId(poolConfig);
+  console.log(`Pool ID: ${poolId}`);
   const [sqrtPriceX96, currentTick, , lpFee] = await publicClient.readContract({
     address: CONTRACTS.STATE_VIEW,
     abi: STATE_VIEW_ABI,
     functionName: 'getSlot0',
-    args: [poolConfig],
+    args: [poolId],
   });
 
   console.log(`Current tick: ${currentTick}`);
@@ -280,14 +306,20 @@ async function main() {
     });
   };
 
+  // Fetch token decimals for proper formatting
+  const [token0Decimals, token1Decimals] = await Promise.all([
+    getTokenDecimals(publicClient, poolConfig.currency0),
+    getTokenDecimals(publicClient, poolConfig.currency1),
+  ]);
+
   const [token0Balance, token1Balance] = await Promise.all([
     getTokenBalance(poolConfig.currency0),
     getTokenBalance(poolConfig.currency1),
   ]);
 
   console.log(`\n💰 Balances:`);
-  console.log(`  ${token0Symbol}: ${formatEther(token0Balance)}`);
-  console.log(`  ${token1Symbol}: ${formatEther(token1Balance)}`);
+  console.log(`  ${token0Symbol} (${token0Decimals} decimals): ${formatUnits(token0Balance, token0Decimals)}`);
+  console.log(`  ${token1Symbol} (${token1Decimals} decimals): ${formatUnits(token1Balance, token1Decimals)}`);
 
   // 4. Calculate amounts for position (split 50/50)
   const ETH_PRICE = 2750; // Approximate for USD calculation
@@ -300,17 +332,19 @@ async function main() {
   const token0Price = poolConfig.currency0.toLowerCase() === CONTRACTS.WETH.toLowerCase() ? ETH_PRICE : 1;
   const token1Price = 1; // Simplified - treat other tokens as ~$1 for calculation
   
-  const token0Amount = parseEther(String(halfAmount / token0Price));
+  const token0Amount = parseUnits(String(halfAmount / token0Price), token0Decimals);
   
   // Get token1 amount based on current price ratio
   // sqrtPriceX96 encodes price as sqrt(token1/token0) * 2^96
   const price = (Number(sqrtPriceX96) / 2 ** 96) ** 2;
-  const token1PerToken0 = price; // token1 per token0
+  // Adjust for decimal difference between tokens
+  const decimalAdjustment = 10 ** (token0Decimals - token1Decimals);
+  const token1PerToken0 = price * decimalAdjustment;
   const token1Amount = BigInt(Math.floor(Number(token0Amount) * token1PerToken0));
 
   console.log(`\n📦 Position amounts:`);
-  console.log(`  ${token0Symbol}: ${formatEther(token0Amount)}`);
-  console.log(`  ${token1Symbol}: ${formatEther(token1Amount)}`);
+  console.log(`  ${token0Symbol}: ${formatUnits(token0Amount, token0Decimals)}`);
+  console.log(`  ${token1Symbol}: ${formatUnits(token1Amount, token1Decimals)}`);
 
   if (token0Amount > token0Balance) {
     console.error(`❌ Insufficient ${token0Symbol} balance`);

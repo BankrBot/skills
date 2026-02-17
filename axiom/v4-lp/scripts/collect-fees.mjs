@@ -110,9 +110,9 @@ async function main() {
     (5 * 32).toString(16).padStart(64, '0') +       // hookData offset
     '0'.padStart(64, '0');                          // hookData length = 0
 
-  // CLOSE_CURRENCY for each token
-  const closeParams0 = '0x' + pad32(poolKey.currency0);
-  const closeParams1 = '0x' + pad32(poolKey.currency1);
+  // CLOSE_CURRENCY for each token: (address currency, address recipient)
+  const closeParams0 = '0x' + pad32(poolKey.currency0) + pad32(account.address);
+  const closeParams1 = '0x' + pad32(poolKey.currency1) + pad32(account.address);
 
   const unlockData = encodeAbiParameters(
     parseAbiParameters('bytes, bytes[]'),

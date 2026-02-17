@@ -4,7 +4,7 @@
  * 
  * Usage: node burn-position.mjs --token-id 1078344
  * 
- * Actions: BURN_POSITION (0x03) → TAKE_PAIR (0x11)
+ * Actions: BURN_POSITION (0x03) → CLOSE_CURRENCY (0x11) × 2
  */
 
 import { createPublicClient, createWalletClient, http, encodeAbiParameters, parseAbiParameters, concat, pad, toHex, formatEther } from 'viem';
@@ -29,7 +29,7 @@ const STATE_VIEW = '0xa3c0c9b65bad0b08107aa264b0f3db444b867a71';
 
 // Action codes (from V4 periphery Actions.sol)
 const BURN_POSITION = 0x03;
-const TAKE_PAIR = 0x11;
+const CLOSE_CURRENCY = 0x11;
 
 // Setup
 const privateKey = process.env.NET_PRIVATE_KEY;
@@ -146,36 +146,36 @@ async function main() {
     [TOKEN_ID, 0n, 0n, '0x']
   );
   
-  // Action 2: TAKE_PAIR
-  // Params: (address currency0, address currency1, address recipient)
-  const takeParams = encodeAbiParameters(
-    parseAbiParameters('address, address, address'),
-    [poolKey.currency0, poolKey.currency1, account.address]
+  // Action 2: CLOSE_CURRENCY for currency0
+  // Params: (address currency, address recipient)
+  const closeParams0 = encodeAbiParameters(
+    parseAbiParameters('address, address'),
+    [poolKey.currency0, account.address]
   );
 
-  // Build actions bytes (2 actions)
+  // Action 3: CLOSE_CURRENCY for currency1
+  const closeParams1 = encodeAbiParameters(
+    parseAbiParameters('address, address'),
+    [poolKey.currency1, account.address]
+  );
+
+  // Build actions bytes (3 actions: BURN + CLOSE × 2)
   const actions = concat([
     toHex(BURN_POSITION, { size: 1 }),
-    toHex(TAKE_PAIR, { size: 1 }),
+    toHex(CLOSE_CURRENCY, { size: 1 }),
+    toHex(CLOSE_CURRENCY, { size: 1 }),
   ]);
-
-  // Build params array encoding
-  // For modifyLiquidities: (bytes actions, bytes[] params)
-  // Then wrapped in unlockData
-  const paramsArrayEncoded = encodeAbiParameters(
-    parseAbiParameters('bytes[]'),
-    [[burnParams, takeParams]]
-  );
 
   // unlockData = abi.encode(actions, params)
   const unlockData = encodeAbiParameters(
     parseAbiParameters('bytes, bytes[]'),
-    [actions, [burnParams, takeParams]]
+    [actions, [burnParams, closeParams0, closeParams1]]
   );
 
   console.log('  Actions:', actions);
   console.log('  Burn params length:', burnParams.length);
-  console.log('  Take params length:', takeParams.length);
+  console.log('  Close params0 length:', closeParams0.length);
+  console.log('  Close params1 length:', closeParams1.length);
   console.log('  UnlockData length:', unlockData.length);
 
   if (dryRun) {
