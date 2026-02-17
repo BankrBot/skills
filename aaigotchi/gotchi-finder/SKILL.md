@@ -32,14 +32,15 @@ Find and display any Aavegotchi by ID with complete traits and image.
 
 ### Interactive Workflow (Recommended)
 
-**Step 1: Preview gotchi with traits**
+**Step 1: Preview gotchi**
 ```bash
 bash scripts/find-gotchi.sh 9638
 ```
-This shows:
-- Complete trait information
-- Standard PNG preview (512x512)
-- Download options menu
+
+**Presentation order:**
+1. 🖼️ Gotchi image (PNG preview 512x512) - **shown first**
+2. 📊 Complete trait information - **shown below image**
+3. 📥 Download options menu - **at the end**
 
 **Step 2: User chooses format**
 User can then request specific format(s):
@@ -88,23 +89,43 @@ bash scripts/find-gotchi.sh 9638 --format all
 - `gotchi-{ID}.png` - Standard PNG (preview/png/all)
 - `gotchi-{ID}-hires.png` - Hi-res PNG (hires/all)
 
-## What It Shows
+## Display Format
 
-**For Live Gotchis (Status 3):**
-- 📛 Name
-- ⭐ Base Rarity Score (BRS)
-- 💜 Kinship
-- 🎯 Level
-- ✨ Experience (XP)
-- 🏰 Haunt
-- 👤 Owner address
-- 🎨 Full-color PNG image
+### Live Gotchis (Status 3)
 
-**For Portals (Status 0-1):**
-- Portal status
-- Owner
-- Haunt
-- Portal image
+**Message 1: Image**
+- 🎨 Gotchi PNG image (Telegram file with caption showing gotchi name)
+
+**Message 2: Traits (below image)**
+```
+👻 Gotchi #{ID} "{Name}"
+
+📊 Stats:
+⭐ BRS: {brs} (Modified: {modifiedBrs})
+💜 Kinship: {kinship}
+🎯 Level: {level}
+✨ XP: {xp}
+🏰 Haunt: {haunt}
+🔒 Locked: {Yes/No}
+
+🎭 Traits:
+• Energy: {value}
+• Aggression: {value}
+• Spookiness: {value}
+• Brain Size: {value}
+• Eye Shape: {value}
+• Eye Color: {value}
+
+📥 Download options:
+• Standard PNG (512×512)
+• Hi-res PNG (1024×1024)
+• SVG (vector)
+• All formats
+```
+
+### Portals (Status 0-1)
+- Portal image first
+- Portal status info below
 
 ## Technical Details
 
