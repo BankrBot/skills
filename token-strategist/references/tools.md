@@ -59,8 +59,11 @@ bankr prompt "deploy a token called AgentCoin with symbol AGENT on base"
   compressed to one word. Memeability and clarity both matter.
 - `--image <url>` — Token image. First impression for every potential buyer.
   Drives social sharing. Skip it and the token looks abandoned.
-- `--tweet <url>` — Anchors the launch to a social moment. Creates initial
-  momentum. Without it, launch has no context for outsiders to discover.
+- `--tweet <url>` — Links the token to an existing tweet. Use this when
+  the token is based on something already posted — a product announcement,
+  a viral moment, a meme, or a launch thread. The tweet becomes the
+  token's origin story and gives buyers context for why it exists. Not a
+  new tweet; it's a reference to one that already exists.
 - `--fee <recipient>` — Who earns the creator's share of trading fees (see
   Fee Splits below). This is how the builder makes money. Can be the
   builder's own handle, a community wallet, or an influencer to align
