@@ -27,6 +27,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
 | [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
+| [FTW](https://github.com/SmokeAlot420/ftw) | [ftw](ftw/) | Structured development with Plan-Implement-Validate workflow. Multi-agent execution, independent validation, and automated debugging loops. |
 | base                       | —               | Planned                                                                                               |
 | neynar                     | —               | Planned                                                                                               |
 | zapper                     | —               | Planned                                                                                               |
