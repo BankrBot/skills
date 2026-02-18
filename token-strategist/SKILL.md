@@ -51,6 +51,11 @@ what happened — what worked, what failed, and why.
 
 ## Before launching
 
+Before anything else, run `bankr whoami` to check the builder's wallet.
+If they have one, use it — never ask for their wallet address manually.
+If they don't have one, run `bankr login` to create it, then confirm
+with `bankr whoami`. The wallet must exist before deploying.
+
 Token deployment is irreversible. Before executing, show the builder a
 summary of everything that will be deployed — name, image, tweet, fee
 recipient — and wait for explicit confirmation. If anything

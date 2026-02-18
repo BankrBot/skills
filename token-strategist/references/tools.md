@@ -6,13 +6,25 @@ not Bankr.
 
 ## Wallet
 
-Set up before launching.
+A Bankr wallet is required before launching. Run `bankr whoami` first to
+check whether the user already has one. If it shows wallet addresses, the
+user is ready — use that wallet as the fee recipient. Never ask the user
+for their wallet address; always get it from `bankr whoami`.
+
+If the user is not logged in or has no wallet, walk them through setup:
 
 ```
-bankr login                           — authenticate with Bankr API
+bankr login                           — authenticate (creates a wallet if new)
 bankr whoami                          — show wallets, social accounts, connection status
 bankr prompt "what are my balances?"  — check wallet has funds to deploy
 ```
+
+**Flow:**
+1. `bankr whoami` — if it returns wallet info, skip to launch.
+2. If not logged in → `bankr login` → authenticate → wallet is created
+   automatically.
+3. `bankr whoami` again to confirm the wallet exists.
+4. Optionally check balances if the launch requires gas.
 
 ## Launch
 
