@@ -1,0 +1,28 @@
+# Configuration files with API keys
+config.json
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test files
+test-results/
+coverage/
+
+# Temporary files
+*.tmp
+.cache/

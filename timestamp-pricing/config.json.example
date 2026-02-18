@@ -1,0 +1,10 @@
+{
+  "coingeckoApiKey": "",
+  "coinmarketcapApiKey": "",
+  "bankrApiKey": "",
+  "notes": {
+    "coingeckoApiKey": "Optional - Get from https://www.coingecko.com/en/api/pricing",
+    "coinmarketcapApiKey": "Optional - Get from https://coinmarketcap.com/api/",
+    "bankrApiKey": "Optional - Already configured if Bankr skill is installed"
+  }
+}
