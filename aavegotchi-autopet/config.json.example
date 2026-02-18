@@ -1,0 +1,8 @@
+{
+  "contractAddress": "0xa99c4b08201f2913db8d28e71d020c4298f29dbf",
+  "walletAddress": "0xYourWalletAddress",
+  "gotchiIds": ["9638", "1234"],
+  "rpcUrl": "https://mainnet.base.org",
+  "privateKeyEncrypted": true,
+  "privateKeyPath": "~/.openclaw/secrets/aavegotchi-private-key.gpg"
+}
