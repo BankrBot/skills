@@ -30,14 +30,15 @@ Output is a single-line JSON object (may be preceded by status lines like `→ d
 ## Core Helpers
 
 ```js
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const BANKR_SCRIPT = process.env.BANKR_SCRIPT ||
   `${process.env.HOME}/.clawdbot/skills/bankr/scripts/bankr.sh`;
 
 function bankr(prompt, timeoutSeconds = 90) {
   try {
-    const escaped = prompt.replace(/"/g, '\\"').replace(/\$/g, '\\$');
-    return execSync(`"${BANKR_SCRIPT}" "${escaped}"`, {
+    // execFileSync passes prompt as a direct argv element — no shell involved,
+    // so backticks, $(), and other shell metacharacters cannot be injected.
+    return execFileSync(BANKR_SCRIPT, [prompt], {
       encoding: 'utf8', maxBuffer: 5 * 1024 * 1024, timeout: timeoutSeconds * 1000
     });
   } catch (e) {
@@ -69,8 +70,8 @@ function parseAmounts(text) {
   const patterns = [
     // "claimed: 0.0012 WETH / 11742.5 TOKEN"
     /(?:claimed|amounts?)[:\s]+([\d,]+\.?\d*)\s+([A-Z0-9]+)\s*\/\s*([\d,]+\.?\d*)\s+([A-Z0-9]+)/gi,
-    // "0.0012 WETH claimed" or "claimed 11742 TOKEN"
-    /(?:claimed\s+)?([\d,]+\.?\d*)\s+([A-Z]{2,10})(?:\s+claimed)?/gi,
+    // "claimed 11742 TOKEN" or "11742 TOKEN claimed" — requires explicit claimed keyword on one side
+    /(?:claimed\s+([\d,]+\.?\d*)\s+([A-Z]{2,10})|([\d,]+\.?\d*)\s+([A-Z]{2,10})\s+claimed)/gi,
     // "received 5000 TOKEN" / "bought 0.5 ETH"
     /(?:received|bought|purchased|swapped\s+(?:for|into))\s+([\d,]+\.?\d*)\s+([A-Z]{2,10})/gi,
   ];
@@ -145,7 +146,7 @@ function isConfirmed(rawOutput) {
     if (!envelope.success) return false;
     const text = envelope.response || '';
     const hasTx = /0x[a-fA-F0-9]{64}/.test(text);
-    const hasExplorer = /basescan|solscan|polygonscan|abscan|blockscout/.test(text);
+    const hasExplorer = /basescan|solscan|polygonscan|abscan|blockscout|etherscan/.test(text);
     return !isFailure(text) && (hasTx || hasExplorer);
   } catch (_) { return false; }
 }

@@ -12,7 +12,7 @@
  */
 
 'use strict';
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const path = require('path');
 
 const BANKR_SCRIPT = process.env.BANKR_SCRIPT ||
@@ -23,11 +23,13 @@ const BANKR_SCRIPT = process.env.BANKR_SCRIPT ||
 /**
  * Run a bankr prompt and return raw stdout.
  * Returns null on timeout (operation may still have executed on-chain).
+ *
+ * Uses execFileSync (not execSync) to pass the prompt as a direct argument,
+ * bypassing the shell entirely — prevents injection via backticks, $(), etc.
  */
 function bankr(prompt, timeoutSeconds = 90) {
   try {
-    const escaped = prompt.replace(/"/g, '\\"').replace(/\$/g, '\\$');
-    return execSync(`"${BANKR_SCRIPT}" "${escaped}"`, {
+    return execFileSync(BANKR_SCRIPT, [prompt], {
       encoding: 'utf8',
       maxBuffer: 5 * 1024 * 1024,
       timeout: timeoutSeconds * 1000,
@@ -83,16 +85,29 @@ function parseAmounts(text) {
     /(?:claimed|amounts?)[:\s]+([\d,]+\.?\d*)\s+([A-Z0-9]+)\s*\/\s*([\d,]+\.?\d*)\s+([A-Z0-9]+)/gi,
     // Action + amount: "bought 500 BNKR", "received 0.5 ETH", "swapped for 100 USDC"
     /(?:bought|purchased|received|acquired|swapped\s+(?:for|into)|staked?)\s+([\d,]+\.?\d*)\s+([A-Z]{2,10})/gi,
-    // "claimed 11742 TOKEN" or "11742 TOKEN claimed"
-    /(?:claimed\s+)?([\d,]+\.?\d*)\s+([A-Z]{2,10})(?:\s+claimed)?/gi,
+    // "claimed 11742 TOKEN" or "11742 TOKEN claimed" — requires at least one claimed keyword
+    /(?:claimed\s+([\d,]+\.?\d*)\s+([A-Z]{2,10})|([\d,]+\.?\d*)\s+([A-Z]{2,10})\s+claimed)/gi,
   ];
 
-  for (const pattern of patterns) {
+  for (let pi = 0; pi < patterns.length; pi++) {
+    const pattern = patterns[pi];
     let m;
     pattern.lastIndex = 0;
     while ((m = pattern.exec(text)) !== null) {
-      const pairs = m[3] ? [[m[1], m[2]], [m[3], m[4]]] : [[m[1], m[2]]];
+      let pairs;
+      if (pi === 0) {
+        // Slash-separated: groups 1,2 and 3,4
+        pairs = m[3] ? [[m[1], m[2]], [m[3], m[4]]] : [[m[1], m[2]]];
+      } else if (pi === 2) {
+        // "claimed 11742 TOKEN" → groups 1,2; "11742 TOKEN claimed" → groups 3,4
+        const amtStr = m[1] ?? m[3];
+        const sym    = m[2] ?? m[4];
+        pairs = amtStr && sym ? [[amtStr, sym]] : [];
+      } else {
+        pairs = [[m[1], m[2]]];
+      }
       for (const [amtStr, sym] of pairs) {
+        if (!amtStr || !sym) continue;
         const amount = parseFloat(amtStr.replace(/,/g, ''));
         const symbol = sym.toUpperCase();
         const key = `${symbol}:${amount}`;
@@ -218,7 +233,7 @@ function isConfirmed(rawOutput) {
     if (!envelope.success) return false;
     const text = envelope.response || '';
     const hasTx = /0x[a-fA-F0-9]{64}/.test(text);
-    const hasExplorer = /basescan|solscan|polygonscan|abscan|blockscout/.test(text);
+    const hasExplorer = /basescan|solscan|polygonscan|abscan|blockscout|etherscan/.test(text);
     return !isFailure(text) && (hasTx || hasExplorer);
   } catch (_) { return false; }
 }
