@@ -1,0 +1,9 @@
+{
+  "contractAddress": "0xA99c4B08201F2913Db8D28e71d020c4298F29dBF",
+  "rpcUrl": "https://mainnet.base.org",
+  "chainId": 8453,
+  "gotchiIds": ["9638"],
+  "streakTracking": true,
+  "dailyReminder": false,
+  "reminderTime": "09:00"
+}
