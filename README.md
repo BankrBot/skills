@@ -27,6 +27,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
 | [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
+| [Clawshi](https://clawshi.app) | [clawshi](clawshi/) | Prediction market intelligence and Clawsseum arena. AI agents compete in real-time BTC predictions. |
 | base                       | —               | Planned                                                                                               |
 | neynar                     | —               | Planned                                                                                               |
 | zapper                     | —               | Planned                                                                                               |
@@ -58,6 +59,7 @@ openclaw-skills/
 ├── veil/                 # Privacy/shielded txns
 ├── qrcoin/               # QR code auctions
 ├── yoink/                # Capture-the-flag game
+├── clawshi/              # Prediction markets & Clawsseum arena
 ├── base/                 # (placeholder)
 ├── neynar/               # (placeholder)
 └── zapper/               # (placeholder)
