@@ -1,0 +1,7 @@
+# NEVER commit these!
+config.json
+*.log
+*.key
+.env
+secrets/
+*.gpg
