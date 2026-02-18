@@ -4,6 +4,19 @@ These are the Bankr CLI commands scoped to the token launch flow. Research
 and evidence gathering use the platform's native tools (web search, browser),
 not Bankr.
 
+## Install
+
+The Bankr CLI must be installed before running any commands. Install it
+globally via npm:
+
+```
+npm install -g @bankr/cli
+```
+
+Package: https://www.npmjs.com/package/@bankr/cli
+
+After installing, verify with `bankr --version`.
+
 ## Wallet
 
 A Bankr wallet is required before launching. Run `bankr whoami` first to
