@@ -33,6 +33,7 @@ bankr prompt "what are my balances?"  — check wallet has funds to deploy
 ```
 
 **Flow:**
+
 1. `bankr whoami` — if it returns wallet info, skip to launch.
 2. If not logged in → `bankr login` → authenticate → wallet is created
    automatically.
@@ -44,11 +45,13 @@ bankr prompt "what are my balances?"  — check wallet has funds to deploy
 Deploy a token on Base. Two paths:
 
 **Structured** (always pass `-y` to skip interactive prompts):
+
 ```
 bankr launch --name "TESTCOIN" --fee "@creator" --fee-type x -y
 ```
 
 **Natural language:**
+
 ```
 bankr prompt "deploy a token called AgentCoin with symbol AGENT on base"
 ```
@@ -78,12 +81,12 @@ automatically on-chain. Fees accumulate until the creator claims them.
 
 Pool fee: **1.2%** on every trade, split as:
 
-| Recipient | Share | Description |
-|-----------|-------|-------------|
-| Creator | 57% | The `--fee` recipient (or deployer if omitted) |
-| Bankr | 36.1% | Protocol fee — goes to the Bankr wallet |
-| Alt | 1.9% | Secondary protocol recipient |
-| Doppler | 5% | Underlying protocol (airlock owner) |
+| Recipient | Share | Description                                    |
+| --------- | ----- | ---------------------------------------------- |
+| Creator   | 57%   | The `--fee` recipient (or deployer if omitted) |
+| Bankr     | 36.1% | Protocol fee — goes to the Bankr wallet        |
+| Alt       | 1.9%  | Secondary protocol recipient                   |
+| Doppler   | 5%    | Underlying protocol (airlock owner)            |
 
 ### Bankr wallet
 
