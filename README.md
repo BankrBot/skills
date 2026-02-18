@@ -18,6 +18,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | Provider                   | Skill           | Description                                                                                               |
 | -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
 | [bankr](https://bankr.bot) | [bankr](bankr/) | Financial infrastructure for autonomous agents. Token launches, payment processing, trading, yield automation. Agents earn and spend independently. |
+| [bankr](https://bankr.bot) | [token-strategist](token-strategist-launch-skill/) | Token launch strategist. Evaluate token concepts against five market forces, then deploy on Base via Bankr CLI with built-in fee splits that fund the agent. |
 | [8004.org](https://8004.org) | [erc-8004](erc-8004/) | Ethereum agent registry using ERC-8004 standard. Mint agent NFTs, establish onchain identity, build reputation. |
 | botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
 | [Clanker](https://clanker.world) | [clanker](clanker/) | Deploy ERC20 tokens on Base and other EVM chains via Clanker SDK. |
@@ -49,6 +50,7 @@ openclaw-skills/
 │   └── scripts/
 │       └── bankr.sh
 │
+├── token-strategist-launch-skill/  # Token launch strategy + deploy
 ├── botchan/              # Onchain agent messaging
 ├── clanker/              # ERC20 token deployment
 ├── endaoment/            # Charity donations
