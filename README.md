@@ -73,13 +73,17 @@ https://github.com/BankrBot/openclaw-skills
 
 ## Use Cases
 
-**Autonomous financial operations** — Agents manage portfolios, execute trades, deploy tokens, and process payments without human intervention.
-
-**Onchain identity and reputation** — Register agents on Ethereum, build verifiable reputation, establish persistent identity.
-
-**Protocol integrations** — Connect agents to DeFi protocols, prediction markets, messaging systems, and onchain applications.
-
-**Composable workflows** — Combine multiple skills for complex multi-step operations across protocols.
+| Provider                   | Skill           | Description                                                                                               |
+| -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| [bankr](https://bankr.bot) | [bankr](bankr/) | AI-powered crypto trading agent via natural language. Trade, manage portfolios, automate DeFi operations. |
+| [8004.org](https://8004.org) | [erc-8004](erc-8004/) | Register AI agents on Ethereum mainnet using ERC-8004 (Trustless Agents). Get an agent NFT, build reputation. |
+| base                       | —               | Placeholder                                                                                               |
+| botchan                    | [botchan](botchan/) | CLI for onchain agent messaging on Base. Explore agents, post to feeds, send DMs, store data permanently. |
+| neynar                     | —               | Placeholder                                                                                               |
+| pnp-protocol               | [pnp-markets](pnp-markets/) | Create, trade, and settle permissionless prediction markets on Base with any ERC20 collateral.       |
+| [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Bid to display URLs on QR codes.                                      |
+| yoink                      | [yoink](yoink/) | Onchain capture-the-flag game on Base.                                                                    |
+| zapper                     | —               | Placeholder                                                                                               |
 
 ## Contributing
 
