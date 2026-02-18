@@ -25,7 +25,18 @@ if [[ "$IS_ARRAY" == "true" ]]; then
   DEPOSIT_TX=$(echo "$PAYLOAD" | jq -c '.[1]')
 
   echo "Submitting approval transaction..." >&2
-  echo "$APPROVE_TX" | "$SCRIPT_DIR/veil-bankr-submit-tx.sh"
+  APPROVE_RESULT=$(echo "$APPROVE_TX" | "$SCRIPT_DIR/veil-bankr-submit-tx.sh") || {
+    echo "Approval transaction failed" >&2
+    echo "$APPROVE_RESULT" >&2
+    exit 1
+  }
+
+  APPROVE_STATUS=$(echo "$APPROVE_RESULT" | jq -r '.status // empty')
+  if [[ "$APPROVE_STATUS" != "completed" ]]; then
+    echo "Approval transaction not completed (status: ${APPROVE_STATUS:-unknown})" >&2
+    echo "$APPROVE_RESULT" >&2
+    exit 1
+  fi
 
   echo "Submitting deposit transaction..." >&2
   echo "$DEPOSIT_TX" | "$SCRIPT_DIR/veil-bankr-submit-tx.sh"

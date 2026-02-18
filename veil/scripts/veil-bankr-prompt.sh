@@ -49,9 +49,14 @@ while [[ $ATTEMPT -lt $MAX_ATTEMPTS ]]; do
   STATUS=$(curl -sf -X GET "$API_URL/agent/job/$JOB_ID" -H "X-API-Key: $API_KEY")
   STATE=$(echo "$STATUS" | jq -r '.status')
   case "$STATE" in
-    completed|failed|cancelled)
+    completed)
       echo "$STATUS" | jq .
       exit 0
+      ;;
+    failed|cancelled)
+      echo "$STATUS" | jq . >&2
+      echo "Bankr job $STATE: $JOB_ID" >&2
+      exit 1
       ;;
     pending|processing)
       :
