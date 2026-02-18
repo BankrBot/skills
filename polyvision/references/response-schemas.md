@@ -1,0 +1,334 @@
+# PolyVision Response Schemas
+
+Detailed JSON response shapes for all PolyVision tools and endpoints.
+
+## `analyze_wallet` Response
+
+The MCP tool returns this structure. The REST API wraps the `analysis` dict inside an `AnalysisResponse` envelope.
+
+### MCP Tool Response
+
+```json
+{
+  "wallet_address": "0x...",
+  "mode": "quick",
+  "cached": false,
+  "analysis": { /* see Analysis Object below */ },
+  "usage": {
+    "used_today": 5
+  }
+}
+```
+
+### REST API Response (`GET /v1/analyze/{wallet_address}`)
+
+```json
+{
+  "wallet_address": "0x...",
+  "mode": "quick",
+  "cached": false,
+  "analysis": { /* see Analysis Object below */ },
+  "usage": {
+    "used_today": 5
+  }
+}
+```
+
+### Analysis Object
+
+The `analysis` dict contains ~50 fields from the comprehensive analysis engine:
+
+```json
+{
+  // ── Identity ──
+  "wallet": "0x...",
+  "userName": "polytrader",
+  "xUsername": "polytrader_x",
+  "account_age_days": 365,
+  "is_anonymous": false,
+
+  // ── Position Counts ──
+  "closed_count": 150,
+  "open_count": 12,
+  "open_winners": 8,
+  "open_losers": 4,
+  "total_positions": 162,
+  "closed_trades": 150,
+
+  // ── P&L Summary ──
+  "total_pnl": 12500.50,
+  "net_pnl": 12500.50,
+  "total_unrealized_gain": 800.00,
+  "total_unrealized_loss": -200.00,
+  "total_closed_realized": 11900.50,
+  "total_current_cash": 600.00,
+  "portfolio_value": 5000.00,
+  "volume": 50000.00,
+  "total_invested": 50000.00,
+  "total_buy_volume": 50000.00,
+  "rank": 1234,
+
+  // ── Win/Loss Stats ──
+  "winners": 95,
+  "losers": 50,
+  "break_even": 5,
+  "win_rate": 65.5,
+  "avg_pnl": 83.33,
+  "avg_size": 333.33,
+  "worst_pnl": -500.00,
+  "best_pnl": 2000.00,
+  "worst_trade": -500.00,
+  "best_trade": 2000.00,
+  "worst_trade_pct": -4.0,
+
+  // ── P&L Distribution ──
+  "all_pnls": [100.0, -50.0, 200.0],
+  "pnl_percentiles": {
+    "10": -150.00,
+    "25": -30.00,
+    "50": 50.00,
+    "75": 200.00,
+    "90": 500.00
+  },
+  "pnl_warnings": [],
+
+  // ── Timeline ──
+  "track_record_days": 180,
+  "track_record_source": "activity",
+  "trading_days": 150.5,
+  "first_trade_time": "2024-06-01T12:00:00",
+  "last_trade_time": "2024-12-01T15:30:00",
+
+  // ── Scoring ──
+  "copy_trading_score": 7,
+  "copy_trading_recommendation": "Moderate Copy — decent performance with some concerns",
+
+  // ── Categories ──
+  "categories": {
+    "Sports": 45,
+    "Politics": 30,
+    "Crypto": 20,
+    "Other": 5
+  },
+
+  // ── Category Performance ──
+  "category_performance": {
+    "Sports": {
+      "count": 45,
+      "total_pnl": 5000.00,
+      "avg_pnl": 111.11,
+      "win_rate": 70.0,
+      "percentage_of_trades": 30.0
+    },
+    "Politics": {
+      "count": 30,
+      "total_pnl": 3000.00,
+      "avg_pnl": 100.00,
+      "win_rate": 60.0,
+      "percentage_of_trades": 20.0
+    }
+  },
+
+  // ── Risk Metrics ──
+  "risk_metrics": {
+    "sharpe_ratio": 1.25,
+    "sortino_ratio": 1.80,
+    "max_drawdown": 2500.00,
+    "max_drawdown_pct": 15.0,
+    "risk_rating": "🟡 Medium Risk"
+  },
+
+  // ── Red Flags ──
+  "red_flags": [
+    "✅ No major red flags detected"
+  ],
+
+  // ── Position Sizing ──
+  "position_sizing": {
+    "avg_size": 333.33,
+    "median_size": 250.00,
+    "min_size": 10.00,
+    "max_size": 2000.00,
+    "std_dev": 200.00,
+    "coefficient_of_variation": 60.0,
+    "consistency_rating": "Moderate"
+  },
+
+  // ── Recent Performance Windows ──
+  "recent_7d": {
+    "days": 7,
+    "positions": 5,
+    "total_pnl": 500.00,
+    "avg_pnl": 100.00,
+    "winners": 4,
+    "losers": 1,
+    "win_rate": 80.0,
+    "best": 200.00,
+    "worst": -50.00
+  },
+  "recent_30d": {
+    "days": 30,
+    "positions": 20,
+    "total_pnl": 2000.00,
+    "avg_pnl": 100.00,
+    "winners": 14,
+    "losers": 6,
+    "win_rate": 70.0,
+    "best": 500.00,
+    "worst": -200.00
+  },
+  "recent_90d": {
+    "days": 90,
+    "positions": 60,
+    "total_pnl": 5000.00,
+    "avg_pnl": 83.33,
+    "winners": 40,
+    "losers": 20,
+    "win_rate": 66.7,
+    "best": 1000.00,
+    "worst": -400.00
+  },
+
+  // ── Streaks ──
+  "streaks": {
+    "current_streak": 3,
+    "current_streak_type": "win",
+    "longest_win_streak": 8,
+    "longest_loss_streak": 4
+  },
+
+  // ── Timing (full mode only) ──
+  "timing": {
+    "count": 100,
+    "avg_seconds": 86400.0,
+    "avg_hours": 24.0,
+    "avg_days": 1.0,
+    "median_hours": 18.0,
+    "min_hours": 0.5,
+    "max_hours": 720.0,
+    "percentiles": {
+      "10": 2.0,
+      "25": 8.0,
+      "50": 18.0,
+      "75": 48.0,
+      "90": 168.0
+    }
+  }
+}
+```
+
+### Field Notes
+
+- `timing` is an empty object `{}` in quick mode. Full mode includes holding duration analysis.
+- `recent_7d`, `recent_30d`, `recent_90d` contain only `{"days": N, "positions": 0}` when no trades occurred in that window.
+- `streaks` may include `"unavailable": true` when activity data is not available.
+- `all_pnls` is an array of every individual position P&L — can be large for active traders.
+- `rank` can be an integer or the string `"N/A"` if the wallet is not on the Polymarket leaderboard.
+- `red_flags` always has at least one entry: `"✅ No major red flags detected"` if clean.
+- `risk_metrics.risk_rating` values: `"🟢 Low Risk"`, `"🟡 Medium Risk"`, or `"🔴 High Risk"`.
+- `position_sizing.consistency_rating` values: `"Consistent"` (cv < 50), `"Moderate"` (cv < 100), or `"Highly Variable"`.
+- `track_record_source` is `"activity"`, `"estimated"`, or `null`.
+
+## `get_score` Response
+
+### MCP Tool Response
+
+```json
+{
+  "wallet_address": "0x...",
+  "score": 7,
+  "recommendation": "Moderate Copy — decent performance with some concerns",
+  "tier": "yellow",
+  "total_pnl": 12500.50,
+  "win_rate": 65.5,
+  "trade_count": 162,
+  "sharpe_ratio": 1.25,
+  "red_flags": ["✅ No major red flags detected"],
+  "cached": true,
+  "usage": {
+    "used_today": 5
+  }
+}
+```
+
+### REST API Response (`GET /v1/score/{wallet_address}`)
+
+Same shape as the MCP tool response. Note: the REST API coerces `score` to a float (e.g. `7.0`) via Pydantic serialization.
+
+## `check_quota` Response
+
+```json
+{
+  "used_today": 5,
+  "tier": "api"
+}
+```
+
+## `health` Response
+
+```json
+{
+  "status": "ok"
+}
+```
+
+Possible values: `"ok"` or `"degraded"`.
+
+## `regenerate_key` Response
+
+```json
+{
+  "api_key": "pv_live_abc123...",
+  "key_prefix": "pv_live_abc12345",
+  "message": "API key regenerated. Your old key is now invalid. Update your configuration."
+}
+```
+
+## `deactivate_key` Response
+
+```json
+{
+  "success": true,
+  "message": "API key deactivated. All future requests with this key will be rejected."
+}
+```
+
+## Error Response
+
+All error responses follow this shape:
+
+```json
+{
+  "error": "error_type",
+  "message": "Human-readable error message",
+  "detail": "Optional additional context"
+}
+```
+
+MCP tool errors return plain text messages instead of JSON (e.g. `"Invalid input. Please check the wallet address format."`).
+
+## Auth Responses
+
+### `POST /v1/auth/register`
+
+```json
+{
+  "api_key": "pv_live_abc123...",
+  "key_prefix": "pv_live_abc12345",
+  "tier": "api"
+}
+```
+
+### `GET /v1/auth/me`
+
+```json
+{
+  "email": "you@example.com",
+  "name": "My App",
+  "key_prefix": "pv_live_abc12345",
+  "tier": "api",
+  "used_today": 5,
+  "key_created_at": "2024-06-01T12:00:00",
+  "key_last_used_at": "2024-12-01T15:30:00"
+}
+```
