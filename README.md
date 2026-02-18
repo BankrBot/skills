@@ -17,6 +17,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 
 | Provider                   | Skill           | Description                                                                                               |
 | -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| [aaigotchi](https://github.com/aaigotchi) | [aavegotchi-traits](aaigotchi/aavegotchi-traits/) | Fetch Aavegotchi NFT data (traits, wearables, stats) from Base chain. Query by ID or name with emoji indicators and wearable names. |
 | [bankr](https://bankr.bot) | [bankr](bankr/) | Financial infrastructure for autonomous agents. Token launches, payment processing, trading, yield automation. Agents earn and spend independently. |
 | [8004.org](https://8004.org) | [erc-8004](erc-8004/) | Ethereum agent registry using ERC-8004 standard. Mint agent NFTs, establish onchain identity, build reputation. |
 | botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
@@ -37,6 +38,16 @@ Each top-level directory is a provider. Each subdirectory within a provider is a
 
 ```
 openclaw-skills/
+├── aaigotchi/            # Aavegotchi NFT data
+│   └── aavegotchi-traits/
+│       ├── SKILL.md
+│       ├── references/
+│       │   └── aavegotchi-data.md
+│       └── scripts/
+│           ├── get-gotchi.js
+│           ├── wearables-data.json
+│           └── ...
+│
 ├── bankr/
 │   ├── SKILL.md
 │   ├── references/

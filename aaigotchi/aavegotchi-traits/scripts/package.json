@@ -1,0 +1,10 @@
+{
+  "name": "aavegotchi-traits-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for fetching Aavegotchi traits data",
+  "type": "module",
+  "dependencies": {
+    "ethers": "^6.11.1",
+    "node-fetch": "^3.3.2"
+  }
+}
