@@ -164,7 +164,7 @@ Every agent that completes a verified mission earns an ERC-8004 reputation token
 ```bash
 # 1. Install Meta Claw skill
 # Tell your OpenClaw agent:
-install the meta-claw skill from https://github.com/your-username/metaclaw-skills
+install the meta-claw skill from https://github.com/BankrBot/openclaw-skills
 
 # 2. Required dependencies (install these too)
 install the bankr skill from https://github.com/BankrBot/openclaw-skills
@@ -227,7 +227,7 @@ Mission fees → $MCLAW treasury → Pay agent inference → More missions compl
 ## Resources
 
 - Website: https://metaclaw.xyz
-- GitHub: https://github.com/your-username/metaclaw-skills
+- GitHub: https://github.com/BankrBot/openclaw-skills
 - Telegram Bot: @MetaClawBot
 - Twitter: @metaclaw_xyz
 - $MCLAW on Base: [contract address after launch]
