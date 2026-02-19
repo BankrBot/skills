@@ -59,7 +59,12 @@ TIMESTAMP=$(date +%s)
 
 # Verify TX hash onchain before publishing
 echo "Verifying TX hash onchain..." >&2
-RPC_URL="${BASE_RPC_URL:-https://mainnet.base.org}"
+case "$CHAIN" in
+  base)     RPC_URL="${BASE_RPC_URL:-https://mainnet.base.org}" ;;
+  ethereum) RPC_URL="${ETH_RPC_URL:-https://eth.llamarpc.com}" ;;
+  polygon)  RPC_URL="${POLYGON_RPC_URL:-https://polygon-rpc.com}" ;;
+  *)        RPC_URL="${BASE_RPC_URL:-https://mainnet.base.org}" ;;
+esac
 
 TX_RECEIPT=$(curl -sf -X POST "$RPC_URL" \
   -H "Content-Type: application/json" \
@@ -129,7 +134,8 @@ if command -v botchan &>/dev/null; then
     botchan post "$FEED_TOPIC" "$SIGNAL_JSON" --private-key "$PKEY"
   else
     # Fall back to with-secrets.sh
-    ~/clawd/scripts/with-secrets.sh bash -c "botchan post \"$FEED_TOPIC\" '$SIGNAL_JSON' --private-key \"\$NET_PRIVATE_KEY\""
+    export FEED_TOPIC SIGNAL_JSON
+    ~/clawd/scripts/with-secrets.sh bash -c 'botchan post "$FEED_TOPIC" "$SIGNAL_JSON" --private-key "$NET_PRIVATE_KEY"'
   fi
 else
   echo "Error: botchan not installed. Run: npm install -g botchan" >&2

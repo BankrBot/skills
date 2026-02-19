@@ -99,12 +99,25 @@ COPY_PCT=$(echo "$AMOUNT_PCT $CONFIGURED_MAX" | awk '{print ($1 < $2) ? $1 : $2}
 # Check daily loss (sum today's copy losses)
 TODAY=$(date +%Y-%m-%d)
 if [ -f "$COPY_LOG" ]; then
-  DAILY_SPENT=$(grep "$TODAY" "$COPY_LOG" 2>/dev/null | jq -s '[.[].usd_amount // 0] | add // 0')
+  DAILY_SPENT=$(grep "$TODAY" "$COPY_LOG" 2>/dev/null | jq -s '[.[].amount_pct // 0] | add // 0')
 else
   DAILY_SPENT=0
 fi
 
 echo "Daily spend so far: \$${DAILY_SPENT} / \$${CONFIGURED_LOSS} limit" >&2
+
+# Enforce daily loss limit
+if [ "$(echo "$DAILY_SPENT >= $CONFIGURED_LOSS" | bc -l 2>/dev/null || echo 0)" = "1" ]; then
+  echo "Error: Daily loss limit reached (\$${DAILY_SPENT} >= \$${CONFIGURED_LOSS}). Skipping trade." >&2
+  exit 1
+fi
+
+# Check dedup - don't re-execute the same signal
+DEDUP_FILE="$CONFIG_DIR/executed-signals.json"
+if [ -f "$DEDUP_FILE" ] && grep -q "$TX_HASH" "$DEDUP_FILE" 2>/dev/null; then
+  echo "Signal already copied (TX: ${TX_HASH:0:16}...). Skipping." >&2
+  exit 0
+fi
 
 # Step 3: Execute via Bankr
 BANKR_SCRIPT="${HOME}/.openclaw/skills/bankr/scripts/bankr.sh"
@@ -121,6 +134,9 @@ RESULT=$("$BANKR_SCRIPT" "$PROMPT" 2>&1) || {
 }
 
 echo "✓ Copy trade executed" >&2
+
+# Record executed signal for dedup
+echo "$TX_HASH" >> "$DEDUP_FILE"
 
 # Log the copy
 jq -n \
