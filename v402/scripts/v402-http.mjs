@@ -50,7 +50,7 @@ export async function callWithPayment({ url, method = "GET", body, headers = {} 
     } else {
       resBody = await res1.text();
     }
-    return { success: true, status: res1.status, body: resBody, paid: false };
+    return { success: res1.ok, status: res1.status, body: resBody, paid: false };
   }
 
   // Step 2 — parse V402-Intent
