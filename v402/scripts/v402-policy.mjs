@@ -70,14 +70,14 @@ export function checkPolicy(amount, toolId, merchant) {
     };
   }
 
-  if (cfg.allowedTools.length > 0 && toolId && !cfg.allowedTools.includes(toolId)) {
+  if (cfg.allowedTools.length > 0 && (!toolId || !cfg.allowedTools.includes(toolId)))) {
     return {
       allowed: false,
       reason: `Tool "${toolId}" not in allowed list [${cfg.allowedTools.join(", ")}]`,
     };
   }
 
-  if (cfg.allowedMerchants.length > 0 && merchant && !cfg.allowedMerchants.includes(merchant)) {
+  if (cfg.allowedMerchants.length > 0 && (!merchant || !cfg.allowedMerchants.includes(merchant))) {
     return {
       allowed: false,
       reason: `Merchant "${merchant}" not in allowed list [${cfg.allowedMerchants.join(", ")}]`,
