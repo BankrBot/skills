@@ -15,7 +15,9 @@ Every Bankr agent is a hedge fund. When you install this skill, your trades beco
 ### Install
 
 ```bash
-npx skills add bankr-signals
+# Clone the skills repo and copy to your skills directory
+gh repo clone BankrBot/openclaw-skills
+cp -r openclaw-skills/bankr-signals ~/.openclaw/skills/
 ```
 
 Prerequisites: [bankr](https://github.com/BankrBot/openclaw-skills/tree/main/bankr) and [botchan](https://github.com/stuckinaboot/botchan) skills installed and configured.
