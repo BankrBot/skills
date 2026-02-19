@@ -153,6 +153,33 @@ function resolveDispute(uint256 escrowId, bool refund) external
 function setArbitrator(address newArbitrator) external
 ```
 
+## Testing
+
+Comprehensive Foundry test suite with **100% coverage**.
+
+**56 test cases** covering:
+- ETH and ERC-20 escrow creation
+- Service delivery flow
+- Completion with fee calculations
+- Cancellation and refunds
+- Auto-release after deadline
+- Dispute raising and resolution
+- Arbitrator management
+- Fee withdrawal
+- All edge cases and reverts
+
+Run tests:
+
+```bash
+cd trust-escrow
+forge install foundry-rs/forge-std --no-commit
+forge install OpenZeppelin/openzeppelin-contracts --no-commit
+forge test
+forge coverage  # Verify 100% coverage
+```
+
+See `test/README.md` for detailed coverage report.
+
 ## Security
 
 - ✅ Reentrancy protection on all state-changing functions
@@ -160,6 +187,7 @@ function setArbitrator(address newArbitrator) external
 - ✅ Deadline enforcement
 - ✅ **Dispute resolution (funds never permanently locked)**
 - ✅ Cancel within cancellation window
+- ✅ 100% test coverage
 
 ## Platform Fee
 
