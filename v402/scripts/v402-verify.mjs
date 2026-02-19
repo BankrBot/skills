@@ -59,15 +59,23 @@ export async function verifyReceipt(receiptStr) {
     null;
 
   const receiptPayer = receipt.payer;
-  const payerMatch = !receiptPayer || txPayer === receiptPayer;
+  const payerMatch = receiptPayer ? txPayer === receiptPayer : true;
+  const txSuccess = txInfo.meta?.err === null;
+
+  const accountKeys = txInfo.transaction.message.staticAccountKeys?.map(k => k.toBase58?.()) ??
+    txInfo.transaction.message.accountKeys?.map(k => k.toBase58?.()) ?? [];
+  const merchantMatch = receipt.merchant ? accountKeys.includes(receipt.merchant) : true;
+
+  const valid = txSuccess && payerMatch && merchantMatch;
 
   return {
-    const txSuccess = tx.meta?.err === null;
-
-    valid: txSuccess,
+    valid,
     on_chain: true,
-        tx_success: txSuccess,
+    tx_success: txSuccess,
     payer_match: payerMatch,
+    merchant_match: merchantMatch,
+    tx_payer: txPayer,
+    receipt_payer: receiptPayer,
     slot: txInfo.slot,
     block_time: txInfo.blockTime
       ? new Date(txInfo.blockTime * 1000).toISOString()
