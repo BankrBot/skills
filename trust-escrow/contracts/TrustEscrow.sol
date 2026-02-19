@@ -84,6 +84,7 @@ contract TrustEscrow is ReentrancyGuard {
     
     /**
      * @notice Create escrow with ERC-20
+     * @dev Supports fee-on-transfer tokens by checking actual received amount
      */
     function createEscrowToken(
         address payee,
@@ -97,17 +98,24 @@ contract TrustEscrow is ReentrancyGuard {
         require(token != address(0), "Invalid token");
         require(deadline > block.timestamp, "Deadline must be in future");
         
+        // Check balance before and after to support fee-on-transfer tokens
+        uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+        
         require(
             IERC20(token).transferFrom(msg.sender, address(this), amount),
             "Token transfer failed"
         );
+        
+        uint256 balanceAfter = IERC20(token).balanceOf(address(this));
+        uint256 actualAmount = balanceAfter - balanceBefore;
+        require(actualAmount > 0, "No tokens received");
         
         uint256 id = escrowCounter++;
         
         escrows[id] = Escrow({
             payer: msg.sender,
             payee: payee,
-            amount: amount,
+            amount: actualAmount,  // Store actual received amount
             token: token,
             status: EscrowStatus.Active,
             createdAt: block.timestamp,
@@ -116,7 +124,7 @@ contract TrustEscrow is ReentrancyGuard {
             payeeDelivered: false
         });
         
-        emit EscrowCreated(id, msg.sender, payee, amount);
+        emit EscrowCreated(id, msg.sender, payee, actualAmount);
         return id;
     }
     
@@ -143,24 +151,7 @@ contract TrustEscrow is ReentrancyGuard {
         require(escrow.payeeDelivered, "Service not delivered yet");
         
         escrow.status = EscrowStatus.Completed;
-        
-        uint256 fee = (escrow.amount * platformFeeBps) / 10000;
-        uint256 payeeAmount = escrow.amount - fee;
-        
-        if (escrow.token == address(0)) {
-            accumulatedFees += fee;
-            (bool success, ) = escrow.payee.call{value: payeeAmount}("");
-            require(success, "ETH transfer failed");
-        } else {
-            require(
-                IERC20(escrow.token).transfer(platformFeeRecipient, fee),
-                "Fee transfer failed"
-            );
-            require(
-                IERC20(escrow.token).transfer(escrow.payee, payeeAmount),
-                "Payment transfer failed"
-            );
-        }
+        _releasePayment(escrow);
         
         emit EscrowCompleted(escrowId);
     }
@@ -199,24 +190,7 @@ contract TrustEscrow is ReentrancyGuard {
         require(block.timestamp > escrow.deadline, "Deadline not reached");
         
         escrow.status = EscrowStatus.Completed;
-        
-        uint256 fee = (escrow.amount * platformFeeBps) / 10000;
-        uint256 payeeAmount = escrow.amount - fee;
-        
-        if (escrow.token == address(0)) {
-            accumulatedFees += fee;
-            (bool success, ) = escrow.payee.call{value: payeeAmount}("");
-            require(success, "Payment failed");
-        } else {
-            require(
-                IERC20(escrow.token).transfer(platformFeeRecipient, fee),
-                "Fee transfer failed"
-            );
-            require(
-                IERC20(escrow.token).transfer(escrow.payee, payeeAmount),
-                "Payment failed"
-            );
-        }
+        _releasePayment(escrow);
         
         emit EscrowCompleted(escrowId);
     }
@@ -280,7 +254,7 @@ contract TrustEscrow is ReentrancyGuard {
     /**
      * @notice Withdraw accumulated platform fees
      */
-    function withdrawFees() external {
+    function withdrawFees() external nonReentrant {
         require(msg.sender == platformFeeRecipient, "Not authorized");
         
         uint256 amount = accumulatedFees;
@@ -295,5 +269,29 @@ contract TrustEscrow is ReentrancyGuard {
      */
     function getEscrow(uint256 escrowId) external view returns (Escrow memory) {
         return escrows[escrowId];
+    }
+    
+    /**
+     * @notice Internal helper to release payment with fee calculation
+     * @dev Extracted to avoid code duplication between completeEscrow and releaseAfterDeadline
+     */
+    function _releasePayment(Escrow storage escrow) internal {
+        uint256 fee = (escrow.amount * platformFeeBps) / 10000;
+        uint256 payeeAmount = escrow.amount - fee;
+        
+        if (escrow.token == address(0)) {
+            accumulatedFees += fee;
+            (bool success, ) = escrow.payee.call{value: payeeAmount}("");
+            require(success, "Payment failed");
+        } else {
+            require(
+                IERC20(escrow.token).transfer(platformFeeRecipient, fee),
+                "Fee transfer failed"
+            );
+            require(
+                IERC20(escrow.token).transfer(escrow.payee, payeeAmount),
+                "Payment failed"
+            );
+        }
     }
 }

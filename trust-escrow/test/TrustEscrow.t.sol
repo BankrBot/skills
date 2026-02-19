@@ -15,6 +15,45 @@ contract MockERC20 is ERC20 {
     }
 }
 
+contract MockFeeOnTransferToken is ERC20 {
+    uint256 public feePercentage = 10; // 10% fee on transfer
+    
+    constructor() ERC20("Fee Token", "FEE") {
+        _mint(msg.sender, 1000000 * 10**18);
+    }
+    
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+    
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        uint256 fee = (amount * feePercentage) / 100;
+        uint256 amountAfterFee = amount - fee;
+        
+        _transfer(_msgSender(), to, amountAfterFee);
+        if (fee > 0) {
+            _transfer(_msgSender(), address(0xdead), fee); // Burn fee
+        }
+        
+        return true;
+    }
+    
+    function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
+        address spender = _msgSender();
+        _spendAllowance(from, spender, amount);
+        
+        uint256 fee = (amount * feePercentage) / 100;
+        uint256 amountAfterFee = amount - fee;
+        
+        _transfer(from, to, amountAfterFee);
+        if (fee > 0) {
+            _transfer(from, address(0xdead), fee); // Burn fee
+        }
+        
+        return true;
+    }
+}
+
 contract TrustEscrowTest is Test {
     TrustEscrow public escrow;
     MockERC20 public token;
@@ -549,6 +588,53 @@ contract TrustEscrowTest is Test {
         vm.prank(payer);
         vm.expectRevert("Not authorized");
         escrow.withdrawFees();
+    }
+    
+    // ============ FEE-ON-TRANSFER TOKEN TESTS ============
+    
+    function testFeeOnTransferTokenSupport() public {
+        MockFeeOnTransferToken feeToken = new MockFeeOnTransferToken();
+        feeToken.mint(payer, 100 * 10**18);
+        
+        uint256 requestedAmount = 10 * 10**18;
+        uint256 expectedReceived = (requestedAmount * 90) / 100; // 10% fee
+        
+        vm.startPrank(payer);
+        feeToken.approve(address(escrow), requestedAmount);
+        
+        uint256 id = escrow.createEscrowToken(
+            payee,
+            requestedAmount,
+            address(feeToken),
+            block.timestamp + DEADLINE,
+            SERVICE_DESC
+        );
+        vm.stopPrank();
+        
+        // Verify escrow stored actual received amount, not requested amount
+        TrustEscrow.Escrow memory e = escrow.getEscrow(id);
+        assertEq(e.amount, expectedReceived);
+        assertEq(e.token, address(feeToken));
+        
+        // Verify full flow works with fee-on-transfer token
+        vm.prank(payee);
+        escrow.deliverService(id);
+        
+        uint256 payeeBefore = feeToken.balanceOf(payee);
+        uint256 feeRecipientBefore = feeToken.balanceOf(feeRecipient);
+        
+        vm.prank(payer);
+        escrow.completeEscrow(id);
+        
+        uint256 platformFee = (expectedReceived * escrow.platformFeeBps()) / 10000;
+        uint256 payeeExpected = expectedReceived - platformFee;
+        
+        // Note: fee-on-transfer happens on these transfers too
+        uint256 payeeActualFee = (payeeExpected * 10) / 100;
+        uint256 platformActualFee = (platformFee * 10) / 100;
+        
+        assertEq(feeToken.balanceOf(payee), payeeBefore + payeeExpected - payeeActualFee);
+        assertEq(feeToken.balanceOf(feeRecipient), feeRecipientBefore + platformFee - platformActualFee);
     }
     
     // ============ HELPER FUNCTIONS ============
