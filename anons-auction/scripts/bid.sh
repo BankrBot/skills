@@ -119,7 +119,7 @@ ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
 
 if [ -n "$ERROR" ] && [ "$ERROR" != "null" ]; then
   echo "❌ Transaction failed: $ERROR"
-  echo "Response: $RESPONSE" | jq '.'
+  echo "$RESPONSE" | jq '.'
   exit 1
 fi
 
@@ -131,7 +131,7 @@ if [ -n "$TX_HASH" ] && [ "$TX_HASH" != "null" ]; then
   exit 0
 else
   echo "⚠️  Submitted but no transaction hash returned"
-  echo "Response: $RESPONSE" | jq '.'
+  echo "$RESPONSE" | jq '.'
   echo ""
   echo "Check your pending transactions on Basescan"
   exit 0

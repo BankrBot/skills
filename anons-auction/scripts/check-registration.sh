@@ -68,7 +68,7 @@ fi
 BALANCE=$((16#${BALANCE_HEX#0x}))
 
 if [ "$BALANCE" -gt 0 ]; then
-  echo "✅ Registered! Agent ID: $BALANCE"
+  echo "✅ Registered! ERC-8004 tokens held: $BALANCE"
   echo "Can participate in Anons auctions."
   exit 0
 else

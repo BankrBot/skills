@@ -37,8 +37,9 @@ wei_to_eth() {
 }
 
 # Helper: Decode address from 32-byte hex
+# ABI-encoded address: 32 bytes (64 hex chars), address (40 hex chars) starts at offset 24
 decode_address() {
-  echo "0x${1:26:40}"
+  echo "0x${1:24:40}"
 }
 
 # Get paused status
@@ -71,11 +72,12 @@ RESERVE_HEX=$(call_view "0xcd3293de")
 RESERVE_PRICE=$(hex_to_dec "$RESERVE_HEX")
 
 # Calculate minimum next bid
+# Use awk to avoid bash integer overflow for bids above ~1.84 ETH
 if [ "$AMOUNT" -eq 0 ]; then
   MIN_BID=$RESERVE_PRICE
 else
-  # Current + 5%
-  MIN_BID=$((AMOUNT + (AMOUNT * 5 / 100)))
+  # Current + 5% (awk handles large wei values safely)
+  MIN_BID=$(awk "BEGIN {printf \"%d\", $AMOUNT * 1.05}")
 fi
 
 # Get current time
@@ -107,7 +109,7 @@ cat << EOF | jq '.'
   "end_time": $END_TIME,
   "current_time": $CURRENT_TIME,
   "time_remaining": "$TIME_STR",
-  "time_remaining_seconds": $((END_TIME - CURRENT_TIME)),
+  "time_remaining_seconds": $(( END_TIME > CURRENT_TIME ? END_TIME - CURRENT_TIME : 0 )),
   "minimum_bid": "$MIN_BID_ETH",
   "minimum_bid_wei": "$MIN_BID",
   "settled": $([ "$SETTLED" -eq 1 ] && echo "true" || echo "false"),
