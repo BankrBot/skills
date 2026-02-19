@@ -62,8 +62,11 @@ export async function verifyReceipt(receiptStr) {
   const payerMatch = !receiptPayer || txPayer === receiptPayer;
 
   return {
-    valid: true,
+    const txSuccess = tx.meta?.err === null;
+
+    valid: txSuccess,
     on_chain: true,
+        tx_success: txSuccess,
     payer_match: payerMatch,
     slot: txInfo.slot,
     block_time: txInfo.blockTime
