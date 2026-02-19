@@ -5,7 +5,7 @@ set -e
 
 # Configuration
 RPC_URL="https://mainnet.base.org"
-AUCTION_HOUSE="0x7c5fd3b7b4948c281a2f24c28291b56e0118c6d8"
+AUCTION_HOUSE="0x51f5a9252A43F89D8eE9D5616263f46a0E02270F"
 
 # Helper: Call contract view function
 call_view() {

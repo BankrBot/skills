@@ -5,7 +5,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${HOME}/.clawdbot/skills/bankr/config.json"
-AUCTION_HOUSE="0x7c5fd3b7b4948c281a2f24c28291b56e0118c6d8"
+AUCTION_HOUSE="0x51f5a9252A43F89D8eE9D5616263f46a0E02270F"
 
 # Check Bankr configured
 if [ ! -f "$CONFIG_FILE" ]; then
