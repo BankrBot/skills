@@ -37,8 +37,8 @@ for field in ACTION TOKEN ENTRY_PRICE TX_HASH; do
 done
 
 ACTION=$(echo "$ACTION" | tr '[:lower:]' '[:upper:]')
-if [[ "$ACTION" != "BUY" && "$ACTION" != "SELL" ]]; then
-  echo "Error: --action must be BUY or SELL" >&2
+if [[ "$ACTION" != "BUY" && "$ACTION" != "SELL" && "$ACTION" != "LONG" && "$ACTION" != "SHORT" && "$ACTION" != "HOLD" ]]; then
+  echo "Error: --action must be BUY, SELL, LONG, SHORT, or HOLD" >&2
   exit 1
 fi
 
@@ -63,7 +63,8 @@ case "$CHAIN" in
   base)     RPC_URL="${BASE_RPC_URL:-https://mainnet.base.org}" ;;
   ethereum) RPC_URL="${ETH_RPC_URL:-https://eth.llamarpc.com}" ;;
   polygon)  RPC_URL="${POLYGON_RPC_URL:-https://polygon-rpc.com}" ;;
-  *)        RPC_URL="${BASE_RPC_URL:-https://mainnet.base.org}" ;;
+  *)        echo "Warning: Unsupported chain '$CHAIN', defaulting to Base RPC" >&2
+            RPC_URL="${BASE_RPC_URL:-https://mainnet.base.org}" ;;
 esac
 
 TX_RECEIPT=$(curl -sf -X POST "$RPC_URL" \
@@ -133,9 +134,9 @@ if command -v botchan &>/dev/null; then
     PKEY="${NET_PRIVATE_KEY:-$BOTCHAN_PRIVATE_KEY}"
     botchan post "$FEED_TOPIC" "$SIGNAL_JSON" --private-key "$PKEY"
   else
-    # Fall back to with-secrets.sh
+    # Fall back to with-secrets.sh (use env vars to avoid quoting issues)
     export FEED_TOPIC SIGNAL_JSON
-    ~/clawd/scripts/with-secrets.sh bash -c 'botchan post "$FEED_TOPIC" "$SIGNAL_JSON" --private-key "$NET_PRIVATE_KEY"'
+    ~/clawd/scripts/with-secrets.sh bash -c 'botchan post "$FEED_TOPIC" -- "$SIGNAL_JSON" --private-key "$NET_PRIVATE_KEY"'
   fi
 else
   echo "Error: botchan not installed. Run: npm install -g botchan" >&2

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Read signals from all subscribed providers
-# Usage: feed.sh [--limit 20] [--json]
+# Read signals from a provider's feed or all subscribed providers
+# Usage: feed.sh [--provider ADDRESS] [--limit 20] [--json]
 
 set -euo pipefail
 
@@ -9,23 +9,27 @@ SUBS_FILE="$CONFIG_DIR/subscriptions.json"
 
 LIMIT=20
 JSON_OUTPUT=false
+PROVIDER_FILTER=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --provider) PROVIDER_FILTER="$2"; shift 2 ;;
     --limit) LIMIT="$2"; shift 2 ;;
     --json) JSON_OUTPUT=true; shift ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
 
-if [ ! -f "$SUBS_FILE" ]; then
-  echo "No subscriptions. Run subscribe.sh first." >&2
-  exit 1
+# Build provider list
+if [ -n "$PROVIDER_FILTER" ]; then
+  PROVIDERS="$PROVIDER_FILTER"
+elif [ -f "$SUBS_FILE" ]; then
+  PROVIDERS=$(jq -r '.subscriptions[].address' "$SUBS_FILE" 2>/dev/null || true)
 fi
 
-PROVIDERS=$(jq -r '.subscriptions[].address' "$SUBS_FILE")
-if [ -z "$PROVIDERS" ]; then
-  echo "No subscriptions. Run subscribe.sh first." >&2
+if [ -z "${PROVIDERS:-}" ]; then
+  echo "No provider specified and no subscriptions found." >&2
+  echo "Usage: feed.sh --provider 0xADDRESS [--limit 20] [--json]" >&2
   exit 1
 fi
 

@@ -32,7 +32,12 @@ echo "Verifying TX: $TX_HASH on $CHAIN" >&2
 # Get transaction receipt
 RECEIPT=$(curl -sf -X POST "$RPC_URL" \
   -H "Content-Type: application/json" \
-  -d "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getTransactionReceipt\",\"params\":[\"$TX_HASH\"],\"id\":1}")
+  -d "{\"jsonrpc\":\"2.0\",\"method\":\"eth_getTransactionReceipt\",\"params\":[\"$TX_HASH\"],\"id\":1}" 2>/dev/null || true)
+
+if [ -z "$RECEIPT" ]; then
+  echo "✗ RPC request failed (network error or RPC down)" >&2
+  exit 1
+fi
 
 if echo "$RECEIPT" | jq -e '.result == null' >/dev/null 2>&1; then
   echo "✗ Transaction not found on $CHAIN" >&2
