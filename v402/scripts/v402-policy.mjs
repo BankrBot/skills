@@ -59,6 +59,10 @@ function saveState(state) {
 export function checkPolicy(amount, toolId, merchant) {
   const cfg = getConfig();
 
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { allowed: false, reason: "Invalid amount: " + amount };
+  }
+
   if (amount > cfg.perCallCap) {
     return {
       allowed: false,
