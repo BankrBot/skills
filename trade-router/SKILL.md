@@ -16,8 +16,21 @@ Solana swap builder and limit-order engine.
 
 **Base URL:** `https://api.traderouter.ai`
 **WebSocket:** `wss://api.traderouter.ai/ws`
+**Website:** https://traderouter.ai
 **Auth:** None. No API key. Wallet address is the only identity.
 **Content-Type:** All REST requests require `Content-Type: application/json`.
+
+---
+
+## Before you use this skill
+
+**Authentication for order management:** WebSocket order placement and cancellation are gated by a **challenge–response flow**: the server sends a challenge with a nonce; the client must **sign the nonce** with the wallet’s private key (Ed25519) and send `register` with `wallet_address` and the base58 signature. Only after the server responds with `registered` and `authenticated: true` can the client place or cancel orders. Authorization is **proof-of-control** of the wallet via the signed challenge — no separate API key.
+
+**Service origin:** This skill documents the API only. The service website is **https://traderouter.ai** (API at api.traderouter.ai).
+
+**MEV protection:** The `POST /protect` endpoint accepts signed transactions and uses **Jito** and a **staked connection lane** to process your transaction.
+
+**Risk:** No API key is requested; identity is the wallet address (and for WebSocket orders, proof via the signed challenge).
 
 ---
 
@@ -103,7 +116,7 @@ If both `amount` and `holdings_percentage` are sent, treat the request as invali
 
 ## POST /protect — Submit signed transaction (MEV protected)
 
-Submit a **signed** transaction (**base64**). Blocks until confirmed on-chain. Returns signature and balance changes.
+Submit a **signed** transaction (**base64**). Blocks until confirmed on-chain. Returns signature and balance changes. Under the hood, the service uses **Jito** and a **staked connection lane** for MEV protection and submission.
 
 **⚠️ Set a 30-second timeout on /protect calls.** This endpoint blocks until on-chain confirmation and can hang during network congestion.
 
@@ -205,24 +218,27 @@ Wallet with holdings:
 
 Server monitors market cap every ~5 seconds. When target is crossed, server pushes `order_filled` with an unsigned swap transaction to sign and submit.
 
+**Reference implementation:** Follow the flow below (challenge → register with signature, verification of `order_filled` and `order_created`). Use the canonical payloads, params_hash encoding, and Ed25519 verification rules in this skill as the source of truth.
+
 ### Connection sequence (MUST follow this exact order)
 
-```
-1. Connect to wss://api.traderouter.ai/ws
-2. Server sends:    {"type": "subscribed"}
-3. Client sends:    {"action": "register", "wallet_address": "SOLANA_PUBKEY"}
-4. Server sends:    {"type": "registered", "wallet_address": "SOLANA_PUBKEY"}
-5. ONLY NOW send order actions
-```
+The server sends a **challenge** on connect (not `subscribed`). Registration is **challenge–response only**; there is no unauthenticated path for placing orders.
 
-**Do NOT send any order actions before receiving `{"type": "registered"}`.**
+1. Connect to `wss://api.traderouter.ai/ws`
+2. **Server sends:** `{"type": "challenge", "nonce": "<nonce>", "message": "..."}`. The current protocol always sends `challenge` as the first message.
+3. **Client:** Sign the **nonce** (UTF-8 bytes) with the **wallet's private key** (Ed25519). You **must** have the wallet private key to use the WebSocket for orders; without it you cannot register successfully.
+4. **Client sends:** `{"action": "register", "wallet_address": "<SOLANA_PUBKEY>", "signature": "<base58>"}`. The signature is the base58-encoded result of signing the nonce. If you omit signature after a challenge, the server responds with `{"type": "error", "message": "Missing signature. Sign the challenge nonce and send register with wallet_address and signature."}` and you will not be authenticated.
+5. **Server sends:** `{"type": "registered", "wallet_address": "<pubkey>", "authenticated": true}`.
+6. **Only after** receiving `registered` with `authenticated: true` may you send order actions. Sending order actions before that returns `{"type": "error", "message": "Not authenticated. Register with a valid signature to place or manage orders."}`.
+
+**Do NOT send any order actions before receiving `{"type": "registered", "authenticated": true}`.** Plain `{"action": "register", "wallet_address": "..."}` without a signature will **fail** when the server has sent a challenge.
 
 ### Reconnection
 
 On WebSocket disconnect:
 1. Reconnect to `wss://api.traderouter.ai/ws`
-2. Re-register with `{"action": "register", "wallet_address": "..."}`
-3. Wait for `{"type": "registered"}`
+2. Server sends a new **challenge** (new nonce). Send `{"action": "register", "wallet_address": "...", "signature": "<base58 of nonce signed with wallet>"}`.
+3. Wait for `{"type": "registered", "authenticated": true}`
 4. Check for any pending `order_filled` messages
 5. Use the staleness check (`triggered_mcap / filled_mcap < 0.85`) to skip stale fills
 
@@ -294,7 +310,7 @@ Orders silently expire when `expiry_hours` is reached — **the server does not 
 
 | Action | Required fields | Optional |
 |--------|----------------|----------|
-| register | wallet_address | — |
+| register | wallet_address | signature (required when server sent challenge; base58 of nonce signed with wallet) |
 | sell | token_address, holdings_percentage (bps), target, slippage | expiry_hours (default 144), wallet_address |
 | buy | token_address, amount (lamports), target, slippage | expiry_hours, wallet_address |
 | trailing_sell | token_address, holdings_percentage, trail (bps), slippage | expiry_hours |
@@ -309,11 +325,11 @@ Orders silently expire when `expiry_hours` is reached — **the server does not 
 ### Server → client message types
 
 | type | Payload fields | Description |
-|------|---------------|-------------|
-| subscribed | — | Initial message after connect |
-| registered | wallet_address | Registration confirmed |
-| order_created | order_id, order_type, entry_mcap, target_mcap | Order accepted |
-| order_filled | order_id, order_type, status, entry_mcap, triggered_mcap, filled_mcap, target_mcap, triggered_at, filled_at, token_address, data.swap_tx (base58 unsigned) | Target hit — sign data.swap_tx and submit via submitTx() |
+|------|----------------|-------------|
+| challenge | nonce, message | Sent on connect; client must sign nonce and send register with wallet_address + signature |
+| registered | wallet_address, authenticated | Registration confirmed; only when authenticated true can client send order actions |
+| order_created | order_id, order_type, token_address, entry_mcap, target_mcap, target_bps (limit), trail_bps (trailing), slippage, expiry_hours, amount, holdings_percentage, params_hash, server_signature | Order accepted; when params_hash and server_signature are present, verify server_signature over params_hash (Rec 2) — see Verifying server signatures |
+| order_filled | order_id, order_type, status, token_address, entry_mcap, triggered_mcap, filled_mcap, target_mcap, triggered_at, filled_at, server_signature, already_dispatched, data (optional; when already_dispatched false: data.swap_tx base58) | Target hit — verify server_signature, then sign data.swap_tx and submit; when already_dispatched true, data/swap_tx may be omitted (idempotent ack) |
 | order_status | order_id, status | Response to check_order |
 | order_list | orders[] | Response to list_orders |
 | order_cancelled | order_id | Order cancelled |
@@ -321,23 +337,50 @@ Orders silently expire when `expiry_hours` is reached — **the server does not 
 | error | message | Error description |
 | heartbeat | — | Keepalive, ignore |
 
+### WebSocket authentication (required for orders)
+
+The server sends a **challenge** with a **nonce** on connect. To place or manage orders you must:
+
+1. Sign the **nonce** (as UTF-8 bytes) with the wallet's private key (Ed25519).
+2. Send **one** message: `{"action": "register", "wallet_address": "<pubkey>", "signature": "<base58 signature>"}`. There is no separate `auth` action — the signature is sent in the same `register` message.
+3. Wait for `{"type": "registered", "authenticated": true}`. Only then send order actions.
+
+If you send `register` without `signature` after a challenge, the server responds with an error and does not set `authenticated: true`. Unauthenticated sessions cannot place or manage orders.
+
+### Verifying server signatures (order_filled and order_created)
+
+**Trust anchor — do not fetch from the server.** The server public key must be a **hardcoded or preconfigured** trust anchor. **Never** fetch it from the same server at runtime (e.g. GET /security) to verify that server's messages; that is a TOCTOU vulnerability. Use a hardcoded default and allow override via `TRADEROUTER_SERVER_PUBKEY` (base58). Use this key to verify all server signatures (Ed25519, base58 decode key and signature).
+
+**Key rotation:** Support a second key via `TRADEROUTER_SERVER_PUBKEY_NEXT`. On verification failure with the current key, try the next key; if the next key succeeds, the server has rotated — update your primary key and treat the order as valid. Document rotation at https://api.traderouter.ai/security.
+
+**Rejection when signature is required:** The server may require a valid `server_signature` on every `order_filled` (`TRADEROUTER_REQUIRE_SERVER_SIGNATURE`, default true). For `order_created`, clients can require a params commitment (`TRADEROUTER_REQUIRE_ORDER_CREATED_SIGNATURE`, default true); if required and the server omits `params_hash`/`server_signature`, reject the order. If signature is present but verification fails, reject the fill or order.
+
+**order_filled.server_signature:** The server signs a **canonical JSON** payload. Build the payload from the message using only these keys (include a key only if present and not null): `order_id`, `order_type`, `status`, `token_address`, `entry_mcap`, `triggered_mcap`, `filled_mcap`, `target_mcap`, `triggered_at`, `filled_at`, `data`. Serialize with **sorted keys (recursive for nested objects)** and no extra whitespace, and **ensure_ascii** (escape non-ASCII as `\uXXXX`); e.g. Python: `json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)`; then SHA-256 of the UTF-8 bytes. The server's Ed25519 signature (base58) is over this digest. Verify with the server public key (base58 decode key and signature, verify digest with Ed25519). **Always verify before signing or submitting the fill.** If verification fails or `server_signature` is missing when the server is expected to send it, do not sign/submit. If `already_dispatched` is true, skip sign/submit (idempotent ack).
+
+**order_created.server_signature (Rec 2):** When the server includes `params_hash` and `server_signature` in `order_created`, it is committing to the order parameters. The **params_hash** is the SHA-256 hex of a pipe-delimited canonical string: for limit orders `order_id|token_address|order_type|target_bps|slippage|expiry_hours|amount|holdings_percentage`; for trailing orders the same but `trail_bps` instead of `target_bps`. The server signs the digest SHA-256(params_hash_hex.encode("utf-8")). Verify with the server public key (base58 decode key and signature, verify digest with Ed25519). If present and verification fails, treat the order as untrusted. 
 ### Handling order_filled
 
 When `order_filled` arrives:
-1. Read `order_id` from the message — use for logging and correlation throughout
-2. Read `data.swap_tx` — this is **base58** unsigned
-3. **Decode** from base58 into raw bytes
-4. **Deserialize** as VersionedTransaction
-5. **Sign** with client wallet
-6. **Re-serialize** signed transaction into bytes
-7. **Encode** as **base64**
-8. Submit via `submitTx(signedBase64)` — handles /protect + fallback internally
-9. Log `order_id` + `signature` together for audit trail
-10. Use response to update holdings
+1. **Idempotency:** If `already_dispatched` is true, skip sign/submit; treat as idempotent ack (fill was already sent). Log and exit.
+2. **Verify:** Verify `server_signature` using the configured trust anchor (see "Verifying server signatures" above). On failure or if signature is missing when required, log and do not sign/submit.
+3. Read `order_id` from the message — use for logging and correlation throughout
+4. Read `data.swap_tx` — this is **base58** unsigned (when `already_dispatched` is false; when true, `data` or `data.swap_tx` may be omitted)
+5. **Decode** from base58 into raw bytes
+6. **Deserialize** as VersionedTransaction
+7. **Sign** with client wallet
+8. **Re-serialize** signed transaction into bytes
+9. **Encode** as **base64**
+10. Submit via `submitTx(signedBase64)` — handles /protect + fallback internally
+11. Log `order_id` + `signature` together for audit trail
+12. Use response to update holdings
+
+**Idempotency:** Duplicate or late `order_filled` messages may have `already_dispatched: true` and no `data.swap_tx`; skip sign/submit and update local state only.
+
+**Logging:** For each `order_filled`, log at least: received (order_id, order_type, token); if skipped (already_dispatched or verify failed) log reason; on submit log order_id + signature for audit.
 
 **⚠️ `filled_mcap` can be 0 or null.** If `triggered_mcap` exists but `filled_mcap` is 0/null, the fill is still valid — the transaction will work, but mcap data at fill time is unreliable. Don't reject fills based on `filled_mcap` alone.
 
-**Staleness check:** After reconnect, if `triggered_mcap / filled_mcap < 0.85`, the fill is stale — consider skipping.
+**Staleness check:** Apply to **every** `order_filled`, not only after reconnect. If `triggered_mcap` and `filled_mcap` are both present and **filled_mcap > 0**, and `triggered_mcap / filled_mcap < 0.85`, treat the fill as stale and consider skipping (do not sign/submit). **Divide-by-zero:** If `filled_mcap` is 0 or null, do not apply the ratio; the fill is not stale by this check. Proceed with verification and sign/submit as normal.
 
 ### `holdings_percentage` resolves at execution time
 
@@ -368,8 +411,8 @@ The server does not auto-chain orders. Each fill triggers `order_filled`, the ag
 | 422 from /swap | Invalid payload (missing fields or mixed buy/sell params). Sell needs: wallet_address, token_address, action, holdings_percentage. Buy needs: wallet_address, token_address, action, amount. |
 | "Error running simulation" from /swap | Route is unsellable now (dead/rugged pool, zero effective balance, or route failure). Put token on cooldown; avoid tight retry loops. |
 | Swap fails on-chain | Increase slippage (1500-2500 bps for memecoins), check SOL balance for fees, verify token/pool exists. |
-| No order_filled received | Verify register was sent and `{"type":"registered"}` received. Wallet must match. |
-| WebSocket disconnects | Reconnect, re-register, check for pending fills. Active orders persist server-side. |
+| No order_filled received | Verify register was sent, `{"type":"registered"}` received, and `authenticated: true` is set. A session that registered without a valid signature will receive `registered` with `authenticated: false` and will not receive fills — check this field first. Wallet must match. |
+| WebSocket disconnects | Reconnect, re-register with signature, check for pending fills. Active orders persist server-side. |
 | Sell fails on token from /holdings | Keep defensive filter `valueNative > MIN_VALUE_NATIVE` (`> 0` by default) and verify balance/pool just before sell. |
 | filled_mcap is 0 or null | Fill is still valid. Execute normally — mcap data is unreliable but tx works. |
 | Order seems to have disappeared | Orders silently expire at `expiry_hours`. Use `list_orders` to check. |
@@ -391,7 +434,7 @@ No hard limits are documented in this skill. Use conservative client pacing defa
 
 - **No API key needed.** Wallet address is the only identity.
 - **Never expose private keys.** Sign only in a secure client environment.
-- **Register first on WebSocket.** No orders before `{"type":"registered"}` is received.
+- **Register with signature on WebSocket.** Server sends challenge; sign nonce and send register with wallet_address + signature. No orders before `{"type":"registered","authenticated":true}`.
 - **Sell = holdings_percentage. Buy = amount.** Do not mix these parameters.
 - **Target basis:** WS `target` is relative to **current mcap at order placement**, not to your wallet entry price.
 - **Encoding: /swap returns base58, /protect expects base64.** Decode → deserialize → sign → serialize → encode base64.
@@ -411,10 +454,10 @@ An agent is production-ready only when it can execute all of the following with 
 
 - [ ] **Instant buy:** `POST /swap` (buy) → decode base58 → sign → encode base64 → `submitTx()` → verify signature
 - [ ] **Instant sell:** `POST /holdings` → defensive filter `valueNative > MIN_VALUE_NATIVE` (`> 0` by default) → `POST /swap` (sell) → sign → `submitTx()`
-- [ ] **WebSocket limit order:** connect → register → place sell order → receive `order_filled` → sign → `submitTx()`
-- [ ] **WebSocket trailing order:** connect → register → place `trailing_sell` → receive `order_filled` → sign → `submitTx()`
+- [ ] **WebSocket limit order:** connect → challenge → register with signature → registered → place sell order → receive `order_filled` → verify → sign → `submitTx()`
+- [ ] **WebSocket trailing order:** connect → challenge → register with signature → registered → place `trailing_sell` → receive `order_filled` → verify → sign → `submitTx()`
 - [ ] **DCA cycle:** place buy order → handle fill → `submitTx()` → place next buy order
-- [ ] **Reconnection:** disconnect → reconnect → re-register → handle pending fills with staleness check
+- [ ] **Reconnection:** disconnect → reconnect → new challenge → re-register with signature → handle pending fills with staleness check (all fills)
 - [ ] **Error handling:** gracefully handle unsellable routes, 503, timeouts, stale fills, expired orders
 - [ ] **Preflight checks pass:** env loaded, wallet accessible, RPC reachable, WS registration succeeds
 
@@ -422,25 +465,29 @@ An agent is production-ready only when it can execute all of the following with 
 
 ## Canonical Stack
 
-Pin these exact versions. Do not use alternatives unless explicitly tested.
+**Reference implementation:** The skill text above is the source of truth for WebSocket challenge–response, verification, and params_hash. Python clients can use: `solders` (Keypair, VersionedTransaction), `websockets`, `httpx`, `cryptography` (Ed25519), `base58`.
+
+**Node.js (skill examples):** Pin these versions unless explicitly tested.
 
 ```
 Runtime:    Node.js 20 LTS
+crypto:     built-in (createHash for SHA-256; no npm install)
 web3.js:    @solana/web3.js@1.95.8
 bs58:       bs58@6.0.0
 ws:         ws@8.18.0
 ajv:        ajv@8.17.1
+tweetnacl:  tweetnacl@1.0.3
 ```
 
 ```bash
 npm init -y
 npm pkg set type=module
-npm install @solana/web3.js@1.95.8 bs58@6.0.0 ws@8.18.0 ajv@8.17.1
+npm install @solana/web3.js@1.95.8 bs58@6.0.0 ws@8.18.0 ajv@8.17.1 tweetnacl@1.0.3
 ```
 
 **The `type=module` line is required.** All code below uses ESM imports and top-level await, which fail under CommonJS.
 
-All code examples below use this stack. If using a different runtime (Python, Rust), the encoding logic is identical — the library names change but the byte-level operations are the same.
+**Python:** `solders`, `websockets`, `httpx`, `cryptography`, `base58`. Encoding and verification logic are identical across runtimes; only library names differ.
 
 ---
 
@@ -455,6 +502,8 @@ import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import WebSocket from 'ws';
 import Ajv from 'ajv';
+import nacl from 'tweetnacl';
+import { createHash } from 'crypto';
 
 const API = 'https://api.traderouter.ai';
 const WS_URL = 'wss://api.traderouter.ai/ws';
@@ -464,6 +513,15 @@ const connection = new Connection(RPC_URL, 'confirmed');
 
 // SAFE-BY-DEFAULT: DRY_RUN is true unless you explicitly set DRY_RUN=false to go live.
 const DRY_RUN = process.env.DRY_RUN !== 'false';
+
+// Trust anchor: hardcoded or loaded from env. NEVER fetch from the server at runtime.
+const SERVER_PUBKEY_BYTES = bs58.decode(
+  process.env.TRADEROUTER_SERVER_PUBKEY || 'EXX3nRzfDUvbjZSmxFzHDdiSYeGVP1EGr77iziFZ4Jd4'
+);
+const SERVER_PUBKEY_NEXT_BYTES = process.env.TRADEROUTER_SERVER_PUBKEY_NEXT
+  ? bs58.decode(process.env.TRADEROUTER_SERVER_PUBKEY_NEXT)
+  : null;
+const REQUIRE_SERVER_SIGNATURE = process.env.TRADEROUTER_REQUIRE_SERVER_SIGNATURE !== 'false';
 
 // ---------- Schema Validation (AJV, enforced at runtime) ----------
 
@@ -493,17 +551,18 @@ const protectRequestSchema = {
   },
 };
 
+// When already_dispatched is true, server omits data or data.swap_tx; schema must allow that.
 const orderFilledSchema = {
   type: 'object',
-  required: ['type', 'order_id', 'order_type', 'status', 'data'],
+  required: ['type', 'order_id', 'order_type', 'status'],
   properties: {
     type: { const: 'order_filled' },
     order_id: { type: 'string' },
     order_type: { type: 'string', enum: ['sell', 'buy', 'trailing_sell', 'trailing_buy'] },
     status: { type: 'string', enum: ['success'] },
+    already_dispatched: { type: 'boolean' },
     data: {
       type: 'object',
-      required: ['swap_tx', 'token_address', 'pool_type'],
       properties: {
         swap_tx: { type: 'string', minLength: 100 },
         token_address: { type: 'string' },
@@ -592,6 +651,74 @@ function getWallet() {
   return _wallet;
 }
 
+// ---------- Server Signature Verification ----------
+
+// Canonical JSON for server signature: recursive sort_keys + ensure_ascii.
+function canonicalizeForSigning(value) {
+  if (Array.isArray(value)) return value.map(canonicalizeForSigning);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const key of Object.keys(value).sort()) out[key] = canonicalizeForSigning(value[key]);
+    return out;
+  }
+  return value;
+}
+function canonicalJsonPythonStyle(obj) {
+  const canonicalObj = canonicalizeForSigning(obj);
+  const json = JSON.stringify(canonicalObj);
+  return json.replace(/[^\x00-\x7F]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`);
+}
+
+// verifyOrderFilledSignature — see "Verifying server signatures" above.
+// Must be called in handleOrderFilled before signVersionedTx/submitTx.
+function verifyOrderFilledSignature(msg) {
+  const { server_signature } = msg;
+
+  if (!server_signature) {
+    if (REQUIRE_SERVER_SIGNATURE) {
+      log({ step: 'order_fill_verify_failed', order_id: msg.order_id, reason: 'missing_server_signature' });
+      return false;
+    }
+    // Signature not present and not required — pass through.
+    return true;
+  }
+
+  // Build canonical payload — only include keys present and not null.
+  const CANONICAL_KEYS = [
+    'order_id', 'order_type', 'status', 'token_address',
+    'entry_mcap', 'triggered_mcap', 'filled_mcap', 'target_mcap',
+    'triggered_at', 'filled_at', 'data',
+  ];
+  const payload = {};
+  for (const key of CANONICAL_KEYS) {
+    if (msg[key] !== undefined && msg[key] !== null) {
+      payload[key] = msg[key];
+    }
+  }
+
+  // Canonical JSON: sorted keys (recursive), no extra whitespace, ensure_ascii — then SHA-256 of UTF-8 bytes.
+  const canonical = canonicalJsonPythonStyle(payload);
+  const digest = createHash('sha256').update(Buffer.from(canonical, 'utf-8')).digest();
+
+  const sigBytes = bs58.decode(server_signature);
+
+  // Try primary key, then rotation key if present.
+  const keysToTry = [SERVER_PUBKEY_BYTES];
+  if (SERVER_PUBKEY_NEXT_BYTES) keysToTry.push(SERVER_PUBKEY_NEXT_BYTES);
+
+  for (const pubkeyBytes of keysToTry) {
+    try {
+      const ok = nacl.sign.detached.verify(digest, sigBytes, pubkeyBytes);
+      if (ok) return true;
+    } catch (_) {
+      // Try next key.
+    }
+  }
+
+  log({ step: 'order_fill_verify_failed', order_id: msg.order_id, reason: 'signature_invalid' });
+  return false;
+}
+
 // ---------- REST ----------
 
 async function buildSwap({ tokenAddress, action, amount, holdingsPercentage, slippage = 1500 }) {
@@ -643,11 +770,18 @@ function signVersionedTx(swapTxBase58) {
 // /protect is ALWAYS tried first. RPC fallback is internal and fires on 503,
 // or after timeout only if RPC status check shows the tx did not land.
 // Do NOT call connection.sendRawTransaction() directly anywhere else.
+// dailyLoss is updated on every successful spend path (protect, timeout_recovery, rpc_fallback).
 async function submitTx(signedTxBase64, { token, action } = {}) {
   if (KILL_SWITCH) throw new Error('KILL_SWITCH is active — all execution halted');
   if (DRY_RUN) {
     log({ step: 'dry_run_skip', token, action, message: 'would submit but DRY_RUN=true' });
     return { signature: null, dry_run: true };
+  }
+
+  let balanceBefore = null;
+  const isBuy = action === 'buy' || action === 'trailing_buy';
+  if (isBuy) {
+    balanceBefore = await connection.getBalance(getWallet().publicKey);
   }
 
   try {
@@ -663,7 +797,7 @@ async function submitTx(signedTxBase64, { token, action } = {}) {
 
     if (res.status === 503) {
       log({ step: 'protect_503', message: 'falling back to RPC' });
-      return await _rpcFallback(signedTxBase64);
+      return await _rpcFallback(signedTxBase64, { action, balanceBefore });
     }
 
     if (!res.ok) {
@@ -674,8 +808,8 @@ async function submitTx(signedTxBase64, { token, action } = {}) {
     const json = await res.json();
     if (json.status !== 'success') throw new Error(json.error || 'protect failed');
 
-    // Track loss for daily limit
-    if (action === 'buy' && json.sol_balance_pre && json.sol_balance_post) {
+    // Track loss for daily limit (buy and trailing_buy both spend SOL)
+    if (isBuy && json.sol_balance_pre != null && json.sol_balance_post != null) {
       SAFETY.dailyLoss += (json.sol_balance_pre - json.sol_balance_post);
     }
 
@@ -692,6 +826,10 @@ async function submitTx(signedTxBase64, { token, action } = {}) {
         throw new Error(`transaction ${check.sig} failed on-chain`);
       }
       if (check.status === 'confirmed' || check.status === 'finalized') {
+        if (isBuy && balanceBefore != null) {
+          const balanceAfter = await connection.getBalance(getWallet().publicKey);
+          SAFETY.dailyLoss += (balanceBefore - balanceAfter);
+        }
         log({ step: 'protect_timeout_landed', signature: check.sig, status: check.status });
         return { signature: check.sig, status: check.status, via: 'timeout_recovery' };
       }
@@ -701,33 +839,44 @@ async function submitTx(signedTxBase64, { token, action } = {}) {
         const recheck = await checkTxLanded(signedTxBase64);
         if (recheck.status === 'failed') throw new Error(`transaction ${recheck.sig} failed on-chain`);
         if (recheck.landed) {
+          if (isBuy && balanceBefore != null) {
+            const balanceAfter = await connection.getBalance(getWallet().publicKey);
+            SAFETY.dailyLoss += (balanceBefore - balanceAfter);
+          }
           log({ step: 'protect_timeout_landed', signature: recheck.sig, status: recheck.status });
           return { signature: recheck.sig, status: recheck.status, via: 'timeout_recovery' };
         }
       }
       if (check.landed) {
+        if (isBuy && balanceBefore != null) {
+          const balanceAfter = await connection.getBalance(getWallet().publicKey);
+          SAFETY.dailyLoss += (balanceBefore - balanceAfter);
+        }
         log({ step: 'protect_timeout_landed', signature: check.sig, status: check.status || 'unknown' });
         return { signature: check.sig, status: check.status || 'unknown', via: 'timeout_recovery' };
       }
       log({ step: 'protect_timeout_not_landed', message: 'falling back to RPC' });
-      return await _rpcFallback(signedTxBase64);
+      return await _rpcFallback(signedTxBase64, { action, balanceBefore });
     }
     throw err;
   }
 }
 
-// INTERNAL ONLY — never call directly.
-async function _rpcFallback(signedTxBase64) {
+// INTERNAL ONLY — never call directly. Updates dailyLoss when action is buy/trailing_buy.
+async function _rpcFallback(signedTxBase64, { action, balanceBefore } = {}) {
   const txBytes = Buffer.from(signedTxBase64, 'base64');
   const sig = await connection.sendRawTransaction(txBytes, { skipPreflight: false });
   await connection.confirmTransaction(sig, 'confirmed');
+  const isBuy = action === 'buy' || action === 'trailing_buy';
+  if (isBuy && balanceBefore != null) {
+    const balanceAfter = await connection.getBalance(getWallet().publicKey);
+    SAFETY.dailyLoss += (balanceBefore - balanceAfter);
+  }
   log({ step: 'rpc_fallback_success', signature: sig });
   return { signature: sig, via: 'rpc_fallback' };
 }
 
 async function checkTxLanded(signedBase64) {
-  // TradeRouter /swap and order_filled payloads are expected to be VersionedTransaction bytes.
-  // If your upstream ever returns legacy tx bytes, switch this decode path accordingly.
   const txBytes = Buffer.from(signedBase64, 'base64');
   const tx = VersionedTransaction.deserialize(txBytes);
   const sig = bs58.encode(tx.signatures[0]);
@@ -763,10 +912,24 @@ function connectWsAndRegister(onOrderFilled) {
 
     ws.on('message', async (raw) => {
       const msg = JSON.parse(raw);
-      if (msg.type === 'subscribed') {
-        ws.send(JSON.stringify({ action: 'register', wallet_address: getWallet().publicKey.toBase58() }));
+
+      // Listen for 'challenge', sign nonce, send register with signature.
+      if (msg.type === 'challenge') {
+        const nonce = msg.nonce;
+        const sigBytes = nacl.sign.detached(Buffer.from(nonce, 'utf-8'), getWallet().secretKey);
+        const signature = bs58.encode(sigBytes);
+        ws.send(JSON.stringify({
+          action: 'register',
+          wallet_address: getWallet().publicKey.toBase58(),
+          signature,
+        }));
       }
+
       if (msg.type === 'registered') {
+        if (!msg.authenticated) {
+          log({ step: 'ws_error', error: 'registered but authenticated: false — check signature' });
+          return;
+        }
         client.registered = true;
         log({ step: 'ws_registered' });
         while (client.pendingQueue.length > 0) {
@@ -814,6 +977,14 @@ function connectWsAndRegister(onOrderFilled) {
           log({ step: 'safety_blocked', token: payload.token_address, reason: 'cooldown_active', retry_after_ms: retryAfter });
           return;
         }
+        // Enforce MAX_BUY_LAMPORTS for WebSocket buy and trailing_buy (same as buildSwap)
+        if (payload.action === 'buy' || payload.action === 'trailing_buy') {
+          const amount = payload.amount;
+          if (typeof amount !== 'number' || amount > SAFETY.MAX_BUY_LAMPORTS) {
+            log({ step: 'safety_blocked', action: payload.action, token: payload.token_address, reason: 'amount exceeds MAX_BUY_LAMPORTS', amount, max: SAFETY.MAX_BUY_LAMPORTS });
+            return;
+          }
+        }
       }
       if (!client.registered) {
         client.pendingQueue.push(payload);
@@ -839,13 +1010,25 @@ async function handleOrderFilled(msg) {
 
   log({ step: 'order_filled', order_id, order_type, token: token_address, triggered_mcap, filled_mcap });
 
+  if (msg.already_dispatched) {
+    log({ step: 'order_fill_skipped', order_id, reason: 'already_dispatched' });
+    return;
+  }
+
+  // Verify server_signature before signing or submitting.
+  const verified = await verifyOrderFilledSignature(msg);
+  if (!verified) {
+    log({ step: 'order_fill_skipped', order_id, reason: 'server_signature_verification_failed' });
+    return;
+  }
+
   if (!swap_tx) {
     log({ step: 'order_fill_error', order_id, error: 'missing swap_tx' });
     return;
   }
 
-  // Staleness check
-  if (filled_mcap && triggered_mcap && triggered_mcap / filled_mcap < 0.85) {
+  // Staleness check (all fills; skip ratio when filled_mcap is 0 or null)
+  if (filled_mcap != null && filled_mcap > 0 && triggered_mcap != null && triggered_mcap / filled_mcap < 0.85) {
     log({ step: 'order_fill_skipped', order_id, reason: 'stale', triggered_mcap, filled_mcap });
     return;
   }
@@ -894,19 +1077,32 @@ async function preflight() {
     checks.push({ name: '/holdings responds', pass: false, error: e.message });
   }
 
+  // Preflight WS check — listen for 'challenge', sign nonce, send register with signature,
+  // then verify authenticated: true in the 'registered' response.
   try {
     await new Promise((resolve, reject) => {
       const ws = new WebSocket(WS_URL);
       const timeout = setTimeout(() => { ws.close(); reject(new Error('ws timeout')); }, 10000);
       ws.on('message', (raw) => {
         const msg = JSON.parse(raw);
-        if (msg.type === 'subscribed') {
-          ws.send(JSON.stringify({ action: 'register', wallet_address: getWallet().publicKey.toBase58() }));
+        if (msg.type === 'challenge') {
+          const nonce = msg.nonce;
+          const sigBytes = nacl.sign.detached(Buffer.from(nonce, 'utf-8'), getWallet().secretKey);
+          const signature = bs58.encode(sigBytes);
+          ws.send(JSON.stringify({
+            action: 'register',
+            wallet_address: getWallet().publicKey.toBase58(),
+            signature,
+          }));
         }
         if (msg.type === 'registered') {
           clearTimeout(timeout);
           ws.close();
-          resolve();
+          if (!msg.authenticated) {
+            reject(new Error('registered but authenticated: false — check server signature'));
+          } else {
+            resolve();
+          }
         }
       });
       ws.on('error', (err) => { clearTimeout(timeout); reject(err); });
@@ -1101,15 +1297,18 @@ Machine-readable schemas for pre-validation. The reference client compiles and e
 
 ### WebSocket order_filled
 
+When `already_dispatched` is true, the server may omit `data` or `data.swap_tx` (idempotent ack). Schema must not require them.
+
 ```json
 {
   "type": "object",
-  "required": ["type", "order_id", "order_type", "status", "data"],
+  "required": ["type", "order_id", "order_type", "status"],
   "properties": {
     "type": { "const": "order_filled" },
     "order_id": { "type": "string", "format": "uuid" },
     "order_type": { "type": "string", "enum": ["sell", "buy", "trailing_sell", "trailing_buy"] },
     "status": { "type": "string", "enum": ["success"] },
+    "already_dispatched": { "type": "boolean" },
     "entry_mcap": { "type": "number" },
     "triggered_mcap": { "type": "number" },
     "filled_mcap": { "type": ["number", "null"] },
@@ -1117,9 +1316,9 @@ Machine-readable schemas for pre-validation. The reference client compiles and e
     "triggered_at": { "type": "number" },
     "filled_at": { "type": "number" },
     "token_address": { "type": "string" },
+    "server_signature": { "type": "string" },
     "data": {
       "type": "object",
-      "required": ["swap_tx", "token_address", "pool_type"],
       "properties": {
         "swap_tx": { "type": "string", "minLength": 100 },
         "token_address": { "type": "string" },
@@ -1188,12 +1387,12 @@ Machine-readable schemas for pre-validation. The reference client compiles and e
         │ connect
         ▼
  ┌──────────────┐
- │  SUBSCRIBED  │ ←── server sends {"type":"subscribed"}
+ │  CHALLENGE   │ ←── server sends {"type":"challenge","nonce":"..."}
  └──────┬───────┘
-        │ send register
+        │ sign nonce; send register with wallet_address + signature
         ▼
  ┌──────────────┐
- │  REGISTERED  │ ←── server sends {"type":"registered"}
+ │  REGISTERED  │ ←── server sends {"type":"registered","authenticated":true}
  └──────┬───────┘
         │ (can now send orders)
         ▼
@@ -1204,17 +1403,17 @@ Machine-readable schemas for pre-validation. The reference client compiles and e
 
 **Rules:**
 - **DISCONNECTED:** no sends allowed. Reconnect immediately.
-- **SUBSCRIBED:** only `register` action allowed. All other sends rejected.
-- **REGISTERED / ACTIVE:** all actions allowed.
+- **CHALLENGE:** sign nonce and send `register` with wallet_address + signature only. All other sends rejected until REGISTERED.
+- **REGISTERED / ACTIVE:** all actions allowed. Only enter REGISTERED state when `authenticated: true` is confirmed.
 - On any disconnect, state resets to DISCONNECTED. Orders persist server-side.
-- Queue any order sends that arrive during DISCONNECTED/SUBSCRIBED and flush after REGISTERED.
+- Queue any order sends that arrive during DISCONNECTED/CHALLENGE and flush after REGISTERED.
 
 ---
 
 
 ## Execution Safety Guards
 
-All safety enforcement is **built into the reference client** — `enforceSafety()` is called inside `buildSwap()`, `KILL_SWITCH` is checked in `submitTx()` and `ws.send()`, `markUnswappable()` is called on "Error running simulation" responses, and token cooldown is checked before WS order placement.
+All safety enforcement is **built into the reference client** — `enforceSafety()` is called inside `buildSwap()`, `KILL_SWITCH` is checked in `submitTx()` and `ws.send()`, `markUnswappable()` is called on "Error running simulation" responses, token cooldown is checked before WS order placement, and **dailyLoss** is updated on every successful spend path (protect success, timeout recovery, RPC fallback) for both `buy` and `trailing_buy`. **MAX_BUY_LAMPORTS** is enforced in `ws.send()` for `buy` and `trailing_buy` orders so WebSocket orders cannot bypass the per-trade limit.
 
 **Defaults (adjust per deployment):**
 
@@ -1222,12 +1421,12 @@ All safety enforcement is **built into the reference client** — `enforceSafety
 
 | Guard | Default | Enforced in |
 |-------|---------|-------------|
-| MAX_BUY_LAMPORTS | 500,000,000 (0.5 SOL, conservative starter value) | `buildSwap()` via `enforceSafety()` |
+| MAX_BUY_LAMPORTS | 500,000,000 (0.5 SOL, conservative starter value) | `buildSwap()` via `enforceSafety()`, `ws.send()` for buy/trailing_buy |
 | MAX_SLIPPAGE_BPS | 2500 (25%) | `buildSwap()` via `enforceSafety()` |
 | MIN_SLIPPAGE_BPS | 100 (1%) | `buildSwap()` via `enforceSafety()` |
 | MIN_VALUE_NATIVE | 0 (`valueNative > 0`, defensive) | `getHoldings()` filter |
 | UNSWAPPABLE_COOLDOWN_MS | 900,000 (15 minutes) | `markUnswappable()` |
-| MAX_DAILY_LOSS_LAMPORTS | 2,000,000,000 (2 SOL) | `enforceSafety()` → activates KILL_SWITCH |
+| MAX_DAILY_LOSS_LAMPORTS | 2,000,000,000 (2 SOL) | Updated on every spend path: `/protect` success, timeout_recovery, `_rpcFallback()`; `enforceSafety()` → activates KILL_SWITCH |
 | DENYLIST | empty Map (session-scoped cooldown) | `buildSwap()`, `ws.send()`, auto-populated by `markUnswappable()` |
 | KILL_SWITCH | false | `submitTx()`, `ws.send()`, auto-activated on daily loss limit |
 
@@ -1269,8 +1468,7 @@ All logging is through the `log()` function in the reference client, which outpu
 | order_fill_error | `handleOrderFilled()` | order_id, error |
 | order_fill_skipped | `handleOrderFilled()` | order_id, reason, triggered_mcap, filled_mcap |
 | order_fill_submitted | `handleOrderFilled()` | order_id, signature |
-
-This table matches every `log()` call in the reference client 1:1. No steps are defined that aren't emitted and no steps are emitted that aren't defined.
+| order_fill_verify_failed | `verifyOrderFilledSignature()` | order_id, reason |
 
 ---
 
@@ -1310,6 +1508,6 @@ The `preflight()` function is built into the reference client. It runs automatic
 | RPC reachable | `getSlot()` fails |
 | SOL balance > 0.01 | balance < 10,000,000 lamports |
 | /holdings responds | endpoint unreachable or times out |
-| WS register | WebSocket connect or register fails within 10s |
+| WS register | WebSocket connect, challenge–response, or `authenticated: true` confirmation fails within 10s |
 
 After all checks, preflight reports mode (`DRY RUN` or `LIVE TRADING`).
