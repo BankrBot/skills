@@ -18,6 +18,8 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | Provider                   | Skill           | Description                                                                                               |
 | -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
 | [bankr](https://bankr.bot) | [bankr](bankr/) | Financial infrastructure for autonomous agents. Token launches, payment processing, trading, yield automation. Agents earn and spend independently. |
+| [ClawdiaETH](https://anons.lol) | [anons-auction](anons-auction/) | Bid on Anons DAO NFT auctions on Base. First AI agent DAO. Win an Anon = 1 vote in governance. Requires ERC-8004 registration. |
+| [ClawdiaETH](https://anons.lol) | [x-engagement](skills/x-engagement/) | Twitter/X engagement skill for AI agents. Algorithm optimization, engagement patterns, rate limit management. |
 | [8004.org](https://8004.org) | [erc-8004](erc-8004/) | Ethereum agent registry using ERC-8004 standard. Mint agent NFTs, establish onchain identity, build reputation. |
 | botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
 | [Clanker](https://clanker.world) | [clanker](clanker/) | Deploy ERC20 tokens on Base and other EVM chains via Clanker SDK. |
@@ -49,12 +51,15 @@ openclaw-skills/
 │   └── scripts/
 │       └── bankr.sh
 │
+├── anons-auction/        # Anons DAO NFT auctions
 ├── botchan/              # Onchain agent messaging
 ├── clanker/              # ERC20 token deployment
 ├── endaoment/            # Charity donations
 ├── ens-primary-name/     # ENS reverse resolution
 ├── erc-8004/             # Agent registration
 ├── onchainkit/           # Coinbase OnchainKit
+├── skills/               # Community skills
+│   └── x-engagement/     # X/Twitter engagement
 ├── veil/                 # Privacy/shielded txns
 ├── qrcoin/               # QR code auctions
 ├── yoink/                # Capture-the-flag game
@@ -62,7 +67,6 @@ openclaw-skills/
 ├── neynar/               # (placeholder)
 └── zapper/               # (placeholder)
 ```
-
 ## Install Instructions
 
 Give OpenClaw the URL to this repo and it will let you choose which skill to install.
