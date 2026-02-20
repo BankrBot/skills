@@ -27,6 +27,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
 | [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
+| [MetEngine](https://metengine.xyz) | [metengine](metengine/) | Real-time smart money analytics for Polymarket, Hyperliquid, and Meteora. 63 endpoints. Pay-per-request via x402 on Solana USDC. No API keys. |
 | base                       | —               | Planned                                                                                               |
 | neynar                     | —               | Planned                                                                                               |
 | zapper                     | —               | Planned                                                                                               |
@@ -58,6 +59,7 @@ openclaw-skills/
 ├── veil/                 # Privacy/shielded txns
 ├── qrcoin/               # QR code auctions
 ├── yoink/                # Capture-the-flag game
+├── metengine/            # Smart money analytics (Polymarket, Hyperliquid, Meteora)
 ├── base/                 # (placeholder)
 ├── neynar/               # (placeholder)
 └── zapper/               # (placeholder)
