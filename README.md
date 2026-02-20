@@ -71,6 +71,19 @@ Give OpenClaw the URL to this repo and it will let you choose which skill to ins
 https://github.com/BankrBot/openclaw-skills
 ```
 
+| [axiom](https://x.com/AxiomBot) | [v4-lp](axiom/v4-lp/) | Manage Uniswap V4 LP positions on Base. Auto-compound, harvest fees, Clanker integration, V4 swaps. |
+| base                       | —               | Planned                                                                                               |
+| botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
+| [Clanker](https://clanker.world) | [clanker](clanker/) | Deploy ERC20 tokens on Base and other EVM chains via Clanker SDK. |
+| [Coinbase](https://onchainkit.xyz) | [onchainkit](onchainkit/) | Build onchain apps with React components from Coinbase's OnchainKit. |
+| [Endaoment](https://endaoment.org) | [endaoment](endaoment/) | Donate to charities onchain via Endaoment. Supports Base, Ethereum, Optimism. |
+| [ENS](https://ens.domains) | [ens-primary-name](ens-primary-name/) | Set your primary ENS name on Base and other L2s. |
+| neynar                     | —               | Planned                                                                                               |
+| [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
+| [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
+| yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
+| zapper                     | —               | Planned                                                                                               |
+
 ## Use Cases
 
 **Autonomous financial operations** — Agents manage portfolios, execute trades, deploy tokens, and process payments without human intervention.

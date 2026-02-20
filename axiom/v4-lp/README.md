@@ -1,0 +1,241 @@
+# V4 LP Skill
+
+Manage concentrated liquidity positions on Uniswap V4 (Base chain) for **ANY token pair**. Built for AI agents — discover pools, add liquidity, single-sided range orders, collect fees, monitor positions, rebalance, auto-compound, and **claim + harvest Clanker protocol fees**.
+
+## Features
+
+- **🔍 Pool Discovery** — find and analyze pools for any token pair (WETH/USDC, AXIOM/BNKR, etc.)
+- **Generic Support** — works with any token addresses or common symbols
+- **Single-sided LP** — deposit one token as a range order (limit sell/buy)  
+- **Add liquidity** to any V4 pool with configurable range
+- **Remove liquidity** (partial or full) and burn positions
+- **Collect fees** without removing liquidity
+- **Monitor positions** — in-range detection, edge alerts
+- **Rebalance** — remove + re-add at current price
+- **Auto-compound** — collect fees → re-add as liquidity, fully automated
+- **Approval Generation** — create Permit2 or direct approvals for any tokens
+- **🌾 Clanker Harvest** — claim protocol fees, compound, swap to USDC, vault
+
+## 🔍 Pool Discovery & Analysis
+
+Before adding liquidity, discover and analyze pools for any token pair:
+
+```bash
+# Find all pools for a token pair
+node discover-pool.mjs --token0 WETH --token1 AXIOM
+node discover-pool.mjs --token0 USDC --token1 BNKR
+
+# Get current pool state (price, liquidity, tick)
+node fetch-pool-state.mjs --token0 WETH --token1 AXIOM --fee 0x800000
+
+# Comprehensive analysis (volume, positions, hooks)
+node query-pool-details.mjs --token0 WETH --token1 AXIOM
+
+# Generate approvals for any token pair
+node generate-approvals.mjs --token0 WETH --token1 AXIOM --amount0 1 --amount1 50000 --permit2
+```
+
+### Supported Tokens
+
+Works with common Base tokens (WETH, USDC, BNKR, AXIOM) or any token address:
+
+```bash
+# By symbol
+node discover-pool.mjs --token0 WETH --token1 USDC
+
+# By address
+node discover-pool.mjs \
+  --token0 0x4200000000000000000000000000000000000006 \
+  --token1 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+```
+
+### Generic LP Operations
+
+Add liquidity to ANY pool:
+
+```bash
+# Using symbols
+node add-liquidity.mjs --token0 WETH --token1 USDC --amount 100 --range 10
+
+# Using addresses
+node add-liquidity.mjs \
+  --token0 0x4200000000000000000000000000000000000006 \
+  --token1 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+  --amount 100 --range 10
+
+# Using discovered pool key
+node add-liquidity.mjs --pool-key '{"currency0":"0x4200...","currency1":"0x8335...","fee":3000,"tickSpacing":60,"hooks":"0x0000..."}' --amount 100
+```
+
+## 🌾 Clanker Harvest (NEW)
+
+The killer feature: **complete treasury management for any Clanker-launched token**.
+
+Clanker tokens have two fee sources:
+1. **Clanker protocol fees** — stored in a separate fee contract, must be claimed
+2. **LP position fees** — accrued in the V4 position
+
+`clanker-harvest.mjs` handles both in one modular pipeline:
+
+```
+Clanker Fees + LP Fees
+        ↓
+   ┌────┴────┐
+   │         │
+Compound   Harvest
+(grow LP)  (→ USDC → pay for LLM, RPC, hosting)
+```
+
+### Usage
+
+```bash
+# Just claim Clanker protocol fees
+node clanker-harvest.mjs --token 0xTOKEN
+
+# Claim + compound 100% into LP
+node clanker-harvest.mjs --token 0xTOKEN --token-id 12345 --compound-pct 100
+
+# Claim + harvest 100% as USDC
+node clanker-harvest.mjs --token 0xTOKEN --harvest-address 0xVAULT --compound-pct 0
+
+# 50/50 split
+node clanker-harvest.mjs --token 0xTOKEN --token-id 12345 \
+  --harvest-address 0xVAULT --compound-pct 50
+
+# With threshold — only act if fees > $10
+node clanker-harvest.mjs --token 0xTOKEN --token-id 12345 \
+  --harvest-address 0xVAULT --compound-pct 80 --min-usd 10
+
+# Config file (perfect for cron)
+node clanker-harvest.mjs --config harvest-config.json
+```
+
+### Pipeline
+
+| Step | What | When |
+|------|------|------|
+| 1. Claim | Claim WETH + token from Clanker fee contract | Unless `--skip-claim` |
+| 2. Collect LP | Collect fees from V4 position | If `--token-id` set |
+| 3. Threshold | Check total USD against `--min-usd` | If threshold set |
+| 4. Compound | Add X% back into LP | If `--compound-pct` > 0 |
+| 5. Swap | Swap remaining to USDC | If `--compound-pct` < 100 |
+| 6. Transfer | Send USDC to vault | If harvest address set |
+
+### Self-Sustaining Agent Economics
+
+Set up a cron job and the agent pays for its own infrastructure:
+
+```bash
+# Every 4 hours: claim fees, compound 80%, harvest 20% as USDC if > $10
+node clanker-harvest.mjs --config my-agent.json --min-usd 10
+```
+
+## Auto-Compound
+
+Two strategies for fee compounding:
+
+### Dollar Strategy (default)
+Compound when fees hit a USD threshold. Best for low-volume pools.
+
+```bash
+node auto-compound.mjs --token-id <ID> --strategy dollar --loop --interval 3600 --min-usd 50
+```
+
+### Time Strategy
+Compound on schedule. Skips only if fees < gas cost.
+
+```bash
+node auto-compound.mjs --token-id <ID> --strategy time --loop --interval 14400
+```
+
+Both strategies enforce a gas floor — you'll never burn money on gas.
+
+## Single-Sided LP (Range Orders)
+
+Deposit one token only — acts as a distributed limit order across a price range.
+
+**AXIOM single-sided** (sell AXIOM as price rises):
+```bash
+# Sell all AXIOM up to $3M mcap
+node single-sided-lp.mjs --token axiom --amount all --target-mcap 3000000
+
+# Sell 500M AXIOM across a custom tick range
+node single-sided-lp.mjs --token axiom --amount 500000000 --tick-lower 183000 --tick-upper 211800
+
+# Sell AXIOM if price rises 50%+
+node single-sided-lp.mjs --token axiom --amount all --range-above 50
+```
+
+**WETH single-sided** (buy AXIOM as price drops):
+```bash
+# Buy AXIOM with 0.5 WETH if price drops up to 50%
+node single-sided-lp.mjs --token weth --amount 0.5 --range-below 50
+
+# Buy AXIOM down to $50K mcap
+node single-sided-lp.mjs --token weth --amount 1.0 --target-mcap 50000
+```
+
+**How it works:**
+- Token1 (AXIOM) single-sided: range entirely **below** current tick → sells AXIOM as price rises through range
+- Token0 (WETH) single-sided: range entirely **above** current tick → buys AXIOM as price drops through range
+- Uses `MINT_POSITION (0x02) + SETTLE_PAIR (0x0d)` with amount0Max or amount1Max set to 0
+
+## All Scripts
+
+```bash
+cd scripts && npm install
+
+# === Position Management ===
+node single-sided-lp.mjs --token axiom --amount all --target-mcap 3000000
+node add-liquidity.mjs --amount 20 --range 25
+node check-position.mjs --token-id <ID>
+node monitor-position.mjs --token-id <ID>
+node collect-fees.mjs --token-id <ID>
+node remove-liquidity.mjs --token-id <ID> --percent 50
+node burn-position.mjs --token-id <ID>
+node rebalance.mjs --token-id <ID> --range 25
+
+# === Auto-Compound ===
+node auto-compound.mjs --token-id <ID>
+node auto-compound.mjs --token-id <ID> --strategy time --loop
+
+# === Compound & Harvest (LP fees only) ===
+node compound-and-harvest.mjs --token-id <ID> --harvest-address 0xVAULT --compound-pct 50
+
+# === Clanker Harvest (full pipeline) ===
+node clanker-harvest.mjs --token 0xTOKEN --token-id <ID> --harvest-address 0xVAULT --compound-pct 50
+node claim-clanker-fees.mjs --token 0xTOKEN              # standalone claim
+node claim-clanker-fees.mjs --token 0xTOKEN --dry-run    # check available fees
+```
+
+## Requirements
+
+- Node.js 18+
+- Private key in env (`PRIVATE_KEY` or `NET_PRIVATE_KEY`)
+- `BASE_RPC_URL` env (optional, falls back to public RPC)
+- Tokens approved to Permit2 (`0x000000000022D473030F116dDEE9F6B43aC78BA3`)
+
+## Contracts (Base)
+
+| Contract | Address |
+|----------|---------|
+| PoolManager | `0x498581ff718922c3f8e6a244956af099b2652b2b` |
+| PositionManager | `0x7c5f5a4bbd8fd63184577525326123b519429bdc` |
+| StateView | `0xa3c0c9b65bad0b08107aa264b0f3db444b867a71` |
+| Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` |
+| Clanker Fee Storage | `0xf3622742b1e446d92e45e22923ef11c2fcd55d68` |
+| SwapRouter02 (V3) | `0x2626664c2603336E57B271c5C0b26F421741e481` |
+
+## V4 Technical Notes
+
+- Uses **CLOSE_CURRENCY (0x11)** for fee collection — safely handles Clanker hook pools
+- SETTLE_PAIR (0x0d) for INCREASE_LIQUIDITY on standard pools
+- 2-action encoding pattern (3 actions = `SliceOutOfBounds`)
+- Clanker fee contract uses `claim(feeOwner, token)` — separate calls for WETH + token
+- All operations verified on-chain on Base mainnet
+
+## License
+
+MIT — by [@AxiomBot](https://x.com/AxiomBot)
+
+Source: [github.com/MeltedMindz/axiom-public](https://github.com/MeltedMindz/axiom-public/tree/main/agent-tools/skills/uniswap-v4-lp)
