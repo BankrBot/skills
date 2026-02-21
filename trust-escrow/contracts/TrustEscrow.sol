@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title TrustEscrow
@@ -10,6 +11,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev Supports ETH and ERC-20, no reputation integration
  */
 contract TrustEscrow is ReentrancyGuard {
+    
+    using SafeERC20 for IERC20;
     
     enum EscrowStatus {
         Active,
@@ -101,10 +104,7 @@ contract TrustEscrow is ReentrancyGuard {
         // Check balance before and after to support fee-on-transfer tokens
         uint256 balanceBefore = IERC20(token).balanceOf(address(this));
         
-        require(
-            IERC20(token).transferFrom(msg.sender, address(this), amount),
-            "Token transfer failed"
-        );
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         
         uint256 balanceAfter = IERC20(token).balanceOf(address(this));
         uint256 actualAmount = balanceAfter - balanceBefore;
@@ -171,10 +171,7 @@ contract TrustEscrow is ReentrancyGuard {
             (bool success, ) = escrow.payer.call{value: escrow.amount}("");
             require(success, "Refund failed");
         } else {
-            require(
-                IERC20(escrow.token).transfer(escrow.payer, escrow.amount),
-                "Refund failed"
-            );
+            IERC20(escrow.token).safeTransfer(escrow.payer, escrow.amount);
         }
         
         emit EscrowCancelled(escrowId);
@@ -228,10 +225,7 @@ contract TrustEscrow is ReentrancyGuard {
             (bool success, ) = recipient.call{value: escrow.amount}("");
             require(success, "Transfer failed");
         } else {
-            require(
-                IERC20(escrow.token).transfer(recipient, escrow.amount),
-                "Transfer failed"
-            );
+            IERC20(escrow.token).safeTransfer(recipient, escrow.amount);
         }
         
         emit DisputeResolved(escrowId, msg.sender, refund);
@@ -284,14 +278,8 @@ contract TrustEscrow is ReentrancyGuard {
             (bool success, ) = escrow.payee.call{value: payeeAmount}("");
             require(success, "Payment failed");
         } else {
-            require(
-                IERC20(escrow.token).transfer(platformFeeRecipient, fee),
-                "Fee transfer failed"
-            );
-            require(
-                IERC20(escrow.token).transfer(escrow.payee, payeeAmount),
-                "Payment failed"
-            );
+            IERC20(escrow.token).safeTransfer(platformFeeRecipient, fee);
+            IERC20(escrow.token).safeTransfer(escrow.payee, payeeAmount);
         }
     }
 }
