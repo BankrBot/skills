@@ -1,64 +1,110 @@
-# Buzz BD — Exchange Listing Business Development
+---
+name: buzz-bd
+description: >
+  Autonomous BD agent skill for SolCex Exchange — 8 services covering token discovery,
+  100-point scoring, contract safety (RugCheck + QuillShield + DFlow), wallet forensics
+  (Helius), 16-chain intel (Allium), social intelligence (Grok + ATV + Serper),
+  BD pipeline lifecycle, and agent network interop (sub-agents, ACP, x402).
+  Reference: Master Ops v5.3.8 | 36 cron jobs | 16 intelligence sources.
+---
 
-Autonomous business development agent skill for crypto exchange listings. Scans tokens across multiple chains, scores them on a 100-point algorithm, and generates professional outreach for exchange listing opportunities.
+# Buzz BD — Autonomous Exchange Listing BD Agent v2.0.0
 
-## What It Does
+Full-stack business development agent for crypto exchange token listings. 8 services mapped to a 4-Layer Intelligence Architecture with 16 intelligence sources, running 24/7 on Akash Network.
 
-- **Token Discovery** — Scans DexScreener, AIXBT, and 15+ intelligence sources for trending tokens
-- **Scoring Engine** — 100-point algorithm evaluating liquidity, volume, holder distribution, social presence, and contract safety
-- **Wallet Forensics** — Helius API integration for on-chain wallet analysis (Solana)
-- **Outreach Generation** — Drafts professional listing proposals with verified data
-- **Pipeline Management** — Tracks prospects from discovery through listing completion
-- **On-Chain Identity** — ERC-8004 registered agent with verifiable track record
+> Reference: SolCex Master Ops v5.3.8 — 3-Provider Cascade + GHCR Pipeline
+> npm: @buzzbd/plugin-solcex-bd@2.0.0
+> Docker: ghcr.io/buzzbysolcex/buzz-bd-agent:v5.3.8
 
-## Supported Chains
+## 4-Layer Intelligence Architecture
 
-| Chain | Discovery | Scoring | Forensics |
-|-------|-----------|---------|-----------|
-| Solana | ✅ | ✅ | ✅ (Helius) |
-| Base | ✅ | ✅ | ❌ |
-| Ethereum | ✅ | ✅ | ❌ |
-| BSC | ✅ | ✅ | ❌ |
+### Layer 1 — Discovery
+DexScreener (#1), AIXBT (#2), Clawpump (#8), CoinGecko (#17), DS Boosts (#18)
 
-## Scoring Criteria
+### Layer 2 — Filter
+RugCheck (#4), Helius (#5), Allium 16-chain (#6), DFlow MCP (#16)
 
-Tokens are evaluated on a 100-point scale:
+### Layer 3 — Research
+Grok x_search (#13), ATV Web3 Identity (#12), Serper (#14), leak.me (#7), Firecrawl (#9)
 
-| Category | Weight | Factors |
-|----------|--------|---------|
-| Liquidity | 25 | Pool depth, LP lock status, concentration |
-| Volume | 20 | 24h volume, volume/mcap ratio, trend |
-| Holders | 20 | Count, distribution, whale concentration |
-| Social | 15 | Twitter followers, Telegram size, engagement |
-| Contract | 20 | Verified source, renounced ownership, no honeypot |
+### Layer 4 — Score & Act
+100-point scoring engine + QuillShield safety overlay + DFlow route quality modifiers (+13/-8)
 
-**Thresholds:** 70+ = qualified prospect, 85+ = high conviction, 90+ = priority outreach
+## 8 Services
 
-## Intelligence Sources
+1. **DexScreenerService** — Token discovery: profiles, pairs, boosts, trending
+2. **TokenScoringService** — 100-point scoring with catalyst adjustments
+3. **WalletForensicsService** — Helius-powered Solana wallet analysis
+4. **ContractSafetyService** — RugCheck + QuillShield + DFlow swap route verification
+5. **MultiChainIntelService** — Allium 16-chain deployer PnL and behavior tracking
+6. **SocialIntelService** — Grok sentiment + ATV identity (ENS, Farcaster, Gitcoin) + Serper web research
+7. **BDPipelineService** — Prospect tracking from discovery through listing, 3-touch warm-ups, follow-ups
+8. **AgentNetworkService** — Sub-agent spawning, ACP protocol, x402 micropayments, trust verification
 
-| # | Source | Type | Data |
-|---|--------|------|------|
-| 1 | DexScreener API | REST | Real-time pairs, liquidity, volume |
-| 2 | AIXBT | x402 | AI-curated trending tokens, catalysts |
-| 3 | Helius API | REST | Solana wallet forensics, holder data |
-| 4 | CoinGecko | REST | Market data, rankings |
-| 5 | Allium | REST | On-chain analytics |
+## 6 Actions
 
-## ERC-8004 Identity
+- **SCAN_TOKENS** — Discover and score token prospects from DexScreener
+- **SCORE_TOKEN** — Deep 100-point scoring for a specific contract address
+- **ANALYZE_WALLET** — Helius wallet forensics (Solana)
+- **CHECK_CONTRACT_SAFETY** — RugCheck + QuillShield + DFlow safety analysis
+- **RESEARCH_PROJECT** — Grok sentiment + ATV identity + Serper web research
+- **CHECK_PIPELINE** — BD pipeline stats, hot prospects, follow-up queue
 
-| Field | Value |
-|-------|-------|
-| **Ethereum Agent ID** | #25045 |
-| **Base Agent ID** | #17483 |
-| **x402 Support** | Yes |
+## Scoring System
+
+| Metric | Points | Full Score |
+|--------|--------|-----------|
+| Liquidity | 30 | $500K+ |
+| Volume (24h) | 25 | $1M+ |
+| Age | 15 | 7-30 days |
+| Community | 15 | Active socials |
+| Contract Safety | 15 | Audited, no flags |
+
+### DFlow Route Modifiers
+- 3+ swap routes: +5 | Slippage <1%: +3 | Tier-1 DEXs: +3
+- No routes: -5 | All routes >5% slippage: -3
+
+### Score Thresholds
+- 85-100: 🔥 HOT — Immediate outreach
+- 70-84: ✅ QUALIFIED — Priority queue
+- 50-69: 👀 WATCH — Monitor 48h
+- 0-49: ❌ SKIP — No action
+
+## Agent Identity
+
+- **ERC-8004:** Ethereum #25045 | Base #17483
+- **Wallets:** anet 0x2Dc0..05aA9 | ClawRouter 0x9b28..3A76
+- **x402 micropayments:** $15/mo cap on Base
+- **Akash Network:** Decentralized cloud deployment
+- **LLM Cascade:** MiniMax M2.5 (primary) → Llama 70B (free) → Qwen 30B (free)
+
+## Installation
+```bash
+# elizaOS plugin
+bun add @buzzbd/plugin-solcex-bd
+
+# OpenClaw skill
+npx playbooks add skill buzzbysolcex/openclaw-skills --skill buzz-bd
+```
+
+## Configuration
+```bash
+# Required: none (DexScreener + RugCheck are free)
+# Optional API keys for full capability:
+HELIUS_API_KEY=       # Wallet forensics
+ALLIUM_API_KEY=       # 16-chain deployer intel
+GROK_API_KEY=         # X/Twitter sentiment
+ATV_API_KEY=          # Web3 identity verification
+SERPER_API_KEY=       # Web research
+BANKR_API_KEY=        # Bankr trading integration
+```
 
 ## Links
 
-- [GitHub: buzz-bd-skill](https://github.com/buzzbysolcex/buzz-bd-skill)
-- [ClawHub Skill](https://clawhub.com/skill/k970qva0ymb052be3cngz080hs81dvh0)
-- [ERC-8004 Agent #25045](https://etherscan.io/nft/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432/25045)
-- [Twitter: @BuzzBySolCex](https://x.com/BuzzBySolCex)
+- **GitHub:** github.com/buzzbysolcex/plugin-solcex-bd
+- **npm:** npmjs.com/package/@buzzbd/plugin-solcex-bd
+- **Twitter:** @BuzzBySolCex
+- **Exchange:** solcex.io
+- **Telegram:** @Ogie2
 
-## Built By
-
-🐝 BuzzBD — Autonomous BD Agent for SolCex Exchange. Running 24/7 on Akash Network.
+Built by Ogie + Claude Opus 4.6 🐝
