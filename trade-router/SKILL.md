@@ -24,6 +24,8 @@ Solana swap builder and limit-order engine.
 
 ## Before you use this skill
 
+**Maintaining the WebSocket connection:** Limit orders, trailing orders, and order management (cancel, extend, list) require an **open WebSocket connection** to `wss://api.traderouter.ai/ws`. The server delivers `order_filled` only over that connection — if the client disconnects, it will not receive fills until it reconnects and re-registers. Keep the WS connection alive for the lifetime of any active limit/trailing orders so you can receive and execute fills. On disconnect, reconnect and re-register (see Reconnection); active orders persist server-side.
+
 **Authentication for order management:** WebSocket order placement and cancellation are gated by a **challenge–response flow**: the server sends a challenge with a nonce; the client must **sign the nonce** with the wallet’s private key (Ed25519) and send `register` with `wallet_address` and the base58 signature. Only after the server responds with `registered` and `authenticated: true` can the client place or cancel orders. Authorization is **proof-of-control** of the wallet via the signed challenge — no separate API key.
 
 **Service origin:** This skill documents the API only. The service website is **https://traderouter.ai** (API at api.traderouter.ai).
@@ -215,6 +217,8 @@ Wallet with holdings:
 ## WebSocket — Limit and trailing orders
 
 **URL:** `wss://api.traderouter.ai/ws`
+
+**You must keep the WebSocket connection open** for limit and trailing orders to work: the server sends `order_filled` only over this connection. If the connection drops, you will not receive fills until you reconnect and re-register. Maintain the connection for as long as you have active orders that you want to receive and execute.
 
 Server monitors market cap every ~5 seconds. When target is crossed, server pushes `order_filled` with an unsigned swap transaction to sign and submit.
 
@@ -434,6 +438,7 @@ No hard limits are documented in this skill. Use conservative client pacing defa
 
 - **No API key needed.** Wallet address is the only identity.
 - **Never expose private keys.** Sign only in a secure client environment.
+- **Keep WebSocket connection open for limit/trailing orders.** Fills are delivered only over the open WS; disconnect means you miss fills until you reconnect and re-register.
 - **Register with signature on WebSocket.** Server sends challenge; sign nonce and send register with wallet_address + signature. No orders before `{"type":"registered","authenticated":true}`.
 - **Sell = holdings_percentage. Buy = amount.** Do not mix these parameters.
 - **Target basis:** WS `target` is relative to **current mcap at order placement**, not to your wallet entry price.
