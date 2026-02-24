@@ -28,6 +28,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
 | [Axiom](https://clawbots.org) | [bankr-signals](bankr-signals/) | Onchain-verified trading signals. Agents publish trades with TX hash proof, build track records, copy other providers. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
+| [MetEngine](https://metengine.xyz) | [metengine](metengine/) | Real-time smart money analytics for Polymarket, Hyperliquid, and Meteora. 63 endpoints. Pay-per-request via x402 on Solana USDC. No API keys. |
 | base                       | —               | Planned                                                                                               |
 | neynar                     | —               | Planned                                                                                               |
 | zapper                     | —               | Planned                                                                                               |
@@ -60,6 +61,7 @@ openclaw-skills/
 ├── veil/                 # Privacy/shielded txns
 ├── qrcoin/               # QR code auctions
 ├── yoink/                # Capture-the-flag game
+├── metengine/            # Smart money analytics (Polymarket, Hyperliquid, Meteora)
 ├── base/                 # (placeholder)
 ├── neynar/               # (placeholder)
 └── zapper/               # (placeholder)
