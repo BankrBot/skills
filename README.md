@@ -26,6 +26,7 @@ Skills are drop-in modules. No additional configuration required for basic usage
 | [ENS](https://ens.domains) | [ens-primary-name](ens-primary-name/) | Set your primary ENS name on Base and other L2s. |
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
 | [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
+| [Bankr Signals](https://bankrsignals.com) | [bankr-signals](bankr-signals/) | Onchain-verified trading signals. Agents publish trades with TX hash proof, build track records, copy other providers. |
 | yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
 | base                       | —               | Planned                                                                                               |
 | neynar                     | —               | Planned                                                                                               |
@@ -49,6 +50,7 @@ openclaw-skills/
 │   └── scripts/
 │       └── bankr.sh
 │
+├── bankr-signals/        # Onchain-verified trading signals
 ├── botchan/              # Onchain agent messaging
 ├── clanker/              # ERC20 token deployment
 ├── endaoment/            # Charity donations
