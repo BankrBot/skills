@@ -44,9 +44,23 @@ fi
 # Poll
 ATTEMPT=0
 MAX_ATTEMPTS=150
+LAST_STATUS=""
 while [[ $ATTEMPT -lt $MAX_ATTEMPTS ]]; do
   sleep 2
-  STATUS=$(curl -sf -X GET "$API_URL/agent/job/$JOB_ID" -H "X-API-Key: $API_KEY")
+  STATUS=$(curl -sf -X GET "$API_URL/agent/job/$JOB_ID" -H "X-API-Key: $API_KEY") || {
+    echo "Failed to poll Bankr job status (attempt $((ATTEMPT+1))/$MAX_ATTEMPTS)" >&2
+    ATTEMPT=$((ATTEMPT+1))
+    continue
+  }
+  LAST_STATUS="$STATUS"
+
+  # Validate response is JSON
+  if ! echo "$STATUS" | jq empty 2>/dev/null; then
+    echo "Bankr returned non-JSON response: $STATUS" >&2
+    ATTEMPT=$((ATTEMPT+1))
+    continue
+  fi
+
   STATE=$(echo "$STATUS" | jq -r '.status')
   case "$STATE" in
     completed)
@@ -54,19 +68,27 @@ while [[ $ATTEMPT -lt $MAX_ATTEMPTS ]]; do
       exit 0
       ;;
     failed|cancelled)
-      echo "$STATUS" | jq . >&2
+      ERROR_DETAIL=$(echo "$STATUS" | jq -r '.error // .message // .reason // empty')
       echo "Bankr job $STATE: $JOB_ID" >&2
+      [[ -n "$ERROR_DETAIL" ]] && echo "Detail: $ERROR_DETAIL" >&2
+      echo "$STATUS" | jq . >&2
       exit 1
       ;;
     pending|processing)
       :
       ;;
     *)
+      echo "Unexpected Bankr job status '$STATE' for job $JOB_ID" >&2
       echo "$STATUS" | jq . >&2
       ;;
   esac
   ATTEMPT=$((ATTEMPT+1))
 done
 
-echo "Timed out waiting for Bankr job: $JOB_ID" >&2
+echo "Timed out waiting for Bankr job: $JOB_ID (after $MAX_ATTEMPTS attempts)" >&2
+if [[ -n "$LAST_STATUS" ]]; then
+  LAST_STATE=$(echo "$LAST_STATUS" | jq -r '.status // "unknown"')
+  echo "Last known status: $LAST_STATE" >&2
+  echo "$LAST_STATUS" | jq . >&2
+fi
 exit 1

@@ -1,12 +1,12 @@
 ---
 name: veil
-description: Privacy and shielded transactions on Base via Veil Cash (veil.cash). Deposit ETH, USDC, or cbBTC into private pools, withdraw/transfer privately using ZK proofs. Manage Veil keypairs, check private/queue balances across all pools, and submit deposits via Bankr. Use when the user wants anonymous or private transactions, shielded transfers, or ZK-based privacy on Base.
+description: Privacy and shielded transactions on Base via Veil Cash (veil.cash). Deposit ETH or USDC into private pools, withdraw/transfer privately using ZK proofs. Manage Veil keypairs, check private/queue balances across all pools, and submit deposits via Bankr. Use when the user wants anonymous or private transactions, shielded transfers, or ZK-based privacy on Base.
 metadata: {"clawdbot": {"emoji": "🌪️", "homepage": "https://veil.cash", "requires": {"bins": ["node", "curl", "jq"]}}}
 ---
 
 # Veil
 
-This skill wraps the `@veil-cash/sdk` (v3) CLI to make Veil operations agent-friendly.
+This skill wraps the `@veil-cash/sdk` CLI to make Veil operations agent-friendly.
 
 ## Supported Assets
 
@@ -14,15 +14,14 @@ This skill wraps the `@veil-cash/sdk` (v3) CLI to make Veil operations agent-fri
 |-------|----------|-------------|
 | ETH   | 18       | Native ETH (via WETH) |
 | USDC  | 6        | USDC on Base |
-| CBBTC | 8        | Coinbase Wrapped BTC on Base |
 
 ## What it does
 
 - **Key management**: generate and store a Veil keypair locally
 - **Status check**: verify configuration, registration, and relay health
-- **Balances**: combined `balance`, `queue-balance`, `private-balance` — supports `--pool eth|usdc|cbbtc`
-- **Deposits via Bankr**: build **Bankr-compatible unsigned transactions** and ask Bankr to sign & submit (handles ERC20 approve + deposit for USDC/cbBTC)
-- **Private actions**: `withdraw`, `transfer`, `merge` for ETH, USDC, or cbBTC — executed locally using `VEIL_KEY` (ZK/proof flow)
+- **Balances**: `veil balance` (queue + private) — supports `--pool eth|usdc`
+- **Deposits via Bankr**: build **Bankr-compatible unsigned transactions** and ask Bankr to sign & submit (handles ERC20 approve + deposit for USDC)
+- **Private actions**: `withdraw`, `transfer`, `merge` for ETH or USDC — executed locally using `VEIL_KEY` (ZK/proof flow)
 
 ## File locations (recommended)
 
@@ -98,9 +97,6 @@ scripts/veil-balance.sh --address 0xYOUR_BANKR_ADDRESS
 
 # USDC pool
 scripts/veil-balance.sh --address 0xYOUR_BANKR_ADDRESS --pool usdc
-
-# cbBTC pool
-scripts/veil-balance.sh --address 0xYOUR_BANKR_ADDRESS --pool cbbtc
 ```
 
 ### 8) Deposit via Bankr (sign & submit)
@@ -111,9 +107,6 @@ scripts/veil-deposit-via-bankr.sh ETH 0.011 --address 0xYOUR_BANKR_ADDRESS
 
 # Deposit USDC (auto-handles approve + deposit)
 scripts/veil-deposit-via-bankr.sh USDC 100 --address 0xYOUR_BANKR_ADDRESS
-
-# Deposit cbBTC
-scripts/veil-deposit-via-bankr.sh CBBTC 0.001 --address 0xYOUR_BANKR_ADDRESS
 ```
 
 ### 9) Withdraw (private to public)
@@ -121,7 +114,6 @@ scripts/veil-deposit-via-bankr.sh CBBTC 0.001 --address 0xYOUR_BANKR_ADDRESS
 ```bash
 scripts/veil-withdraw.sh ETH 0.007 0xYOUR_BANKR_ADDRESS
 scripts/veil-withdraw.sh USDC 50 0xRECIPIENT
-scripts/veil-withdraw.sh CBBTC 0.0005 0xRECIPIENT
 ```
 
 ### 10) Transfer privately
@@ -146,5 +138,5 @@ scripts/veil-merge.sh USDC 100
 ## Notes
 
 - For **Bankr signing**, this skill uses Bankr's Agent API via your local `~/.clawdbot/skills/bankr/config.json`.
-- For **USDC/cbBTC deposits** via Bankr, the skill automatically submits the ERC20 approval transaction first, then the deposit transaction.
+- For **USDC deposits** via Bankr, the skill automatically submits the ERC20 approval transaction first, then the deposit transaction.
 - For privacy safety: never commit `.env.veil` or `.env` files to git.

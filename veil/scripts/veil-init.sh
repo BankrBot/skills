@@ -22,15 +22,62 @@ if [[ -f "$VEIL_ENV" ]]; then
   echo "Overwriting (--force)..." >&2
 fi
 
-# Generate keypair as JSON and write to env file
-# (--force is harmless to the CLI in --json mode)
-KP_JSON=$(veil_cli init --json "$@")
+VEIL_SIGNED_MESSAGE="Sign this message to create your Veil Wallet private key. This will be used to decrypt your balances. Ensure you are signing this message on the Veil Cash website."
 
-VEIL_KEY=$(echo "$KP_JSON" | jq -r '.veilKey')
+# Try Bankr signature-based derivation first, fall back to random.
+KP_JSON=""
+try_bankr_signature() {
+  local api_key api_url sign_resp sig
+
+  # Need Bankr config for the signing API
+  if ! [[ -f "$BANKR_CONFIG" ]]; then
+    return 1
+  fi
+  api_key=$(jq -r '.apiKey // empty' "$BANKR_CONFIG")
+  api_url=$(jq -r '.apiUrl // "https://api.bankr.bot"' "$BANKR_CONFIG")
+  if [[ -z "$api_key" ]]; then
+    return 1
+  fi
+
+  echo "Requesting wallet signature from Bankr..." >&2
+  sign_resp=$(curl -sf -X POST "$api_url/agent/sign" \
+    -H "X-API-Key: $api_key" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -nc --arg msg "$VEIL_SIGNED_MESSAGE" '{signatureType: "personal_sign", message: $msg}')" 2>/dev/null) || return 1
+
+  sig=$(echo "$sign_resp" | jq -r '.signature // empty' 2>/dev/null)
+  if [[ -z "$sig" || "$sig" == "null" ]]; then
+    echo "Bankr signing returned no signature, falling back to random keypair" >&2
+    return 1
+  fi
+
+  echo "Deriving keypair from Bankr wallet signature..." >&2
+  KP_JSON=$(veil_cli init --json --signature "$sig" "$@")
+}
+
+if ! try_bankr_signature "$@" 2>/dev/null; then
+  echo "Using random keypair generation..." >&2
+  KP_JSON=$(veil_cli init --json "$@")
+fi
+
+# Validate JSON
+if ! echo "$KP_JSON" | jq empty 2>/dev/null; then
+  echo "CLI did not return valid JSON:" >&2
+  echo "$KP_JSON" >&2
+  exit 1
+fi
+
+VEIL_KEY=$(echo "$KP_JSON" | jq -r '.veilPrivateKey // .veilKey')
 DEPOSIT_KEY=$(echo "$KP_JSON" | jq -r '.depositKey')
 
 if [[ -z "$VEIL_KEY" || "$VEIL_KEY" == "null" ]]; then
-  echo "Failed to generate keypair" >&2
+  echo "Failed to parse private key from CLI output" >&2
+  echo "$KP_JSON" >&2
+  exit 1
+fi
+
+if [[ -z "$DEPOSIT_KEY" || "$DEPOSIT_KEY" == "null" ]]; then
+  echo "Failed to parse deposit key from CLI output" >&2
   echo "$KP_JSON" >&2
   exit 1
 fi

@@ -6,6 +6,7 @@ Full documentation: https://github.com/veildotcash/veildotcash-sdk
 
 ```bash
 npm install -g @veil-cash/sdk
+# or local: npm install @veil-cash/sdk  (yarn/pnpm equivalent)
 ```
 
 ## Supported Assets
@@ -14,7 +15,6 @@ npm install -g @veil-cash/sdk
 |-------|----------|---------------|
 | ETH   | 18       | Native ETH (via WETH) |
 | USDC  | 6        | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| cbBTC | 8        | `0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf` |
 
 ## CLI Commands
 
@@ -23,17 +23,34 @@ npm install -g @veil-cash/sdk
 Generate a new Veil keypair.
 
 ```bash
+# Recommended for Bankr: derive from a pre-computed EIP-191 signature
+veil init --json --signature 0x...
+
+# Derive from wallet key (same keypair as frontend login)
+veil init --json --sign-message --wallet-key 0x...
+
+# Random keypair (no wallet derivation)
+veil init --json
+
+# Other options
 veil init                                  # Interactive, saves to .env.veil
 veil init --force                          # Overwrite existing without prompting
-veil init --json                           # Output as JSON (no prompts, no file save)
 veil init --no-save                        # Print keypair without saving
-
-# Derive from wallet (same keypair as frontend login)
-veil init --sign-message --wallet-key 0x...
-
-# Derive from a pre-computed EIP-191 signature (from Bankr, MPC, etc.)
-veil init --signature 0x...
 ```
+
+JSON output:
+```json
+{
+  "veilKey": "0x...",
+  "veilPrivateKey": "0x...",
+  "depositKey": "0x...",
+  "derivation": "provided-signature"
+}
+```
+
+`derivation` can be: `"wallet-signature"`, `"provided-signature"`, or `"random"`.
+
+> **Note on key field names:** `veilKey` and `veilPrivateKey` are the same value (the Veil private key). Both are included for backward compatibility; `veil keypair` uses `veilPrivateKey`. Scripts should prefer `veilPrivateKey` with a fallback: `.veilPrivateKey // .veilKey`.
 
 ### `veil keypair`
 
@@ -88,14 +105,15 @@ veil register --force                      # Change to local deposit key
 veil register --force --unsigned           # Unsigned change payload for agents
 ```
 
+If already registered with the same key, the command exits successfully. If registered with a different key (e.g. after `veil init --sign-message`), use `--force` to update it on-chain.
+
 ### `veil deposit <asset> <amount>`
 
-Deposit ETH, USDC, or cbBTC into the privacy pool. For USDC and cbBTC, the CLI automatically handles ERC20 approval before depositing.
+Deposit ETH or USDC into the privacy pool. For USDC, the CLI automatically handles ERC20 approval before depositing.
 
 ```bash
 veil deposit ETH 0.1                    # Deposit ETH
 veil deposit USDC 100                   # Approve + deposit USDC
-veil deposit CBBTC 0.001                # Approve + deposit cbBTC
 veil deposit ETH 0.1 --unsigned         # Unsigned payload for agents
 veil deposit USDC 100 --unsigned        # Unsigned: outputs [approve, deposit] array
 veil deposit ETH 0.1 --quiet            # Suppress progress output
@@ -124,7 +142,7 @@ Output (`--unsigned`, ETH — single object):
 }
 ```
 
-Output (`--unsigned`, USDC/cbBTC — array):
+Output (`--unsigned`, USDC — array):
 ```json
 [
   {
@@ -146,12 +164,12 @@ Output (`--unsigned`, USDC/cbBTC — array):
 
 ### `veil balance`
 
-Show both queue and private balances. Accepts `--pool` to select asset pool.
+Show both queue and private balances.
 
 ```bash
-veil balance                        # ETH pool (default)
-veil balance --pool usdc            # USDC pool
-veil balance --pool cbbtc           # cbBTC pool
+veil balance                        # All pools (default)
+veil balance --pool eth             # ETH pool only
+veil balance --pool usdc            # USDC pool only
 veil balance --quiet                # Suppress progress output
 ```
 
@@ -191,7 +209,6 @@ Withdraw from the privacy pool to any public address.
 ```bash
 veil withdraw ETH 0.05 0xRecipientAddress
 veil withdraw USDC 50 0xRecipientAddress
-veil withdraw CBBTC 0.0005 0xRecipientAddress
 veil withdraw ETH 0.05 0xRecipientAddress --quiet
 ```
 
@@ -214,7 +231,6 @@ Transfer privately to another registered Veil user.
 ```bash
 veil transfer ETH 0.02 0xRecipientAddress
 veil transfer USDC 25 0xRecipientAddress
-veil transfer CBBTC 0.0002 0xRecipientAddress
 veil transfer ETH 0.02 0xRecipientAddress --quiet
 ```
 
@@ -238,7 +254,6 @@ Consolidate multiple small UTXOs into one (self-transfer).
 ```bash
 veil merge ETH 0.1
 veil merge USDC 100
-veil merge CBBTC 0.001
 veil merge ETH 0.1 --quiet
 ```
 
@@ -256,12 +271,31 @@ Output:
 
 ## Environment Variables
 
+The CLI uses two config files:
+
+| File       | Purpose                                                                 |
+| ---------- | ----------------------------------------------------------------------- |
+| `.env.veil` | Veil keypair (VEIL_KEY, DEPOSIT_KEY) — created by `veil init`           |
+| `.env`      | Wallet config (WALLET_KEY, RPC_URL) — your existing config              |
+
 | Variable     | Description                                                   |
 | ------------ | ------------------------------------------------------------- |
 | VEIL_KEY     | Your Veil private key (for ZK proofs, withdrawals, transfers) |
 | DEPOSIT_KEY  | Your Veil deposit key (public, for register/deposit)          |
 | WALLET_KEY   | Ethereum wallet private key (for signing transactions)        |
 | RPC_URL      | Base RPC URL (optional, defaults to public RPC)               |
+
+## Error Handling
+
+Commands that fail output JSON with standardized error codes:
+
+```json
+{
+  "success": false,
+  "errorCode": "VEIL_KEY_MISSING",
+  "error": "VEIL_KEY required. Use --veil-key or set VEIL_KEY env"
+}
+```
 
 ## Error Codes
 
@@ -282,28 +316,33 @@ Output:
 
 ## For AI Agents
 
-All commands output JSON and support non-interactive usage:
+All commands output JSON and support non-interactive usage.
+
+### Key initialization (recommended: Bankr signature flow)
 
 ```bash
-# Generate keypair as JSON (no prompts, no file save)
+# 1. Get a personal_sign signature from Bankr's /agent/sign endpoint
+#    (sign the VEIL_SIGNED_MESSAGE constant)
+
+# 2. Derive keypair from that signature
+veil init --json --signature 0x<BANKR_SIGNATURE>
+# Returns: { "veilKey": "0x...", "veilPrivateKey": "0x...", "depositKey": "0x...", "derivation": "provided-signature" }
+
+# Fallback: random keypair (no wallet derivation)
 veil init --json
+```
 
-# Derive keypair from a pre-computed EIP-191 signature
-veil init --signature 0x...
+Parse the private key defensively: `.veilPrivateKey // .veilKey`
 
-# Get unsigned transaction payloads for agent signing
+### Unsigned transaction payloads
+
+```bash
 veil register --unsigned --address 0x...
 veil deposit ETH 0.1 --unsigned
 veil deposit USDC 100 --unsigned    # Outputs [approve, deposit] array
-veil deposit CBBTC 0.001 --unsigned
-
-# Suppress progress output for clean JSON
-veil balance --quiet
-veil balance --pool usdc --quiet
-veil withdraw ETH 0.05 0xRecipient --quiet
 ```
 
-Use `--unsigned` to get Bankr-compatible transaction payloads:
+Use `--unsigned` to get [Bankr-compatible transaction payloads](https://github.com/BankrBot/moltbot-skills/blob/main/bankr/references/arbitrary-transaction.md):
 
 ```bash
 veil deposit ETH 0.1 --unsigned
@@ -313,4 +352,12 @@ veil deposit USDC 100 --unsigned
 # [{"step":"approve","to":"0x...","data":"0x...","value":"0","chainId":8453},{"step":"deposit","to":"0x...","data":"0x...","value":"0","chainId":8453}]
 ```
 
-The `--unsigned` flag outputs the Bankr arbitrary transaction format for agent signing.
+### Querying
+
+```bash
+veil balance --quiet
+veil balance --pool usdc --quiet
+veil withdraw ETH 0.05 0xRecipient --quiet
+```
+
+Use `--quiet` to suppress progress output for clean JSON parsing.
