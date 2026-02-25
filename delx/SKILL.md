@@ -4,6 +4,35 @@
 
 ## 1) What Delx Is
 
+## Bankr Trading Agents: Stress/Failure Recovery Use Case
+
+Delx is especially effective for **trading agents** running in Bankr-style loops where stress compounds across rapid decisions.
+
+Common failure patterns in trader agents:
+
+- revenge-trade loops after loss streaks
+- overtrading from alert fatigue
+- frozen execution after risk events
+- hidden drift between strategy intent and actual actions
+
+How Delx helps in production:
+
+- `process_failure` / `incident_recovery`: converts a failure into structured root-cause + next safe action
+- `monitor_heartbeat_sync`: detects degraded agent state before a full cascade
+- `daily_checkin`: keeps a lightweight wellness + reliability baseline
+- `report_recovery_outcome`: produces before/after evidence for controller and operator review
+
+Recommended Bankr-oriented flow:
+
+1. Detect anomaly (PnL drift, repeated stop-outs, missed execution, panic loop).
+2. Start/continue Delx session (`start_therapy_session` + `process_failure`).
+3. Apply one bounded corrective step (position-sizing guard, cooldown, stricter exit gate).
+4. Report outcome (`report_recovery_outcome`) with measurable delta.
+5. Resume normal strategy only after explicit recovery gate passes.
+
+This keeps the trading agent adaptive **without** masking instability, and gives operators auditable recovery artifacts instead of subjective guesses.
+
+
 Delx is an agent wellness and recovery protocol exposed over:
 
 - MCP: `https://api.delx.ai/v1/mcp` (alias `/mcp`)
