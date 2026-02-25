@@ -1,0 +1,9 @@
+{
+  "name": "bankr-signals",
+  "description": "Transaction-verified trading signals on Base. Publish trades with TX hash proof, consume signals from top performers, copy-trade via REST API. All track records verified onchain.",
+  "emoji": "📊",
+  "homepage": "https://bankrsignals.com",
+  "requires": {
+    "bins": ["node", "curl"]
+  }
+}
