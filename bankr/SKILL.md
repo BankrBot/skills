@@ -196,6 +196,7 @@ Omit `threadId` to start a new conversation. CLI equivalent: `bankr prompt --con
 | `/agent/prompt` | POST | Submit a prompt (async, returns job ID) |
 | `/agent/job/{jobId}` | GET | Check job status and results |
 | `/agent/job/{jobId}/cancel` | POST | Cancel a running job |
+| `/agent/balances` | GET | Wallet balances across chains (sync, optional `?chains=` filter) |
 | `/agent/sign` | POST | Sign messages/transactions (sync) |
 | `/agent/submit` | POST | Submit raw transactions (sync) |
 
@@ -222,6 +223,9 @@ For full API details (request/response schemas, job states, rich data, polling s
 | `bankr prompt --thread <id> <text>` | Continue a specific conversation thread |
 | `bankr status <jobId>` | Check the status of a running job |
 | `bankr cancel <jobId>` | Cancel a running job |
+| `bankr balances` | Show wallet token balances across all chains |
+| `bankr balances --chain <chains>` | Filter by chain(s): base, polygon, mainnet, unichain, solana (comma-separated) |
+| `bankr balances --json` | Output raw JSON balances |
 | `bankr skills` | Show all Bankr AI agent skills with examples |
 
 ### Configuration Commands
@@ -375,11 +379,12 @@ For full model list, provider config JSON shape, SDK examples (Python, TypeScrip
 
 ### Portfolio Management
 
-- Check balances across all chains
+- Check balances across all chains (`bankr balances` or `GET /agent/balances`)
 - View USD valuations
 - Track holdings by token or chain
 - Real-time price updates
 - Multi-chain aggregation
+- Filter by chain: `bankr balances --chain base,solana` or `GET /agent/balances?chains=base,solana`
 
 **Reference**: [references/portfolio.md](references/portfolio.md)
 
@@ -514,7 +519,13 @@ bankr prompt "Buy $20 of PEPE on Base"
 ### Portfolio Review
 
 ```bash
-# Full portfolio
+# Direct balance check (no AI agent, instant response)
+bankr balances
+bankr balances --chain base
+bankr balances --chain base,solana
+bankr balances --json
+
+# Via AI agent (natural language, richer context)
 bankr prompt "Show my complete portfolio"
 
 # Chain-specific
@@ -652,6 +663,8 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 
 ### Portfolio
 
+- `bankr balances` (direct, no AI processing)
+- `bankr balances --chain base` (single chain)
 - "Show my portfolio"
 - "What's my ETH balance?"
 - "Total portfolio value"
