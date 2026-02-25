@@ -4,10 +4,8 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 
 ## Install
 
-Use [OpenClaw](https://github.com/BankrBot/openclaw) and tell it which skill to install:
-
 ```
-> install the bankr skill from https://github.com/BankrBot/skills/tree/main/bankr
+> install the [skill-name] skill from https://github.com/BankrBot/skills/tree/main/[skill-name]
 ```
 
 ## Available Skills
