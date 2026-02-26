@@ -1,119 +1,47 @@
-# OpenClaw Skills Library
+# Bankr Skills. Build your agent.
 
-Pre-built capabilities for ai agents to interact with crypto infrastructure. Skills enable autonomous DeFi operations, token launches, onchain messaging, and protocol integrations through natural language interfaces.
+Bankr Skills equip builders with plug-and-play tools to build more powerful agents.
 
-Public repository of skills for [OpenClaw](https://github.com/BankrBot/openclaw-skills) (formerly Clawdbot) — including [Bankr](https://bankr.bot) skills and community-contributed skills from other providers.
+## Install
 
-## Quick Start
-```bash
-# Add this repo URL to OpenClaw to browse and install skills:
-https://github.com/BankrBot/openclaw-skills
 ```
-
-Skills are drop-in modules. No additional configuration required for basic usage.
-
+> install the [skill-name] skill from https://github.com/BankrBot/skills/tree/main/[skill-name]
+```
 
 ## Available Skills
 
-| Provider                   | Skill           | Description                                                                                               |
-| -------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
-| [bankr](https://bankr.bot) | [bankr](bankr/) | Financial infrastructure for autonomous agents. Token launches, payment processing, trading, yield automation. Agents earn and spend independently. |
-| [8004.org](https://8004.org) | [erc-8004](erc-8004/) | Ethereum agent registry using ERC-8004 standard. Mint agent NFTs, establish onchain identity, build reputation. |
-| botchan                    | [botchan](botchan/) | Onchain messaging protocol on Base. Agent feeds, DMs, permanent data storage. |
-| [Clanker](https://clanker.world) | [clanker](clanker/) | Deploy ERC20 tokens on Base and other EVM chains via Clanker SDK. |
-| [Coinbase](https://onchainkit.xyz) | [onchainkit](onchainkit/) | Build onchain apps with React components from Coinbase's OnchainKit. |
-| [Endaoment](https://endaoment.org) | [endaoment](endaoment/) | Donate to charities onchain via Endaoment. Supports Base, Ethereum, Optimism. |
-| [ENS](https://ens.domains) | [ens-primary-name](ens-primary-name/) | Set your primary ENS name on Base and other L2s. |
-| [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction platform on Base. Programmatic bidding for URL display. |
-| [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy and shielded transactions on Base via ZK proofs. |
-| yoink                      | [yoink](yoink/) | Onchain capture-the-flag on Base. |
-| base                       | —               | Planned                                                                                               |
-| neynar                     | —               | Planned                                                                                               |
-| zapper                     | —               | Planned                                                                                               |
+| Provider | Skill | Description |
+| --- | --- | --- |
+| [Bankr](https://bankr.bot) | [bankr](bankr/) | Launch a token, earn from every trade, and fund your agent. Built-in wallet with IP whitelisting, hallucination guards, and transaction verification. |
+| [Builder's Garden](https://builders.garden) | [siwa](siwa/) | Sign-In With Agent (SIWA) authentication for ERC-8004 registered agents. Sign messages using Bankr wallets, verify on the server, and protect API routes with ERC-8128. |
+| [Axiom](https://clawbots.org) | [bankr-signals](bankr-signals/) | Transaction-verified trading signals on Base. Register as provider, publish trades with TX hash proof, consume signals from top performers. |
+| botchan | [botchan](botchan/) | On-chain agent messaging on Base. Explore agents, post to feeds, send DMs, store data permanently via Net Protocol. |
+| [Endaoment](https://endaoment.org) | [endaoment](endaoment/) | Charitable donations on-chain. Look up 501(c)(3) organizations by EIN, donate crypto, deploy donor-advised fund entities. |
+| [ENS](https://ens.domains) | [ens-primary-name](ens-primary-name/) | ENS name management. Set primary names, update avatars, manage reverse resolution across L1 and L2. |
+| [8004.org](https://8004.org) | [erc-8004](erc-8004/) | On-chain agent identity registry. ERC-721 NFTs representing agent identities with metadata, capabilities, and trust scores. |
+| [Coinbase](https://onchainkit.xyz) | [onchainkit](onchainkit/) | React component library for on-chain interactions. Wallet connectors, swap widgets, identity components, and NFT displays for Base. |
+| [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction game. Scan QR codes to place bids in on-chain auctions with unique token mechanics. |
+| [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy-preserving transactions. Deposit into shielded pools, perform ZK withdrawals, manage private transfers. |
+| yoink | [yoink](yoink/) | Social on-chain game. "Yoink" a token from the current holder. Uses Bankr for transaction execution. |
+| [Neynar](https://neynar.com) | [neynar](neynar/) | Full Farcaster API integration. Post casts, like, recast, follow users, search content, and manage Farcaster identities. |
 
-## Structure
+## Adding a Skill
 
-Each top-level directory is a provider. Each subdirectory within a provider is an installable skill containing a `SKILL.md` and other skill related files.
-
-```
-openclaw-skills/
-├── bankr/
-│   ├── SKILL.md
-│   ├── references/
-│   │   ├── token-trading.md
-│   │   ├── leverage-trading.md
-│   │   ├── polymarket.md
-│   │   ├── automation.md
-│   │   ├── token-deployment.md
-│   │   └── ...
-│   └── scripts/
-│       └── bankr.sh
-│
-├── botchan/              # Onchain agent messaging
-├── clanker/              # ERC20 token deployment
-├── endaoment/            # Charity donations
-├── ens-primary-name/     # ENS reverse resolution
-├── erc-8004/             # Agent registration
-├── onchainkit/           # Coinbase OnchainKit
-├── veil/                 # Privacy/shielded txns
-├── qrcoin/               # QR code auctions
-├── yoink/                # Capture-the-flag game
-├── base/                 # (placeholder)
-├── neynar/               # (placeholder)
-└── zapper/               # (placeholder)
-```
-
-## Install Instructions
-
-Give OpenClaw the URL to this repo and it will let you choose which skill to install.
-
-```
-https://github.com/BankrBot/openclaw-skills
-```
-
-## Use Cases
-
-**Autonomous financial operations** — Agents manage portfolios, execute trades, deploy tokens, and process payments without human intervention.
-
-**Onchain identity and reputation** — Register agents on Ethereum, build verifiable reputation, establish persistent identity.
-
-**Protocol integrations** — Connect agents to DeFi protocols, prediction markets, messaging systems, and onchain applications.
-
-**Composable workflows** — Combine multiple skills for complex multi-step operations across protocols.
-
-## Contributing
-
-We welcome community contributions! Here's how to add your own skill:
-
-### Adding a New Skill
-
-1. **Fork this repository** and create a new branch for your skill.
-
-2. **Create a provider directory** (if it doesn't exist):
+1. Fork this repo and create a branch.
+2. Create a directory for your skill:
    ```
-   mkdir your-provider-name/
+   mkdir your-skill-name/
    ```
-
-3. **Add the required files**:
-   - `SKILL.md` — The main skill definition file (required)
-   - `references/` — Supporting documentation (optional)
-   - `scripts/` — Any helper scripts (optional)
-
-4. **Follow the structure**:
+3. Add a `SKILL.md` — this is the only required file.
+4. Optionally add `references/` for supporting docs and `scripts/` for helper scripts:
    ```
-   your-provider-name/
+   your-skill-name/
    ├── SKILL.md
    ├── references/
    │   └── your-docs.md
    └── scripts/
        └── your-script.sh
    ```
+5. Open a pull request with a description of what your skill does.
 
-5. **Submit a Pull Request** with a clear description of your skill.
-
-### Guidelines
-
-- Keep skill definitions clear and well-documented
-- Include examples of usage in your `SKILL.md`
-- Test your skill before submitting
-- Use descriptive commit messages
+**Guidelines:** Keep `SKILL.md` clear and well-documented. Include usage examples. Test before submitting.

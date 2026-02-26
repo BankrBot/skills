@@ -23,13 +23,29 @@ Both use the same API key and the same async job workflow under the hood.
 
 ## Getting an API Key
 
-Before using either option, you need a Bankr API key:
+Before using either option, you need a Bankr API key. Two ways to get one:
+
+**Option A: Headless email login (recommended for agents)**
+
+Two-step flow — send OTP, then verify and complete setup. See "First-Time Setup" below for the full guided flow with user preference prompts.
+
+```bash
+# Step 1 — send OTP to email
+bankr login email user@example.com
+
+# Step 2 — verify OTP and generate API key (options based on user preferences)
+bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent" --read-write
+```
+
+This creates a wallet, accepts terms, and generates an API key — no browser needed. Before running step 2, ask the user whether they need read-only or read-write access, LLM gateway, and their preferred key name.
+
+**Option B: Bankr Terminal**
 
 1. Visit [bankr.bot/api](https://bankr.bot/api)
 2. **Sign up / Sign in** — Enter your email and the one-time passcode (OTP) sent to it
 3. **Generate an API key** — Create a key with **Agent API** access enabled (the key starts with `bk_...`)
 
-Creating a new account automatically provisions **EVM wallets** (Base, Ethereum, Polygon, Unichain) and a **Solana wallet** — no manual wallet setup needed.
+Both options automatically provision **EVM wallets** (Base, Ethereum, Polygon, Unichain) and a **Solana wallet** — no manual wallet setup needed.
 
 ## Option 1: Bankr CLI (Recommended)
 
@@ -47,38 +63,65 @@ npm install -g @bankr/cli
 
 ### First-Time Setup
 
-```bash
-# Authenticate with Bankr (interactive — opens browser or paste key)
-bankr login
+#### Headless email login (recommended for agents)
 
-# Verify your identity
-bankr whoami
+When the user asks to log in with an email, walk them through this flow:
+
+**Step 1 — Send verification code**
+
+```bash
+bankr login email <user-email>
 ```
 
-The `bankr login` command gives you two choices:
+**Step 2 — Ask the user for the OTP code** they received via email.
 
-**A) Open the Bankr dashboard** — The CLI opens [bankr.bot/api](https://bankr.bot/api) where you generate a key and paste it back.
+**Step 3 — Before completing login, ask the user about their preferences:**
 
-**B) Paste an existing API key** — Select "Paste an existing Bankr API key" and enter it directly.
+1. **Accept Terms of Service** — Present the [Terms of Service](https://bankr.bot/terms) link and confirm the user agrees. Required for new users — do not pass `--accept-terms` unless the user has explicitly confirmed.
+2. **Read-only or read-write API key?**
+   - **Read-only** (default) — portfolio, balances, prices, research only
+   - **Read-write** (`--read-write`) — enables swaps, transfers, orders, token launches, leverage, Polymarket bets
+3. **Enable LLM gateway access?** (`--llm`) — multi-model API at `llm.bankr.bot` (currently limited to beta testers). Skip if user doesn't need it.
+4. **Key name?** (`--key-name`) — a display name for the API key (e.g. "My Agent", "Trading Bot")
 
-#### Separate LLM Gateway Key (Optional)
+**Step 4 — Construct and run the step 2 command** with the user's choices:
 
-If your LLM gateway key differs from your API key, pass `--llm-key` during login or run `bankr config set llmKey YOUR_LLM_KEY` afterward. When not set, the API key is used for both. See [references/llm-gateway.md](references/llm-gateway.md) for full details.
+```bash
+# Example with all options
+bankr login email <user-email> --code <otp> --accept-terms --key-name "My Agent" --read-write --llm
 
-#### Non-Interactive Login (for AI agents)
+# Example read-only, no LLM
+bankr login email <user-email> --code <otp> --accept-terms --key-name "Research Bot"
+```
 
-If you cannot interact with terminal prompts, use these flags:
+#### Login options reference
 
-**If the user needs to create an API key:**
-1. Run `bankr login --url` — prints the dashboard URL
-2. Present the URL to the user, ask them to generate a `bk_...` key
-3. Run `bankr login --api-key bk_THE_KEY`
+| Option | Description |
+|--------|-------------|
+| `--code <otp>` | OTP code received via email (step 2) |
+| `--accept-terms` | Accept [Terms of Service](https://bankr.bot/terms) without prompting (required for new users) |
+| `--key-name <name>` | Display name for the API key (e.g. "My Agent"). Prompted if omitted |
+| `--read-write` | Enable write operations: swaps, transfers, orders, token launches, leverage, Polymarket bets. **Without this flag, the key is read-only** (portfolio, balances, prices, research only) |
+| `--llm` | Enable [LLM gateway](https://docs.bankr.bot/llm-gateway/overview) access (multi-model API at `llm.bankr.bot`). Currently limited to beta testers |
 
-**If the user already has an API key:**
+Any option not provided on the command line will be prompted interactively by the CLI, so you can mix headless and interactive as needed.
+
+#### Login with existing API key
+
+If the user already has an API key:
 
 ```bash
 bankr login --api-key bk_YOUR_KEY_HERE
 ```
+
+If they need to create one at the Bankr Terminal:
+1. Run `bankr login --url` — prints the terminal URL
+2. Present the URL to the user, ask them to generate a `bk_...` key
+3. Run `bankr login --api-key bk_THE_KEY`
+
+#### Separate LLM Gateway Key (Optional)
+
+If your LLM gateway key differs from your API key, pass `--llm-key` during login or run `bankr config set llmKey YOUR_LLM_KEY` afterward. When not set, the API key is used for both. See [references/llm-gateway.md](references/llm-gateway.md) for full details.
 
 #### Verify Setup
 
@@ -153,6 +196,7 @@ Omit `threadId` to start a new conversation. CLI equivalent: `bankr prompt --con
 | `/agent/prompt` | POST | Submit a prompt (async, returns job ID) |
 | `/agent/job/{jobId}` | GET | Check job status and results |
 | `/agent/job/{jobId}/cancel` | POST | Cancel a running job |
+| `/agent/balances` | GET | Wallet balances across chains (sync, optional `?chains=` filter) |
 | `/agent/sign` | POST | Sign messages/transactions (sync) |
 | `/agent/submit` | POST | Submit raw transactions (sync) |
 
@@ -166,10 +210,12 @@ For full API details (request/response schemas, job states, rich data, polling s
 
 | Command | Description |
 |---------|-------------|
-| `bankr login` | Authenticate with the Bankr API (interactive) |
-| `bankr login --url` | Print dashboard URL for API key generation |
-| `bankr login --api-key <key>` | Login with an API key directly (non-interactive) |
+| `bankr login` | Authenticate with the Bankr API (interactive menu) |
+| `bankr login email <address>` | Send OTP to email (headless step 1) |
+| `bankr login email <address> --code <otp> [options]` | Verify OTP and complete setup (headless step 2) |
+| `bankr login --api-key <key>` | Login with an existing API key directly |
 | `bankr login --api-key <key> --llm-key <key>` | Login with separate LLM gateway key |
+| `bankr login --url` | Print Bankr Terminal URL for API key generation |
 | `bankr logout` | Clear stored credentials |
 | `bankr whoami` | Show current authentication info |
 | `bankr prompt <text>` | Send a prompt to the Bankr AI agent |
@@ -177,6 +223,9 @@ For full API details (request/response schemas, job states, rich data, polling s
 | `bankr prompt --thread <id> <text>` | Continue a specific conversation thread |
 | `bankr status <jobId>` | Check the status of a running job |
 | `bankr cancel <jobId>` | Cancel a running job |
+| `bankr balances` | Show wallet token balances across all chains |
+| `bankr balances --chain <chains>` | Filter by chain(s): base, polygon, mainnet, unichain, solana (comma-separated) |
+| `bankr balances --json` | Output raw JSON balances |
 | `bankr skills` | Show all Bankr AI agent skills with examples |
 
 ### Configuration Commands
@@ -330,11 +379,12 @@ For full model list, provider config JSON shape, SDK examples (Python, TypeScrip
 
 ### Portfolio Management
 
-- Check balances across all chains
+- Check balances across all chains (`bankr balances` or `GET /agent/balances`)
 - View USD valuations
 - Track holdings by token or chain
 - Real-time price updates
 - Multi-chain aggregation
+- Filter by chain: `bankr balances --chain base,solana` or `GET /agent/balances?chains=base,solana`
 
 **Reference**: [references/portfolio.md](references/portfolio.md)
 
@@ -469,7 +519,13 @@ bankr prompt "Buy $20 of PEPE on Base"
 ### Portfolio Review
 
 ```bash
-# Full portfolio
+# Direct balance check (no AI agent, instant response)
+bankr balances
+bankr balances --chain base
+bankr balances --chain base,solana
+bankr balances --json
+
+# Via AI agent (natural language, richer context)
 bankr prompt "Show my complete portfolio"
 
 # Chain-specific
@@ -607,6 +663,8 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 
 ### Portfolio
 
+- `bankr balances` (direct, no AI processing)
+- `bankr balances --chain base` (single chain)
 - "Show my portfolio"
 - "What's my ETH balance?"
 - "Total portfolio value"
