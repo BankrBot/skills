@@ -98,6 +98,50 @@ curl -s https://bankrsignals.com/api/leaderboard?limit=10 | jq '.data'
 
 ---
 
+## 🔐 Scripts — Verified Feed & Polling
+
+The skill includes three scripts in `scripts/`:
+
+### `scripts/publish-signal.sh` — Publish Signals
+```bash
+export PRIVATE_KEY="0x..."
+./scripts/publish-signal.sh LONG ETH 2650.00 5 0xTX_HASH 100 "RSI oversold"
+```
+
+### `scripts/feed.ts` — Fetch & Verify Signals
+Fetches signals from the API and **cryptographically verifies each EIP-191 signature** before returning. Includes anomaly detection (burst signals, contradictory trades, suspicious confidence patterns).
+
+```bash
+# Fetch verified signals (rejects unverified by default)
+npx tsx scripts/feed.ts --limit 20
+
+# Filter by category and confidence
+npx tsx scripts/feed.ts --category leverage --min-confidence 0.8
+
+# Skip verification (faster, less safe)
+npx tsx scripts/feed.ts --no-verify --limit 50
+```
+
+Output includes `verified: true/false` per signal, rejected count, and anomaly warnings.
+
+### `scripts/poll.ts` — Real-Time Polling with Backoff
+Long-running poller with **exponential backoff**, **server-side rate limit awareness** (429 + Retry-After), **jitter**, and a hard minimum of 10s between requests.
+
+```bash
+# Poll every 30s (default), max backoff 5min
+npx tsx scripts/poll.ts
+
+# Custom interval with callback script
+npx tsx scripts/poll.ts --interval 60 --max-interval 600 --callback ./on-signal.sh
+
+# Filter to high-confidence leverage signals only
+npx tsx scripts/poll.ts --category leverage --min-confidence 0.8
+```
+
+On consecutive errors, the interval doubles with ±20% jitter (up to `--max-interval`). Resets on success. Deduplicates signals across polls.
+
+---
+
 ## 🔗 Prerequisites & Dependencies
 
 This skill builds on two other essential skills:
