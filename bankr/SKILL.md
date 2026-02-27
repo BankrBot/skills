@@ -331,9 +331,15 @@ bankr cancel job_abc123
 
 The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unified API for Claude, Gemini, GPT, and other models — multi-provider access, cost tracking, automatic failover, and SDK compatibility through a single endpoint.
 
-**Base URL:** `https://llm.bankr.bot`
+**Base URL:** `https://llm.bankr.bot` | **Dashboard:** [bankr.bot/llm](https://bankr.bot/llm) | **API Keys:** [bankr.bot/api](https://bankr.bot/api)
 
-Uses your `llmKey` if configured, otherwise falls back to your API key.
+### Key Concepts
+
+- Uses your `llmKey` if configured, otherwise falls back to your API key
+- **LLM credits** (USD) and **trading wallet** (crypto) are completely separate balances — having crypto does NOT give you LLM credits
+- **New accounts start with $0 LLM credits** — top up at [bankr.bot/llm](https://bankr.bot/llm) before making any LLM calls, or you will get a 402 error
+- Check credits: `bankr llm credits` | Check trading wallet: `bankr balances`
+- In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`)
 
 ### Quick Commands
 
@@ -341,26 +347,11 @@ Uses your `llmKey` if configured, otherwise falls back to your API key.
 bankr llm models                           # List available models
 bankr llm credits                          # Check credit balance
 bankr llm setup openclaw --install         # Install Bankr provider into OpenClaw
-bankr llm setup opencode --install         # Install Bankr provider into OpenCode
 bankr llm setup claude                     # Print Claude Code env vars
-bankr llm setup cursor                     # Cursor setup instructions
 bankr llm claude                           # Launch Claude Code through gateway
-bankr llm claude --model claude-opus-4.6   # Launch with specific model
 ```
 
-### Direct SDK Usage
-
-The gateway works with standard OpenAI and Anthropic SDKs — just override the base URL:
-
-```bash
-# OpenAI-compatible
-curl -X POST "https://llm.bankr.bot/v1/chat/completions" \
-  -H "Authorization: Bearer $BANKR_LLM_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"model": "claude-sonnet-4.5", "messages": [{"role": "user", "content": "Hello"}]}'
-```
-
-For full model list, provider config JSON shape, SDK examples (Python, TypeScript), all setup commands, and troubleshooting, see:
+For full details — setup paths, model list, provider config, SDK examples, key management, and troubleshooting — see:
 
 **Reference**: [references/llm-gateway.md](references/llm-gateway.md)
 
