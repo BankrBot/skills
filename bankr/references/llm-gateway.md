@@ -75,13 +75,13 @@ Returns your remaining USD credit balance. When credits are exhausted, gateway r
 
 > **LLM credits vs trading wallet:** These are completely separate balances on the same account and API key. Your trading wallet (ETH, SOL, USDC) is for on-chain transactions. LLM credits (USD) are for gateway API calls. Having crypto does NOT give you LLM credits.
 
-## Setup Paths (OpenClaw + LLM Gateway)
+## LLM Gateway Setup
 
-Setup depends on whether the user already has OpenClaw and a Bankr account.
+If the user already has a Bankr account, they just need to configure the gateway. If not, they need to create one first.
 
-### Have OpenClaw + Have Bankr (~2 min)
+### Have Bankr Account
 
-1. Install CLI: `npm install -g @bankr/cli`
+1. Install CLI (if not installed): `npm install -g @bankr/cli`
 2. Get an API key with **LLM Gateway** enabled:
    - **Have a key?** Enable LLM Gateway at [bankr.bot/api](https://bankr.bot/api)
    - **Need a key?** Generate via CLI: `bankr login email user@example.com` → `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
@@ -93,44 +93,21 @@ Setup depends on whether the user already has OpenClaw and a Bankr account.
 5. Verify credits: `bankr llm credits` (must show > $0 — top up at [bankr.bot/llm](https://bankr.bot/llm) if needed)
 6. Restart OpenClaw or run: `openclaw gateway restart`
 
-### Need OpenClaw + Have Bankr
-
-> The OpenClaw TUI asks for a model provider before Bankr can be configured. Use a placeholder, then overwrite it.
-
-1. Install CLI: `npm install -g @bankr/cli`
-2. Get an API key with LLM Gateway enabled (see above)
-3. Install OpenClaw from https://docs.openclaw.ai
-4. In the onboarding TUI: pick any placeholder provider (e.g. OpenAI with a dummy key) — do NOT hatch yet
-5. Run: `bankr llm setup openclaw --install` (overwrites the placeholder)
-6. Set default model (see above)
-7. Verify credits: `bankr llm credits`
-8. Hatch your agent
-
-### Have OpenClaw + Need Bankr
+### Need Bankr Account
 
 1. Install CLI: `npm install -g @bankr/cli`
 2. Send OTP: `bankr login email user@example.com`
 3. Complete setup: `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
    - Can also create/configure keys at [bankr.bot/api](https://bankr.bot/api)
 4. **Top up credits at [bankr.bot/llm](https://bankr.bot/llm)** — new wallets start with $0
-5. Verify: `bankr llm credits`
+5. Verify: `bankr llm credits` (must show > $0)
 6. Run: `bankr llm setup openclaw --install`
-7. Set default model and restart OpenClaw
-
-### Need OpenClaw + Need Bankr
-
-1. Install CLI: `npm install -g @bankr/cli`
-2. Send OTP: `bankr login email user@example.com`
-3. Complete setup: `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
-4. **Top up credits at [bankr.bot/llm](https://bankr.bot/llm) BEFORE installing OpenClaw**
-5. Verify: `bankr llm credits` (should show > $0)
-6. Install OpenClaw from https://docs.openclaw.ai
-7. In TUI: pick any placeholder provider, do NOT hatch
-8. Run: `bankr llm setup openclaw --install`
-9. Set default model
-10. Hatch your agent
+7. Set default model in `~/.openclaw/openclaw.json` (see above)
+8. Restart OpenClaw or run: `openclaw gateway restart`
 
 > **Model names:** In OpenClaw, prefix with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`).
+
+For the full 4-path setup guide (including users who don't have OpenClaw yet), see https://docs.bankr.bot/llm-gateway/openclaw
 
 ### Separate LLM and Agent API Keys
 
