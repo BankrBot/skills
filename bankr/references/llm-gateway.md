@@ -81,29 +81,27 @@ If the user already has a Bankr account, they just need to configure the gateway
 
 ### Have Bankr Account
 
-1. Install CLI (if not installed): `npm install -g @bankr/cli`
-2. Get an API key with **LLM Gateway** enabled:
+1. Get an API key with **LLM Gateway** enabled:
    - **Have a key?** Enable LLM Gateway at [bankr.bot/api](https://bankr.bot/api)
    - **Need a key?** Generate via CLI: `bankr login email user@example.com` → `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
-3. Run: `bankr llm setup openclaw --install`
-4. Set default model in `~/.openclaw/openclaw.json`:
+2. Run: `bankr llm setup openclaw --install`
+3. Set default model in `~/.openclaw/openclaw.json`:
    ```json
    { "agents": { "defaults": { "model": { "primary": "bankr/claude-sonnet-4.6" } } } }
    ```
-5. Verify credits: `bankr llm credits` (must show > $0 — top up at [bankr.bot/llm](https://bankr.bot/llm) if needed)
-6. Restart OpenClaw or run: `openclaw gateway restart`
+4. Verify credits: `bankr llm credits` (must show > $0 — top up at [bankr.bot/llm](https://bankr.bot/llm) if needed)
+5. Restart OpenClaw or run: `openclaw gateway restart`
 
 ### Need Bankr Account
 
-1. Install CLI: `npm install -g @bankr/cli`
-2. Send OTP: `bankr login email user@example.com`
-3. Complete setup: `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
+1. Send OTP: `bankr login email user@example.com`
+2. Complete setup: `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
    - Can also create/configure keys at [bankr.bot/api](https://bankr.bot/api)
-4. **Top up credits at [bankr.bot/llm](https://bankr.bot/llm)** — new wallets start with $0
-5. Verify: `bankr llm credits` (must show > $0)
-6. Run: `bankr llm setup openclaw --install`
-7. Set default model in `~/.openclaw/openclaw.json` (see above)
-8. Restart OpenClaw or run: `openclaw gateway restart`
+3. **Top up credits at [bankr.bot/llm](https://bankr.bot/llm)** — new wallets start with $0
+4. Verify: `bankr llm credits` (must show > $0)
+5. Run: `bankr llm setup openclaw --install`
+6. Set default model in `~/.openclaw/openclaw.json` (see above)
+7. Restart OpenClaw or run: `openclaw gateway restart`
 
 > **Model names:** In OpenClaw, prefix with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`).
 
