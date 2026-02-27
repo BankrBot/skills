@@ -1,5 +1,5 @@
 ---
-name: onchain-analysis
+name: owai
 description: Analyze any EVM smart contract — auto-fetches ABI, discovers usage patterns, decodes function calls via Dune, generates AI-driven analytics (charts, stats, time series), and returns structured results. Supports Ethereum, Polygon, BSC, Arbitrum, Optimism, Base, Avalanche.
 ---
 
