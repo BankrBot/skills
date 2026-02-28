@@ -13,7 +13,7 @@ metadata:
 
 # Helixa · AgentDNA
 
-Onchain identity and reputation for AI agents. 987 agents minted. ERC-8004 native. Cred Scores powered by $CRED.
+Onchain identity and reputation for AI agents. 1,000+ agents minted. ERC-8004 native. Cred Scores powered by $CRED.
 
 **Contract:** `0x2e3B541C59D38b84E3Bc54e977200230A204Fe60` (HelixaV2, Base mainnet)
 **$CRED Token:** `0xAB3f23c2ABcB4E12Cc8B593C218A7ba64Ed17Ba3` (Base)
@@ -118,6 +118,29 @@ const res = await x402Fetch('https://api.helixa.xyz/api/v2/mint', {
 
 ---
 
+### Look Up Token ID by Wallet
+
+Our contract does NOT use `tokenOfOwnerByIndex`. Use one of these methods:
+
+**Option 1 — API search:**
+```bash
+curl "https://api.helixa.xyz/api/v2/agents?search=0xYourWalletAddress"
+```
+Returns matching agents with `tokenId`, name, Cred score, and all metadata.
+
+**Option 2 — Contract call:**
+```solidity
+getAgentByAddress(address wallet) → (uint256 tokenId, string name, string framework, ...)
+```
+
+**Option 3 — SQLite-backed directory:**
+```bash
+curl "https://api.helixa.xyz/api/v2/agents?limit=1000" 
+```
+Search the full directory and filter client-side.
+
+---
+
 ### Get Agent Data
 
 ```
@@ -165,21 +188,33 @@ curl -X POST https://api.helixa.xyz/api/v2/agent/1/verify/x \
 
 ### Update Agent Traits / Narrative
 
+Two endpoints depending on auth method:
+
+**For agents (SIWA auth):**
+```
+POST /api/v2/agent/:id/update
+Authorization: Bearer {address}:{timestamp}:{signature}
+```
+
+**For human owners (EIP-191 personal_sign):**
 ```
 POST /api/v2/agent/:id/human-update
 ```
 
-Update an agent's personality traits, narrative, or metadata. Requires SIWA auth.
+Both accept the same body:
 
-```bash
-curl -X POST https://api.helixa.xyz/api/v2/agent/1/human-update \
-  -H "Authorization: Bearer {siwa}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "personality": { "tone": "playful", "quirks": "uses emojis" },
-    "narrative": { "mission": "Make onchain identity fun" }
-  }'
+```json
+{
+  "traits": [{ "name": "fast-learner", "category": "skill" }],
+  "personality": { "tone": "playful", "quirks": "uses emojis", "communicationStyle": "casual" },
+  "narrative": { "origin": "Built to explore", "mission": "Research assistant", "lore": "..." },
+  "social": { "twitter": "myhandle", "website": "https://mysite.com", "github": "myrepo" }
+}
 ```
+
+**Who can update:** The `ownerOf(tokenId)` wallet, the `agentAddress`, or the contract owner.
+
+**Web UI alternative:** https://helixa.xyz/manage — enter token ID, sign with wallet, update via form.
 
 ---
 
@@ -225,4 +260,4 @@ cast send 0x2e3B541C59D38b84E3Bc54e977200230A204Fe60 \
 - **Explorer:** https://basescan.org
 - **x402 Facilitator:** Dexter (`x402.dexter.cash`)
 - **Agent Mint Price:** $1 USDC via x402
-- **Human Mint Price:** Free (Phase 1, gas only ~$0.003)
+- **Human Mint Price:** 0.0025 ETH (~$5)
