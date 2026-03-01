@@ -43,8 +43,11 @@ Solana swap builder and limit-order engine.
 | Instant buy or sell of a token | `POST /swap` → sign → `POST /protect` | REST |
 | Check wallet token balances | `POST /holdings` | REST |
 | Submit an already-signed transaction with MEV protection | `POST /protect` | REST |
+| Market cap / price for token(s) | `GET /mcap?tokens=MINT1,MINT2` | REST |
+| Flex trade card image for wallet + token | `GET /flex?wallet_address=…&token_address=…` | REST |
 | Limit order (take-profit, stop-loss, dip buy, breakout) | WebSocket `sell` or `buy` action | WS |
 | Trailing stop (auto-adjust with market) | WebSocket `trailing_sell` or `trailing_buy` | WS |
+| TWAP (time-weighted buy/sell over duration) | WebSocket `twap_buy` or `twap_sell` | WS |
 | Manage orders (check, list, cancel, extend) | WebSocket actions | WS |
 | DCA (recurring small buys) | WebSocket `buy` orders — see DCA section below | WS |
 
@@ -197,6 +200,26 @@ Wallet with holdings:
 
 ---
 
+## GET /mcap — Market cap data
+
+Return market cap (and optional price/pool) for given token addresses.
+
+**Request:** `GET https://api.traderouter.ai/mcap?tokens=MINT1,MINT2` (comma-delimited Solana mint addresses).
+
+**Response:** Object keyed by token address. Each value can include `marketCap`, `pair_address`, `pool_type`, `priceUsd`. Empty object if no tokens provided or none found.
+
+---
+
+## GET /flex — Flex trade card PNG
+
+Generate a flex trade card image for a wallet and token mint.
+
+**Request:** `GET https://api.traderouter.ai/flex?wallet_address=WALLET&token_address=MINT`.
+
+**Response:** `image/png`. 400 on invalid params; 501 if flex_card_image deps not available; 500 on server error.
+
+---
+
 ## Instant swap workflow (step by step)
 
 **The encoding changes: /swap returns base58, /protect expects base64.** Do not send base58 to /protect.
@@ -306,6 +329,38 @@ Replace `trailing_sell` with `trailing_buy` and `holdings_percentage` with `amou
 {"action": "extend_order", "order_id": "ORDER_ID", "expiry_hours": 336}
 ```
 
+### TWAP (time-weighted average price)
+
+`twap_buy` and `twap_sell` split a total quantity into `frequency` equal slices executed every `duration / frequency` seconds. `duration` is in seconds (min 60, max 30 days). There is no separate expiry — the order lives exactly `duration` seconds.
+
+**twap_sell:** Either `quantity` (raw token units) or `holdings_percentage` (bps, e.g. 5000 = 50%). If using `holdings_percentage`, the server resolves it once at order creation to a fixed token amount, then divides by `frequency` per slice.
+
+```json
+{
+  "action": "twap_sell",
+  "token_address": "SPL_TOKEN_MINT",
+  "frequency": 5,
+  "duration": 3600,
+  "holdings_percentage": 5000,
+  "slippage": 500
+}
+```
+
+**twap_buy:** Use `quantity` (SOL lamports) as total to spend over the duration.
+
+```json
+{
+  "action": "twap_buy",
+  "token_address": "SPL_TOKEN_MINT",
+  "frequency": 5,
+  "duration": 3600,
+  "quantity": 1000000000,
+  "slippage": 500
+}
+```
+
+**Server messages:** `twap_order_created` when accepted; `twap_execution` for each slice (includes `execution_num`, `executions_total`, `executions_remaining`, `next_execution_at`; when `status` is `success`, `data.swap_tx` and `server_signature` — verify signature then sign and submit like `order_filled`); `twap_order_completed` when all slices are done. On `cancel_order` for a TWAP order, server responds with `twap_order_cancelled`. Verify `twap_execution.server_signature` (same trust anchor as `order_filled`; MCP may use a dedicated signer for the twap slice payload) before signing/submitting each slice.
+
 ### Order expiry
 
 Orders silently expire when `expiry_hours` is reached — **the server does not send an expiry event.** To detect expired orders, periodically call `check_order` or `list_orders`. Expired orders will no longer appear in results.
@@ -323,6 +378,8 @@ Orders silently expire when `expiry_hours` is reached — **the server does not 
 | list_orders | — | wallet_address |
 | cancel_order | order_id | — |
 | extend_order | order_id, expiry_hours (max 336) | — |
+| twap_sell | token_address, frequency, duration, quantity or holdings_percentage (bps) | slippage (default 500) |
+| twap_buy | token_address, frequency, duration, quantity (SOL lamports) | slippage (default 500) |
 
 **expiry_hours:** default 144, max 336.
 
@@ -334,6 +391,10 @@ Orders silently expire when `expiry_hours` is reached — **the server does not 
 | registered | wallet_address, authenticated | Registration confirmed; only when authenticated true can client send order actions |
 | order_created | order_id, order_type, token_address, entry_mcap, target_mcap, target_bps (limit), trail_bps (trailing), slippage, expiry_hours, amount, holdings_percentage, params_hash, server_signature | Order accepted; when params_hash and server_signature are present, verify server_signature over params_hash (Rec 2) — see Verifying server signatures |
 | order_filled | order_id, order_type, status, token_address, entry_mcap, triggered_mcap, filled_mcap, target_mcap, triggered_at, filled_at, server_signature, already_dispatched, data (optional; when already_dispatched false: data.swap_tx base58) | Target hit — verify server_signature, then sign data.swap_tx and submit; when already_dispatched true, data/swap_tx may be omitted (idempotent ack) |
+| twap_order_created | order_id, order_type, token_address, frequency, duration, interval_seconds, amount_per_execution, original_quantity, expires_at, slippage, holdings_percentage (optional) | TWAP order accepted |
+| twap_execution | order_id, order_type, status, token_address, execution_num, executions_total, executions_remaining, next_execution_at, server_signature, data (optional), error (optional) | One TWAP slice — verify server_signature, then sign data.swap_tx and submit when status success |
+| twap_order_completed | order_id, order_type, token_address, executions_completed, status | All TWAP slices done |
+| twap_order_cancelled | order_id, status | TWAP order cancelled (response to cancel_order) |
 | order_status | order_id, status | Response to check_order |
 | order_list | orders[] | Response to list_orders |
 | order_cancelled | order_id | Order cancelled |
@@ -461,6 +522,7 @@ An agent is production-ready only when it can execute all of the following with 
 - [ ] **Instant sell:** `POST /holdings` → defensive filter `valueNative > MIN_VALUE_NATIVE` (`> 0` by default) → `POST /swap` (sell) → sign → `submitTx()`
 - [ ] **WebSocket limit order:** connect → challenge → register with signature → registered → place sell order → receive `order_filled` → verify → sign → `submitTx()`
 - [ ] **WebSocket trailing order:** connect → challenge → register with signature → registered → place `trailing_sell` → receive `order_filled` → verify → sign → `submitTx()`
+- [ ] **TWAP order:** connect → register → place `twap_sell` or `twap_buy` (frequency, duration, quantity or holdings_percentage) → receive `twap_execution` for each slice → verify server_signature → sign → `submitTx()` for each; receive `twap_order_completed` when done
 - [ ] **DCA cycle:** place buy order → handle fill → `submitTx()` → place next buy order
 - [ ] **Reconnection:** disconnect → reconnect → new challenge → re-register with signature → handle pending fills with staleness check (all fills)
 - [ ] **Error handling:** gracefully handle unsellable routes, 503, timeouts, stale fills, expired orders
