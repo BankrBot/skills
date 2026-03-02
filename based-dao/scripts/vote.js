@@ -114,9 +114,10 @@ async function main() {
 
     console.log('\n📊 Proposal Status:');
     console.log('State:', stateName);
-    console.log('For:', ethers.formatEther(proposal.forVotes), 'votes');
-    console.log('Against:', ethers.formatEther(proposal.againstVotes), 'votes');
-    console.log('Abstain:', ethers.formatEther(proposal.abstainVotes), 'votes');
+    // Vote counts are raw integers (1 NFT = 1 vote, ERC721Votes)
+    console.log('For:', proposal.forVotes.toString(), 'votes');
+    console.log('Against:', proposal.againstVotes.toString(), 'votes');
+    console.log('Abstain:', proposal.abstainVotes.toString(), 'votes');
 
     if (stateNum !== 1) {
       console.error(`\n❌ Cannot vote. Proposal is ${stateName}, not Active.`);

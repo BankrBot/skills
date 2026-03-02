@@ -49,8 +49,12 @@ async function main() {
 
     if (votingDelay > 0n) {
       console.log('📊 Governance Parameters:');
-      console.log(`Voting Delay: ${Number(votingDelay) / 86400} days`);
-      console.log(`Voting Period: ${Number(votingPeriod) / 86400} days`);
+      // votingDelay and votingPeriod are in blocks (Governor Bravo)
+      // Base ~2 sec/block = ~43200 blocks/day
+      const delayDays = (Number(votingDelay) * 2) / 86400;
+      const periodDays = (Number(votingPeriod) * 2) / 86400;
+      console.log(`Voting Delay: ${Number(votingDelay)} blocks (~${delayDays.toFixed(1)} days)`);
+      console.log(`Voting Period: ${Number(votingPeriod)} blocks (~${periodDays.toFixed(1)} days)`);
       console.log(`Proposal Threshold: ${proposalThreshold.toString()} votes\n`);
     }
 
@@ -105,9 +109,10 @@ async function main() {
     for (const prop of proposals) {
       console.log(`Proposal #${prop.id}`);
       console.log(`State: ${prop.state}`);
-      console.log(`For: ${ethers.formatEther(prop.forVotes)} votes`);
-      console.log(`Against: ${ethers.formatEther(prop.againstVotes)} votes`);
-      console.log(`Abstain: ${ethers.formatEther(prop.abstainVotes)} votes`);
+      // Vote counts are raw integers (1 NFT = 1 vote, ERC721Votes)
+      console.log(`For: ${prop.forVotes.toString()} votes`);
+      console.log(`Against: ${prop.againstVotes.toString()} votes`);
+      console.log(`Abstain: ${prop.abstainVotes.toString()} votes`);
 
       // Get current block
       const currentBlock = await provider.getBlockNumber();
