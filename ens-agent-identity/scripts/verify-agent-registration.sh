@@ -155,9 +155,9 @@ if [ -n "$IDENTITY_REGISTRY" ]; then
       if (data.result && data.result !== '0x') {
         const hex = data.result;
         try {
-          const length = parseInt(hex.slice(130, 194), 16);
+          const length = parseInt(hex.slice(66, 130), 16);
           if (length > 0) {
-            const str = Buffer.from(hex.slice(194, 194 + length * 2), 'hex').toString('utf8');
+            const str = Buffer.from(hex.slice(130, 130 + length * 2), 'hex').toString('utf8');
             console.log(str);
           }
         } catch {}
