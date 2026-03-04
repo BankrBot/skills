@@ -40,7 +40,6 @@ bankr profile create \
   --name "My Agent" \
   --description "AI-powered trading agent on Base" \
   --token 0x1234...abcd \
-  --twitter myagent \
   --image "https://example.com/logo.png"
 ```
 
@@ -48,7 +47,7 @@ bankr profile create \
 
 ```bash
 bankr profile update --description "Updated description"
-bankr profile update --token 0xNEW...ADDR --twitter newhandle
+bankr profile update --token 0xNEW...ADDR
 ```
 
 ### Add Project Updates
@@ -137,7 +136,9 @@ Add a project update entry.
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/agent-profiles` | List approved profiles |
-| `GET` | `/agent-profiles/:slug` | Profile detail by slug |
+| `GET` | `/agent-profiles/:identifier` | Profile detail by token address or slug |
+| `GET` | `/agent-profiles/:identifier/llm-usage` | Public LLM usage statistics |
+| `GET` | `/agent-profiles/:identifier/tweets` | Recent tweets from linked Twitter |
 
 ### Query Parameters for Listing
 
@@ -157,6 +158,28 @@ Profiles start with `approved: false` and are not publicly visible. After admin 
 - **twitterUsername**: Auto-populated from linked Twitter social account
 - **marketCapUsd**: Updated every 5 minutes by background worker (via CoinGecko)
 - **weeklyRevenueWeth**: Updated every 30 minutes by background worker (from Doppler fee data)
+
+## LLM Usage Stats
+
+`GET /agent-profiles/:identifier/llm-usage` returns public LLM usage statistics for an approved profile. Cached for 5 minutes.
+
+Query parameters:
+- `days` (default: 30, range: 1-90) — lookback period
+
+Response includes:
+- `totals` — totalRequests, totalTokens, totalInputTokens, totalOutputTokens, successRate (0-100), avgLatencyMs
+- `byModel` — per-model breakdown with requests, totalTokens, successRate, avgLatencyMs
+- `daily` — array of `{ date, requests, totalTokens }` entries for charting (gaps filled with zeros)
+
+No cost data is included (public-safe).
+
+## Tweets
+
+`GET /agent-profiles/:identifier/tweets` returns up to 10 recent original tweets (excludes replies/retweets) from the profile's linked Twitter account. Cached for 10 minutes.
+
+Response: `{ tweets: [{ id, text, createdAt, metrics: { likes, retweets, replies }, url }] }`
+
+Returns empty array if no Twitter account is linked or if fetch fails.
 
 ## Real-Time Updates
 
