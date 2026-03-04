@@ -228,5 +228,7 @@ Add a 200ms delay between requests to avoid rate limiting.
 4. Spread of 0.5% is a conservative threshold — actual profitability depends on bridge choice, gas, and trade size
 5. `price`, `volume24h`, and `liquidity` fields are strings in the API response — cast to float before calculation
 6. Batch scan is limited to 50 tokens per run to avoid rate limiting
-7. Pair output with Token Safety Scanner: https://github.com/Bob-QoQ/token-safety-scanner
-8. Part of the three-skill workflow: Smart Money Tracker → Token Safety Scanner → DEX Price Scanner
+7. The Alpha List API uses `www.binance.com` as base URL — different from all other APIs in this skill which use `web3.binance.com`. Handle them with separate base URL constants in your adapter.
+8. Solana (CT_501) is intentionally excluded — cross-chain arbitrage between Solana and EVM chains requires specialized bridges and has a different liquidity structure. This skill covers EVM-only arbitrage.
+9. Pair output with Token Safety Scanner: https://github.com/Bob-QoQ/token-safety-scanner
+10. Part of the three-skill workflow: Smart Money Tracker → Token Safety Scanner → DEX Price Scanner
