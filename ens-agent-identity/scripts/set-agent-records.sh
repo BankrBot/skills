@@ -18,7 +18,7 @@ if [ -z "$NAMESTONE_API_KEY" ]; then
   exit 1
 fi
 
-# Require Bankr CLI for address resolution if no address provided
+# Resolve address from Bankr CLI if none provided
 if [ -z "$ADDRESS" ]; then
   if ! command -v bankr >/dev/null 2>&1; then
     echo "Bankr CLI not found. Provide an address or install with: bun install -g @bankr/cli" >&2
@@ -39,8 +39,15 @@ echo "Capabilities: $CAPABILITIES" >&2
 echo "Address: $ADDRESS" >&2
 echo "" >&2
 
-# Build text records JSON (using env vars passed to Node.js to avoid injection)
-TEXT_RECORDS=$(AGENT_TYPE="$AGENT_TYPE" \
+# Build the full NameStone request body in a single Node.js call.
+# All user input is passed via environment variables to prevent injection.
+echo "Step 1: Registering subname via NameStone..." >&2
+
+REQUEST_BODY=$(\
+  AGENT_NAME="$AGENT_NAME" \
+  DOMAIN="$DOMAIN" \
+  ADDRESS="$ADDRESS" \
+  AGENT_TYPE="$AGENT_TYPE" \
   CAPABILITIES="$CAPABILITIES" \
   AGENT_CHAINS="${AGENT_CHAINS:-base}" \
   AGENT_VERSION="${AGENT_VERSION}" \
@@ -73,20 +80,13 @@ for (const [key, value] of Object.entries(optional)) {
   if (value) records[key] = value;
 }
 
-console.log(JSON.stringify(records));
+console.log(JSON.stringify({
+  name: process.env.AGENT_NAME,
+  domain: process.env.DOMAIN,
+  address: process.env.ADDRESS,
+  text_records: records,
+}));
 ")
-
-echo "Step 1: Registering subname via NameStone..." >&2
-
-REQUEST_BODY=$(AGENT_NAME="$AGENT_NAME" DOMAIN="$DOMAIN" ADDRESS="$ADDRESS" TEXT_RECORDS="$TEXT_RECORDS" \
-  node -e "
-    console.log(JSON.stringify({
-      name: process.env.AGENT_NAME,
-      domain: process.env.DOMAIN,
-      address: process.env.ADDRESS,
-      text_records: JSON.parse(process.env.TEXT_RECORDS)
-    }));
-  ")
 
 RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://namestone.com/api/public_v1/set-name" \
   -H "Authorization: $NAMESTONE_API_KEY" \
@@ -96,19 +96,27 @@ RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://namestone.com/api/public
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
 BODY=$(echo "$RESPONSE" | sed '$d')
 
-if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-  echo "Subname registered successfully." >&2
-else
+if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
   echo "Error (HTTP $HTTP_CODE): $BODY" >&2
   exit 1
 fi
+
+echo "Subname registered successfully." >&2
 
 # Step 2: Verify resolution
 echo "" >&2
 echo "Step 2: Verifying resolution..." >&2
 sleep 2
 
-VERIFY_RESPONSE=$(curl -s "https://namestone.com/api/public_v1/get-names?domain=${DOMAIN}&name=${AGENT_NAME}" \
+# URL-encode name and domain in a single Node.js call
+ENCODED=$(AGENT_NAME="$AGENT_NAME" DOMAIN="$DOMAIN" node -e "
+  console.log(encodeURIComponent(process.env.AGENT_NAME));
+  console.log(encodeURIComponent(process.env.DOMAIN));
+")
+ENCODED_NAME=$(echo "$ENCODED" | head -1)
+ENCODED_DOMAIN=$(echo "$ENCODED" | tail -1)
+
+VERIFY_RESPONSE=$(curl -s "https://namestone.com/api/public_v1/get-names?domain=${ENCODED_DOMAIN}&name=${ENCODED_NAME}" \
   -H "Authorization: $NAMESTONE_API_KEY")
 
 RESOLVED_ADDR=$(echo "$VERIFY_RESPONSE" | node -e "
@@ -117,6 +125,26 @@ RESOLVED_ADDR=$(echo "$VERIFY_RESPONSE" | node -e "
     console.log(data[0].address || '');
   }
 " 2>/dev/null || echo "")
+
+# Emit final result as JSON (all values passed via env vars)
+emit_result() {
+  AGENT_NAME="$AGENT_NAME" DOMAIN="$DOMAIN" ADDRESS="$1" \
+    AGENT_TYPE="$AGENT_TYPE" CAPABILITIES="$CAPABILITIES" VERIFIED="$2" \
+    node -e "
+      const o = {
+        success: true,
+        name: process.env.AGENT_NAME + '.' + process.env.DOMAIN,
+        address: process.env.ADDRESS,
+      };
+      if (process.env.VERIFIED === 'true') {
+        o.type = process.env.AGENT_TYPE;
+        o.capabilities = process.env.CAPABILITIES;
+      } else {
+        o.verified = false;
+      }
+      console.log(JSON.stringify(o));
+    "
+}
 
 if [ -n "$RESOLVED_ADDR" ]; then
   echo "Resolved: ${AGENT_NAME}.${DOMAIN} -> $RESOLVED_ADDR" >&2
@@ -131,9 +159,8 @@ if [ -n "$RESOLVED_ADDR" ]; then
   echo "" >&2
   echo "Resolve with: viem getEnsText('${AGENT_NAME}.${DOMAIN}', 'agent:type')" >&2
   echo "" >&2
-
-  echo "{\"success\":true,\"name\":\"${AGENT_NAME}.${DOMAIN}\",\"address\":\"$RESOLVED_ADDR\",\"type\":\"$AGENT_TYPE\",\"capabilities\":\"$CAPABILITIES\"}"
+  emit_result "$RESOLVED_ADDR" "true"
 else
   echo "Warning: Could not verify resolution immediately. It may take a moment to propagate." >&2
-  echo "{\"success\":true,\"name\":\"${AGENT_NAME}.${DOMAIN}\",\"address\":\"$ADDRESS\",\"verified\":false}"
+  emit_result "$ADDRESS" "false"
 fi

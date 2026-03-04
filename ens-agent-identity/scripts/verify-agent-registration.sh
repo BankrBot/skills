@@ -9,47 +9,39 @@ ENS_NAME="${1:?Usage: verify-agent-registration.sh <ens-name> <agent-id> [chain]
 AGENT_ID="${2:?Usage: verify-agent-registration.sh <ens-name> <agent-id> [chain]}"
 CHAIN="${3:-base}"
 
-# Chain configuration
+# Validate AGENT_ID is a positive integer
+if ! [[ "$AGENT_ID" =~ ^[0-9]+$ ]]; then
+  echo "Error: agent-id must be a positive integer, got: $AGENT_ID" >&2
+  exit 1
+fi
+
+# Chain configuration (RPC, explorer, ERC-7930 prefix, registry address)
 case "$CHAIN" in
   base)
     CHAIN_ID=8453
     RPC_URL="https://mainnet.base.org"
     EXPLORER="basescan.org"
-    # ERC-7930 prefix for Base: version 1, EVM (0x0000), 2-byte chain ref, chain ID 0x2105, 20-byte addr (0x14)
     ERC7930_PREFIX="0x0001000002210514"
+    IDENTITY_REGISTRY="${ERC8004_REGISTRY:-0x8004A169FB4a3325136EB29fA0ceB6D2e539a432}"
     ;;
   ethereum|mainnet)
     CHAIN_ID=1
-    RPC_URL="https://eth.llamarpc.com"
+    RPC_URL="https://eth.drpc.org"
     EXPLORER="etherscan.io"
     ERC7930_PREFIX="0x00010000010114"
+    IDENTITY_REGISTRY="${ERC8004_REGISTRY:-0x8004A169FB4a3325136EB29fA0ceB6D2e539a432}"
     ;;
   sepolia)
     CHAIN_ID=11155111
     RPC_URL="https://rpc.sepolia.org"
     EXPLORER="sepolia.etherscan.io"
     ERC7930_PREFIX="0x0001000003AA36A714"
+    IDENTITY_REGISTRY="${ERC8004_REGISTRY:-0x8004A818BFB912233c491871b3d84c89A494BD9e}"
     ;;
   *)
     echo "Unsupported chain: $CHAIN" >&2
     echo "Supported: base, ethereum, sepolia" >&2
     exit 1
-    ;;
-esac
-
-# Default registry addresses (ERC-8004)
-case "$CHAIN" in
-  ethereum|mainnet)
-    IDENTITY_REGISTRY="${ERC8004_REGISTRY:-0x8004A169FB4a3325136EB29fA0ceB6D2e539a432}"
-    ;;
-  base)
-    IDENTITY_REGISTRY="${ERC8004_REGISTRY:-0x8004A169FB4a3325136EB29fA0ceB6D2e539a432}"
-    ;;
-  sepolia)
-    IDENTITY_REGISTRY="${ERC8004_REGISTRY:-0x8004A818BFB912233c491871b3d84c89A494BD9e}"
-    ;;
-  *)
-    IDENTITY_REGISTRY="${ERC8004_REGISTRY:-}"
     ;;
 esac
 
@@ -65,7 +57,7 @@ echo "" >&2
 # Step 1: Resolve ENS name to address
 echo "Step 1: Resolving ENS name..." >&2
 
-RESOLVED_ADDR=$(node -e "
+RESOLVED_ADDR=$(ENS_NAME="$ENS_NAME" node -e "
 const { createPublicClient, http } = require('viem');
 const { mainnet } = require('viem/chains');
 const { normalize } = require('viem/ens');
@@ -77,7 +69,7 @@ const client = createPublicClient({
 
 (async () => {
   try {
-    const address = await client.getEnsAddress({ name: normalize('$ENS_NAME') });
+    const address = await client.getEnsAddress({ name: normalize(process.env.ENS_NAME) });
     if (address) console.log(address);
   } catch (e) {
     console.error(e.message);
@@ -96,55 +88,55 @@ echo "Address: $RESOLVED_ADDR" >&2
 echo "" >&2
 echo "Step 2: Checking ENSIP-25 verification record..." >&2
 
+ENSIP25_VERIFIED=false
+RECORD_VALUE=""
+
 if [ -n "$IDENTITY_REGISTRY" ]; then
-  # Construct the ERC-7930 registry address
   REGISTRY_LOWER=$(echo "$IDENTITY_REGISTRY" | tr '[:upper:]' '[:lower:]')
   ERC7930_ADDR="${ERC7930_PREFIX}${REGISTRY_LOWER#0x}"
   TEXT_RECORD_KEY="agent-registration[${ERC7930_ADDR}][${AGENT_ID}]"
 
   echo "Text record key: $TEXT_RECORD_KEY" >&2
 
-  RECORD_VALUE=$(node -e "
-  const { createPublicClient, http } = require('viem');
-  const { mainnet } = require('viem/chains');
-  const { normalize } = require('viem/ens');
+  RECORD_VALUE=$(ENS_NAME="$ENS_NAME" TEXT_RECORD_KEY="$TEXT_RECORD_KEY" node -e "
+const { createPublicClient, http } = require('viem');
+const { mainnet } = require('viem/chains');
+const { normalize } = require('viem/ens');
 
-  const client = createPublicClient({
-    chain: mainnet,
-    transport: http('https://eth.drpc.org'),
-  });
+const client = createPublicClient({
+  chain: mainnet,
+  transport: http('https://eth.drpc.org'),
+});
 
-  (async () => {
-    try {
-      const value = await client.getEnsText({
-        name: normalize('$ENS_NAME'),
-        key: '$TEXT_RECORD_KEY'
-      });
-      if (value) console.log(value);
-    } catch (e) {}
-  })();
-  " 2>/dev/null)
+(async () => {
+  try {
+    const value = await client.getEnsText({
+      name: normalize(process.env.ENS_NAME),
+      key: process.env.TEXT_RECORD_KEY
+    });
+    if (value) console.log(value);
+  } catch {}
+})();
+" 2>/dev/null)
 
   if [ -n "$RECORD_VALUE" ]; then
     echo "ENSIP-25 record value: $RECORD_VALUE" >&2
     ENSIP25_VERIFIED=true
   else
     echo "No ENSIP-25 record found" >&2
-    ENSIP25_VERIFIED=false
   fi
 else
   echo "No registry address configured for $CHAIN. Set ERC8004_REGISTRY env var." >&2
-  ENSIP25_VERIFIED=false
 fi
 
-# Step 3: Check ERC-8004 registry (if available)
+# Step 3: Check ERC-8004 registry
 echo "" >&2
 echo "Step 3: Checking ERC-8004 registry..." >&2
 
 ERC8004_VERIFIED=false
+
 if [ -n "$IDENTITY_REGISTRY" ]; then
   # Call tokenURI(uint256) on the Identity Registry (standard ERC-721)
-  # Selector: 0xc87b56dd (tokenURI)
   AGENT_ID_HEX=$(printf '%064x' "$AGENT_ID")
   CALLDATA="0xc87b56dd${AGENT_ID_HEX}"
 
@@ -161,7 +153,6 @@ if [ -n "$IDENTITY_REGISTRY" ]; then
     }" | node -e "
       const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
       if (data.result && data.result !== '0x') {
-        // Decode ABI-encoded string
         const hex = data.result;
         try {
           const length = parseInt(hex.slice(130, 194), 16);
@@ -169,7 +160,7 @@ if [ -n "$IDENTITY_REGISTRY" ]; then
             const str = Buffer.from(hex.slice(194, 194 + length * 2), 'hex').toString('utf8');
             console.log(str);
           }
-        } catch (e) {}
+        } catch {}
       }
     " 2>/dev/null)
 
@@ -188,32 +179,50 @@ echo "" >&2
 echo "=== Verification Summary ===" >&2
 echo "" >&2
 
-if [ "$ENSIP25_VERIFIED" = "true" ] && [ "$ERC8004_VERIFIED" = "true" ]; then
-  echo "ENS Resolution:       $ENS_NAME -> $RESOLVED_ADDR" >&2
+echo "ENS Resolution:       $ENS_NAME -> $RESOLVED_ADDR" >&2
+
+if [ "$ENSIP25_VERIFIED" = "true" ]; then
   echo "ENSIP-25 Record:      $TEXT_RECORD_KEY = \"$RECORD_VALUE\"" >&2
-  echo "ERC-8004 Registry:    Agent #$AGENT_ID found" >&2
-  echo "" >&2
-  echo "FULLY VERIFIED: $ENS_NAME is agent #$AGENT_ID" >&2
-  echo "{\"verified\":true,\"name\":\"$ENS_NAME\",\"address\":\"$RESOLVED_ADDR\",\"agentId\":$AGENT_ID,\"ensip25\":true,\"erc8004\":true}"
-elif [ "$ENSIP25_VERIFIED" = "true" ]; then
-  echo "ENS Resolution:       $ENS_NAME -> $RESOLVED_ADDR" >&2
-  echo "ENSIP-25 Record:      Set" >&2
-  echo "ERC-8004 Registry:    Not verified" >&2
-  echo "" >&2
-  echo "PARTIAL: ENSIP-25 set but ERC-8004 not confirmed" >&2
-  echo "{\"verified\":\"partial\",\"name\":\"$ENS_NAME\",\"address\":\"$RESOLVED_ADDR\",\"agentId\":$AGENT_ID,\"ensip25\":true,\"erc8004\":false}"
-elif [ "$ERC8004_VERIFIED" = "true" ]; then
-  echo "ENS Resolution:       $ENS_NAME -> $RESOLVED_ADDR" >&2
-  echo "ENSIP-25 Record:      Not set" >&2
-  echo "ERC-8004 Registry:    Agent #$AGENT_ID found" >&2
-  echo "" >&2
-  echo "PARTIAL: ERC-8004 exists but ENSIP-25 not set" >&2
-  echo "{\"verified\":\"partial\",\"name\":\"$ENS_NAME\",\"address\":\"$RESOLVED_ADDR\",\"agentId\":$AGENT_ID,\"ensip25\":false,\"erc8004\":true}"
 else
-  echo "ENS Resolution:       $ENS_NAME -> $RESOLVED_ADDR" >&2
   echo "ENSIP-25 Record:      Not set" >&2
-  echo "ERC-8004 Registry:    Not verified" >&2
-  echo "" >&2
-  echo "NOT VERIFIED: No ENSIP-25 or ERC-8004 link found" >&2
-  echo "{\"verified\":false,\"name\":\"$ENS_NAME\",\"address\":\"$RESOLVED_ADDR\",\"agentId\":$AGENT_ID,\"ensip25\":false,\"erc8004\":false}"
 fi
+
+if [ "$ERC8004_VERIFIED" = "true" ]; then
+  echo "ERC-8004 Registry:    Agent #$AGENT_ID found" >&2
+else
+  echo "ERC-8004 Registry:    Not verified" >&2
+fi
+
+echo "" >&2
+
+# Determine overall status
+if [ "$ENSIP25_VERIFIED" = "true" ] && [ "$ERC8004_VERIFIED" = "true" ]; then
+  VERIFIED="true"
+  echo "FULLY VERIFIED: $ENS_NAME is agent #$AGENT_ID" >&2
+elif [ "$ENSIP25_VERIFIED" = "true" ] || [ "$ERC8004_VERIFIED" = "true" ]; then
+  VERIFIED="partial"
+  if [ "$ENSIP25_VERIFIED" = "true" ]; then
+    echo "PARTIAL: ENSIP-25 set but ERC-8004 not confirmed" >&2
+  else
+    echo "PARTIAL: ERC-8004 exists but ENSIP-25 not set" >&2
+  fi
+else
+  VERIFIED="false"
+  echo "NOT VERIFIED: No ENSIP-25 or ERC-8004 link found" >&2
+fi
+
+# Emit JSON result (all values passed via env vars to prevent injection)
+ENS_NAME="$ENS_NAME" RESOLVED_ADDR="$RESOLVED_ADDR" AGENT_ID="$AGENT_ID" \
+  VERIFIED="$VERIFIED" ENSIP25="$ENSIP25_VERIFIED" ERC8004="$ERC8004_VERIFIED" \
+  node -e "
+    console.log(JSON.stringify({
+      verified: process.env.VERIFIED === 'true' || process.env.VERIFIED === 'false'
+        ? process.env.VERIFIED === 'true'
+        : process.env.VERIFIED,
+      name: process.env.ENS_NAME,
+      address: process.env.RESOLVED_ADDR,
+      agentId: parseInt(process.env.AGENT_ID, 10),
+      ensip25: process.env.ENSIP25 === 'true',
+      erc8004: process.env.ERC8004 === 'true',
+    }));
+  "

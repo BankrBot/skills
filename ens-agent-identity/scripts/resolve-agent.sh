@@ -10,11 +10,14 @@ ENS_NAME="${1:?Usage: resolve-agent.sh <ens-name>}"
 echo "=== Resolving Agent: $ENS_NAME ===" >&2
 echo "" >&2
 
-# Resolve address and all agent text records
-RESULT=$(node -e "
+# Resolve address, avatar, and all agent text records in a single Node.js call.
+# Display goes to stderr; machine-readable JSON goes to stdout.
+ENS_NAME="$ENS_NAME" node -e "
 const { createPublicClient, http } = require('viem');
 const { mainnet } = require('viem/chains');
 const { normalize } = require('viem/ens');
+
+const ensName = process.env.ENS_NAME;
 
 const client = createPublicClient({
   chain: mainnet,
@@ -39,81 +42,57 @@ const AGENT_KEYS = [
 
 (async () => {
   try {
-    const name = normalize('$ENS_NAME');
+    const name = normalize(ensName);
 
-    // Resolve address
     const address = await client.getEnsAddress({ name });
 
-    // Resolve avatar
     let avatar = null;
-    try {
-      avatar = await client.getEnsAvatar({ name });
-    } catch (e) {}
+    try { avatar = await client.getEnsAvatar({ name }); } catch {}
 
-    // Resolve text records
-    const records = {};
+    // Resolve all text records in parallel
     const results = await Promise.allSettled(
-      AGENT_KEYS.map(async (key) => {
-        const value = await client.getEnsText({ name, key });
-        return { key, value };
-      })
+      AGENT_KEYS.map(async (key) => ({
+        key,
+        value: await client.getEnsText({ name, key }),
+      }))
     );
 
+    const records = {};
     for (const result of results) {
       if (result.status === 'fulfilled' && result.value.value) {
         records[result.value.key] = result.value.value;
       }
     }
 
+    // Display summary to stderr
+    console.error('Name:    ' + ensName);
+    console.error('Address: ' + (address || '(none)'));
+    if (avatar) console.error('Avatar:  ' + avatar);
+    console.error('');
+    console.error('--- Agent Metadata ---');
+
+    const keys = Object.keys(records);
+    if (keys.length === 0) {
+      console.error('No agent text records found');
+    } else {
+      const pad = Math.max(...keys.map(k => k.length));
+      for (const [key, value] of Object.entries(records)) {
+        console.error(key.padEnd(pad + 2) + value);
+      }
+    }
+    console.error('');
+
+    // Machine-readable JSON to stdout
     const output = {
-      name: '$ENS_NAME',
+      name: ensName,
       address: address || null,
       avatar: avatar || null,
       records,
     };
-
     console.log(JSON.stringify(output, null, 2));
   } catch (e) {
     console.error(JSON.stringify({ error: e.message }));
     process.exit(1);
   }
 })();
-" 2>/dev/null)
-
-if [ -z "$RESULT" ]; then
-  echo "Error: Could not resolve $ENS_NAME" >&2
-  exit 1
-fi
-
-# Parse and display
-ADDRESS=$(echo "$RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.log(d.address||'(none)')" 2>/dev/null)
-AVATAR=$(echo "$RESULT" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));console.log(d.avatar||'')" 2>/dev/null)
-
-echo "Name:    $ENS_NAME" >&2
-echo "Address: $ADDRESS" >&2
-if [ -n "$AVATAR" ]; then
-  echo "Avatar:  $AVATAR" >&2
-fi
-echo "" >&2
-
-# Display agent records
-echo "--- Agent Metadata ---" >&2
-echo "$RESULT" | node -e "
-const data = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
-const records = data.records || {};
-const keys = Object.keys(records);
-
-if (keys.length === 0) {
-  console.error('No agent text records found');
-} else {
-  const maxKeyLen = Math.max(...keys.map(k => k.length));
-  for (const [key, value] of Object.entries(records)) {
-    console.error(key.padEnd(maxKeyLen + 2) + value);
-  }
-}
-" 2>/dev/null
-
-echo "" >&2
-
-# Output JSON
-echo "$RESULT"
+"
