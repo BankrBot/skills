@@ -1,6 +1,19 @@
 # Foundry Wallet Setup Guide
 
-This guide covers setting up a wallet for use with the swap execution workflows.
+> ### IMPORTANT: USE YOUR EXISTING WALLET MANAGEMENT IF YOU HAVE ONE
+>
+> **If your agent or application already has wallet management** (e.g., a key management service, vault, HSM, custodial API, or any secure signing infrastructure), **use that instead of the examples below.**
+>
+> The wallet setup examples in this guide are **for development and testing only**. They have significant security limitations:
+> - Private keys may be exposed in shell environments, process listings, and crash dumps
+> - Password files store keystore passwords as plaintext on disk
+> - No multi-signature, access control, or audit logging
+> - No key rotation, revocation, or emergency kill-switch
+> - Unsuitable for production systems handling real funds
+>
+> **Evaluate these risks from the very beginning of your integration** - do not adopt a testing setup and then migrate later when funds are at stake. Choose your wallet infrastructure before writing any execution code.
+
+This guide covers setting up a wallet for use with the `swap-execute` workflow.
 
 ## Install Foundry
 
@@ -41,7 +54,7 @@ For automation, store the password in a file:
 
 ```bash
 # Create password file securely (prompts without echoing to terminal)
-read -s -p "Password: " pw && echo "$pw" > ~/.foundry/.password && chmod 600 ~/.foundry/.password
+printf "Password: " && read -s pw && printf '\n' && echo "$pw" > ~/.foundry/.password && chmod 600 ~/.foundry/.password
 ```
 
 > **Security note:** This stores the keystore password as plaintext on disk. While `chmod 600` restricts access to the file owner, any process running as your user, malware, or backup tools could read it. **Use this for development/testing only.** For production with significant funds, use a hardware wallet (Ledger/Trezor) or interactive password entry.
@@ -67,7 +80,7 @@ cast call \
   $(cast wallet address --account mykey --password-file ~/.foundry/.password)
 ```
 
-### Using with swap execution
+### Using with swap-execute
 
 ```bash
 cast send \
@@ -92,14 +105,14 @@ Simple but **least secure**. The key is stored in plaintext in your shell enviro
 
 ```bash
 # Set in current session only — do NOT persist to ~/.bashrc or ~/.zshrc
-read -s -p "Enter private key: " PRIVATE_KEY && export PRIVATE_KEY
+printf "Enter private key: " && read -s PRIVATE_KEY && printf '\n' && export PRIVATE_KEY
 ```
 
 **NEVER add private keys to shell profile files (`~/.bashrc`, `~/.zshrc`, `~/.profile`).** These files are persisted on disk, may be backed up, committed to version control, or read by other processes.
 
 **NEVER echo, print, log, or display any private key value, even in error messages or debug output.**
 
-### Using with swap execution
+### Using with swap-execute
 
 ```bash
 cast send \
@@ -135,7 +148,7 @@ Most secure. Private key never leaves the device.
 2. Ledger Live closed (releases USB connection)
 3. Ethereum app open on Ledger
 
-### Using with swap execution
+### Using with swap-execute
 
 ```bash
 cast send \
@@ -169,7 +182,7 @@ Similar to Ledger, private key stays on device.
 2. Trezor Suite closed
 3. Passphrase set up (if using)
 
-### Using with swap execution
+### Using with swap-execute
 
 ```bash
 cast send \

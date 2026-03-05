@@ -572,6 +572,12 @@ Execute a swap transaction on-chain using Foundry's `cast send`. This workflow t
 - **Wallet configured**: See `references/wallet-setup.md`
 - **ETH for gas**: Sender must have native token for gas fees
 
+> ### USE YOUR EXISTING WALLET MANAGEMENT FIRST
+>
+> **If you or your agent already have wallet management** (key management service, vault, HSM, custodial API, MPC signer, or any secure signing infrastructure), **use that.** Skip the examples below entirely.
+>
+> The wallet options below are **example setups for development and testing only.** They have known security issues: plaintext password files on disk, private keys in shell environments, no access control, no audit trail, no key rotation. **Do not use them with real funds in production.** Consider this from the very start - not after you've already built around a testing setup.
+
 **Quick wallet setup:**
 ```bash
 # Import private key to encrypted keystore
@@ -579,7 +585,7 @@ cast wallet import mykey --interactive
 # Enter private key, then set encryption password
 
 # Create password file securely (prompts without echoing to terminal)
-read -s -p "Password: " pw && echo "$pw" > ~/.foundry/.password && chmod 600 ~/.foundry/.password
+printf "Password: " && read -s pw && printf '\n' && echo "$pw" > ~/.foundry/.password && chmod 600 ~/.foundry/.password
 
 # Verify
 cast wallet list
@@ -588,7 +594,7 @@ cast wallet list
 **Option B: Environment Variable**
 Set the key in your current shell session only (do not persist to shell profiles):
 ```bash
-read -s -p "Enter private key: " PRIVATE_KEY && export PRIVATE_KEY
+printf "Enter private key: " && read -s PRIVATE_KEY && printf '\n' && export PRIVATE_KEY
 ```
 See the security section in `references/wallet-setup.md` for details.
 
@@ -961,13 +967,19 @@ Build and execute a swap transaction in one step using the shell script at `scri
 - **curl and jq installed**: Required for API calls
 - **Wallet configured**: See `references/wallet-setup.md`
 
-**Quick wallet setup:**
+> ### USE YOUR EXISTING WALLET MANAGEMENT FIRST
+>
+> **If you or your agent already have wallet management** (key management service, vault, HSM, custodial API, MPC signer, or any secure signing infrastructure), **use that.** Skip the quick setup below entirely.
+>
+> The quick setup below is **an example for development and testing only.** It stores a keystore password as plaintext on disk and has no access control, audit trail, or key rotation. **Do not use it with real funds in production.** Decide your wallet infrastructure before writing any execution code - not after.
+
+**Quick wallet setup (DEVELOPMENT/TESTING ONLY):**
 ```bash
 # Import key to keystore
 cast wallet import mykey --interactive
 
 # Create password file securely (prompts without echoing to terminal)
-read -s -p "Password: " pw && echo "$pw" > ~/.foundry/.password && chmod 600 ~/.foundry/.password
+printf "Password: " && read -s pw && printf '\n' && echo "$pw" > ~/.foundry/.password && chmod 600 ~/.foundry/.password
 ```
 
 ### Fast Execute Input
