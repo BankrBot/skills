@@ -5,7 +5,8 @@ description: >
   limit/trailing orders via the TradeRouter API. Use when the user wants to: swap SPL tokens on Solana
   (buy or sell), check wallet token holdings, submit signed transactions through an MEV-protected
   priority lane, place limit orders (buy/sell at a target market cap), set trailing stop orders
-  (trailing_sell/trailing_buy), manage existing orders (check, list, cancel, extend), or implement
+  (trailing_sell/trailing_buy), place combo orders (limit+TWAP, trailing+TWAP, limit+trailing,
+  limit+trailing+TWAP), manage existing orders (check, list, cancel, extend), or implement
   DCA strategies. No API key required — wallet address is the only identity. Supports REST endpoints
   POST /swap, POST /holdings, POST /protect, and WebSocket wss://api.traderouter.ai/ws for limit orders.
 ---
@@ -48,6 +49,10 @@ Solana swap builder and limit-order engine.
 | Limit order (take-profit, stop-loss, dip buy, breakout) | WebSocket `sell` or `buy` action | WS |
 | Trailing stop (auto-adjust with market) | WebSocket `trailing_sell` or `trailing_buy` | WS |
 | TWAP (time-weighted buy/sell over duration) | WebSocket `twap_buy` or `twap_sell` | WS |
+| Limit then TWAP | WebSocket `limit_twap_sell` or `limit_twap_buy` | WS |
+| Trailing then TWAP | WebSocket `trailing_twap_sell` or `trailing_twap_buy` | WS |
+| Limit then trailing (single swap on trail trigger) | WebSocket `limit_trailing_sell` or `limit_trailing_buy` | WS |
+| Limit then trailing then TWAP | WebSocket `limit_trailing_twap_sell` or `limit_trailing_twap_buy` | WS |
 | Manage orders (check, list, cancel, extend) | WebSocket actions | WS |
 | DCA (recurring small buys) | WebSocket `buy` orders — see DCA section below | WS |
 
@@ -320,6 +325,42 @@ Active orders persist server-side — you do **not** need to re-place them after
 
 Replace `trailing_sell` with `trailing_buy` and `holdings_percentage` with `amount` for trailing buy. For trailing buy, the trigger works in reverse: if mcap bottoms at $50k, a 10% trail triggers when mcap rises to $55k.
 
+### Limit + TWAP (limit_twap_sell / limit_twap_buy)
+
+Wait for limit target (bps vs entry mcap), then execute via TWAP. Required: `token_address`, `target`, `frequency`, `duration`; for sell add `amount` or `holdings_percentage`; for buy add `amount`. When limit crosses, server spawns TWAP; client receives `limit_twap_triggered` then `twap_execution` per slice.
+
+```json
+{"action": "limit_twap_sell", "token_address": "MINT", "target": 20000, "frequency": 5, "duration": 3600, "holdings_percentage": 5000, "slippage": 500, "expiry_hours": 144}
+{"action": "limit_twap_buy", "token_address": "MINT", "target": 5000, "amount": 100000000, "frequency": 5, "duration": 3600, "slippage": 500, "expiry_hours": 144}
+```
+
+### Trailing + TWAP (trailing_twap_sell / trailing_twap_buy)
+
+When trailing stop triggers, server spawns TWAP. Required: `token_address`, `trail`, `frequency`, `duration`; for sell add `amount` or `holdings_percentage`; for buy add `amount`. Client receives `trailing_twap_triggered` then `twap_execution` per slice.
+
+```json
+{"action": "trailing_twap_sell", "token_address": "MINT", "trail": 1000, "frequency": 5, "duration": 3600, "holdings_percentage": 10000, "slippage": 500, "expiry_hours": 144}
+{"action": "trailing_twap_buy", "token_address": "MINT", "trail": 1000, "amount": 100000000, "frequency": 5, "duration": 3600, "slippage": 500, "expiry_hours": 144}
+```
+
+### Limit + Trailing (limit_trailing_sell / limit_trailing_buy)
+
+Wait for limit target, then trailing phase activates (server sends `limit_trailing_activated`). When the trailing stop triggers, single swap — client receives `order_filled` with `data.swap_tx`. Required: `token_address`, `target`, `trail`; for sell add `amount` or `holdings_percentage`; for buy add `amount`.
+
+```json
+{"action": "limit_trailing_sell", "token_address": "MINT", "target": 20000, "trail": 1000, "holdings_percentage": 10000, "slippage": 500, "expiry_hours": 144}
+{"action": "limit_trailing_buy", "token_address": "MINT", "target": 5000, "trail": 1000, "amount": 100000000, "slippage": 500, "expiry_hours": 144}
+```
+
+### Limit + Trailing + TWAP (limit_trailing_twap_sell / limit_trailing_twap_buy)
+
+Limit → trailing phase → when trail triggers, server spawns TWAP. Client receives `limit_trailing_activated` when trailing starts, then `limit_trailing_twap_triggered` when trail triggers, then `twap_execution` per slice. Required: `token_address`, `target`, `trail`, `frequency`, `duration`; for sell add `amount` or `holdings_percentage`; for buy add `amount`.
+
+```json
+{"action": "limit_trailing_twap_sell", "token_address": "MINT", "target": 20000, "trail": 1000, "frequency": 5, "duration": 3600, "holdings_percentage": 5000, "slippage": 500, "expiry_hours": 144}
+{"action": "limit_trailing_twap_buy", "token_address": "MINT", "target": 5000, "trail": 1000, "amount": 100000000, "frequency": 5, "duration": 3600, "slippage": 500, "expiry_hours": 144}
+```
+
 ### Order management actions
 
 ```json
@@ -331,9 +372,9 @@ Replace `trailing_sell` with `trailing_buy` and `holdings_percentage` with `amou
 
 ### TWAP (time-weighted average price)
 
-`twap_buy` and `twap_sell` split a total quantity into `frequency` equal slices executed every `duration / frequency` seconds. `duration` is in seconds (min 60, max 30 days). There is no separate expiry — the order lives exactly `duration` seconds.
+`twap_buy` and `twap_sell` split a total amount into `frequency` equal slices executed every `duration / frequency` seconds. `duration` is in seconds (min 60, max 30 days). There is no separate expiry — the order lives exactly `duration` seconds.
 
-**twap_sell:** Either `quantity` (raw token units) or `holdings_percentage` (bps, e.g. 5000 = 50%). If using `holdings_percentage`, the server resolves it once at order creation to a fixed token amount, then divides by `frequency` per slice.
+**twap_sell:** Either `amount` (raw token units) or `holdings_percentage` (bps, e.g. 5000 = 50%). If using `holdings_percentage`, the server resolves it once at order creation to a fixed token amount, then divides by `frequency` per slice.
 
 ```json
 {
@@ -346,7 +387,7 @@ Replace `trailing_sell` with `trailing_buy` and `holdings_percentage` with `amou
 }
 ```
 
-**twap_buy:** Use `quantity` (SOL lamports) as total to spend over the duration.
+**twap_buy:** Use `amount` (SOL lamports) as total to spend over the duration.
 
 ```json
 {
@@ -354,7 +395,7 @@ Replace `trailing_sell` with `trailing_buy` and `holdings_percentage` with `amou
   "token_address": "SPL_TOKEN_MINT",
   "frequency": 5,
   "duration": 3600,
-  "quantity": 1000000000,
+  "amount": 1000000000,
   "slippage": 500
 }
 ```
@@ -374,12 +415,20 @@ Orders silently expire when `expiry_hours` is reached — **the server does not 
 | buy | token_address, amount (lamports), target, slippage | expiry_hours, wallet_address |
 | trailing_sell | token_address, holdings_percentage, trail (bps), slippage | expiry_hours |
 | trailing_buy | token_address, amount, trail (bps), slippage | expiry_hours |
+| twap_sell | token_address, frequency, duration, amount or holdings_percentage (bps) | slippage (default 500) |
+| twap_buy | token_address, frequency, duration, amount (SOL lamports) | slippage (default 500) |
+| limit_twap_sell | token_address, target, frequency, duration, amount or holdings_percentage | slippage, expiry_hours |
+| limit_twap_buy | token_address, target, amount, frequency, duration | slippage, expiry_hours |
+| trailing_twap_sell | token_address, trail, frequency, duration, amount or holdings_percentage | slippage, expiry_hours |
+| trailing_twap_buy | token_address, trail, amount, frequency, duration | slippage, expiry_hours |
+| limit_trailing_sell | token_address, target, trail, amount or holdings_percentage | slippage, expiry_hours |
+| limit_trailing_buy | token_address, target, trail, amount | slippage, expiry_hours |
+| limit_trailing_twap_sell | token_address, target, trail, frequency, duration, amount or holdings_percentage | slippage, expiry_hours |
+| limit_trailing_twap_buy | token_address, target, trail, amount, frequency, duration | slippage, expiry_hours |
 | check_order | order_id | — |
 | list_orders | — | wallet_address |
 | cancel_order | order_id | — |
 | extend_order | order_id, expiry_hours (max 336) | — |
-| twap_sell | token_address, frequency, duration, quantity or holdings_percentage (bps) | slippage (default 500) |
-| twap_buy | token_address, frequency, duration, quantity (SOL lamports) | slippage (default 500) |
 
 **expiry_hours:** default 144, max 336.
 
@@ -389,9 +438,13 @@ Orders silently expire when `expiry_hours` is reached — **the server does not 
 |------|----------------|-------------|
 | challenge | nonce, message | Sent on connect; client must sign nonce and send register with wallet_address + signature |
 | registered | wallet_address, authenticated | Registration confirmed; only when authenticated true can client send order actions |
-| order_created | order_id, order_type, token_address, entry_mcap, target_mcap, target_bps (limit), trail_bps (trailing), slippage, expiry_hours, amount, holdings_percentage, params_hash, server_signature | Order accepted; when params_hash and server_signature are present, verify server_signature over params_hash (Rec 2) — see Verifying server signatures |
+| order_created | order_id, order_type, token_address, entry_mcap, target_mcap, target_bps (limit), trail_bps (trailing), slippage, expiry_hours, amount, holdings_percentage, params_hash, server_signature | Order accepted; order_type can be any of sell, buy, trailing_sell, trailing_buy, twap_*, limit_twap_*, trailing_twap_*, limit_trailing_*, limit_trailing_twap_*. When params_hash and server_signature are present, verify server_signature over params_hash (Rec 2) — see Verifying server signatures |
 | order_filled | order_id, order_type, status, token_address, entry_mcap, triggered_mcap, filled_mcap, target_mcap, triggered_at, filled_at, server_signature, already_dispatched, data (optional; when already_dispatched false: data.swap_tx base58) | Target hit — verify server_signature, then sign data.swap_tx and submit; when already_dispatched true, data/swap_tx may be omitted (idempotent ack) |
-| twap_order_created | order_id, order_type, token_address, frequency, duration, interval_seconds, amount_per_execution, original_quantity, expires_at, slippage, holdings_percentage (optional) | TWAP order accepted |
+| limit_trailing_activated | order_id, order_type, token_address, limit_target_mcap, current_mcap, trailing_target_mcap | Limit-trailing order: limit target crossed, trailing phase now active |
+| trailing_twap_triggered | order_id, twap_order_id, token_address, … | Trailing+TWAP: trail triggered; then twap_order_created / twap_execution for the spawned TWAP |
+| limit_twap_triggered | order_id, twap_order_id, token_address, … | Limit+TWAP: limit crossed; then twap_order_created / twap_execution for the spawned TWAP |
+| limit_trailing_twap_triggered | order_id, twap_order_id, token_address, … | Limit+trailing+TWAP: trail triggered; then twap_order_created / twap_execution for the spawned TWAP |
+| twap_order_created | order_id, order_type, token_address, frequency, duration, interval_seconds, amount_per_execution, original_amount, expires_at, slippage, holdings_percentage (optional) | TWAP order accepted (standalone or spawned from combo) |
 | twap_execution | order_id, order_type, status, token_address, execution_num, executions_total, executions_remaining, next_execution_at, server_signature, data (optional), error (optional) | One TWAP slice — verify server_signature, then sign data.swap_tx and submit when status success |
 | twap_order_completed | order_id, order_type, token_address, executions_completed, status | All TWAP slices done |
 | twap_order_cancelled | order_id, status | TWAP order cancelled (response to cancel_order) |
@@ -522,7 +575,7 @@ An agent is production-ready only when it can execute all of the following with 
 - [ ] **Instant sell:** `POST /holdings` → defensive filter `valueNative > MIN_VALUE_NATIVE` (`> 0` by default) → `POST /swap` (sell) → sign → `submitTx()`
 - [ ] **WebSocket limit order:** connect → challenge → register with signature → registered → place sell order → receive `order_filled` → verify → sign → `submitTx()`
 - [ ] **WebSocket trailing order:** connect → challenge → register with signature → registered → place `trailing_sell` → receive `order_filled` → verify → sign → `submitTx()`
-- [ ] **TWAP order:** connect → register → place `twap_sell` or `twap_buy` (frequency, duration, quantity or holdings_percentage) → receive `twap_execution` for each slice → verify server_signature → sign → `submitTx()` for each; receive `twap_order_completed` when done
+- [ ] **TWAP order:** connect → register → place `twap_sell` or `twap_buy` (frequency, duration, amount or holdings_percentage) → receive `twap_execution` for each slice → verify server_signature → sign → `submitTx()` for each; receive `twap_order_completed` when done
 - [ ] **DCA cycle:** place buy order → handle fill → `submitTx()` → place next buy order
 - [ ] **Reconnection:** disconnect → reconnect → new challenge → re-register with signature → handle pending fills with staleness check (all fills)
 - [ ] **Error handling:** gracefully handle unsellable routes, 503, timeouts, stale fills, expired orders
