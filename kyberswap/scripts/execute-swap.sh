@@ -45,7 +45,7 @@ PASSWORD_FILE="${KEYSTORE_PASSWORD_FILE:-$HOME/.foundry/.password}"
 get_rpc_url() {
   local chain="$1"
   case "$chain" in
-    ethereum)   echo "https://rpc.ankr.com/eth" ;;
+    ethereum)   echo "https://ethereum-rpc.publicnode.com" ;;
     arbitrum)   echo "https://arb1.arbitrum.io/rpc" ;;
     polygon)    echo "https://polygon-rpc.com" ;;
     optimism)   echo "https://mainnet.optimism.io" ;;

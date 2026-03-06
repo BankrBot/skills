@@ -74,7 +74,7 @@ cast wallet address --account mykey --password-file ~/.foundry/.password
 ```bash
 # Simulate a transaction (doesn't broadcast)
 cast call \
-  --rpc-url https://rpc.ankr.com/eth \
+  --rpc-url https://ethereum-rpc.publicnode.com \
   0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 \
   "balanceOf(address)(uint256)" \
   $(cast wallet address --account mykey --password-file ~/.foundry/.password)
@@ -263,11 +263,11 @@ cast send --account testing --password-file ~/.foundry/.password ...
 ### Check Balance
 
 ```bash
-cast balance 0xYourAddress --rpc-url https://rpc.ankr.com/eth
+cast balance 0xYourAddress --rpc-url https://ethereum-rpc.publicnode.com
 ```
 
 ### Check Pending Transactions
 
 ```bash
-cast tx 0xTxHash --rpc-url https://rpc.ankr.com/eth
+cast tx 0xTxHash --rpc-url https://ethereum-rpc.publicnode.com
 ```
