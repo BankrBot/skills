@@ -457,6 +457,16 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 **Reference**: [references/automation.md](references/automation.md)
 
+### BNKR Staking
+
+- **Stake BNKR**: Stake 100K+ BNKR on Base for inference credit rewards and 20% discount
+- **Inference Credits**: Monthly sqrt-weighted credit allocations for LLM Gateway usage
+- **Usage Discounts**: 20% automatic discount on AI inference costs for all stakers
+- **CLI**: `bankr staking` to view position, `bankr staking credits` for credit balance, `bankr staking tiers` for program details
+- **API**: `GET /staking/info`, `GET /staking/credits`, `GET /staking/tiers`, `GET /staking/stats`
+
+**Reference**: [references/staking.md](references/staking.md)
+
 ### Arbitrary Transactions
 
 - Submit raw EVM transactions with explicit calldata
@@ -702,6 +712,17 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 - "DCA $100 into ETH weekly"
 - "Set limit order to buy ETH at $3,000"
 - "Stop loss for all holdings at -20%"
+
+### Staking
+
+- `bankr staking` (view position and discount)
+- `bankr staking credits` (view credit balance)
+- `bankr staking tiers` (view staking program details)
+- `bankr staking stats` (global staking statistics)
+- "What's my BNKR staking position?"
+- "How much do I need to stake?"
+- "Show my staking credits"
+- "Stake 100000 BNKR"
 
 ### Token Deployment
 
