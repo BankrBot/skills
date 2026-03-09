@@ -25,6 +25,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | yoink | [yoink](yoink/) | Social on-chain game. "Yoink" a token from the current holder. Uses Bankr for transaction execution. |
 | [Neynar](https://neynar.com) | [neynar](neynar/) | Full Farcaster API integration. Post casts, like, recast, follow users, search content, and manage Farcaster identities. |
 | [Hydrex](https://hydrex.fi) | [hydrex](hydrex/) | Liquidity pools on Base. Lock HYDX for voting power, vote on pool strategies, deposit single-sided liquidity into auto-managed vaults, and claim oHYDX rewards. |
+| [VARRD](https://varrd.com) | [varrd](varrd/) | Statistical edge discovery engine. Turn plain-English trading ideas into validated setups with event studies, backtesting, and Bonferroni-corrected K-tracking. `pip install varrd` — CLI, Python SDK, or MCP server. |
 
 ## Adding a Skill
 
