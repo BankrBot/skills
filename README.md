@@ -25,6 +25,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | yoink | [yoink](yoink/) | Social on-chain game. "Yoink" a token from the current holder. Uses Bankr for transaction execution. |
 | [Neynar](https://neynar.com) | [neynar](neynar/) | Full Farcaster API integration. Post casts, like, recast, follow users, search content, and manage Farcaster identities. |
 | [Hydrex](https://hydrex.fi) | [hydrex](hydrex/) | Liquidity pools on Base. Lock HYDX for voting power, vote on pool strategies, deposit single-sided liquidity into auto-managed vaults, and claim oHYDX rewards. |
+| [Xquik](https://github.com/Xquik-dev/x-twitter-scraper) | [x-twitter-scraper](x-twitter-scraper/) | X API & Twitter scraper skill for AI coding agents. 40+ tools: tweet search, user lookup, follower extraction, engagement metrics, giveaway draws, trending topics, write actions, Telegram integrations. REST API, MCP server & webhooks. |
 
 ## Adding a Skill
 
