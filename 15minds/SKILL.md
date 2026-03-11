@@ -1,43 +1,88 @@
 ---
 name: 15minds
-description: Multi-model consensus engine. One query hits every frontier model on the Bankr LLM Gateway simultaneously. The disagreement between models is where the information lives. x402 micropayment gating. First skill in this repo with native onchain payment.
-metadata:
-  clawdbot:
-    emoji: "🧠"
-    homepage: "https://lexispawn.xyz/scanner"
-    requires:
-      env:
-        - BANKR_API_KEY
-      bins:
-        - node
-        - npm
-    primaryEnv: BANKR_API_KEY
+description: Queries 15 frontier AI models in parallel and returns consensus crypto verdicts with conviction scoring and per-model reasoning. Use when user asks for "multi-model consensus", "what do the models think about", "scan this token", "BTC direction", "should I buy", "15 minds", "second opinion from multiple models", or wants to compare predictions across Claude, GPT, Gemini, and other model families.
 ---
 
 # 15minds
 
-One query. Every frontier model. The disagreement is the product.
+Multi-model consensus engine. Queries 15 frontier AI models on the Bankr LLM Gateway in parallel. Returns structured verdicts with conviction scoring, family agreement analysis, and per-model reasoning.
 
-Models trained on the same data agree reflexively. Models trained on different data agree meaningfully. 15minds queries every model on the Bankr LLM Gateway in parallel and synthesizes weighted consensus. When Claude, GPT, Gemini, Kimi, and Qwen converge, that's signal. When they diverge, that's where the real information lives.
+Live and betting real money since March 11, 2026: [lexispawn.xyz/predictions](https://lexispawn.xyz/predictions)
 
 ## What it does
 
-Given a contract address, 15minds:
+Sends a structured analytical prompt to all 15 models simultaneously. Each model analyzes momentum, key levels, session context, volatility regime, and cross-asset patterns. Returns:
 
-1. Queries all available models simultaneously via the Bankr LLM Gateway
-2. Parses each model's BUY/SELL/HOLD verdict and conviction score (1-10)
-3. Computes weighted consensus. Flagship models (Opus, GPT-5.2, Gemini 3 Pro) carry higher weight.
-4. Returns the full breakdown: consensus action, weighted score, per-model reasoning, vote distribution
+- **Consensus direction** (UP/DOWN) with score (1-10)
+- **Conviction scoring** — average conviction across agreeing models (1-10)
+- **Family agreement** — how many independent model families converge (Anthropic, Google, OpenAI, Other)
+- **Quality rating** — HIGH / MEDIUM / LOW based on conviction + family agreement
+- **Regime detection** — DEAD_FLAT / LOW_VOL / NORMAL / HIGH_VOL
+- **Per-model whispers** — each model's direction, conviction, and one-sentence reasoning
 
-The output isn't a recommendation. It's a map of where frontier models agree and where they don't.
+## Models (15 configured, ~12 effective)
 
-## x402
+Claude Opus 4.6, Claude Opus 4.5, Claude Sonnet 4.5, Claude Haiku 4.5, Claude Sonnet 4.6, Gemini 3 Pro, Gemini 3 Flash, Gemini 2.5 Pro, Gemini 2.5 Flash, GPT-5.2, GPT-5.2 Codex, GPT-5 Mini, GPT-5 Nano, Kimi K2.5, Qwen3 Coder
 
-First skill in this repo with native onchain payment gating. 3 free queries per day, then 0.00005 ETH per query on Base via x402 protocol. No API keys to exchange. No accounts to create. No trust negotiation. One HTTP header. The service is the interface.
+## Two endpoints
 
-## Auto-discovery
+### Token scan — `GET /read/:contractAddress`
 
-Queries the gateway's `/v1/models` endpoint at startup. When Bankr ships model 16, the skill picks it up on restart. The code says 15minds. The architecture says Nmind.
+Scans any Base token by contract address. 15 models evaluate fundamentals, technicals, and sentiment. Returns BUY/HOLD/SELL consensus with per-model breakdown.
+
+**x402 gated**: 3 free scans per day, then 0.00005 ETH per query on Base. No API keys, no accounts — payment via HTTP header.
+
+```
+curl https://lexispawn.xyz/api/read/0xContractAddress
+```
+
+### Directional prediction — `GET /direction/:asset`
+
+15-minute price direction prediction for BTC, ETH, or SOL. Each model runs a 5-factor structured analysis:
+
+1. Momentum — acceleration/deceleration of 1hr move
+2. Key levels — proximity to round numbers and session highs/lows
+3. Session context — NY/London/Asia liquidity patterns
+4. Volatility regime — trending vs choppy environment
+5. Cross-asset inference — historical patterns for this magnitude of move
+
+Returns JSON with direction, conviction (1-10), and reasoning from each model.
+
+```
+curl https://lexispawn.xyz/api/direction/BTC
+```
+
+Response:
+```json
+{
+  "asset": "BTC",
+  "price": 70533,
+  "consensus": {
+    "direction": "UP",
+    "score": 8,
+    "avg_conviction": 7.3,
+    "distribution": { "up": 10, "down": 2, "errors": 3 }
+  },
+  "context": {
+    "regime": "NORMAL",
+    "change1h": 0.52
+  },
+  "whispers": [
+    {
+      "model": "Claude Opus 4.6",
+      "direction": "UP",
+      "conviction": 8,
+      "reasoning": "Strong bounce off $70K support with increasing volume into NY open"
+    }
+  ]
+}
+```
+
+## Why it matters
+
+Individual model predictions are noise. Consensus across 15 independently trained models from 5 different families is signal. When Claude, GPT, Gemini, and Qwen all independently converge on the same direction with high conviction, that's information no single model provides.
+
+The disagreement is where the information lives. When Anthropic models say UP but OpenAI models say DOWN, the consensus score drops and bet sizing shrinks automatically. When all families agree, conviction is high, and the market is moving — that's the moment to act.
 
 ## Install
 
@@ -47,35 +92,15 @@ Queries the gateway's `/v1/models` endpoint at startup. When Bankr ships model 1
 
 ## Deploy
 
-```bash
+```
 cd scripts && npm install
 BANKR_API_KEY=bk_yourkey pm2 start server.js --name 15minds
 ```
 
-## API
+## Links
 
-`GET /read/:contractAddress` — Full multi-model scan with x402 gate
-
-```json
-{
-  "consensus": "HOLD",
-  "score": 5.2,
-  "distribution": { "BUY": 3, "HOLD": 7, "SELL": 2 },
-  "whispers": [
-    { "model": "claude-opus-4.6", "stance": "HOLD", "conviction": 6, "reason": "..." }
-  ]
-}
-```
-
-`GET /direction/:asset` — Directional consensus for BTC/ETH/SOL
-
-`GET /health` — Service health check
-
-## Live
-
-Scanner: [lexispawn.xyz/scanner](https://lexispawn.xyz/scanner)
-Predictions: [lexispawn.xyz/predictions](https://lexispawn.xyz/predictions)
-
-36 readings generated. Every scan is live, verifiable, and permanent.
-
-Built by [Lexispawn](https://lexispawn.xyz). ERC-8004 Agent #11363 on Base.
+- Live predictions: [lexispawn.xyz/predictions](https://lexispawn.xyz/predictions)
+- Scanner: [lexispawn.xyz/scanner](https://lexispawn.xyz/scanner)
+- GitHub: [github.com/lexispawn](https://github.com/lexispawn)
+- X: [@lexispawn](https://x.com/lexispawn)
+- Built by [Lexispawn](https://lexispawn.xyz) — ERC-8004 #11363 on Base
