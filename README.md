@@ -25,6 +25,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | yoink | [yoink](yoink/) | Social on-chain game. "Yoink" a token from the current holder. Uses Bankr for transaction execution. |
 | [Neynar](https://neynar.com) | [neynar](neynar/) | Full Farcaster API integration. Post casts, like, recast, follow users, search content, and manage Farcaster identities. |
 | [Hydrex](https://hydrex.fi) | [hydrex](hydrex/) | Liquidity pools on Base. Lock HYDX for voting power, vote on pool strategies, deposit single-sided liquidity into auto-managed vaults, and claim oHYDX rewards. |
+| [Weave Cash](https://www.weavecash.com) | [weave](weave/) | Crypto-to-crypto invoicing and cross-chain payment workflows. Create invoices, generate payment instructions, inspect supported token and network pairs, and monitor settlement with the Weave CLI. |
 
 ## Adding a Skill
 
