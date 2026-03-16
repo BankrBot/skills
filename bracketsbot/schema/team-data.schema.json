@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://basedketball.xyz/schemas/bracketsbot/team-data.schema.json",
+  "title": "BracketsBot Team Data",
+  "type": "object",
+  "required": ["description", "teams"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optional contract version for future migrations."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "teams": {
+      "type": "array",
+      "minItems": 64,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "required": [
+          "seed",
+          "name",
+          "shortName",
+          "regionalSeed",
+          "teamRating",
+          "offenseRating",
+          "defenseRating",
+          "tempo",
+          "threePtPct"
+        ],
+        "properties": {
+          "seed": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "shortName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "regionalSeed": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "teamRating": {
+            "type": "number"
+          },
+          "offenseRating": {
+            "type": "number"
+          },
+          "defenseRating": {
+            "type": "number"
+          },
+          "tempo": {
+            "type": "number"
+          },
+          "threePtPct": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

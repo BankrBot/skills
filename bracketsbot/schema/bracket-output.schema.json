@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://basedketball.xyz/schemas/bracketsbot/bracket-output.schema.json",
+  "title": "BracketsBot Bracket Output",
+  "type": "object",
+  "required": ["generatedAt", "source", "champion", "predictions"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optional contract version for future migrations."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "object",
+      "required": ["tournamentPath", "teamDataPath"],
+      "properties": {
+        "tournamentPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "teamDataPath": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "champion": {
+      "type": "object",
+      "required": ["seed", "name", "shortName"],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "shortName": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "predictions": {
+      "type": "array",
+      "minItems": 63,
+      "maxItems": 63,
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 64
+      }
+    }
+  },
+  "additionalProperties": true
+}

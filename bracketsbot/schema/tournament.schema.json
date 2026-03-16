@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://basedketball.xyz/schemas/bracketsbot/tournament.schema.json",
+  "title": "BracketsBot Tournament Input",
+  "description": "Minimal tournament shape consumed by the bracketsbot runner.",
+  "type": "array",
+  "minItems": 63,
+  "items": {
+    "type": "object",
+    "required": ["teams"],
+    "properties": {
+      "id": {
+        "type": ["integer", "string"]
+      },
+      "teams": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": {
+          "type": "object",
+          "required": ["seed", "name"],
+          "properties": {
+            "seed": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "shortName": {
+              "type": "string"
+            },
+            "regionalSeed": {
+              "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 16
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "additionalProperties": true
+  }
+}

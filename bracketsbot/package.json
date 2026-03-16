@@ -1,0 +1,24 @@
+{
+  "name": "@bracketsbot/skill",
+  "version": "0.1.0",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "bracketsbot": "./scripts/cli.mjs"
+  },
+  "scripts": {
+    "cli": "node ./scripts/cli.mjs",
+    "validate": "pnpm run cli validate",
+    "generate": "pnpm run cli generate",
+    "prepare:submit-tx": "pnpm run cli prepare-submit-tx",
+    "share:link": "pnpm run cli share-link",
+    "walk:next": "pnpm run cli walk-next",
+    "walk:apply": "pnpm run cli walk-apply",
+    "walk:run-policy": "pnpm run cli walk-run-policy",
+    "semantic:run": "pnpm run cli semantic-run"
+  },
+  "dependencies": {
+    "incur": "^0.3.3",
+    "viem": "^2.22.17"
+  }
+}

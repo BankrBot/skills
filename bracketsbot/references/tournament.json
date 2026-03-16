@@ -1,0 +1,924 @@
+[
+  {
+    "id": 1,
+    "apiId": 6534596,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Duke",
+        "shortName": "DUKE",
+        "image": "/logos/optimized/duke.svg",
+        "hex": "#002D72",
+        "regionalSeed": 1,
+        "seed": 1
+      },
+      {
+        "name": "Siena",
+        "shortName": "SIENA",
+        "image": "/logos/optimized/siena.svg",
+        "hex": "#006549",
+        "regionalSeed": 16,
+        "seed": 64
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "apiId": 6534597,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Ohio St.",
+        "shortName": "OSU",
+        "image": "/logos/optimized/ohio st.svg",
+        "hex": "#CE0F3E",
+        "regionalSeed": 8,
+        "seed": 32
+      },
+      {
+        "name": "TCU",
+        "shortName": "TCU",
+        "image": "/logos/optimized/tcu.svg",
+        "hex": "#592D82",
+        "regionalSeed": 9,
+        "seed": 33
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "apiId": 6534598,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "St. John's",
+        "shortName": "STJOHN",
+        "image": "/logos/optimized/st johns.svg",
+        "hex": "#BA0C2F",
+        "regionalSeed": 5,
+        "seed": 17
+      },
+      {
+        "name": "Northern Iowa",
+        "shortName": "UNI",
+        "image": "/logos/optimized/northern iowa.svg",
+        "hex": "#470A68",
+        "regionalSeed": 12,
+        "seed": 48
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "apiId": 6534599,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Kansas",
+        "shortName": "KANSAS",
+        "image": "/logos/optimized/kansas.svg",
+        "hex": "#1967B8",
+        "regionalSeed": 4,
+        "seed": 16
+      },
+      {
+        "name": "Cal Baptist",
+        "shortName": "CBU",
+        "image": "/logos/optimized/cal baptist.svg",
+        "hex": "#171F3B",
+        "regionalSeed": 13,
+        "seed": 49
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "apiId": 6534600,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Louisville",
+        "shortName": "LOUIS",
+        "image": "/logos/optimized/louisville.svg",
+        "hex": "#EE2722",
+        "regionalSeed": 6,
+        "seed": 24
+      },
+      {
+        "name": "South Florida",
+        "shortName": "USF",
+        "image": "/logos/optimized/south florida.svg",
+        "hex": "#006747",
+        "regionalSeed": 11,
+        "seed": 41
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "apiId": 6534601,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Michigan St.",
+        "shortName": "MSU",
+        "image": "/logos/optimized/michigan st.svg",
+        "hex": "#173F35",
+        "regionalSeed": 3,
+        "seed": 9
+      },
+      {
+        "name": "North Dakota St.",
+        "shortName": "NDSU",
+        "image": "/logos/optimized/north dakota st.svg",
+        "hex": "#115740",
+        "regionalSeed": 14,
+        "seed": 56
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "apiId": 6534602,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "UCLA",
+        "shortName": "UCLA",
+        "image": "/logos/optimized/ucla.svg",
+        "hex": "#0072CE",
+        "regionalSeed": 7,
+        "seed": 25
+      },
+      {
+        "name": "UCF",
+        "shortName": "UCF",
+        "image": "/logos/optimized/ucf.svg",
+        "hex": "#010101",
+        "regionalSeed": 10,
+        "seed": 40
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "apiId": 6534603,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Connecticut",
+        "shortName": "UCONN",
+        "image": "/logos/optimized/connecticut.svg",
+        "hex": "#0C2340",
+        "regionalSeed": 2,
+        "seed": 8
+      },
+      {
+        "name": "Furman",
+        "shortName": "FUR",
+        "image": "/logos/optimized/furman.svg",
+        "hex": "#582C83",
+        "regionalSeed": 15,
+        "seed": 57
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "apiId": 6534604,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Florida",
+        "shortName": "FLA",
+        "image": "/logos/optimized/florida.svg",
+        "hex": "#003087",
+        "regionalSeed": 1,
+        "seed": 4
+      },
+      {
+        "name": "PVAMU / LEHIGH",
+        "shortName": "PVAMU / LEHIGH",
+        "image": "/logos/optimized/ncaa.svg",
+        "hex": "#005EB8",
+        "regionalSeed": 16,
+        "seed": 61
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "apiId": 6534605,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Clemson",
+        "shortName": "CLEM",
+        "image": "/logos/optimized/clemson.svg",
+        "hex": "#FF6720",
+        "regionalSeed": 8,
+        "seed": 29
+      },
+      {
+        "name": "Iowa",
+        "shortName": "IOWA",
+        "image": "/logos/optimized/iowa.svg",
+        "hex": "#010101",
+        "regionalSeed": 9,
+        "seed": 36
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "apiId": 6534606,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Vanderbilt",
+        "shortName": "VANDY",
+        "image": "/logos/optimized/vanderbilt.svg",
+        "hex": "#010101",
+        "regionalSeed": 5,
+        "seed": 20
+      },
+      {
+        "name": "McNeese St.",
+        "shortName": "MCNEES",
+        "image": "/logos/optimized/mcneese st.svg",
+        "hex": "#003087",
+        "regionalSeed": 12,
+        "seed": 45
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "apiId": 6534607,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Nebraska",
+        "shortName": "NEB",
+        "image": "/logos/optimized/nebraska.svg",
+        "hex": "#C8102E",
+        "regionalSeed": 4,
+        "seed": 13
+      },
+      {
+        "name": "Troy",
+        "shortName": "TROY",
+        "image": "/logos/optimized/troy.svg",
+        "hex": "#9D2235",
+        "regionalSeed": 13,
+        "seed": 52
+      }
+    ]
+  },
+  {
+    "id": 13,
+    "apiId": 6534608,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "North Carolina",
+        "shortName": "UNC",
+        "image": "/logos/optimized/north carolina.svg",
+        "hex": "#7BAFD4",
+        "regionalSeed": 6,
+        "seed": 21
+      },
+      {
+        "name": "VCU",
+        "shortName": "VCU",
+        "image": "/logos/optimized/vcu.svg",
+        "hex": "#010101",
+        "regionalSeed": 11,
+        "seed": 44
+      }
+    ]
+  },
+  {
+    "id": 14,
+    "apiId": 6534609,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Illinois",
+        "shortName": "ILL",
+        "image": "/logos/optimized/illinois.svg",
+        "hex": "#F15A22",
+        "regionalSeed": 3,
+        "seed": 12
+      },
+      {
+        "name": "Penn",
+        "shortName": "PENN",
+        "image": "/logos/optimized/penn.svg",
+        "hex": "#9D2235",
+        "regionalSeed": 14,
+        "seed": 53
+      }
+    ]
+  },
+  {
+    "id": 15,
+    "apiId": 6534610,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "St. Mary's",
+        "shortName": "STMARY",
+        "image": "/logos/optimized/st marys.svg",
+        "hex": "#E51B24",
+        "regionalSeed": 7,
+        "seed": 28
+      },
+      {
+        "name": "Texas A&M",
+        "shortName": "TX A&M",
+        "image": "/logos/optimized/texas am.svg",
+        "hex": "#5D0025",
+        "regionalSeed": 10,
+        "seed": 37
+      }
+    ]
+  },
+  {
+    "id": 16,
+    "apiId": 6534611,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Houston",
+        "shortName": "HOU",
+        "image": "/logos/optimized/houston.svg",
+        "hex": "#E51636",
+        "regionalSeed": 2,
+        "seed": 5
+      },
+      {
+        "name": "Idaho",
+        "shortName": "IDAHO",
+        "image": "/logos/optimized/idaho.svg",
+        "hex": "#010101",
+        "regionalSeed": 15,
+        "seed": 60
+      }
+    ]
+  },
+  {
+    "id": 17,
+    "apiId": 6534612,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Arizona",
+        "shortName": "ZONA",
+        "image": "/logos/optimized/arizona.svg",
+        "hex": "#C21B32",
+        "regionalSeed": 1,
+        "seed": 2
+      },
+      {
+        "name": "Long Island",
+        "shortName": "LIU",
+        "image": "/logos/optimized/long island.svg",
+        "hex": "#68A8D0",
+        "regionalSeed": 16,
+        "seed": 63
+      }
+    ]
+  },
+  {
+    "id": 18,
+    "apiId": 6534613,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Villanova",
+        "shortName": "NOVA",
+        "image": "/logos/optimized/villanova.svg",
+        "hex": "#001F5B",
+        "regionalSeed": 8,
+        "seed": 31
+      },
+      {
+        "name": "Utah St.",
+        "shortName": "UT ST",
+        "image": "/logos/optimized/utah st.svg",
+        "hex": "#00263A",
+        "regionalSeed": 9,
+        "seed": 34
+      }
+    ]
+  },
+  {
+    "id": 19,
+    "apiId": 6534614,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Wisconsin",
+        "shortName": "WIS",
+        "image": "/logos/optimized/wisconsin.svg",
+        "hex": "#BA0C2F",
+        "regionalSeed": 5,
+        "seed": 18
+      },
+      {
+        "name": "High Point",
+        "shortName": "HPU",
+        "image": "/logos/optimized/high point.svg",
+        "hex": "#330072",
+        "regionalSeed": 12,
+        "seed": 47
+      }
+    ]
+  },
+  {
+    "id": 20,
+    "apiId": 6534615,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Arkansas",
+        "shortName": "ARK",
+        "image": "/logos/optimized/arkansas.svg",
+        "hex": "#9D2235",
+        "regionalSeed": 4,
+        "seed": 15
+      },
+      {
+        "name": "Hawaii",
+        "shortName": "HAWAII",
+        "image": "/logos/optimized/hawaii.svg",
+        "hex": "#154734",
+        "regionalSeed": 13,
+        "seed": 50
+      }
+    ]
+  },
+  {
+    "id": 21,
+    "apiId": 6534616,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "BYU",
+        "shortName": "BYU",
+        "image": "/logos/optimized/byu.svg",
+        "hex": "#0047BA",
+        "regionalSeed": 6,
+        "seed": 23
+      },
+      {
+        "name": "TEXAS / NC ST",
+        "shortName": "TEXAS / NC ST",
+        "image": "/logos/optimized/ncaa.svg",
+        "hex": "#005EB8",
+        "regionalSeed": 11,
+        "seed": 42
+      }
+    ]
+  },
+  {
+    "id": 22,
+    "apiId": 6534617,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Gonzaga",
+        "shortName": "GONZ",
+        "image": "/logos/optimized/gonzaga.svg",
+        "hex": "#D21F36",
+        "regionalSeed": 3,
+        "seed": 10
+      },
+      {
+        "name": "Kennesaw St.",
+        "shortName": "KENNST",
+        "image": "/logos/optimized/kennesaw st.svg",
+        "hex": "#010101",
+        "regionalSeed": 14,
+        "seed": 55
+      }
+    ]
+  },
+  {
+    "id": 23,
+    "apiId": 6534618,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Miami (FL)",
+        "shortName": "MIAMI",
+        "image": "/logos/optimized/miami (fl).svg",
+        "hex": "#154734",
+        "regionalSeed": 7,
+        "seed": 26
+      },
+      {
+        "name": "Missouri",
+        "shortName": "MIZZOU",
+        "image": "/logos/optimized/missouri.svg",
+        "hex": "#010101",
+        "regionalSeed": 10,
+        "seed": 39
+      }
+    ]
+  },
+  {
+    "id": 24,
+    "apiId": 6534619,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Purdue",
+        "shortName": "PUR",
+        "image": "/logos/optimized/purdue.svg",
+        "hex": "#010101",
+        "regionalSeed": 2,
+        "seed": 7
+      },
+      {
+        "name": "Queens (N.C.)",
+        "shortName": "QUEENS",
+        "image": "/logos/optimized/queens (nc).svg",
+        "hex": "#041E42",
+        "regionalSeed": 15,
+        "seed": 58
+      }
+    ]
+  },
+  {
+    "id": 25,
+    "apiId": 6534620,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Michigan",
+        "shortName": "MICH",
+        "image": "/logos/optimized/michigan.svg",
+        "hex": "#041E42",
+        "regionalSeed": 1,
+        "seed": 3
+      },
+      {
+        "name": "UMBC / HOW",
+        "shortName": "UMBC / HOW",
+        "image": "/logos/optimized/ncaa.svg",
+        "hex": "#005EB8",
+        "regionalSeed": 16,
+        "seed": 62
+      }
+    ]
+  },
+  {
+    "id": 26,
+    "apiId": 6534621,
+    "startTime": 1773892800,
+    "teams": [
+      {
+        "name": "Georgia",
+        "shortName": "UGA",
+        "image": "/logos/optimized/georgia.svg",
+        "hex": "#DA291C",
+        "regionalSeed": 8,
+        "seed": 30
+      },
+      {
+        "name": "Saint Louis",
+        "shortName": "SLU",
+        "image": "/logos/optimized/saint louis.svg",
+        "hex": "#003DA5",
+        "regionalSeed": 9,
+        "seed": 35
+      }
+    ]
+  },
+  {
+    "id": 27,
+    "apiId": 6534622,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Texas Tech",
+        "shortName": "TTU",
+        "image": "/logos/optimized/texas tech.svg",
+        "hex": "#ED1F2A",
+        "regionalSeed": 5,
+        "seed": 19
+      },
+      {
+        "name": "Akron",
+        "shortName": "AKRON",
+        "image": "/logos/optimized/akron.svg",
+        "hex": "#0F192B",
+        "regionalSeed": 12,
+        "seed": 46
+      }
+    ]
+  },
+  {
+    "id": 28,
+    "apiId": 6534623,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Alabama",
+        "shortName": "BAMA",
+        "image": "/logos/optimized/alabama.svg",
+        "hex": "#9D2235",
+        "regionalSeed": 4,
+        "seed": 14
+      },
+      {
+        "name": "Hofstra",
+        "shortName": "HOF",
+        "image": "/logos/optimized/hofstra.svg",
+        "hex": "#004F9D",
+        "regionalSeed": 13,
+        "seed": 51
+      }
+    ]
+  },
+  {
+    "id": 29,
+    "apiId": 6534624,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Tennessee",
+        "shortName": "TENN",
+        "image": "/logos/optimized/tennessee.svg",
+        "hex": "#FF8200",
+        "regionalSeed": 6,
+        "seed": 22
+      },
+      {
+        "name": "MIA OH / SMU",
+        "shortName": "MIA OH / SMU",
+        "image": "/logos/optimized/ncaa.svg",
+        "hex": "#005EB8",
+        "regionalSeed": 11,
+        "seed": 43
+      }
+    ]
+  },
+  {
+    "id": 30,
+    "apiId": 6534625,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Virginia",
+        "shortName": "UVA",
+        "image": "/logos/optimized/virginia.svg",
+        "hex": "#232D4B",
+        "regionalSeed": 3,
+        "seed": 11
+      },
+      {
+        "name": "Wright St.",
+        "shortName": "WRIGHT",
+        "image": "/logos/optimized/wright st.svg",
+        "hex": "#046A38",
+        "regionalSeed": 14,
+        "seed": 54
+      }
+    ]
+  },
+  {
+    "id": 31,
+    "apiId": 6534626,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Kentucky",
+        "shortName": "UK",
+        "image": "/logos/optimized/kentucky.svg",
+        "hex": "#3258AF",
+        "regionalSeed": 7,
+        "seed": 27
+      },
+      {
+        "name": "Santa Clara",
+        "shortName": "SCU",
+        "image": "/logos/optimized/santa clara.svg",
+        "hex": "#862633",
+        "regionalSeed": 10,
+        "seed": 38
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "apiId": 6534627,
+    "startTime": 1773979200,
+    "teams": [
+      {
+        "name": "Iowa St.",
+        "shortName": "IA ST",
+        "image": "/logos/optimized/iowa st.svg",
+        "hex": "#A6192E",
+        "regionalSeed": 2,
+        "seed": 6
+      },
+      {
+        "name": "Tennessee St.",
+        "shortName": "TN ST",
+        "image": "/logos/optimized/tennessee st.svg",
+        "hex": "#272E63",
+        "regionalSeed": 15,
+        "seed": 59
+      }
+    ]
+  },
+  {
+    "id": 33,
+    "apiId": 6534628,
+    "startTime": 1774065600,
+    "teams": []
+  },
+  {
+    "id": 34,
+    "apiId": 6534629,
+    "startTime": 1774152000,
+    "teams": []
+  },
+  {
+    "id": 35,
+    "apiId": 6534630,
+    "startTime": 1774065600,
+    "teams": []
+  },
+  {
+    "id": 36,
+    "apiId": 6534631,
+    "startTime": 1774152000,
+    "teams": []
+  },
+  {
+    "id": 37,
+    "apiId": 6534632,
+    "startTime": 1774152000,
+    "teams": []
+  },
+  {
+    "id": 38,
+    "apiId": 6534633,
+    "startTime": 1774065600,
+    "teams": []
+  },
+  {
+    "id": 39,
+    "apiId": 6534634,
+    "startTime": 1774065600,
+    "teams": []
+  },
+  {
+    "id": 40,
+    "apiId": 6534635,
+    "startTime": 1774065600,
+    "teams": []
+  },
+  {
+    "id": 41,
+    "apiId": 6534636,
+    "startTime": 1774152000,
+    "teams": []
+  },
+  {
+    "id": 42,
+    "apiId": 6534637,
+    "startTime": 1774065600,
+    "teams": []
+  },
+  {
+    "id": 43,
+    "apiId": 6534638,
+    "startTime": 1774065600,
+    "teams": []
+  },
+  {
+    "id": 44,
+    "apiId": 6534639,
+    "startTime": 1774152000,
+    "teams": []
+  },
+  {
+    "id": 45,
+    "apiId": 6534640,
+    "startTime": 1774065600,
+    "teams": []
+  },
+  {
+    "id": 46,
+    "apiId": 6534641,
+    "startTime": 1774152000,
+    "teams": []
+  },
+  {
+    "id": 47,
+    "apiId": 6534642,
+    "startTime": 1774152000,
+    "teams": []
+  },
+  {
+    "id": 48,
+    "apiId": 6534643,
+    "startTime": 1774152000,
+    "teams": []
+  },
+  {
+    "id": 49,
+    "apiId": 6534644,
+    "startTime": 1774584000,
+    "teams": []
+  },
+  {
+    "id": 50,
+    "apiId": 6534645,
+    "startTime": 1774584000,
+    "teams": []
+  },
+  {
+    "id": 51,
+    "apiId": 6534646,
+    "startTime": 1774497600,
+    "teams": []
+  },
+  {
+    "id": 52,
+    "apiId": 6534647,
+    "startTime": 1774497600,
+    "teams": []
+  },
+  {
+    "id": 53,
+    "apiId": 6534648,
+    "startTime": 1774497600,
+    "teams": []
+  },
+  {
+    "id": 54,
+    "apiId": 6534649,
+    "startTime": 1774497600,
+    "teams": []
+  },
+  {
+    "id": 55,
+    "apiId": 6534650,
+    "startTime": 1774584000,
+    "teams": []
+  },
+  {
+    "id": 56,
+    "apiId": 6534651,
+    "startTime": 1774584000,
+    "teams": []
+  },
+  {
+    "id": 57,
+    "apiId": 6534652,
+    "startTime": 1774756800,
+    "teams": []
+  },
+  {
+    "id": 58,
+    "apiId": 6534653,
+    "startTime": 1774670400,
+    "teams": []
+  },
+  {
+    "id": 59,
+    "apiId": 6534654,
+    "startTime": 1774670400,
+    "teams": []
+  },
+  {
+    "id": 60,
+    "apiId": 6534655,
+    "startTime": 1774756800,
+    "teams": []
+  },
+  {
+    "id": 61,
+    "apiId": 6534656,
+    "startTime": 1775275200,
+    "teams": []
+  },
+  {
+    "id": 62,
+    "apiId": 6534657,
+    "startTime": 1775275200,
+    "teams": []
+  },
+  {
+    "id": 63,
+    "apiId": 6534658,
+    "startTime": 1775448000,
+    "teams": []
+  }
+]
