@@ -130,7 +130,7 @@ Base URL: `https://hazza.name`
 
 | Item | Address |
 |------|---------|
-| Registry | `0xaA27d926F057B72D006883785FC03DB1d9d6E3AC` |
+| Registry | `0xdf92cA2fc1e588F7A2ebAEA039CF3860826f4746` |
 | USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Chain ID | 8453 |
 
