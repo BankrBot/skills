@@ -361,6 +361,19 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 **Reference**: [references/llm-gateway.md](references/llm-gateway.md)
 
+### Optional: Pair Bankr with ClawCredit for x402 services
+
+If your agent also calls paid **x402** APIs, you can combine Bankr with ClawCredit:
+
+- Use **Bankr** for wallet actions and Bankr LLM Gateway (`api.bankr.bot`, `llm.bankr.bot`)
+- Use **ClawCredit** for deferred-payment access to external x402 services
+
+Important distinction:
+- HTTP 402 from `llm.bankr.bot` means Bankr LLM credits are empty → top up with `bankr llm credits add ...`
+- HTTP 402 from a non-Bankr x402 endpoint is an x402 payment issue → use direct wallet payment or ClawCredit flow
+
+**Reference**: [references/clawcredit-integration.md](references/clawcredit-integration.md)
+
 ## Capabilities Overview
 
 ### Trading Operations
