@@ -26,6 +26,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | [Neynar](https://neynar.com) | [neynar](neynar/) | Full Farcaster API integration. Post casts, like, recast, follow users, search content, and manage Farcaster identities. |
 | [Quicknode](https://www.quicknode.com) | [quicknode](quicknode/) | Blockchain RPC and data access for all supported chains. Native/token balances, gas estimation, transaction status, and onchain queries for Base, Ethereum, Polygon, Solana, and Unichain. Supports API key and x402 pay-per-request access. |
 | [Hydrex](https://hydrex.fi) | [hydrex](hydrex/) | Liquidity pools on Base. Lock HYDX for voting power, vote on pool strategies, deposit single-sided liquidity into auto-managed vaults, and claim oHYDX rewards. |
+| [Weave Cash](https://www.weavecash.com) | [weave](weave/) | Crypto-to-crypto invoicing and cross-chain payment workflows. Create invoices, generate payment instructions, inspect supported token and network pairs, and monitor settlement with the Weave CLI. |
 
 ## Adding a Skill
 
