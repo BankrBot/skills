@@ -33,7 +33,7 @@ Returns `{"available": true}` or `{"available": false, "owner": "0x..."}`.
 curl -s "https://hazza.name/api/quote/brian?wallet=USER_WALLET_ADDRESS"
 ```
 
-Returns `{"totalCost": "5000000", "registrationFee": "5000000"}` (USDC, 6 decimals). A `totalCost` of `"0"` means the name is free for this wallet.
+Returns `{"total": "5", "totalRaw": "5000000", "registrationFee": "5", "lineItems": [...]}`. A `totalRaw` of `"0"` means the name is free for this wallet. Amounts in `total` and `registrationFee` are human-readable USD; `totalRaw` is USDC with 6 decimals.
 
 ### 3. Check Free Claim Eligibility
 
@@ -62,7 +62,7 @@ curl -s -X POST https://hazza.name/x402/register \
     "maxAmountRequired": "5000000",
     "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     "payTo": "RELAYER_ADDRESS",
-    "network": "base-mainnet"
+    "network": "base"
   }]
 }
 ```
@@ -83,15 +83,18 @@ The `X-PAYMENT` header is Base64-encoded JSON: `{"scheme":"exact","txHash":"0x..
 
 ### 5. Set Profile Records (Optional)
 
-After registration, help the user set up their profile:
+After registration, the user can set text records via the manage page at `https://hazza.name/manage` (connect wallet, select name, edit records, sign transaction).
+
+The write API requires an API key and returns unsigned transactions:
 
 ```bash
 curl -s -X POST https://hazza.name/api/text/brian \
   -H "Content-Type: application/json" \
-  -d '{"key": "description", "value": "Builder on Base", "signature": "SIGNED_MESSAGE"}'
+  -H "Authorization: Bearer API_KEY" \
+  -d '{"key": "description", "value": "Builder on Base"}'
 ```
 
-The signature is an EIP-191 personal sign of `setText:brian:description:Builder on Base` by the name owner.
+Returns `{name, key, value, tx}` — the `tx` object must be signed and submitted by the name owner.
 
 ## Pricing
 
@@ -130,7 +133,7 @@ Base URL: `https://hazza.name`
 
 | Item | Address |
 |------|---------|
-| Registry | `0xdf92cA2fc1e588F7A2ebAEA039CF3860826f4746` |
+| Registry | `0xD4E420201fE02F44AaF6d28D4c8d3A56fEaE0D3E` |
 | USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Chain ID | 8453 |
 
@@ -166,7 +169,8 @@ After a successful registration, share these with the user:
 
 - **Profile page:** `https://brian.hazza.name`
 - **Marketplace:** `https://hazza.name/marketplace`
-- **Set up profile:** Visit `https://hazza.name/dashboard` to manage records
+- **Set up profile:** Visit `https://hazza.name/manage` to set text records
+- **Dashboard:** `https://hazza.name/dashboard` to see all your names
 
 ## Guidelines
 
