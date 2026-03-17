@@ -25,7 +25,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | yoink | [yoink](yoink/) | Social on-chain game. "Yoink" a token from the current holder. Uses Bankr for transaction execution. |
 | [Neynar](https://neynar.com) | [neynar](neynar/) | Full Farcaster API integration. Post casts, like, recast, follow users, search content, and manage Farcaster identities. |
 | [Hydrex](https://hydrex.fi) | [hydrex](hydrex/) | Liquidity pools on Base. Lock HYDX for voting power, vote on pool strategies, deposit single-sided liquidity into auto-managed vaults, and claim oHYDX rewards. |
-| [f(x) Protocol](https://fxsave.up.railway.app/) | [fxusd](fxusd/) | Shortcut the fxSAVE flow on Base. Mint or redeem fxSAVE without manually bridging between Base and Ethereum mainnet. |
+| [f(x) Protocol](https://fxsave.up.railway.app/) | [fxusd](fxusd/) | Deploy, unwind, or compare fxUSD strategies on Base. Covers fxSAVE mint and redeem, Hydrex single-sided liquidity, and Morpho planning with Bankr-ready Hydrex execution steps. |
 
 ## Adding a Skill
 

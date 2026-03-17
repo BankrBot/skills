@@ -1,96 +1,299 @@
 ---
 name: fxusd
-description: Mint or redeem Base fxSAVE through a public shortcut flow, without manually bridging between Base and Ethereum mainnet. Use when the user wants to deposit fxUSD, USDC, or WETH into fxSAVE, redeem fxSAVE back into Base assets, preview the route, or build approval plus execution payloads from the public fxSAVE app backend.
+description: Use when the user wants to deploy, unwind, or compare fxUSD-related yield strategies on Base. Covers minting and redeeming fxSAVE, discovering and managing Hydrex single-sided liquidity vaults, and planning Morpho supply or borrow workflows with protocol-specific risk controls. Uses the local fxSAVE app backend for shortcut bundles and emits Bankr-ready transaction steps for Hydrex.
+metadata:
+  {
+    "clawdbot":
+      {
+        "emoji": "💵",
+        "homepage": "https://fxsave.up.railway.app/",
+        "requires": { "bins": ["bankr"] },
+      },
+  }
 ---
 
-# fxUSD
+# fxusd
 
-Shortcut the `fxSAVE` flow on Base.
+Version: `v0.4.0`
 
-**App:** https://fxsave.up.railway.app/
-**Repo:** https://github.com/huwangtao123/fxsave-dapp
+Use this skill when the user wants a simpler way to put `fxUSD` to work on Base.
 
-## Why use this skill
+The job of this skill is to hide unnecessary DeFi complexity. Instead of asking the user to think in terms of bridging, approvals, vault mechanics, borrow limits, or withdrawal edge cases, this skill turns a simple outcome into a protocol-specific execution plan.
 
-Without the shortcut, using `fxSAVE` from Base means manually thinking through:
+## Quick Start
+
+### Mint fxSAVE
 
 ```text
-Base -> bridge to mainnet -> deposit or redeem -> bridge back -> Base
+Deposit 10 fxUSD to fxSAVE
 ```
 
-This skill keeps the user interaction simple and lets the app backend build the hidden Enso route.
+```text
+Deposit all my idle USDC to fxSAVE
+```
 
-## Capabilities
+### Redeem fxSAVE
 
-- Mint Base `fxSAVE` from `fxUSD`, `USDC`, or `WETH`
+```text
+Redeem 50% of my fxSAVE to fxUSD
+```
+
+```text
+Redeem all my fxSAVE to USDC on Base
+```
+
+### Hydrex Single-Sided Liquidity
+
+```text
+Find the best Hydrex single-sided vault for fxUSD
+```
+
+```text
+Deposit 500 fxUSD into the safest Hydrex vault
+```
+
+```text
+Withdraw my fxUSD/BNKR Hydrex vault position
+```
+
+### Morpho Supply / Borrow
+
+```text
+Supply 5000 fxUSD on Morpho
+```
+
+```text
+Borrow fxUSD against my collateral on Morpho
+```
+
+## Core Capabilities
+
+### fxSAVE Shortcut
+
+- Mint Base `fxSAVE` from Base assets such as `fxUSD`, `USDC`, and `WETH`
 - Redeem Base `fxSAVE` back into Base assets
-- Build the executable bundle payload
-- Build the approval payload for the current source token
-- Explain async cross-chain settlement clearly
+- Hide the manual `Base -> Ethereum mainnet -> bridge back` flow behind one Base-side action
+- Use the local app backend to build the executable route
 
-## Usage examples
+**Reference**: [references/api.md](references/api.md)
+
+### Hydrex Single-Sided Liquidity
+
+- Discover live Hydrex vaults that accept `fxUSD` or other supported deposit tokens
+- Distinguish `stablecoin-farming` from `crypto-farming`
+- Rank vaults with a conservative heuristic that considers APR, TVL, and risk class
+- Produce execution-ready deposit and withdraw plans
+- Emit Bankr-ready `/agent/submit` steps for Hydrex approval and main transactions
+
+**Reference**: [references/hydrex.md](references/hydrex.md)
+
+### Morpho Supply / Borrow Planning
+
+- Plan `fxUSD` supply, withdraw, borrow, and repay workflows
+- Compare Morpho lending with simpler `fxSAVE` or Hydrex routes
+- Treat borrow as a separate, higher-risk class from pure supply
+- Require explicit collateral, buffer, and market-availability checks before borrow planning
+
+**Reference**: [references/morpho.md](references/morpho.md)
+
+## Execution Model
+
+### 1. fxSAVE
+
+Use when the user wants:
+- `fxUSD / USDC / WETH -> fxSAVE`
+- `fxSAVE -> Base assets`
+- the simplest Base-side UX for a cross-chain yield route
+
+Execution path:
+1. Read [references/api.md](references/api.md).
+2. Use `scripts/fxusd_cli.py` or the local app backend to build the bundle.
+3. Build approval for the current source token.
+4. Execute approval only if allowance is insufficient.
+5. Execute the main transaction.
+6. Explain that settlement is asynchronous because the route crosses Base and Ethereum mainnet.
+
+### 2. Hydrex
+
+Use when the user wants:
+- a single-sided liquidity vault for `fxUSD`
+- to deposit idle `fxUSD` into an auto-managed vault
+- to withdraw from a Hydrex vault
+- to inspect current Hydrex vault exposure
+
+Execution path:
+1. Read [references/hydrex.md](references/hydrex.md).
+2. Use `scripts/fxusd_hydrex.py` to discover, rank, and plan the vault action.
+3. Distinguish `stablecoin-farming` from `crypto-farming` before comparing APR.
+4. Read live Base balance, allowance, or LP share state.
+5. Emit execution-ready transactions and Bankr-ready submit steps.
+6. Only proceed when the wallet actually has balance or LP shares for the chosen action.
+
+### 3. Morpho
+
+Use when the user wants:
+- to supply `fxUSD`
+- to withdraw supplied `fxUSD`
+- to borrow using collateral
+- to repay borrowed `fxUSD`
+- to compare lending yield versus `fxSAVE`
+
+Execution path:
+1. Read [references/morpho.md](references/morpho.md).
+2. Verify live market availability first.
+3. Distinguish conservative supply routes from higher-risk borrow routes.
+4. Only plan borrow actions when collateral assumptions, liquidation buffer, and oracle risk are explicit.
+
+## Common Workflows
+
+### Simplest Stable Yield Route
+
+When the user wants the lowest operational complexity:
+
+1. Prefer `fxSAVE`.
+2. Use the local app backend.
+3. Make the bridge latency explicit.
+4. Do not describe settlement as instant.
+
+### Stablecoin Liquidity Route
+
+When the user explicitly wants liquidity provision rather than a simpler yield wrapper:
+
+1. Use Hydrex discovery.
+2. Prefer `stablecoin-farming` vaults such as `fxUSD/USDC` when the user wants lower pair volatility.
+3. Explain that single-sided deposit does not guarantee single-token withdrawal.
+4. Use Bankr-ready steps only after live balance and allowance checks pass.
+
+### Crypto Pair Farming Route
+
+When the vault pairs `fxUSD` with a volatile asset such as `BNKR`:
+
+1. Label it `crypto-farming`.
+2. Do not compare it to `fxUSD/USDC` as if they have the same risk class.
+3. Make pair volatility and withdrawal-shape risk explicit before execution.
+
+### Lending or Leverage Route
+
+When the user wants capital efficiency or borrowing:
+
+1. Use Morpho planning.
+2. Prefer supply over borrow when the user has not explicitly asked for leverage.
+3. If borrow is requested, preserve a conservative liquidation buffer.
+
+## Decision Guide
+
+Prefer `fxSAVE` when:
+- the user wants the simplest Base-side flow
+- the user does not want to manage vaults
+- the user values lower operational complexity over optional extra yield
+
+Prefer Hydrex when:
+- the user explicitly wants single-sided liquidity
+- a live vault exists for the desired asset
+- the user accepts that withdrawals may return a mixed token composition
+
+Prefer Morpho supply when:
+- the user wants a more direct lending route
+- the user does not need liquidity pool exposure
+
+Prefer Morpho borrow only when:
+- the user explicitly wants leverage or capital efficiency
+- collateral, liquidation buffer, and market risk are understood
+
+## Risk Controls
+
+These are mandatory guardrails.
+
+- Use a dedicated hot wallet or dedicated Bankr agent wallet for repeated execution.
+- Verify chain and token addresses before every write action.
+- Do not describe `fxSAVE` as a same-chain or instant route.
+- On Hydrex, always explain withdrawal composition risk.
+- On Hydrex, always distinguish `stablecoin-farming` from `crypto-farming`.
+- On Morpho, stay well below maximum borrow limits and preserve a clear liquidation buffer.
+- Do not rely blindly on third-party assembled transactions from aggregators or reward routers.
+- For auto-compounding or repeated execution, require explicit user confirmation before widening blast radius.
+
+## Vulnerabilities and Failure Modes
+
+### fxSAVE
+
+- Bridge latency: source-chain success is not final settlement
+- Quote drift: the final amount can move while the route is in flight
+- Intermediate-chain residue: favorable execution can leave small balances on intermediate chains
+
+### Hydrex
+
+- Vault strategy risk: a managed vault can rebalance in ways the user does not expect
+- Withdrawal composition risk: the exit can come back split across assets
+- Pair-risk confusion: `fxUSD/USDC` and `fxUSD/BNKR` do not belong to the same risk class
+- Incentive drift: APR can move quickly as emissions and TVL change
+
+### Morpho
+
+- Liquidation risk: borrowing is not the same as supplying to a conservative vault
+- Market availability risk: a route that exists for `USDC` may not exist for `fxUSD`
+- Oracle and curator risk: safety depends on the specific market and collateral design
+- Automation risk: external transaction assembly must be treated as sensitive
+
+## Example Prompts
+
+### fxSAVE
 
 - `Deposit 10 fxUSD to fxSAVE`
-- `Deposit 100 USDC to fxSAVE`
 - `Redeem 50% of my fxSAVE to fxUSD`
-- `Preview the route to mint fxSAVE from 1 WETH`
+- `Compare fxSAVE and Morpho yield options for my fxUSD`
+- `Use my Bankr wallet to mint fxSAVE from 100 fxUSD`
+- `Use Bankr to redeem all my fxSAVE to USDC on Base`
 
-## Public endpoints
+### Hydrex
 
-- Bundle builder: `POST https://fxsave.up.railway.app/api/fxsave/fxsave-bundle`
-- Approval builder: `POST https://fxsave.up.railway.app/api/fxsave/fxsave-approve`
+- `Find the best Hydrex single-sided vault for fxUSD`
+- `Show me stablecoin-farming vaults for fxUSD on Hydrex`
+- `Deposit all my idle fxUSD into Hydrex`
+- `Withdraw my fxUSD/BNKR Hydrex vault position`
+- `Use my Bankr wallet to withdraw my Hydrex vault shares`
+- `Use Bankr to deposit 100 fxUSD into the safest Hydrex vault`
+- `Use Bankr to withdraw 50% of my BNKR/fxUSD Hydrex position`
 
-## Workflow
+### Morpho
 
-1. Determine direction.
-- `mint`: Base asset -> Base `fxSAVE`
-- `redeem`: Base `fxSAVE` -> Base asset
+- `Supply 5,000 fxUSD on Morpho`
+- `Borrow fxUSD against my collateral on Morpho`
+- `Compare Morpho supply with fxSAVE for my idle fxUSD`
+- `Use Bankr to supply my idle fxUSD on Morpho`
+- `Use Bankr to compare Morpho and fxSAVE for my Bankr wallet`
 
-2. Resolve tokens.
-- For `mint`, provide the selected Base source token metadata.
-- For `redeem`, provide the target Base asset metadata.
-- Use the connected wallet address for both `fromAddress` and `receiver`.
+## Resources
 
-3. Build the bundle.
-- Call the bundle endpoint.
-- Treat `result.tx` as the canonical executable payload.
-- Use `flow`, `warnings`, and `bridgingEstimates` to explain what happens.
+- **fxSAVE app**: https://fxsave.up.railway.app/
+- **Hydrex Platform**: https://hydrex.fi
+- **Morpho**: https://morpho.org/
 
-4. Check approval.
-- Identify the actual source token for the current direction.
-- Call the approval endpoint with the raw amount and source token address.
-- Compare allowance before sending approval.
-- Skip approval if allowance is already sufficient.
+## Natural Language Guidance for Bankr
 
-5. Execute.
-- Submit approval first when needed.
-- Submit the main transaction second.
-- Tell the user the Base transaction can confirm before the final bridged asset arrives.
+When the user wants execution through Bankr:
 
-## Requirements
+1. Resolve which module the request belongs to: `fxSAVE`, `Hydrex`, or `Morpho`.
+2. Prefer wallet-aware language such as `Use my Bankr wallet...` when the user explicitly wants Bankr execution.
+3. For `fxSAVE`, use the local app backend to build approval and main transaction plans first.
+4. For `Hydrex`, use `scripts/fxusd_hydrex.py` and prefer the emitted `bankrReady.steps`.
+5. Execute steps in order and wait for confirmation before moving to the next step.
+6. If live balance, allowance, or LP shares are insufficient, stop and explain the blocker instead of forcing execution.
 
-- A Base wallet with the input asset and enough ETH for gas
-- Access to the public fxSAVE app backend at `https://fxsave.up.railway.app`
+Useful natural-language styles:
 
-If the agent can sign and submit transactions, it can execute directly.
-If not, use this skill for planning and pair it with a transaction execution skill such as `bankr`.
+- `Use my Bankr wallet to mint fxSAVE from 25 fxUSD`
+- `Use Bankr to deposit all my idle fxUSD into the safest Hydrex stablecoin vault`
+- `Use Bankr to withdraw my Hydrex fxUSD/BNKR position`
+- `Use Bankr to compare Morpho supply with fxSAVE for my idle fxUSD`
 
-## Safety rules
+## Detailed References
 
-- Do not describe this as same-chain instant settlement.
-- Do not invent token decimals or addresses.
-- Do not bypass the app backend by manually reconstructing Enso payloads unless the public route is broken.
-- Surface route warnings to the user before execution.
-- Stop if bundle generation fails instead of guessing a fallback route.
+- **[fxSAVE Shortcut API](references/api.md)** — Bundle building, approval flow, and app backend usage
+- **[Hydrex Single-Sided Liquidity](references/hydrex.md)** — Discovery, ranking, deposits, withdrawals, and Bankr-ready steps
+- **[Morpho Planning](references/morpho.md)** — Supply, withdraw, borrow, repay, and risk controls
 
-## Supported defaults
+## Local Scripts
 
-- `fxUSD`
-- `USDC`
-- `WETH`
-- `fxSAVE` as the redeem source token
-
-## When to read more
-
-- Read [references/api.md](references/api.md) for request and response shapes.
-- Use `scripts/fxusd_cli.py` for quick local or remote API checks.
+- `scripts/fxusd_cli.py` — Preview `fxSAVE` mint, redeem, and approval plans
+- `scripts/fxusd_hydrex.py` — Discover Hydrex vaults, classify risk, and emit execution-ready plus Bankr-ready Hydrex transactions

@@ -1,8 +1,13 @@
-# fxUSD API Reference
+# fxSAVE Shortcut API Reference
 
-Public app base URL:
+Version: `v0.3.0`
 
-`https://fxsave.up.railway.app`
+This file documents the executable `fxSAVE` module inside the broader `fxusd` skill.
+Use it when the user wants the one-step Base shortcut for:
+
+- minting `fxSAVE`
+- redeeming `fxSAVE`
+- previewing the route before execution
 
 ## CLI helper
 
@@ -14,7 +19,7 @@ Examples:
 ```bash
 python3 scripts/fxusd_cli.py mint \
   --from-address 0x... \
-  --amount 10 \
+  --amount 1 \
   --source-token fxUSD
 ```
 
@@ -37,7 +42,7 @@ python3 scripts/fxusd_cli.py approval \
 Method: `POST`
 
 Purpose:
-- Build an executable Enso shortcut bundle for `mint` or `redeem`
+- Build an executable Enso bundle for `mint` or `redeem`
 
 ### Mint request
 
@@ -47,7 +52,7 @@ Purpose:
   "direction": "mint",
   "fromAddress": "0x...",
   "receiver": "0x...",
-  "sourceTokenAddress": "0x55380fe7a1910dff29a47b622057ab4139da42c5",
+  "sourceTokenAddress": "0x...",
   "sourceTokenSymbol": "fxUSD",
   "sourceTokenDecimals": 18
 }
@@ -61,7 +66,7 @@ Purpose:
   "direction": "redeem",
   "fromAddress": "0x...",
   "receiver": "0x...",
-  "targetTokenAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "targetTokenAddress": "0x...",
   "targetTokenSymbol": "USDC",
   "targetTokenDecimals": 6
 }
@@ -81,19 +86,29 @@ Purpose:
     },
     "amountsOut": {},
     "minAmountsOut": {},
-    "bridgingEstimates": []
+    "bridgingEstimates": [],
+    "route": []
   },
   "quotePlan": {},
   "warnings": []
 }
 ```
 
+### Important fields
+
+- `result.tx`: executable transaction payload
+- `result.minAmountsOut`: conservative output estimate
+- `result.amountsOut`: optimistic output estimate
+- `result.bridgingEstimates`: settlement timing hints
+- `flow`: human-readable step summary
+- `warnings`: user-facing risk or timing notes
+
 ## Endpoint: `/api/fxsave/fxsave-approve`
 
 Method: `POST`
 
 Purpose:
-- Build the approval tx payload for the current source token
+- Build approval tx payload for the current source token
 
 ### Request
 
@@ -101,9 +116,11 @@ Purpose:
 {
   "amount": "1000000000000000000",
   "fromAddress": "0x...",
-  "tokenAddress": "0x273f20fa9fbe803e5d6959add9582dac240ec3be"
+  "tokenAddress": "0x..."
 }
 ```
+
+`amount` must be raw units, not human-readable decimal text.
 
 ### Success response shape
 
@@ -121,12 +138,34 @@ Purpose:
 }
 ```
 
-## Execution pattern
+## Agent execution pattern
 
-1. Build the bundle.
-2. Identify the source token for the current direction.
-3. Build approval payload for that source token.
-4. Compare allowance.
-5. Submit approval if needed.
-6. Submit `result.tx`.
-7. Tell the user final settlement may lag the Base confirmation.
+1. Normalize direction and token metadata.
+2. Build the bundle.
+3. Identify the source token for the current direction.
+4. Build approval payload for that source token.
+5. Compare allowance before approval.
+6. Submit approval if needed.
+7. Submit main tx from `result.tx`.
+8. Tell the user the cross-chain settlement may lag the source-chain confirmation.
+
+## Production notes
+
+- In production, the app limits allowed origins and rate limits the public API routes.
+- In production, custom tokens can be disabled. Default support is the configured Base presets only.
+- Detailed upstream Enso request payloads are intended for local debugging and may be omitted in production responses.
+- Final settlement is asynchronous. Base confirmation is not the same thing as final bridged arrival.
+
+## Current direction mapping
+
+### Mint
+
+- Input: Base asset
+- Output: Base `fxSAVE`
+- Source token for approval: selected Base asset
+
+### Redeem
+
+- Input: Base `fxSAVE`
+- Output: Base asset
+- Source token for approval: Base `fxSAVE`
