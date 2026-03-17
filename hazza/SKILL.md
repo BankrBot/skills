@@ -112,6 +112,106 @@ Free registrations do not count toward the progressive pricing tiers. If a user 
 
 Names are permanent — no renewals, no expiry. Pay once, own forever.
 
+## Marketplace — Buy & Sell Names
+
+hazza names trade on the Seaport protocol (same as OpenSea) via the Net Protocol Bazaar. The hazza API handles all Seaport complexity — you never need to decode raw order parameters yourself.
+
+### Browse Listings
+
+```bash
+curl -s https://hazza.name/api/marketplace/listings
+```
+
+Returns:
+
+```json
+{
+  "listings": [
+    {
+      "name": "example",
+      "tokenId": "42",
+      "seller": "0x...",
+      "price": 0.01,
+      "priceRaw": "10000000000000000",
+      "currency": "ETH",
+      "listingExpiry": "2026-04-01T00:00:00Z",
+      "orderHash": "0xabc123...",
+      "isNamespace": false,
+      "avatar": "https://...",
+      "profileUrl": "https://example.hazza.name",
+      "orderComponents": { ... }
+    }
+  ],
+  "total": 1
+}
+```
+
+Listings include `orderComponents` (the full Seaport order) but you do NOT need to use them directly. Use the fulfill endpoint instead.
+
+### Buy a Listed Name (2-Step)
+
+**Step 1 — Get the transaction data:**
+
+```bash
+curl -s -X POST https://hazza.name/api/marketplace/fulfill \
+  -H "Content-Type: application/json" \
+  -d '{"orderHash": "0xabc123...", "buyerAddress": "BUYER_WALLET"}'
+```
+
+Returns the exact transactions to execute:
+
+```json
+{
+  "approvals": [
+    {
+      "to": "0x...",
+      "data": "0x095ea7b3...",
+      "value": "0",
+      "spender": "0x...",
+      "amount": "10000000000000000"
+    }
+  ],
+  "fulfillment": {
+    "to": "0x0000000000000068F116a894984e2DB1123eB395",
+    "data": "0xb3a34c4c...",
+    "value": "10000000000000000"
+  }
+}
+```
+
+**Step 2 — Execute the transactions:**
+
+1. If `approvals` is non-empty, send each approval transaction first (these approve token spending)
+2. Send the `fulfillment` transaction — this is the actual Seaport purchase
+
+The `fulfillment.to` is the Seaport contract (`0x0000000000000068F116a894984e2DB1123eB395`). The `data` is the complete Seaport calldata. The `value` is the ETH amount to send (for ETH-priced listings).
+
+**Important:** The fulfillment data is ready to use as-is. Do NOT try to decode or reconstruct Seaport orders. The API does all the heavy lifting.
+
+### Browse Collection Offers
+
+```bash
+curl -s https://hazza.name/api/marketplace/offers
+```
+
+Returns active offers on any hazza name.
+
+### Accept an Offer (Seller Flow)
+
+```bash
+curl -s -X POST https://hazza.name/api/marketplace/fulfill-offer \
+  -H "Content-Type: application/json" \
+  -d '{"orderHash": "0x...", "tokenId": "42", "sellerAddress": "SELLER_WALLET"}'
+```
+
+Returns the same `{approvals, fulfillment}` format. The seller executes these transactions to accept the offer and transfer their name.
+
+### Marketplace Fees
+
+- 2% marketplace fee on all sales
+- Seaport contract: `0x0000000000000068F116a894984e2DB1123eB395` (Base)
+- Treasury: `0x62B7399B2ac7e938Efad06EF8746fDBA3B351900`
+
 ## API Reference
 
 Base URL: `https://hazza.name`
@@ -128,6 +228,10 @@ Base URL: `https://hazza.name`
 | `/api/stats` | GET | Registry stats (total names) |
 | `/x402/register` | POST | Register a name (x402 flow) |
 | `/api/text/:name` | POST | Set a text record |
+| `/api/marketplace/listings` | GET | Browse active listings |
+| `/api/marketplace/offers` | GET | Browse collection offers |
+| `/api/marketplace/fulfill` | POST | Get buy transaction data |
+| `/api/marketplace/fulfill-offer` | POST | Get offer acceptance tx data |
 
 ## Key Addresses (Base Mainnet)
 
