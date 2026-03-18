@@ -14,7 +14,7 @@ metadata:
 
 # fxusd
 
-Version: `v0.4.0`
+Version: `v0.9.0`
 
 Use this skill when the user wants a simpler way to put `fxUSD` to work on Base.
 
@@ -89,12 +89,24 @@ Borrow fxUSD against my collateral on Morpho
 
 ### Morpho Supply / Borrow Planning
 
-- Plan `fxUSD` supply, withdraw, borrow, and repay workflows
+- Discover live Base Morpho Blue markets for `fxUSD`
+- Produce execution-ready supply and withdraw plans for `fxUSD`
+- Produce manual-decision borrow plans with projected LTV checks
+- Provide quick risk-check outputs for agents to monitor current LTV and liquidation distance
+- Provide alert-only monitoring outputs with `ok / warning / critical` levels for repeated position checks
+- Produce execution-ready `repay-plan` and `add-collateral-plan` outputs for risk reduction
+- Suggest safer maximum borrow sizes from the current collateral position
 - Compare Morpho lending with simpler `fxSAVE` or Hydrex routes
 - Treat borrow as a separate, higher-risk class from pure supply
 - Require explicit collateral, buffer, and market-availability checks before borrow planning
 
 **Reference**: [references/morpho.md](references/morpho.md)
+
+Common Morpho user use cases:
+- Monitor current `fxUSD` borrow positions and alert when they drift into warning or critical territory
+- Check whether a wallet can safely borrow more `fxUSD` against collateral such as `BNKR` or `wstETH`
+- Reduce risk with a `repay-plan` when the user wants the most direct way to lower LTV
+- Keep a borrow position open with `add-collateral-plan` when the user has spare collateral and wants a wider liquidation buffer
 
 ## Execution Model
 
@@ -140,9 +152,12 @@ Use when the user wants:
 
 Execution path:
 1. Read [references/morpho.md](references/morpho.md).
-2. Verify live market availability first.
+2. Use `scripts/fxusd_morpho.py` to discover live markets and wallet positions.
 3. Distinguish conservative supply routes from higher-risk borrow routes.
-4. Only plan borrow actions when collateral assumptions, liquidation buffer, and oracle risk are explicit.
+4. Use execution-ready supply and withdraw plans for simpler flows.
+5. Use `alert-check` for recurring monitoring before considering any automated response.
+6. Use `repay-plan` or `add-collateral-plan` as the first response when a borrow position moves into warning or critical territory.
+7. Only plan borrow actions when collateral assumptions, liquidation buffer, and oracle risk are explicit.
 
 ## Common Workflows
 
@@ -179,6 +194,8 @@ When the user wants capital efficiency or borrowing:
 1. Use Morpho planning.
 2. Prefer supply over borrow when the user has not explicitly asked for leverage.
 3. If borrow is requested, preserve a conservative liquidation buffer.
+4. For ongoing borrow positions, use `alert-check` to surface warning or critical states before acting.
+5. Prefer `repay-plan` first, and use `add-collateral-plan` when the user has spare collateral inventory and wants to keep the debt open.
 
 ## Decision Guide
 
@@ -242,6 +259,10 @@ These are mandatory guardrails.
 - `Deposit 10 fxUSD to fxSAVE`
 - `Redeem 50% of my fxSAVE to fxUSD`
 - `Compare fxSAVE and Morpho yield options for my fxUSD`
+- `Monitor my Morpho fxUSD positions and alert me if they become risky`
+- `Run an alert-only Morpho risk check on my BNKR-backed fxUSD borrow`
+- `Build a repay plan to lower risk on my BNKR-backed fxUSD borrow`
+- `Build an add-collateral plan for my BNKR-backed fxUSD borrow`
 - `Use my Bankr wallet to mint fxSAVE from 100 fxUSD`
 - `Use Bankr to redeem all my fxSAVE to USDC on Base`
 
@@ -258,7 +279,11 @@ These are mandatory guardrails.
 ### Morpho
 
 - `Supply 5,000 fxUSD on Morpho`
+- `Find the safest Morpho market for supplying fxUSD`
+- `Withdraw 50% of my supplied fxUSD from Morpho`
 - `Borrow fxUSD against my collateral on Morpho`
+- `Check my Morpho LTV before borrowing more fxUSD`
+- `Suggest a safe fxUSD borrow size using my BNKR collateral`
 - `Compare Morpho supply with fxSAVE for my idle fxUSD`
 - `Use Bankr to supply my idle fxUSD on Morpho`
 - `Use Bankr to compare Morpho and fxSAVE for my Bankr wallet`
@@ -277,14 +302,20 @@ When the user wants execution through Bankr:
 2. Prefer wallet-aware language such as `Use my Bankr wallet...` when the user explicitly wants Bankr execution.
 3. For `fxSAVE`, use the local app backend to build approval and main transaction plans first.
 4. For `Hydrex`, use `scripts/fxusd_hydrex.py` and prefer the emitted `bankrReady.steps`.
-5. Execute steps in order and wait for confirmation before moving to the next step.
-6. If live balance, allowance, or LP shares are insufficient, stop and explain the blocker instead of forcing execution.
+5. For conservative Morpho lending, use `scripts/fxusd_morpho.py` and prefer supply or withdraw over borrow by default.
+6. For Morpho borrow, use `risk-check` and `borrow-plan`, but keep the final borrow decision with the user.
+7. Execute steps in order and wait for confirmation before moving to the next step.
+8. If live balance, allowance, LP shares, supply shares, or collateral headroom are insufficient, stop and explain the blocker instead of forcing execution.
 
 Useful natural-language styles:
 
 - `Use my Bankr wallet to mint fxSAVE from 25 fxUSD`
 - `Use Bankr to deposit all my idle fxUSD into the safest Hydrex stablecoin vault`
 - `Use Bankr to withdraw my Hydrex fxUSD/BNKR position`
+- `Use Bankr to supply 100 fxUSD to the safest Morpho market`
+- `Use Bankr to withdraw all my supplied fxUSD from Morpho`
+- `Check my Morpho LTV and tell me if borrowing 200 more fxUSD is still safe`
+- `Tell me the safest additional fxUSD I can borrow against my BNKR collateral`
 - `Use Bankr to compare Morpho supply with fxSAVE for my idle fxUSD`
 
 ## Detailed References
@@ -292,8 +323,11 @@ Useful natural-language styles:
 - **[fxSAVE Shortcut API](references/api.md)** — Bundle building, approval flow, and app backend usage
 - **[Hydrex Single-Sided Liquidity](references/hydrex.md)** — Discovery, ranking, deposits, withdrawals, and Bankr-ready steps
 - **[Morpho Planning](references/morpho.md)** — Supply, withdraw, borrow, repay, and risk controls
+  plus execution-ready supply/withdraw planning and quick LTV checks
 
 ## Local Scripts
 
 - `scripts/fxusd_cli.py` — Preview `fxSAVE` mint, redeem, and approval plans
 - `scripts/fxusd_hydrex.py` — Discover Hydrex vaults, classify risk, and emit execution-ready plus Bankr-ready Hydrex transactions
+- `scripts/fxusd_morpho.py` — Discover Morpho Blue markets, inspect positions, emit execution-ready plus Bankr-ready supply/withdraw plans, and compute LTV-aware borrow plans
+  including safer maximum borrow-size suggestions
