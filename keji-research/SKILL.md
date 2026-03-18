@@ -6,7 +6,7 @@ metadata:
     "clawdbot":
       {
         "emoji": "🔬",
-        "homepage": "https://38.49.210.117.sslip.io/keji/",
+        "homepage": "https://keji-x402.up.railway.app/",
       },
   }
 ---
@@ -27,12 +27,12 @@ Each report includes budget justification, spend policy analysis, and a verifica
 
 ## Endpoints
 
-**Base URL:** `https://38.49.210.117.sslip.io/keji`
+**Base URL:** `https://keji-x402.up.railway.app`
 
 ### Browse Catalog (free)
 
 ```bash
-curl https://38.49.210.117.sslip.io/keji/reports
+curl https://keji-x402.up.railway.app/reports
 ```
 
 Returns all available reports with titles, categories, and prices.
@@ -41,20 +41,20 @@ Returns all available reports with titles, categories, and prices.
 
 ```bash
 # Using AgentCash
-npx agentcash@latest fetch https://38.49.210.117.sslip.io/keji/reports/<report-id> \
+npx agentcash@latest fetch https://keji-x402.up.railway.app/reports/<report-id> \
   --payment-protocol x402 \
   --payment-network base \
   --max-amount 0.05
 
 # Or with any x402-compatible payment header
-curl https://38.49.210.117.sslip.io/keji/reports/<report-id> \
+curl https://keji-x402.up.railway.app/reports/<report-id> \
   -H "Payment-Signature: <base64-encoded-payment>"
 ```
 
 ### Server Info
 
 ```bash
-curl https://38.49.210.117.sslip.io/keji/
+curl https://keji-x402.up.railway.app/
 ```
 
 ## x402 Payment Details
@@ -85,6 +85,6 @@ curl https://38.49.210.117.sslip.io/keji/
 
 ## Links
 
-- [Report Catalog](https://38.49.210.117.sslip.io/keji/reports)
+- [Report Catalog](https://keji-x402.up.railway.app/reports)
 - [GitHub](https://github.com/dolepee/keji-synthesis)
 - [ERC-8004 Registration](https://basescan.org/tx/0x1269fb24f59cc7709ee88812e16119d7d45a21b0b7f79667e6c78e459acdd279)
