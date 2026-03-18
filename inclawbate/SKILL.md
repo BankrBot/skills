@@ -1,11 +1,10 @@
 ---
 name: inclawbator
 description: >
-  The Inclawbator — full-service AI agent for launching and managing Web3 projects.
-  Launch tokens (Base/Solana), deploy staking pools, create marketing agents, airdrop tokens,
-  run health checks, hire human freelancers, build apps and landing pages, check fees,
-  book promos, and manage your entire project — all through one conversational API.
-  Talk to it at inclawbate.com or via the REST API.
+  The Inclawbator — AI agent for launching and managing Web3 projects.
+  Launch tokens (Base/Solana), deploy staking pools, create marketing agents,
+  airdrop tokens, run health checks, book promos, hire the Inclawbate Council,
+  and get full-service incubation — all through one conversational API.
 metadata:
   openclaw:
     emoji: "🦞"
@@ -16,14 +15,13 @@ metadata:
 
 # The Inclawbator — AI Agent for Web3 Projects
 
-The Inclawbator is an AI agent that launches and manages Web3 projects end-to-end. Launch tokens, deploy staking, create marketing agents, airdrop tokens, hire humans, build apps — all through one conversation.
+The Inclawbator is an AI agent that launches and manages Web3 projects. Launch tokens, deploy staking, create marketing agents, airdrop tokens, hire the council — all through one conversation.
 
 Live at [inclawbate.com](https://inclawbate.com). Powered by Groq. Free to use.
 
 ## Talk to It
 
 ```bash
-# Send a message to the Inclawbator
 curl -X POST "https://inclawbate.com/api/inclawbate/agent-chat" \
   -H "Content-Type: application/json" \
   -d '{
@@ -33,58 +31,45 @@ curl -X POST "https://inclawbate.com/api/inclawbate/agent-chat" \
 # → { reply, function_called, session_id }
 ```
 
-The agent handles tool selection automatically. Just describe what you need in plain language.
+The agent handles tool selection automatically. Just describe what you need.
 
-## What It Can Do (21 Tools)
+## What It Can Do (11 Tools)
 
 ### Launch & Deploy
 
 | Tool | What it does |
 |------|-------------|
-| **Launch Token** | Deploy a new token on Base (via Clanker) or Solana (via Bags/Meteora). Walks you through name, symbol, description, image, socials. |
+| **Launch Token** | Deploy a new token on Base (via Clanker) or Solana (via Bags/Meteora). Name, symbol, description, image, socials. |
 | **Deploy Staking** | Create a staking pool for any token via the Staking Factory. Holders stake → earn CLAWS rewards. |
-| **Register Project** | Already have a token? Register it in the Inclawbate ecosystem to get staking, agents, and the CLAWS reward flywheel. |
 
-### Manage & Monitor
+### Monitor
 
 | Tool | What it does |
 |------|-------------|
-| **Health Check** | Comprehensive project diagnostic — token price, volume, liquidity, staking stats, and actionable suggestions. |
+| **Health Check** | Project diagnostic — token price, volume, liquidity, staking stats, actionable suggestions. |
 | **Token Analytics** | Real-time price, volume, liquidity from DexScreener for any token address. |
-| **Staking Stats** | Live TVL, APY, total stakers, distribution rates. Optionally check a specific wallet's position. |
-| **Project Status** | See all projects launched by a wallet — tokens, staking, chain. |
-| **User Workspace** | Everything a connected wallet has built — apps, marketing agents, vaults. |
+| **Staking Stats** | Live TVL, APY, total stakers, distribution rates. Check a specific wallet's position. |
 
 ### Marketing & Growth
 
 | Tool | What it does |
 |------|-------------|
-| **Create Marketing Agent** | Set up an AI agent that auto-posts to X/Twitter on your project's behalf. Set a schedule and let it run forever. Free. |
-| **Book Promo** | Promote your project through the @inclawbate X account. Shoutout, campaign, or featured tier — paid in CLAWS. |
+| **Create Marketing Agent** | AI agent that auto-posts to X/Twitter on your project's behalf. Set a schedule, runs forever. Free. |
+| **Book Promo** | Promote through the @inclawbate X account. Shoutout, campaign, or featured — paid in CLAWS. |
 | **Airdrop Tokens** | Distribute tokens to multiple wallets in one transaction via the Disperse contract. |
-
-### Build
-
-| Tool | What it does |
-|------|-------------|
-| **Build App** | Create a web app using the AI app builder at inclawbate.com/build. No code needed. |
-| **Build Landing Page** | Create a branded project page with the AI builder. |
-| **Browse Apps** | Discover 12+ community-built apps — games, tools, dashboards. |
-| **Suggest App Ideas** | Get app ideas based on your interests (defi, gaming, social, tools, AI). |
 
 ### Hire the Council
 
 | Tool | What it does |
 |------|-------------|
-| **Browse Inclawbators** | See the Inclawbate Council — vetted humans available for design, dev, marketing, content, strategy. |
-| **Hire Inclawbator** | Post a request to the Inclawbate Council Telegram group. Council members pick it up. Paid in CLAWS. |
+| **Hire Council** | Post a request to the Inclawbate Council — vetted humans for design, dev, marketing, content, strategy. Request goes to the Council Telegram group, members pick it up. Paid in CLAWS. |
 
 ### Info
 
 | Tool | What it does |
 |------|-------------|
-| **Ecosystem Info** | Overview of Inclawbate — what it is, key links, CLAWS token. |
-| **Incubation Info** | Full-service incubation details — token + staking + branding + marketing as a package. |
+| **Ecosystem Info** | What is Inclawbate, CLAWS token, key links, how it all works. |
+| **Incubation Info** | Full-service incubation — token + staking + branding + marketing as a package. |
 
 ## API
 
@@ -110,9 +95,9 @@ POST https://inclawbate.com/api/inclawbate/agent-chat
 }
 ```
 
-The agent picks the right tool automatically based on your message. Multi-turn conversations are supported via `session_id`.
+Multi-turn conversations supported via `session_id`.
 
-## Example Conversations
+## Examples
 
 ```bash
 # Launch a token
@@ -131,7 +116,7 @@ curl -X POST ".../agent-chat" -d '{"message": "airdrop 1000 CLAWS to 50 wallets"
 curl -X POST ".../agent-chat" -d '{"message": "create a staking pool for my token 0xABC..."}'
 
 # Book a promo
-curl -X POST ".../agent-chat" -d '{"message": "I want to promote my project on the Inclawbate X account"}'
+curl -X POST ".../agent-chat" -d '{"message": "promote my project on the Inclawbate X account"}'
 ```
 
 ## Token
@@ -147,6 +132,5 @@ curl -X POST ".../agent-chat" -d '{"message": "I want to promote my project on t
 
 - **Talk to it:** https://inclawbate.com
 - **Agent page:** https://inclawbate.com/inclawbator
-- **App Store:** https://inclawbate.com/apps
 - **Staking:** https://inclawbate.com/stake
 - **Skills Directory:** https://inclawbate.com/skills
