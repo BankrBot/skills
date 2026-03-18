@@ -72,14 +72,12 @@ The agent handles tool selection automatically. Just describe what you need in p
 | **Browse Apps** | Discover 12+ community-built apps — games, tools, dashboards. |
 | **Suggest App Ideas** | Get app ideas based on your interests (defi, gaming, social, tools, AI). |
 
-### Hire Humans
+### Hire the Council
 
 | Tool | What it does |
 |------|-------------|
-| **Browse Inclawbators** | Find human freelancers by skill — design, dev, marketing, content, strategy. |
-| **Hire Inclawbator** | Initiate a hire. Pay in CLAWS, direct wallet-to-wallet, zero platform fee. Human gets a Telegram notification. |
-| **Browse Open Gigs** | See open freelance gig requests from the ecosystem. |
-| **Check Hire Status** | Follow up on an active hire. |
+| **Browse Inclawbators** | See the Inclawbate Council — vetted humans available for design, dev, marketing, content, strategy. |
+| **Hire Inclawbator** | Post a request to the Inclawbate Council Telegram group. Council members pick it up. Paid in CLAWS. |
 
 ### Info
 
@@ -123,8 +121,8 @@ curl -X POST ".../agent-chat" -d '{"message": "launch a token called DogPark, sy
 # Health check
 curl -X POST ".../agent-chat" -d '{"message": "how is my project doing?", "wallet": "0x..."}'
 
-# Find a designer
-curl -X POST ".../agent-chat" -d '{"message": "I need a logo designer"}'
+# Hire the council
+curl -X POST ".../agent-chat" -d '{"message": "I need a logo designed for my project"}'
 
 # Airdrop tokens
 curl -X POST ".../agent-chat" -d '{"message": "airdrop 1000 CLAWS to 50 wallets"}'

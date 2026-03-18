@@ -51,10 +51,8 @@ The Inclawbator is a conversational agent. Send a message, it picks the right to
 | `build_landing_page` | "make a landing page", "build a website" |
 | `browse_apps` | "show me apps", "what apps exist" |
 | `suggest_app_ideas` | "app ideas", "what should I build" |
-| `browse_inclawbators` | "find a designer", "hire a developer" |
-| `hire_inclawbator` | "hire [handle]", "I want to work with [name]" |
-| `browse_open_gigs` | "open gigs", "available work", "freelance jobs" |
-| `check_hire_status` | "check on my hire", "follow up" |
+| `browse_inclawbators` | "find a designer", "who can help with dev" |
+| `hire_inclawbator` | "I need a logo", "hire someone for marketing" — posts to Council |
 | `get_ecosystem_info` | "what is Inclawbate", "tell me about CLAWS" |
 | `get_incubation_info` | "full incubation", "handle everything for me" |
 | `get_staking_info` | "how do I stake", "staking info" |
@@ -72,8 +70,7 @@ These return raw JSON without the conversational agent:
 | `/api/inclawbate/fee-report?wallet=0x...` | GET | Pending WETH fees, per-token daily earnings |
 | `/api/inclawbate/health-check?address=0x...` | GET | Token price, volume, staking, suggestions |
 | `/api/inclawbate/apps` | GET | Browse app store. `?search=`, `?category=` |
-| `/api/inclawbate/inclawbators` | GET | Browse human freelancers. `?skill=design` |
-| `/api/inclawbate/gigs` | GET | Open gig requests |
+| `/api/inclawbate/inclawbators` | GET | Browse the Inclawbate Council. `?skill=design` |
 
 ---
 
