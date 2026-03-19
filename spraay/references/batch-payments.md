@@ -2,170 +2,145 @@
 
 ## Overview
 
-Spraay enables sending ETH or ERC-20 tokens to multiple recipients in a single blockchain transaction. This is dramatically more gas-efficient than sending individual transfers.
+Spraay batch payments let you send tokens to up to 200+ recipients in a single on-chain transaction. Supported on all 13 EVM chains plus Solana. Protocol fee: 0.3%.
 
-## Gas Savings
+## EVM Batch Payment
 
-| Recipients | Individual Txs Gas | Spraay Gas | Savings |
-|-----------|-------------------|------------|---------|
-| 5         | ~105,000          | ~65,000    | ~38%    |
-| 10        | ~210,000          | ~95,000    | ~55%    |
-| 50        | ~1,050,000        | ~250,000   | ~76%    |
-| 100       | ~2,100,000        | ~420,000   | ~80%    |
-| 200       | ~4,200,000        | ~750,000   | ~82%    |
-
-## Gas Estimation Guide
-
-### Estimated Costs on Base (at typical gas prices)
-
-Base L2 gas is extremely cheap. These estimates assume ~0.01 gwei gas price (typical for Base):
-
-| Recipients | Function | Est. Gas | Est. Cost (ETH) | Est. Cost (USD) |
-|-----------|----------|----------|-----------------|-----------------|
-| 5         | sprayETH | ~65,000  | ~0.00000065     | < $0.01         |
-| 10        | sprayETH | ~95,000  | ~0.00000095     | < $0.01         |
-| 25        | sprayETH | ~170,000 | ~0.0000017      | < $0.01         |
-| 50        | sprayETH | ~250,000 | ~0.0000025      | < $0.01         |
-| 100       | sprayETH | ~420,000 | ~0.0000042      | < $0.01         |
-| 200       | sprayETH | ~750,000 | ~0.0000075      | < $0.01         |
-| 5         | sprayToken | ~85,000  | ~0.00000085   | < $0.01         |
-| 50        | sprayToken | ~350,000 | ~0.0000035    | < $0.01         |
-| 100       | sprayToken | ~620,000 | ~0.0000062    | < $0.01         |
-| 200       | sprayToken | ~1,100,000 | ~0.000011   | < $0.01         |
-
-**Note:** ERC-20 sprays (`sprayToken`) use more gas than ETH sprays because each token transfer involves calling the token contract. Actual costs may vary with network congestion.
-
-### Planning Large Batches
-
-**Recommended batch sizes by function:**
-- `sprayETH`: Up to 200 recipients comfortably
-- `sprayToken`: Up to 150 recipients recommended (token transfers are heavier)
-- `sprayEqual`: Up to 200 recipients (more efficient since amount is stored once)
-
-**For 500+ recipients:**
-Split into multiple transactions of 100-150 each. Example:
+### Endpoint
 ```
-"Spray USDC on Base from batch1.csv"   # rows 1-150
-"Spray USDC on Base from batch2.csv"   # rows 151-300
-"Spray USDC on Base from batch3.csv"   # rows 301-500
+POST https://gateway.spraay.app/api/payments/batch
 ```
 
-### Total Cost Formula
-
-For any spray, the total sender cost is:
-
-```
-Total Cost = Sum of all recipient amounts
-           + Protocol fee (0.3% of sum)
-           + Gas fee (negligible on Base, see table above)
-```
-
-Example: Spraying 1 ETH total to 10 recipients
-- Recipient amounts: 1.0 ETH
-- Protocol fee: 0.003 ETH
-- Gas: ~0.000001 ETH
-- **Total: ~1.003001 ETH**
-
-## ETH Batch Payments
-
-### Function: `sprayETH`
-
-Sends ETH to multiple recipients in one transaction.
-
-**Parameters:**
-- `recipients`: Array of `{recipient: address, amount: uint256}` structs
-
-**Value:** Total of all amounts + 0.3% protocol fee
-
-**Example calldata construction:**
-```
-Function: sprayETH((address,uint256)[])
-Recipients: [(0xAAA, 100000000000000000), (0xBBB, 200000000000000000)]
-Value: sum of amounts + (sum * 30 / 10000)
+### Request Body
+```json
+{
+  "chain": "base",
+  "token": "USDC",
+  "recipients": [
+    {"address": "0xABC...", "amount": "100"},
+    {"address": "0xDEF...", "amount": "50.5"},
+    {"address": "0x123...", "amount": "75"}
+  ],
+  "memo": "Q1 contributor payouts"
+}
 ```
 
-### Limits
-- Maximum 200 recipients per transaction
-- Minimum 0.000001 ETH per recipient
-- Sender must have sufficient ETH for total + fee + gas
+### Parameters
 
-## ERC-20 Batch Payments
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| chain | string | Yes | Target chain: base, ethereum, arbitrum, polygon, bnb, avalanche, unichain, plasma, bob |
+| token | string | Yes | Token symbol (USDC, ETH, WETH) or contract address |
+| recipients | array | Yes | Array of {address, amount} objects |
+| memo | string | No | On-chain memo / description |
 
-### Function: `sprayToken`
+### Response
+```json
+{
+  "txHash": "0xabc123...",
+  "chain": "base",
+  "token": "USDC",
+  "totalAmount": "225.5",
+  "recipientCount": 3,
+  "fee": "0.6765",
+  "status": "confirmed",
+  "blockNumber": 12345678
+}
+```
 
-Sends ERC-20 tokens to multiple recipients in one transaction.
+## Solana Batch Payment
 
-**Parameters:**
-- `token`: ERC-20 token contract address
-- `recipients`: Array of `{recipient: address, amount: uint256}` structs
+### Endpoint
+```
+POST https://gateway.spraay.app/api/payments/batch
+```
 
-**Prerequisites:**
-- Sender must approve the Spraay contract to spend tokens
-- Approval amount should cover total + 0.3% fee
+### Request Body
+```json
+{
+  "chain": "solana",
+  "token": "USDC",
+  "recipients": [
+    {"address": "7xKX...", "amount": "100"},
+    {"address": "9yLM...", "amount": "50"}
+  ]
+}
+```
 
-**Example flow:**
-1. Approve: `token.approve(SPRAAY_CONTRACT, totalAmount + fee)`
-2. Spray: `spraay.sprayToken(token, recipients)`
+Solana uses SPL token transfer instructions bundled into a single transaction.
 
-### Supported Tokens
-Any standard ERC-20 token on Base, including:
-- USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
-- USDT
-- DAI
-- WETH (0x4200000000000000000000000000000000000006)
-- Any community/meme token
+## CSV Import
 
-## CSV Format
+For large payouts, upload a CSV file:
 
-For large distributions, Spraay accepts CSV files:
+```
+POST https://gateway.spraay.app/api/payments/batch-csv
+Content-Type: multipart/form-data
+```
 
+CSV format:
 ```csv
 address,amount
-0x1234567890abcdef1234567890abcdef12345678,0.5
-0xabcdef1234567890abcdef1234567890abcdef12,0.2
-0x9876543210fedcba9876543210fedcba98765432,1.0
+0xABC...,100
+0xDEF...,50.5
+0x123...,75
 ```
 
-**Rules:**
-- Header row required: `address,amount`
-- One recipient per line
-- Addresses must be valid checksummed Ethereum addresses
-- Amounts in human-readable format (not wei)
-- Maximum 200 rows per CSV (split larger lists)
+## Supported Chains
 
-## Social Handle Resolution
+| Chain | Chain ID | Native Token | Status |
+|-------|----------|-------------|--------|
+| Base | 8453 | ETH | Live |
+| Ethereum | 1 | ETH | Live |
+| Arbitrum | 42161 | ETH | Live |
+| Polygon | 137 | MATIC | Live |
+| BNB Chain | 56 | BNB | Live |
+| Avalanche | 43114 | AVAX | Live |
+| Unichain | 130 | ETH | Live |
+| Plasma | — | ETH | Live |
+| BOB | 60808 | ETH | Live |
+| Solana | — | SOL | Live |
+| Bittensor | — | TAO | Live |
+| Stacks | — | STX | Live |
+| Bitcoin | — | BTC | Live (PSBT) |
 
-When used alongside the Neynar skill (Farcaster) or ENS:
+## Smart Contract
 
-| Input | Resolution |
-|-------|-----------|
-| `@alice` (Farcaster) | Resolved via Neynar API → 0x address |
-| `alice.eth` | Resolved via ENS → 0x address |
-| `0xABC...` | Used directly |
+Base mainnet: `0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8`
 
-## Protocol Fee Structure
+The contract accepts an array of recipients and amounts, executes all transfers atomically (all succeed or all revert), and collects a 0.3% protocol fee.
 
-- **Fee rate**: 0.3% (30 basis points)
-- **Calculation**: `fee = totalAmount * 30 / 10000`
-- **Collection**: Deducted at contract level during execution
-- **Transparency**: Fee is emitted in transaction events, verifiable onchain
+## Error Handling
 
-## Use Cases
+| Error Code | Meaning | Resolution |
+|-----------|---------|------------|
+| INSUFFICIENT_BALANCE | Sender balance too low | Top up wallet |
+| INVALID_ADDRESS | Malformed recipient address | Check address format |
+| TOKEN_NOT_SUPPORTED | Token not recognized on chain | Use contract address instead of symbol |
+| BATCH_TOO_LARGE | Over 200 recipients | Split into multiple batches |
+| CHAIN_NOT_SUPPORTED | Invalid chain parameter | Check supported chains list |
 
-### DAO Payroll
-Monthly or bi-weekly batch payments to contributors. Combine with Bankr automation:
+## Bankr Integration Example
+
+After Bankr executes a profitable trade:
+
+```javascript
+// Bankr sells ETH for USDC, then distributes profits
+const profitDistribution = {
+  chain: "base",
+  token: "USDC",
+  recipients: [
+    {address: "0xTeamLead...", amount: "500"},
+    {address: "0xDev1...", amount: "300"},
+    {address: "0xDev2...", amount: "200"},
+    {address: "0xTreasury...", amount: "1000"}
+  ],
+  memo: "ETH trade profit distribution"
+};
+
+await fetch("https://gateway.spraay.app/api/payments/batch", {
+  method: "POST",
+  headers: {"Content-Type": "application/json"},
+  body: JSON.stringify(profitDistribution)
+});
 ```
-"Set up monthly spray: 500 USDC to 0xAlice, 300 USDC to 0xBob, 800 USDC to 0xCharlie on the 1st of every month"
-```
-
-### Token Airdrops
-Distribute tokens to community members, contest winners, or early adopters.
-
-### Grant Distributions
-Pay out multiple grant recipients from a treasury in one transaction.
-
-### Revenue Sharing
-Split revenue among partners, contributors, or stakeholders.
-
-### Event Rewards
-Pay speakers, volunteers, or participants after an event.

@@ -1,101 +1,195 @@
 #!/bin/bash
-# spraay.sh — Main entry point for Spraay batch payments via Bankr API
-# Usage: scripts/spraay.sh "Spray 0.1 ETH each to 0xAAA, 0xBBB, 0xCCC on Base"
+# spraay.sh — CLI for Spraay batch payments, x402 gateway, Bitcoin PSBT, and RTP
+# Usage: ./spraay.sh <command> [args...]
+# Docs: https://docs.spraay.app
 
-set -euo pipefail
+GATEWAY="${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}"
 
-SKILL_DIR="${HOME}/.clawdbot/skills/spraay"
-CONFIG_FILE="${SKILL_DIR}/config.json"
+case "$1" in
 
-# Load configuration
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: Config file not found at ${CONFIG_FILE}"
-    echo "Run setup first. See SKILL.md for instructions."
-    exit 1
-fi
+  # ─── Batch Payments ────────────────────────────────────────
+  batch)
+    # Usage: ./spraay.sh batch <chain> <token> <recipients_json>
+    # Example: ./spraay.sh batch base USDC '[{"address":"0xABC...","amount":"100"},{"address":"0xDEF...","amount":"50"}]'
+    curl -s -X POST "$GATEWAY/api/payments/batch" \
+      -H "Content-Type: application/json" \
+      -d "{\"chain\":\"$2\",\"token\":\"$3\",\"recipients\":$4}" | jq .
+    ;;
 
-API_KEY=$(jq -r '.bankrApiKey // .apiKey // empty' "$CONFIG_FILE")
-API_URL=$(jq -r '.bankrApiUrl // .apiUrl // "https://api.bankr.bot"' "$CONFIG_FILE")
-SPRAY_CONTRACT=$(jq -r '.sprayContract // empty' "$CONFIG_FILE")
-CHAIN_ID=$(jq -r '.chainId // 8453' "$CONFIG_FILE")
+  batch-csv)
+    # Usage: ./spraay.sh batch-csv <chain> <token> <csv_file>
+    curl -s -X POST "$GATEWAY/api/payments/batch-csv" \
+      -F "chain=$2" \
+      -F "token=$3" \
+      -F "file=@$4" | jq .
+    ;;
 
-if [ -z "$API_KEY" ]; then
-    echo "Error: No API key found in config. Set bankrApiKey in config.json."
-    exit 1
-fi
+  tx-status)
+    # Usage: ./spraay.sh tx-status <txHash>
+    curl -s "$GATEWAY/api/payments/status/$2" | jq .
+    ;;
 
-if [ -z "$SPRAY_CONTRACT" ]; then
-    echo "Error: No Spraay contract address in config. Set sprayContract in config.json."
-    exit 1
-fi
+  # ─── Bitcoin PSBT ──────────────────────────────────────────
+  btc-fees)
+    # Usage: ./spraay.sh btc-fees
+    curl -s "$GATEWAY/api/bitcoin/fee-estimate" | jq .
+    ;;
 
-PROMPT="$*"
+  btc-prepare)
+    # Usage: ./spraay.sh btc-prepare <recipients_json> <feeRate> <changeAddr>
+    # Example: ./spraay.sh btc-prepare '[{"address":"bc1q...","amount":50000}]' 12 bc1qchange...
+    curl -s -X POST "$GATEWAY/api/bitcoin/batch-prepare" \
+      -H "Content-Type: application/json" \
+      -d "{\"recipients\":$2,\"feeRate\":$3,\"changeAddress\":\"$4\"}" | jq .
+    ;;
 
-if [ -z "$PROMPT" ]; then
-    echo "Usage: scripts/spraay.sh \"<your batch payment request>\""
+  btc-broadcast)
+    # Usage: ./spraay.sh btc-broadcast <signed_psbt>
+    curl -s -X POST "$GATEWAY/api/bitcoin/batch-broadcast" \
+      -H "Content-Type: application/json" \
+      -d "{\"signedPsbt\":\"$2\"}" | jq .
+    ;;
+
+  btc-utxos)
+    # Usage: ./spraay.sh btc-utxos <address>
+    curl -s "$GATEWAY/api/bitcoin/utxos/$2" | jq .
+    ;;
+
+  # ─── Gateway Commands ──────────────────────────────────────
+  ai)
+    # Usage: ./spraay.sh ai <model> <prompt>
+    curl -s -X POST "$GATEWAY/api/ai/chat" \
+      -H "Content-Type: application/json" \
+      -d "{\"model\":\"$2\",\"prompt\":\"$3\"}" | jq .
+    ;;
+
+  search)
+    # Usage: ./spraay.sh search <query>
+    curl -s -X POST "$GATEWAY/api/search/web" \
+      -H "Content-Type: application/json" \
+      -d "{\"query\":\"$2\"}" | jq .
+    ;;
+
+  email)
+    # Usage: ./spraay.sh email <to> <subject> <body>
+    curl -s -X POST "$GATEWAY/api/email/send" \
+      -H "Content-Type: application/json" \
+      -d "{\"to\":\"$2\",\"subject\":\"$3\",\"body\":\"$4\"}" | jq .
+    ;;
+
+  rpc)
+    # Usage: ./spraay.sh rpc <chain> <method> [params_json]
+    PARAMS="${4:-[]}"
+    curl -s -X POST "$GATEWAY/api/rpc/$2" \
+      -H "Content-Type: application/json" \
+      -d "{\"method\":\"$3\",\"params\":$PARAMS}" | jq .
+    ;;
+
+  price)
+    # Usage: ./spraay.sh price <pair>   (e.g., ETH/USDC)
+    curl -s "$GATEWAY/api/oracle/price/$2" | jq .
+    ;;
+
+  gas)
+    # Usage: ./spraay.sh gas <chain>
+    curl -s "$GATEWAY/api/oracle/gas/$2" | jq .
+    ;;
+
+  ipfs-pin)
+    # Usage: ./spraay.sh ipfs-pin <file>
+    curl -s -X POST "$GATEWAY/api/ipfs/pin" \
+      -F "file=@$2" | jq .
+    ;;
+
+  catalog)
+    # Usage: ./spraay.sh catalog
+    curl -s "$GATEWAY/api/bazaar/catalog" | jq .
+    ;;
+
+  # ─── Robot Task Protocol ───────────────────────────────────
+  rtp-discover)
+    # Usage: ./spraay.sh rtp-discover <capability> <lat,lng> [radius]
+    RADIUS="${4:-10km}"
+    curl -s "$GATEWAY/api/rtp/discover?capability=$2&location=$3&radius=$RADIUS" | jq .
+    ;;
+
+  rtp-commission)
+    # Usage: ./spraay.sh rtp-commission <robotId> <task> <params_json>
+    curl -s -X POST "$GATEWAY/api/rtp/commission" \
+      -H "Content-Type: application/json" \
+      -d "{\"robotId\":\"$2\",\"task\":\"$3\",\"params\":$4}" | jq .
+    ;;
+
+  rtp-status)
+    # Usage: ./spraay.sh rtp-status <taskId>
+    curl -s "$GATEWAY/api/rtp/status/$2" | jq .
+    ;;
+
+  rtp-cancel)
+    # Usage: ./spraay.sh rtp-cancel <taskId>
+    curl -s -X POST "$GATEWAY/api/rtp/cancel/$2" | jq .
+    ;;
+
+  rtp-capabilities)
+    # Usage: ./spraay.sh rtp-capabilities
+    curl -s "$GATEWAY/api/rtp/capabilities" | jq .
+    ;;
+
+  # ─── Escrow & Payroll ─────────────────────────────────────
+  escrow-create)
+    # Usage: ./spraay.sh escrow-create <chain> <token> <amount> <conditions_json>
+    curl -s -X POST "$GATEWAY/api/escrow/create" \
+      -H "Content-Type: application/json" \
+      -d "{\"chain\":\"$2\",\"token\":\"$3\",\"amount\":\"$4\",\"conditions\":$5}" | jq .
+    ;;
+
+  payroll-create)
+    # Usage: ./spraay.sh payroll-create <chain> <token> <schedule> <recipients_json>
+    curl -s -X POST "$GATEWAY/api/payroll/create" \
+      -H "Content-Type: application/json" \
+      -d "{\"chain\":\"$2\",\"token\":\"$3\",\"schedule\":\"$4\",\"recipients\":$5}" | jq .
+    ;;
+
+  # ─── Help ──────────────────────────────────────────────────
+  *|help)
+    echo "spraay.sh — CLI for Spraay payment infrastructure"
     echo ""
-    echo "Examples:"
-    echo "  scripts/spraay.sh \"Spray 0.1 ETH each to 0xAAA, 0xBBB, 0xCCC on Base\""
-    echo "  scripts/spraay.sh \"Send 50 USDC to 0xAAA, 0xBBB on Base\""
-    echo "  scripts/spraay.sh \"Show Spraay contract info\""
-    exit 0
-fi
-
-# Submit job to Bankr API
-echo "Submitting Spraay request..."
-SUBMIT_RESPONSE=$(curl -s -X POST "${API_URL}/v1/agent/prompt" \
-    -H "Authorization: Bearer ${API_KEY}" \
-    -H "Content-Type: application/json" \
-    -d "{
-        \"prompt\": \"Using the Spraay batch payment contract at ${SPRAY_CONTRACT} on chain ${CHAIN_ID}: ${PROMPT}\",
-        \"context\": \"Spraay is a batch payment protocol. For ETH: call sprayETH with recipients array. For ERC-20: approve then call sprayToken. Protocol fee is 0.3%. Submit as arbitrary transaction.\"
-    }")
-
-JOB_ID=$(echo "$SUBMIT_RESPONSE" | jq -r '.jobId // .id // empty')
-
-if [ -z "$JOB_ID" ]; then
-    echo "Error submitting request:"
-    echo "$SUBMIT_RESPONSE" | jq .
-    exit 1
-fi
-
-echo "Job submitted: ${JOB_ID}"
-
-# Poll for completion
-MAX_ATTEMPTS=60
-ATTEMPT=0
-while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-    sleep 2
-    ATTEMPT=$((ATTEMPT + 1))
-
-    STATUS_RESPONSE=$(curl -s -X GET "${API_URL}/v1/agent/job/${JOB_ID}" \
-        -H "Authorization: Bearer ${API_KEY}")
-
-    STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.status // "unknown"')
-
-    case "$STATUS" in
-        "completed"|"done"|"success")
-            echo ""
-            echo "✅ Spraay Complete!"
-            echo "$STATUS_RESPONSE" | jq -r '.result // .response // .message // .'
-            exit 0
-            ;;
-        "failed"|"error")
-            echo ""
-            echo "❌ Spraay Failed:"
-            echo "$STATUS_RESPONSE" | jq -r '.error // .message // .'
-            exit 1
-            ;;
-        "pending"|"processing"|"running")
-            printf "."
-            ;;
-        *)
-            printf "."
-            ;;
-    esac
-done
-
-echo ""
-echo "⏰ Job timed out. Check status manually:"
-echo "  Job ID: ${JOB_ID}"
-exit 1
+    echo "Batch Payments:"
+    echo "  batch <chain> <token> <recipients_json>       — Send batch payment"
+    echo "  batch-csv <chain> <token> <csv_file>          — Batch from CSV"
+    echo "  tx-status <txHash>                            — Check tx status"
+    echo ""
+    echo "Bitcoin PSBT:"
+    echo "  btc-fees                                      — Current fee estimates"
+    echo "  btc-prepare <recipients_json> <feeRate> <changeAddr>  — Prepare PSBT"
+    echo "  btc-broadcast <signed_psbt>                   — Broadcast signed tx"
+    echo "  btc-utxos <address>                           — Query UTXOs"
+    echo ""
+    echo "Gateway:"
+    echo "  ai <model> <prompt>        — AI inference"
+    echo "  search <query>             — Web search"
+    echo "  email <to> <subj> <body>   — Send email"
+    echo "  rpc <chain> <method>       — RPC call"
+    echo "  price <pair>               — Price oracle"
+    echo "  gas <chain>                — Gas oracle"
+    echo "  ipfs-pin <file>            — Pin to IPFS"
+    echo "  catalog                    — List all endpoints"
+    echo ""
+    echo "Robot Task Protocol:"
+    echo "  rtp-discover <capability> <lat,lng>            — Find robots"
+    echo "  rtp-commission <robotId> <task> <params_json>  — Hire a robot"
+    echo "  rtp-status <taskId>                            — Check task status"
+    echo "  rtp-cancel <taskId>                            — Cancel a task"
+    echo "  rtp-capabilities                               — List capabilities"
+    echo ""
+    echo "Escrow & Payroll:"
+    echo "  escrow-create <chain> <token> <amount> <conditions_json>"
+    echo "  payroll-create <chain> <token> <schedule> <recipients_json>"
+    echo ""
+    echo "Environment:"
+    echo "  SPRAAY_GATEWAY_URL  — Gateway URL (default: https://gateway.spraay.app)"
+    echo ""
+    echo "Docs: https://docs.spraay.app"
+    echo "GitHub: https://github.com/plagtech"
+    ;;
+esac
