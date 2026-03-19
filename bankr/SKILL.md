@@ -91,6 +91,9 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "My Agent"
 
 # Example read-only, no LLM
 bankr login email <user-email> --code <otp> --accept-terms --key-name "Research Bot"
+
+# Example with IP and recipient restrictions
+bankr login email <user-email> --code <otp> --accept-terms --key-name "Restricted Agent" --read-write --allowed-ips 1.2.3.4 --allowed-recipients 0xABC...,7xKXtg...
 ```
 
 #### Login options reference
@@ -102,6 +105,8 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "Research 
 | `--key-name <name>` | Display name for the API key (e.g. "My Agent"). Prompted if omitted |
 | `--read-write` | Enable write operations: swaps, transfers, orders, token launches, leverage, Polymarket bets. **Without this flag, the key is read-only** (portfolio, balances, prices, research only) |
 | `--llm` | Enable [LLM gateway](https://docs.bankr.bot/llm-gateway/overview) access (multi-model API at `llm.bankr.bot`). Currently limited to beta testers |
+| `--allowed-ips <ips>` | Comma-separated IP allowlist — requests from other IPs will be blocked (e.g. `1.2.3.4,5.6.7.8`) |
+| `--allowed-recipients <addresses>` | Comma-separated EVM/Solana addresses — agent will only send funds to these. Accepts mixed addresses; 0x-prefixed are classified as EVM, base58 as Solana (e.g. `0xABC...,7xKXtg...`) |
 
 Any option not provided on the command line will be prompted interactively by the CLI, so you can mix headless and interactive as needed.
 
@@ -484,7 +489,9 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 **Read-Only API Keys**: Keys with `readOnly: true` filter all write tools (swaps, transfers, staking, token launches, etc.) from agent sessions. The `/agent/sign` and `/agent/submit` endpoints return 403. Ideal for monitoring bots and research agents.
 
-**IP Whitelisting**: Set `allowedIps` on your API key to restrict usage to specific IPs. Requests from non-whitelisted IPs are rejected with 403 at the auth layer.
+**IP Whitelisting**: Set `allowedIps` on your API key to restrict usage to specific IPs. Requests from non-whitelisted IPs are rejected with 403 at the auth layer. Configure via CLI with `--allowed-ips` during login or at [bankr.bot/api](https://bankr.bot/api).
+
+**Recipient Whitelisting**: Set `allowedRecipients` on your API key to restrict which addresses the agent can send funds to. Supports both EVM and Solana addresses. Configure via CLI with `--allowed-recipients` during login or at [bankr.bot/api](https://bankr.bot/api).
 
 **Rate Limits**: 100 messages/day (standard), 1,000/day (Bankr Club), or custom per key. Resets 24h from first message (rolling window). LLM Gateway uses a credit-based system.
 
@@ -608,10 +615,11 @@ For comprehensive error troubleshooting, setup instructions, and debugging steps
 1. Never share your API key or LLM key
 2. Use a dedicated agent wallet with limited funds for autonomous agents
 3. Use read-only API keys for monitoring and research-only agents
-4. Set IP whitelisting for server-side agents with known IPs
-5. Verify addresses before large transfers
-6. Use stop losses for leverage trading
-7. Store keys in environment variables, not source code — add `~/.bankr/` to `.gitignore`
+4. Set IP whitelisting (`--allowed-ips`) for server-side agents with known IPs
+5. Set recipient whitelisting (`--allowed-recipients`) to restrict where agents can send funds
+6. Verify addresses before large transfers
+7. Use stop losses for leverage trading
+8. Store keys in environment variables, not source code — add `~/.bankr/` to `.gitignore`
 
 See [references/safety.md](references/safety.md) for comprehensive safety guidance.
 

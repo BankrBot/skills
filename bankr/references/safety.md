@@ -44,7 +44,7 @@ For full LLM Gateway setup details, see [llm-gateway.md](llm-gateway.md).
 
 ## API Key Access Control
 
-Bankr API keys support granular access control configured at [bankr.bot/api](https://bankr.bot/api). Two key security features: **read-only mode** and **IP whitelisting**.
+Bankr API keys support granular access control configured at [bankr.bot/api](https://bankr.bot/api) or via CLI flags during login. Three key security features: **read-only mode**, **IP whitelisting**, and **recipient whitelisting**.
 
 ### Read-Only API Keys
 
@@ -103,6 +103,11 @@ API keys support an `allowedIps` whitelist. When configured, requests from non-w
 - **Empty array** (`[]`) = all IPs allowed (default)
 - **Non-empty array** = only listed IPs can use the key
 
+**Configure via CLI** during login (applies to both `email` and `siwe` flows):
+```bash
+bankr login email user@example.com --code 123456 --accept-terms --allowed-ips 1.2.3.4,5.6.7.8
+```
+
 **403 error response:**
 ```json
 {
@@ -111,16 +116,29 @@ API keys support an `allowedIps` whitelist. When configured, requests from non-w
 }
 ```
 
+### Recipient Whitelisting
+
+API keys support an `allowedRecipients` whitelist. When configured, the agent can only send funds to the listed addresses. Supports both EVM and Solana addresses in a structured format: `{ evm?: string[], solana?: string[] }`.
+
+- **Not set** = agent can send to any address (default)
+- **Set** = agent can only send funds to listed addresses
+
+**Configure via CLI** during login — pass a comma-separated list of mixed addresses. The CLI auto-classifies by format (0x-prefixed → EVM, base58 → Solana):
+```bash
+bankr login email user@example.com --code 123456 --accept-terms --allowed-recipients 0xABC...,7xKXtg...
+```
+
 ### Configuring Access Control
 
-Manage API key settings at [bankr.bot/api](https://bankr.bot/api):
+Manage API key settings at [bankr.bot/api](https://bankr.bot/api) or via CLI flags during `bankr login email` / `bankr login siwe`:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `readOnly` | boolean | When true, only read tools are available |
-| `allowedIps` | string[] | IP whitelist (empty = all allowed) |
-| `agentApiEnabled` | boolean | Whether `/agent/*` endpoints are accessible |
-| `llmGatewayEnabled` | boolean | Whether LLM Gateway endpoints are accessible |
+| Field | Type | CLI Flag | Description |
+|-------|------|----------|-------------|
+| `readOnly` | boolean | `--read-write` (inverted) | When true, only read tools are available |
+| `allowedIps` | string[] | `--allowed-ips` | IP whitelist (empty = all allowed) |
+| `allowedRecipients` | `{ evm?: string[], solana?: string[] }` | `--allowed-recipients` | Recipient address whitelist |
+| `agentApiEnabled` | boolean | — | Whether `/agent/*` endpoints are accessible |
+| `llmGatewayEnabled` | boolean | `--llm` | Whether LLM Gateway endpoints are accessible |
 
 ## CLI Security
 
@@ -207,12 +225,12 @@ Replenish periodically rather than pre-loading large amounts.
 
 Choose the right combination based on your agent's purpose:
 
-| Use Case | readOnly | allowedIps | Funding Level |
-|----------|----------|------------|---------------|
-| Monitoring / analytics bot | Yes | Yes (server IP) | None needed |
-| Trading bot (server-side) | No | Yes (server IP) | Limited trading capital |
-| Development / testing | No | No | Minimal (test amounts) |
-| Read-only research agent | Yes | No | None needed |
+| Use Case | readOnly | allowedIps | allowedRecipients | Funding Level |
+|----------|----------|------------|-------------------|---------------|
+| Monitoring / analytics bot | Yes | Yes (server IP) | — | None needed |
+| Trading bot (server-side) | No | Yes (server IP) | Yes (known wallets) | Limited trading capital |
+| Development / testing | No | No | No | Minimal (test amounts) |
+| Read-only research agent | Yes | No | — | None needed |
 
 ## Rate Limits
 
@@ -304,7 +322,8 @@ Before deploying an agent or integration:
 - [ ] Use a **dedicated agent wallet** — not your personal account
 - [ ] Fund the agent wallet with **limited amounts** appropriate to its purpose
 - [ ] Set API key to **read-only** if the agent only needs to query data
-- [ ] Configure **IP whitelisting** for server-side agents with known IPs
+- [ ] Configure **IP whitelisting** (`--allowed-ips`) for server-side agents with known IPs
+- [ ] Configure **recipient whitelisting** (`--allowed-recipients`) to restrict where agents can send funds
 - [ ] Store keys in **environment variables** (`BANKR_API_KEY`, `BANKR_LLM_KEY`), never in source code or version control
 - [ ] If using the CLI, ensure `~/.bankr/` is in `.gitignore` and has restricted file permissions
 - [ ] Use **separate keys** for Agent API vs LLM Gateway if they need independent access controls or revocation
