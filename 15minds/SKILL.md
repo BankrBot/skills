@@ -1,106 +1,204 @@
 ---
 name: 15minds
-description: Queries 15 frontier AI models in parallel and returns consensus crypto verdicts with conviction scoring and per-model reasoning. Use when user asks for "multi-model consensus", "what do the models think about", "scan this token", "BTC direction", "should I buy", "15 minds", "second opinion from multiple models", or wants to compare predictions across Claude, GPT, Gemini, and other model families.
+description: >
+  Multi-model crypto directional consensus. Every frontier LLM on the Bankr
+  gateway independently analyzes live derivatives data and calls UP, DOWN, or
+  FLAT every 15 minutes. Currently 15 models, scales automatically as Bankr
+  adds more. Verified track record: 267 Polymarket bets. Use when the user
+  wants directional signal, model consensus, crypto prediction, or multi-model
+  analysis for BTC, ETH, or SOL.
 ---
 
 # 15minds
 
-Multi-model consensus engine. Queries 15 frontier AI models on the Bankr LLM Gateway in parallel. Returns structured verdicts with conviction scoring, family agreement analysis, and per-model reasoning.
+15 frontier LLMs call crypto direction every 15 minutes.
+each model sees live derivatives. each call is independent.
+every prediction becomes a real bet on polymarket.
+scales automatically — when bankr adds a model, the consensus gets wider.
 
-Live and betting real money since March 11, 2026: [lexispawn.xyz/predictions](https://lexispawn.xyz/predictions)
-
-## What it does
-
-Sends a structured analytical prompt to all 15 models simultaneously. Each model analyzes momentum, key levels, session context, volatility regime, and cross-asset patterns. Returns:
-
-- **Consensus direction** (UP/DOWN) with score (1-10)
-- **Conviction scoring** — average conviction across agreeing models (1-10)
-- **Family agreement** — how many independent model families converge (Anthropic, Google, OpenAI, Other)
-- **Quality rating** — HIGH / MEDIUM / LOW based on conviction + family agreement
-- **Regime detection** — DEAD_FLAT / LOW_VOL / NORMAL / HIGH_VOL
-- **Per-model whispers** — each model's direction, conviction, and one-sentence reasoning
-
-## Models (15 configured, ~12 effective)
-
-Claude Opus 4.6, Claude Opus 4.5, Claude Sonnet 4.5, Claude Haiku 4.5, Claude Sonnet 4.6, Gemini 3 Pro, Gemini 3 Flash, Gemini 2.5 Pro, Gemini 2.5 Flash, GPT-5.2, GPT-5.2 Codex, GPT-5 Mini, GPT-5 Nano, Kimi K2.5, Qwen3 Coder
-
-## Two endpoints
-
-### Token scan — `GET /read/:contractAddress`
-
-Scans any Base token by contract address. 15 models evaluate fundamentals, technicals, and sentiment. Returns BUY/HOLD/SELL consensus with per-model breakdown.
-
-**x402 gated**: 3 free scans per day, then 0.00005 ETH per query on Base. No API keys, no accounts — payment via HTTP header.
-
-```
-curl https://lexispawn.xyz/api/read/0xContractAddress
+```bash
+curl -s https://lexispawn.xyz/api/direction/ETH | python3 -m json.tool
 ```
 
-### Directional prediction — `GET /direction/:asset`
+267 bets. public record. see it live: https://lexispawn.xyz/predictions
 
-15-minute price direction prediction for BTC, ETH, or SOL. Each model runs a 5-factor structured analysis:
+## what your agent gets
 
-1. Momentum — acceleration/deceleration of 1hr move
-2. Key levels — proximity to round numbers and session highs/lows
-3. Session context — NY/London/Asia liquidity patterns
-4. Volatility regime — trending vs choppy environment
-5. Cross-asset inference — historical patterns for this magnitude of move
+one API call returns a scored consensus from 15 models across 5 families
+(claude, gpt, gemini, kimi, qwen). not one model's opinion — a weighted
+signal with per-model reasoning you can parse, filter, or display.
 
-Returns JSON with direction, conviction (1-10), and reasoning from each model.
-
-```
-curl https://lexispawn.xyz/api/direction/BTC
-```
-
-Response:
 ```json
 {
-  "asset": "BTC",
-  "price": 70533,
-  "consensus": {
-    "direction": "UP",
-    "score": 8,
-    "avg_conviction": 7.3,
-    "distribution": { "up": 10, "down": 2, "errors": 3 }
+  "asset": "ETH",
+  "direction": "DOWN",
+  "score": 7,
+  "avg_conviction": 5.8,
+  "up_count": 1,
+  "down_count": 8,
+  "flat_count": 4,
+  "offline_count": 2,
+  "price": 2121.44,
+  "derivatives": {
+    "funding_rate": 0.0034,
+    "ls_ratio": 1.599,
+    "oi_change_pct": -1.03
   },
-  "context": {
-    "regime": "NORMAL",
-    "change1h": 0.52
-  },
-  "whispers": [
+  "models": [
     {
-      "model": "Claude Opus 4.6",
-      "direction": "UP",
-      "conviction": 8,
-      "reasoning": "Strong bounce off $70K support with increasing volume into NY open"
+      "model": "claude-opus-4.6",
+      "direction": "DOWN",
+      "conviction": 4,
+      "reason": "LS ratio at 1.599 crowded-long for 5 consecutive windows..."
+    },
+    {
+      "model": "gemini-3-flash",
+      "direction": "DOWN",
+      "conviction": 6,
+      "reason": "AGING crowded long signal where recent accuracy is declining..."
     }
   ]
 }
 ```
 
-## Why it matters
+the disagreements are the signal. when claude calls FLAT on exhausted
+positioning and gemini calls DOWN on contrarian lean, that split contains
+more information than either call alone.
 
-Individual model predictions are noise. Consensus across 15 independently trained models from 5 different families is signal. When Claude, GPT, Gemini, and Qwen all independently converge on the same direction with high conviction, that's information no single model provides.
+## endpoints
 
-The disagreement is where the information lives. When Anthropic models say UP but OpenAI models say DOWN, the consensus score drops and bet sizing shrinks automatically. When all families agree, conviction is high, and the market is moving — that's the moment to act.
+**GET** `/api/direction/:asset` — fresh 15-model scan for BTC, ETH, or SOL.
+queries all models via bankr LLM gateway with live gate.io derivatives.
 
-## Install
-
-```
-> install the 15minds skill from lexispawn/openclaw-skills
-```
-
-## Deploy
-
-```
-cd scripts && npm install
-BANKR_API_KEY=bk_yourkey pm2 start server.js --name 15minds
+```bash
+curl -s https://lexispawn.xyz/api/direction/BTC
+curl -s https://lexispawn.xyz/api/direction/ETH
+curl -s https://lexispawn.xyz/api/direction/SOL
 ```
 
-## Links
+**GET** `/api/predictions/stats` — full track record. total bets, wins,
+losses, accuracy, PnL, per-asset breakdown, per-quality-tier performance.
 
-- Live predictions: [lexispawn.xyz/predictions](https://lexispawn.xyz/predictions)
-- Scanner: [lexispawn.xyz/scanner](https://lexispawn.xyz/scanner)
-- GitHub: [github.com/lexispawn](https://github.com/lexispawn)
-- X: [@lexispawn](https://x.com/lexispawn)
-- Built by [Lexispawn](https://lexispawn.xyz) — ERC-8004 #11363 on Base
+```bash
+curl -s https://lexispawn.xyz/api/predictions/stats | python3 -m json.tool
+```
+
+**GET** `/predictions` — live predictions page. current bet with countdown
+timer, consensus breakdown, model reasoning. human-readable.
+
+```
+https://lexispawn.xyz/predictions
+```
+
+## track record
+
+as of march 19, 2026 — updated every 15 minutes:
+
+```
+total:  267 bets  |  51% accuracy  |  ETH is the engine
+ETH:     98 bets  |  53% accuracy  |  +$2,035 PnL  (+$20.77/bet)
+BTC:    117 bets  |  49% accuracy  |  -$1,739 PnL
+SOL:     52 bets  |  50% accuracy  |  -$2,077 PnL
+
+by quality:
+HIGH:   125 bets  |  50%   ($420 per bet)
+LOW:    102 bets  |  56%   ($80 per bet — best performing tier)
+```
+
+full stats endpoint: `curl -s https://lexispawn.xyz/api/predictions/stats`
+
+the LOW tier outperforms HIGH. uncertain signals bet small, and
+the uncertainty itself is informative. this isn't reported — it's
+computed live from polymarket settlement data.
+
+## what each model sees
+
+every 15 minutes, each model receives:
+
+- **live derivatives** from gate.io: funding rate, long/short ratio,
+  open interest change — with plain-english labels
+  (crowded-short, lean-long, neutral, etc.)
+- **signal freshness**: is this positioning FRESH (new, 1-2 windows),
+  AGING (3-4 windows, price partially responded), or EXHAUSTED
+  (5+ windows, price hasn't responded)? models characterize the
+  setup before calling direction.
+- **regime duration**: how many consecutive windows in the current
+  LS regime + accuracy during that regime. "crowded-long for 12
+  windows, 42% accuracy" tells the model the signal is spent.
+- **cross-asset context**: what BTC and ETH are doing while SOL
+  is being evaluated.
+- **adversarial step**: argue the strongest case against your own
+  call before committing.
+
+the prompt doesn't tell models which direction to call. it gives
+them derivatives data and asks them to think like a 15-minute
+directional trader. the disagreements emerge naturally from
+different model architectures processing the same data.
+
+## composability
+
+### with bankr-signals
+register as a bankr-signals provider. every 15minds bet publishes
+to the signal feed with polymarket TX hash as proof. other agents
+subscribe, filter by confidence, and consume the consensus.
+
+```bash
+# check if lexispawn is on the leaderboard
+curl -s https://bankrsignals.com/api/providers/register?address=0xd16f8c10e7a696a3e46093c60ede43d5594d2bad
+```
+
+### with botchan
+15minds publishes bet results and model disagreement analysis to
+botchan feeds via net protocol. onchain content from onchain trades.
+
+profile: netprotocol.app/app/profile/base/0xd16f8c10e7a696a3e46093c60ede43d5594d2bad
+
+### with x402
+`/predictions/live` returns HTTP 402 on unauthenticated requests.
+agent-to-agent micropayment access for real-time signal consumption.
+
+## 15 models
+
+```
+claude-opus-4.6      claude-opus-4.5      claude-sonnet-4.5
+claude-haiku-4.5     claude-sonnet-4.6    gemini-3-pro
+gemini-3-flash       gemini-2.5-pro       gemini-2.5-flash
+gpt-5.2              gpt-5.2-codex        gpt-5-mini
+gpt-5-nano           kimi-k2.5            qwen3-coder
+```
+
+5 families. errors don't correlate across training sets. insights do.
+
+when bankr adds a 16th model, it becomes 16MINDS. the mind count
+is an era marker, not a brand. auto-discovery via the gateway's
+`/v1/models` endpoint.
+
+## identity
+
+- **ERC-8004**: agent #11363
+- **ENS**: lexispawn.eth
+- **wallet**: 0xd16f8c10e7a696a3e46093c60ede43d5594d2bad
+- **token**: $SPAWN on base (0xc5962538b35Fa5b2307Da3Bb7a17Ada936A51b07)
+- **hub**: lexispawn.xyz
+- **predictions**: lexispawn.xyz/predictions
+- **scanner**: lexispawn.xyz/scanner
+- **X**: x.com/lexispawn
+
+## install
+
+```
+> install the 15minds skill from lexispawn/skills
+```
+
+## architecture
+
+```
+15minds/
+├── SKILL.md
+├── references/
+│   └── api-reference.md
+└── scripts/
+    └── server.js
+```
+
+built by lexispawn. guided by seacasa. powered by bankr.
