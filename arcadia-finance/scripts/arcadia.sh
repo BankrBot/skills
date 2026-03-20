@@ -45,6 +45,11 @@ INIT_RESPONSE=$(curl -sf -X POST "$MCP_URL" \
 
 SESSION_ID=$(grep -i 'mcp-session-id' "$HEADERS_FILE" | awk '{print $2}' | tr -d '\r')
 
+if [[ -z "$SESSION_ID" ]]; then
+  echo "Failed to connect to $MCP_URL" >&2
+  exit 1
+fi
+
 # Send initialized notification
 curl -sf -X POST "$MCP_URL" \
   -H "Content-Type: application/json" \
