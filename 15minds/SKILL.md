@@ -1,17 +1,17 @@
 ---
-name: 15minds
+name: 24minds
 description: >
   Multi-model crypto directional consensus. Every frontier LLM on the Bankr
   gateway independently analyzes live derivatives data and calls UP, DOWN, or
-  FLAT every 15 minutes. Currently 15 models, scales automatically as Bankr
+  FLAT every 15 minutes. Currently 24 models, scales automatically as Bankr
   adds more. Verified track record: 267 Polymarket bets. Use when the user
   wants directional signal, model consensus, crypto prediction, or multi-model
   analysis for BTC, ETH, or SOL.
 ---
 
-# 15minds
+# 24minds
 
-15 frontier LLMs call crypto direction every 15 minutes.
+24 frontier LLMs call crypto direction every 15 minutes.
 each model sees live derivatives. each call is independent.
 every prediction becomes a real bet on polymarket.
 scales automatically — when bankr adds a model, the consensus gets wider.
@@ -24,7 +24,7 @@ curl -s https://lexispawn.xyz/api/direction/ETH | python3 -m json.tool
 
 ## what your agent gets
 
-one API call returns a scored consensus from 15 models across 5 families
+one API call returns a scored consensus from 24 models across 5 families
 (claude, gpt, gemini, kimi, qwen). not one model's opinion — a weighted
 signal with per-model reasoning you can parse, filter, or display.
 
@@ -67,7 +67,7 @@ more information than either call alone.
 
 ## endpoints
 
-**GET** `/api/direction/:asset` — fresh 15-model scan for BTC, ETH, or SOL.
+**GET** `/api/direction/:asset` — fresh 24-model scan for BTC, ETH, or SOL.
 queries all models via bankr LLM gateway with live gate.io derivatives.
 
 ```bash
@@ -138,7 +138,7 @@ different model architectures processing the same data.
 ## composability
 
 ### with bankr-signals
-register as a bankr-signals provider. every 15minds bet publishes
+register as a bankr-signals provider. every 24minds bet publishes
 to the signal feed with polymarket TX hash as proof. other agents
 subscribe, filter by confidence, and consume the consensus.
 
@@ -148,7 +148,7 @@ curl -s https://bankrsignals.com/api/providers/register?address=0xd16f8c10e7a696
 ```
 
 ### with botchan
-15minds publishes bet results and model disagreement analysis to
+24minds publishes bet results and model disagreement analysis to
 botchan feeds via net protocol. onchain content from onchain trades.
 
 profile: netprotocol.app/app/profile/base/0xd16f8c10e7a696a3e46093c60ede43d5594d2bad
@@ -157,19 +157,22 @@ profile: netprotocol.app/app/profile/base/0xd16f8c10e7a696a3e46093c60ede43d5594d
 `/predictions/live` returns HTTP 402 on unauthenticated requests.
 agent-to-agent micropayment access for real-time signal consumption.
 
-## 15 models
+## 24 models
 
 ```
 claude-opus-4.6      claude-opus-4.5      claude-sonnet-4.5
 claude-haiku-4.5     claude-sonnet-4.6    gemini-3-pro
 gemini-3-flash       gemini-2.5-pro       gemini-2.5-flash
 gpt-5.2              gpt-5.2-codex        gpt-5-mini
-gpt-5-nano           kimi-k2.5            qwen3-coder
+gpt-5-nano           gpt-5.4              gpt-5.4-mini
+gpt-5.4-nano         kimi-k2.5            qwen3-coder
+deepseek-v3.2        gemini-3.1-flash-lite gemini-3.1-pro
+grok-4.1-fast        minimax-m2.5         minimax-m2.7
 ```
 
-5 families. errors don't correlate across training sets. insights do.
+9 families. errors don't correlate across training sets. insights do.
 
-when bankr adds a 16th model, it becomes 16MINDS. the mind count
+when bankr adds a 25th model, it becomes 25MINDS. the mind count
 is an era marker, not a brand. auto-discovery via the gateway's
 `/v1/models` endpoint.
 
@@ -187,13 +190,13 @@ is an era marker, not a brand. auto-discovery via the gateway's
 ## install
 
 ```
-> install the 15minds skill from lexispawn/skills
+> install the 24minds skill from lexispawn/skills
 ```
 
 ## architecture
 
 ```
-15minds/
+24minds/
 ├── SKILL.md
 ├── references/
 │   └── api-reference.md
