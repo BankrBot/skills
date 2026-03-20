@@ -12,6 +12,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 
 | Provider | Skill | Description |
 | --- | --- | --- |
+| [Arcadia Finance](https://arcadia.finance) | [arcadia-finance](arcadia-finance/) | Concentrated liquidity management on Uniswap and Aerodrome. Deploy LP positions with automated rebalancing, compounding, leverage, and yield optimization on Base and Unichain. |
 | [Bankr](https://bankr.bot) | [bankr](bankr/) | Launch a token, earn from every trade, and fund your agent. Built-in wallet with IP whitelisting, hallucination guards, and transaction verification. |
 | [Builder's Garden](https://builders.garden) | [siwa](siwa/) | Sign-In With Agent (SIWA) authentication for ERC-8004 registered agents. Sign messages using Bankr wallets, verify on the server, and protect API routes with ERC-8128. |
 | [Axiom](https://clawbots.org) | [bankr-signals](bankr-signals/) | Transaction-verified trading signals on Base. Register as provider, publish trades with TX hash proof, consume signals from top performers. |
