@@ -1,6 +1,6 @@
 ---
 name: hazza
-description: Register and manage hazza.name — immediately useful onchain names on Base. Check availability, register names, set profile records.
+description: Register, buy, sell, and manage hazza.name — immediately useful onchain names on Base. Check availability, register names, buy/list on marketplace, set agent bounties, set profile records.
 ---
 
 # hazza — Onchain Names on Base
@@ -206,11 +206,86 @@ curl -s -X POST https://hazza.name/api/marketplace/fulfill-offer \
 
 Returns the same `{approvals, fulfillment}` format. The seller executes these transactions to accept the offer and transfer their name.
 
+### List a Name for Sale (via Agent Bounty Contract)
+
+The HazzaAgentBounty contract (`0xC6C0FAf855Fdb6D38cA43FcFDf2c26b8D6564eD6`) is a simpler alternative to Seaport for listing names. One transaction, no EIP-712 complexity.
+
+**Prerequisites:**
+1. The seller must own the name (ERC-721 token)
+2. The seller must approve the bounty contract to transfer the NFT:
+
+```solidity
+// Approve the bounty contract to transfer the name
+registry.approve(0xC6C0FAf855Fdb6D38cA43FcFDf2c26b8D6564eD6, tokenId)
+```
+
+**List the name:**
+
+```solidity
+// list(tokenId, price, bountyAmount, expiresAt)
+// price: total ETH the buyer pays
+// bountyAmount: portion of price that goes to the facilitating agent (0 = no bounty)
+// expiresAt: unix timestamp (0 = no expiry)
+bountyContract.list(tokenId, 0.1 ether, 0.01 ether, 0)
+```
+
+This creates a listing where:
+- Buyer pays 0.1 ETH
+- If an agent facilitated the sale, agent gets 0.01 ETH
+- Seller gets the remaining 0.09 ETH
+- No upfront escrow — bounty comes from sale proceeds automatically
+
+**Using cast (CLI):**
+
+```bash
+# Get the tokenId
+TOKEN_ID=$(curl -s https://hazza.name/api/resolve/myname | jq -r '.tokenId')
+
+# Approve the bounty contract
+cast send 0xD4E420201fE02F44AaF6d28D4c8d3A56fEaE0D3E \
+  "approve(address,uint256)" \
+  0xC6C0FAf855Fdb6D38cA43FcFDf2c26b8D6564eD6 $TOKEN_ID \
+  --rpc-url https://mainnet.base.org --private-key $PK
+
+# List for 0.1 ETH with 0.01 ETH agent bounty, no expiry
+cast send 0xC6C0FAf855Fdb6D38cA43FcFDf2c26b8D6564eD6 \
+  "list(uint256,uint256,uint256,uint64)" \
+  $TOKEN_ID 100000000000000000 10000000000000000 0 \
+  --rpc-url https://mainnet.base.org --private-key $PK
+```
+
+### Buy via Agent Bounty Contract
+
+If a name is listed on the bounty contract, anyone can buy it with a single transaction:
+
+```bash
+# Check if a name has an active bounty listing
+curl -s https://hazza.name/api/bounty/TOKEN_ID
+
+# Buy — send exact price as ETH value
+cast send 0xC6C0FAf855Fdb6D38cA43FcFDf2c26b8D6564eD6 \
+  "buy(uint256)" LISTING_ID \
+  --value PRICE_IN_WEI \
+  --rpc-url https://mainnet.base.org --private-key $PK
+```
+
+The contract atomically: transfers the NFT to the buyer, pays the agent (if registered), and pays the seller the remainder.
+
+### Register as Agent (Earn Bounties)
+
+Agents can register on listings that have bounties. When the name sells, the agent gets the bounty automatically.
+
+```bash
+cast send 0xC6C0FAf855Fdb6D38cA43FcFDf2c26b8D6564eD6 \
+  "registerAgent(uint256)" LISTING_ID \
+  --rpc-url https://mainnet.base.org --private-key $PK
+```
+
 ### Marketplace Fees
 
-- 2% marketplace fee on all sales
+- No marketplace fee — sellers receive 100% of the sale price
 - Seaport contract: `0x0000000000000068F116a894984e2DB1123eB395` (Base)
-- Treasury: `0x62B7399B2ac7e938Efad06EF8746fDBA3B351900`
+- Agent Bounty contract: `0xC6C0FAf855Fdb6D38cA43FcFDf2c26b8D6564eD6` (Base)
 
 ## API Reference
 
@@ -232,12 +307,15 @@ Base URL: `https://hazza.name`
 | `/api/marketplace/offers` | GET | Browse collection offers |
 | `/api/marketplace/fulfill` | POST | Get buy transaction data |
 | `/api/marketplace/fulfill-offer` | POST | Get offer acceptance tx data |
+| `/api/bounty/:tokenId` | GET | Check active bounty listing for a name |
 
 ## Key Addresses (Base Mainnet)
 
 | Item | Address |
 |------|---------|
 | Registry | `0xD4E420201fE02F44AaF6d28D4c8d3A56fEaE0D3E` |
+| Agent Bounty | `0xC6C0FAf855Fdb6D38cA43FcFDf2c26b8D6564eD6` |
+| Seaport | `0x0000000000000068F116a894984e2DB1123eB395` |
 | USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | Chain ID | 8453 |
 
