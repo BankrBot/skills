@@ -1,5 +1,6 @@
 ---
 name: arcadia-finance
+version: 1.0.0
 description: DeFi liquidity management via Arcadia Finance. Use when the user wants to provide liquidity on Uniswap V3 or Aerodrome Slipstream, deploy concentrated LP positions, add or remove liquidity, set up automated rebalancing or compounding, borrow against LP collateral, manage yield farming, check PnL, use leverage, or optimize DeFi yields on Base or Unichain. Returns unsigned transactions for Bankr to sign and submit.
 metadata:
   {
@@ -166,6 +167,19 @@ bankr prompt "Submit this transaction: $TX"
 ## Configuration
 
 The CLI connects to `https://mcp.arcadia.finance/mcp` by default. Set `ARCADIA_MCP_URL` to override.
+
+## Troubleshooting
+
+**"Failed to connect"**: The MCP server at `mcp.arcadia.finance` is unreachable. Check your network or set `ARCADIA_MCP_URL` if using a local instance.
+
+**"ERROR: ..."**: The MCP server returned an error. Common causes:
+- Invalid account/wallet address (must be valid hex `0x...`)
+- Missing required parameters (run `scripts/arcadia.sh --list` to see tool descriptions)
+- Chain not supported (only Base 8453 and Unichain 130)
+
+**Empty response from write tools**: The tool returned a transaction object. Pipe it to Bankr: `bankr prompt "Submit this transaction: $TX"`
+
+**Rate limiting**: The server allows 60 requests per minute per session. Space out batch operations.
 
 ## References
 
