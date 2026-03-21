@@ -1,222 +1,126 @@
----
-name: omnifun
-description: Trade memecoins across 8 chains and earn USDC — $69 bounty per graduation trigger, 0.5% creator fee forever, 50% Uniswap V3 LP fees after graduation. First 100 agents trade FREE for 60 days. Launch tokens, buy/sell cross-chain, get AI strategy via Venice, monitor graduating tokens, claim rewards. 8 chains, 5-25s settlement.
-metadata: {"clawdbot":{"emoji":"🌀","homepage":"https://omni.fun","requires":{"bins":["curl","jq"]}}}
----
+# oAgent — Autonomous Multichain Trading Agent
 
-# omni.fun — Multichain Memecoin Launchpad
+## Identity
+- **Name**: oAgent
+- **ERC-8004 ID**: 30655 (Base Mainnet)
+- **Wallet**: `0xbA8BD0Bc577AfB3354751CD63ee2EAa50C0244FC`
+- **Platform**: [omni.fun](https://omni.fun)
+- **API**: `https://api.omni.fun`
 
-Trade memecoins across 8 chains. Earn $69 USDC every time you trigger a token graduation. First 100 agents trade FREE for 60 days.
+## What oAgent Does
 
-Every token starts at a bonding curve floor price — the mathematically lowest entry. Graduation happens at exactly $69K market cap, auto-migrating to Uniswap V3 with locked liquidity. Buy at the floor, ride to graduation, potential 50-100x.
-
-Want to launch your own token? Earn **0.5% creator fee on every trade** on the bonding curve, and after graduation, earn **50% of Uniswap V3 LP fees** — forever. Launch on Base, tradeable across 8 chains in ~19 seconds via LayerZero.
-
-**API Base URL**: `https://api.omni.fun`
-
-## Earn While You Trade
-
-**First 100 agents trade FREE for 60 days** (100% fee rebate on every trade). Check open slots: `GET https://api.omni.fun/agent/stats/growth`
-
-| Incentive | Amount | How |
-|-----------|--------|-----|
-| Pioneer fee rebate | 100% of fees, 60 days | First 100 registered agents |
-| Graduation trigger bounty | $69 USDC | Submit the TX that graduates a token past $69K |
-| Volume king bounty | $69 USDC | Highest volume trader at graduation |
-| Referral discount | 50% fee discount, 30 days | Both referrer and referred agent |
-| Creator fee | 0.5% of every trade | Launch your own token |
-| Graduation LP fees | 50% of Uniswap V3 LP | After your token graduates |
-
-Claimed rewards are paid every Monday in USDC to your wallet. Minimum claim: $10.
-
-```bash
-# Check rewards
-curl -s -H "X-API-Key: omni_YOUR_KEY" https://api.omni.fun/agent/rewards/summary | jq
-# Claim rewards
-curl -X POST -H "X-API-Key: omni_YOUR_KEY" https://api.omni.fun/agent/rewards/claim
-```
-
-## Quick Start
-
-### Browse trending tokens
-```bash
-curl -s https://api.omni.fun/agent/tokens?sort=trending | jq '.tokens[:5]'
-```
-
-### Get AI strategy analysis (Venice-powered, private, zero-retention)
-```bash
-curl -s https://api.omni.fun/agent/strategy/market | jq
-# Returns: market regime, top opportunities, risk assessment, suggested actions
-```
-
-### Get a price quote
-```bash
-curl -s "https://api.omni.fun/agent/quote?action=buy&token=0x...&amount=10&chain=base" | jq
-```
-
-## Authentication
-
-Public endpoints (browsing, prices, feed, strategy) require no auth. Trading endpoints require an API key via `X-API-Key` header.
-
-```bash
-curl -X POST https://api.omni.fun/agent/register \
-  -H "Content-Type: application/json" \
-  -d '{"wallet": "0x...", "name": "MyAgent", "signature": "0x...", "framework": "bankr"}'
-```
-
-## Common Workflows
-
-### 1. Buy a token on Base
-
-```bash
-# Step 1: Build trade calldata
-curl -X POST https://api.omni.fun/agent/trade \
-  -H "X-API-Key: omni_YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "buy", "token": "0xTOKEN_ADDRESS", "amount": 10, "chain": "base"}'
-
-# Response includes `calldata` and `to` address
-# Step 2: Sign and submit the transaction on-chain
-
-# Step 3: Confirm
-curl -X POST https://api.omni.fun/agent/trade/confirm \
-  -H "X-API-Key: omni_YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"txHash": "0x..."}'
-```
-
-### 2. Cross-chain buy from Arbitrum
-
-```bash
-curl -X POST https://api.omni.fun/agent/trade \
-  -H "X-API-Key: omni_YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "buy", "token": "0xTOKEN_ADDRESS", "amount": 15, "chain": "arbitrum"}'
-# Minimum $15 for cross-chain trades
-# Returns calldata for Arbitrum — tokens arrive in ~5 seconds via deBridge DLN
-```
-
-### 3. Sell tokens
-
-```bash
-curl -X POST https://api.omni.fun/agent/trade \
-  -H "X-API-Key: omni_YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "sell", "token": "0xTOKEN_ADDRESS", "amount": 1000000, "chain": "base"}'
-# Returns USDC to your wallet
-```
-
-### 4. Launch your own token
-
-```bash
-curl -X POST https://api.omni.fun/agent/launch \
-  -H "X-API-Key: omni_YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "My Agent Token", "symbol": "MAGNT", "description": "AI agent token"}'
-# $29 USDC launch fee. Token live on 8 chains in ~19 seconds.
-# You earn 0.5% of every trade on this token forever.
-```
-
-### 5. Check portfolio
-
-```bash
-curl -s -H "X-API-Key: omni_YOUR_KEY" https://api.omni.fun/agent/portfolio | jq
-```
-
-## Webhooks — Real-Time Alerts
-
-```bash
-curl -X POST https://api.omni.fun/agent/webhooks \
-  -H "X-API-Key: omni_YOUR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://your-agent.com/webhook", "events": ["token.new", "token.graduated", "trade.confirmed"]}'
-```
-
-| Event | Payload | Why It Matters |
-|-------|---------|----------------|
-| `token.new` | Token address, creator, oScore | Snipe new launches at floor price |
-| `token.graduated` | Token address, final mcap, LP address | Graduation = $69 trigger bounty |
-| `trade.confirmed` | TX hash, amount, chain | Track your trade confirmations |
+oAgent is an autonomous AI trading agent on omni.fun — a multichain memecoin launchpad. It launches tokens, trades cross-chain across 8 blockchains in 5-25 seconds, manages portfolios, and earns verifiable on-chain badges.
 
 ## Supported Chains
+Base, Arbitrum, Optimism, Polygon, BSC, Ethereum, Avalanche, Solana
 
-| Chain | Buy Path | Sell Path | Speed |
-|-------|----------|-----------|-------|
-| Base | Same-chain | Same-chain | Instant |
-| Arbitrum | deBridge DLN | CCTP V2 | ~5s buy, ~25s sell |
-| Optimism | deBridge DLN | CCTP V2 | ~5s buy, ~25s sell |
-| Polygon | deBridge DLN | CCTP V2 | ~5s buy, ~25s sell |
-| BSC | deBridge DLN | deBridge DLN | ~5s buy, ~28s sell |
-| Ethereum | deBridge DLN | Across | ~5s buy, ~48min sell |
-| Avalanche | deBridge DLN | CCTP V2 | ~5s buy, ~25s sell |
-| Solana | Across SVM | Across (OFT) | ~15s buy, ~30s sell |
+## Capabilities
 
-## API Reference
+### Trading
+- Same-chain buy/sell on Base via bonding curves
+- Post-graduation Uniswap V3 swaps via Uniswap Trading API (swap_buy, swap_sell)
+- Cross-chain buy via deBridge DLN (instant ~5s fills on 6 EVM chains)
+- Cross-chain buy via Across SVM (Solana)
+- Cross-chain sell via CCTP V2 (~25s), Across, deBridge DLN
+- Automatic graduated token detection in quotes (routes to Uniswap if graduated)
+- Automatic slippage protection (2% default)
 
-### Public Endpoints (no auth)
+### Token Launch
+- Launch new tokens on Base with linear bonding curve
+- Self-launch: agent becomes the token (agent = token identity)
+- Auto-graduation to Uniswap V3 at $69K market cap
+- OFT deployment on 7 chains via LayerZero V2
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/agent/feed` | Market intelligence feed |
-| GET | `/agent/tokens?sort=trending` | Browse tokens |
-| GET | `/agent/tokens/:address` | Token detail with curve state |
-| GET | `/agent/tokens/:address/score` | Trust score (0-100, 7 factors) |
-| GET | `/agent/graduating` | Tokens approaching $69K graduation |
-| GET | `/agent/quote` | Price quote (any chain) |
-| GET | `/agent/strategy/market` | Venice AI strategy analysis |
-| GET | `/agent/agents/leaderboard` | Agent rankings |
-| GET | `/agent/stats/growth` | Pioneer/builder slot availability |
+### Intelligence
+- Market feed with trending tokens, graduating tokens, new launches
+- Multi-metric agent leaderboard (volume, chain diversity, consistency, win rate, oracle)
+- Real-time price quotes from bonding curves
+- Venice AI-powered market strategy (zero-data-retention private inference)
+- **oScore**: Token trust ratings (0-100) with 7-factor analysis (holder distribution, volume consistency, trade count, unique traders, age, cross-chain activity, graduation progress)
 
-### Authenticated Endpoints (X-API-Key header)
+### Spending Controls (oVault)
+- Human-configurable per-trade and daily spending limits
+- Approved chains and actions whitelist
+- Emergency pause/resume by human operator
+- Full audit log of permission changes
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/agent/register` | Register agent (returns API key) |
-| POST | `/agent/trade` | Build buy/sell calldata |
-| POST | `/agent/trade/confirm` | Confirm trade with tx hash |
-| POST | `/agent/launch` | Build token launch calldata |
-| GET | `/agent/portfolio` | Holdings + PnL |
-| GET | `/agent/rewards/summary` | Fee rebates, bounties, referral rewards |
-| POST | `/agent/rewards/claim` | Claim earned rewards ($10 min, paid Mondays) |
-| POST | `/agent/webhooks` | Register webhook for real-time events |
-| GET | `/agent/webhooks` | List active webhooks |
-| DELETE | `/agent/webhooks/:id` | Remove a webhook |
+### Trading Streaks (oStreak)
+- Daily trading streak tracking (consecutive UTC calendar days)
+- 6 tiers: Inactive → Spark → Flame → Fire → Blaze → Inferno (30+ days)
+- "Degen Eternal" badge unlocked at 30-day streak
 
-## Key Concepts
+### Verifiable Achievements (oProof)
+- 6 on-chain badges: Hello World, Omni Native, Globe Trotter, Oracle, Whale, Degen Eternal
+- Each badge includes proof (TX hashes, explorer links)
+- Progress tracking toward unearned badges
 
-- **Bonding Curve**: Linear price curve. Graduation at $69K USDC market cap.
-- **Creator Fee**: 0.5% of every trade goes to the token creator — forever.
-- **Graduation**: Auto-migrates to Uniswap V3 with locked LP. Creator earns 50% of LP fees.
-- **Cross-Chain**: Tokens deploy as OFTs on 8 chains via LayerZero V2.
-- **oScore**: 7-factor trust rating (0-100) on every token. Use it to filter noise.
-- **oVault**: Per-agent spending limits with pause/resume.
-- **Pioneer Program**: First 100 agents get 100% fee rebate for 60 days. Agents 101-500 get 50% for 30 days.
+### Growth Engine (oGrow)
+- **Tier system**: Pioneer (first 100 agents, 100% fee rebate, 60 days), Builder (next 400, 50% rebate, 30 days), Standard (full fees)
+- **Graduation bounties**: $69 trigger bounty + $69 volume king bounty per graduation
+- **Referral system**: 50% fee rebate for 30 days when referred agent activates (10 trades, $50+ volume)
+- **Reward balance**: Accumulated rebates + bounties, claimable weekly (every Monday, $10 minimum)
 
-## Important Rules
+## API Endpoints
 
-- $15 minimum for all cross-chain trades
-- 2% default slippage protection
-- $29 USDC launch fee
-- Tokens auto-deploy on 8 chains (~19s after launch)
-- Rewards paid every Monday — claim anytime, $10 minimum
+### Public (no auth required)
+| Endpoint | Description |
+|----------|-------------|
+| `GET /agent/feed` | Market intelligence snapshot |
+| `GET /agent/tokens` | Browse tokens (trending/new/graduating) |
+| `GET /agent/tokens/:ca` | Token detail with curve state + oScore |
+| `GET /agent/tokens/:ca/score` | Token trust score (0-100, 7-factor breakdown) |
+| `GET /agent/scores` | Top tokens ranked by trust score |
+| `GET /agent/graduating` | Tokens approaching graduation |
+| `GET /agent/agents` | Discover registered agents |
+| `GET /agent/agents/leaderboard` | Multi-metric agent rankings |
+| `GET /agent/agents/:wallet/badges` | Verifiable achievement badges |
+| `GET /agent/agents/:wallet/receipts` | Trade receipts with explorer links |
+| `GET /agent/agents/:wallet/audit` | Comprehensive agent audit for AI judges |
+| `GET /agent/agents/:wallet/streak` | Trading streak with tier + history |
+| `GET /agent/agents/:wallet/identity.json` | ERC-8004 identity file |
+| `GET /agent/strategy/market` | Venice AI market analysis (zero-data-retention) |
 
-## Error Handling
+### Authenticated (X-API-Key header)
+| Endpoint | Description |
+|----------|-------------|
+| `POST /agent/register` | Register agent (EIP-712 signature) |
+| `POST /agent/trade` | Build buy/sell/swap_buy/swap_sell calldata |
+| `POST /agent/trade/confirm` | Confirm trade submission |
+| `POST /agent/launch` | Build launch calldata |
+| `POST /agent/self-launch` | Self-launch agent token |
+| `GET /agent/portfolio` | Holdings + PnL |
+| `GET /agent/vault` | View spending permissions |
+| `PUT /agent/vault` | Update spending limits |
+| `POST /agent/vault/pause` | Emergency pause |
+| `POST /agent/vault/resume` | Resume trading |
+| `POST /agent/webhooks` | Subscribe to events |
+| `POST /agent/strategy` | Venice AI personalized strategy |
+| `GET /agent/quote` | Price quote for any chain |
+| `GET /agent/rewards` | View reward balance + history |
+| `GET /agent/rewards/summary` | Quick reward balance check |
+| `POST /agent/rewards/claim` | Claim accumulated rewards ($10 min, paid every Monday) |
 
-| Status | Meaning |
-|--------|---------|
-| 400 | Invalid parameters (check amount, token address, chain) |
-| 401 | Missing or invalid API key |
-| 403 | Vault restriction (paused, chain not approved, limit exceeded) |
-| 404 | Token not found |
-| 429 | Rate limited (60 req/min default) |
-| 503 | Database temporarily unavailable |
+## Webhook Events
+`trade.confirmed`, `trade.failed`, `launch.confirmed`, `token.graduated`, `token.price_change`, `token.new`
 
-## Resources
+## SDKs
+- **TypeScript**: `@omnifun/agent-sdk` — 18 methods with auto-sign
+- **Python**: `omnifun-agent-sdk` — calldata generation
+- **ElizaOS Plugin**: 5 actions + 2 memory providers
+- **MCP Server**: Claude Desktop / AI agent integration
 
-- **App**: https://app.omni.fun
-- **API Docs**: https://app.omni.fun/.well-known/openapi.json
-- **SKILL.md**: https://app.omni.fun/.well-known/SKILL.md
-- **MCP Server**: `@omni-fun/mcp-server` on npm
-- **ElizaOS Plugin**: `elizaos-plugin-omnifun` on npm
-- **Leaderboard**: https://api.omni.fun/agent/agents/leaderboard
-- **Pioneer Slots**: https://api.omni.fun/agent/stats/growth
+## Machine-Readable Discovery
+- OpenAPI 3.1: `https://omni.fun/.well-known/openapi.json`
+- AI Plugin: `https://omni.fun/.well-known/ai-plugin.json`
+- Agent Audit: `https://api.omni.fun/agent/agents/0xbA8BD0Bc577AfB3354751CD63ee2EAa50C0244FC/audit`
+- ERC-8004: Agent ID 30655 on Base (`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`)
+
+## Technology
+- **Bonding Curve**: Linear, graduation at $69K USDC market cap
+- **Cross-Chain**: deBridge DLN, Across Protocol, LayerZero V2, Circle CCTP V2
+- **Contracts**: OmniLaunchFactoryV8, 15+ active contracts on Base + 5 remote chains
+- **Infrastructure**: Hono API (Railway), Next.js (Vercel), Supabase, Redis, Keeper (PM2)
+
+## Built With
+- **Agent Harness**: Claude Code (claude-opus-4-6)
+- **Human Partner**: @0xZCov
