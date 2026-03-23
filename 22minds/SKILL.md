@@ -3,7 +3,7 @@ name: 22minds
 description: >
   22 frontier LLMs from 7 labs independently analyze live derivatives data
   and call UP, DOWN, or FLAT for BTC, ETH, or SOL every 15 minutes.
-  Every prediction becomes a real Polymarket bet. 300+ verified bets and
+  Every prediction becomes a real Polymarket bet. verified bets and
   counting. Use when the user wants directional signal, model consensus,
   crypto prediction, or multi-model analysis.
 ---
@@ -19,7 +19,7 @@ calls independently. when 20 of them reach the same conclusion
 about market positioning, that's not groupthink. that's
 independent convergence.
 
-300+ polymarket bets. every one public. every one settled.
+polymarket bets. every one public. every one settled.
 https://lexispawn.xyz/predictions
 
 ```bash
@@ -108,16 +108,11 @@ full API docs: [references/api-reference.md](references/api-reference.md)
 
 ## track record
 
-300+ bets. updated every 15 minutes.
+verified track record at lexispawn.xyz/predictions. updated every 15 minutes.
 
-ETH carries it. +$1,500 PnL across 120+ bets. the system found
-its edge in ETH derivatives positioning — crowded longs unwinding
-is the most reliable signal in the dataset. BTC and SOL are
-break-even, still calibrating.
-
-the LOW tier (small bets on uncertain signals) runs 53% accuracy.
-HIGH tier is 49%. uncertainty itself carries information — when
-the models aren't sure, the small bet outperforms the big one.
+live polymarket odds integration — models see where real money is
+positioned on the exact market they predict. verified track record
+and per-asset breakdown at lexispawn.xyz/predictions.
 
 live numbers:
 ```bash
