@@ -73,18 +73,17 @@ When the user asks to log in with an email, walk them through this flow:
 bankr login email <user-email>
 ```
 
-**Step 2 — Ask the user for the OTP code** they received via email.
+**Step 2 — Ask the user for the OTP code and all preferences in a single message.** This avoids unnecessary back-and-forth. Ask for:
 
-**Step 3 — Before completing login, ask the user about their preferences:**
-
-1. **Accept Terms of Service** — Present the [Terms of Service](https://bankr.bot/terms) link and confirm the user agrees. Required for new users — do not pass `--accept-terms` unless the user has explicitly confirmed.
-2. **Read-only or read-write API key?**
+1. **OTP code** — the code they received via email
+2. **Accept Terms of Service (REQUIRED)** — Present the [Terms of Service](https://bankr.bot/terms) link and confirm the user agrees. **The login command will fail for new users without `--accept-terms`.** You MUST ask for ToS acceptance and do not pass `--accept-terms` unless the user has explicitly confirmed.
+3. **Read-only or read-write API key?**
    - **Read-only** (default) — portfolio, balances, prices, research only
    - **Read-write** (`--read-write`) — enables swaps, transfers, orders, token launches, leverage, Polymarket bets
-3. **Enable LLM gateway access?** (`--llm`) — multi-model API at `llm.bankr.bot` (currently limited to beta testers). Skip if user doesn't need it.
-4. **Key name?** (`--key-name`) — a display name for the API key (e.g. "My Agent", "Trading Bot")
+4. **Enable LLM gateway access?** (`--llm`) — multi-model API at `llm.bankr.bot` (currently limited to beta testers). Skip if user doesn't need it.
+5. **Key name?** (`--key-name`) — a display name for the API key (e.g. "My Agent", "Trading Bot")
 
-**Step 4 — Construct and run the step 2 command** with the user's choices:
+**Step 3 — Construct and run the step 2 command** with the user's choices. **Do NOT execute if the user has not explicitly accepted the Terms of Service** — ask again if needed:
 
 ```bash
 # Example with all options
@@ -223,7 +222,8 @@ For full API details (request/response schemas, job states, rich data, polling s
 | `bankr prompt --thread <id> <text>` | Continue a specific conversation thread |
 | `bankr status <jobId>` | Check the status of a running job |
 | `bankr cancel <jobId>` | Cancel a running job |
-| `bankr balances` | Show wallet token balances across all chains |
+| `bankr balances` | Show wallet token balances across all chains (hides tokens under $1 by default) |
+| `bankr balances --low-value` | Include tokens valued under $1 in the output |
 | `bankr balances --chain <chains>` | Filter by chain(s): base, polygon, mainnet, unichain, solana (comma-separated) |
 | `bankr balances --json` | Output raw JSON balances |
 | `bankr skills` | Show all Bankr AI agent skills with examples |
@@ -256,6 +256,9 @@ Environment variables override config file values. Config file values override d
 | Command | Description |
 |---------|-------------|
 | `bankr llm models` | List available LLM models |
+| `bankr llm credits` | Check credit balance |
+| `bankr llm credits add <amount> [--token <addr>] [-y]` | Top up LLM credits from wallet |
+| `bankr llm credits auto [--enable/--disable] [--amount] [--threshold] [--tokens]` | View or configure auto top-up |
 | `bankr llm setup openclaw [--install]` | Generate or install OpenClaw config |
 | `bankr llm setup opencode [--install]` | Generate or install OpenCode config |
 | `bankr llm setup claude` | Show Claude Code environment setup |
@@ -337,8 +340,8 @@ The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unifie
 
 - Uses your `llmKey` if configured, otherwise falls back to your API key
 - **LLM credits** (USD) and **trading wallet** (crypto) are completely separate balances — having crypto does NOT give you LLM credits
-- **New accounts start with $0 LLM credits** — top up at [bankr.bot/llm](https://bankr.bot/llm) before making any LLM calls, or you will get a 402 error
-- Check credits: `bankr llm credits` | Check trading wallet: `bankr balances`
+- **New accounts start with $0 LLM credits** — top up via `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) before making any LLM calls, or you will get a 402 error
+- Check credits: `bankr llm credits` | Top up: `bankr llm credits add <amount>` | Auto top-up: `bankr llm credits auto --enable --amount 25 --tokens USDC`
 - In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`)
 
 ### Quick Commands
@@ -346,6 +349,8 @@ The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unifie
 ```bash
 bankr llm models                           # List available models
 bankr llm credits                          # Check credit balance
+bankr llm credits add 25                   # Top up $25 credits (USDC)
+bankr llm credits auto --enable --amount 25 --tokens USDC  # Auto top-up
 bankr llm setup openclaw --install         # Install Bankr provider into OpenClaw
 bankr llm setup claude                     # Print Claude Code env vars
 bankr llm claude                           # Launch Claude Code through gateway
@@ -512,6 +517,7 @@ bankr prompt "Buy $20 of PEPE on Base"
 ```bash
 # Direct balance check (no AI agent, instant response)
 bankr balances
+bankr balances --low-value          # Include tokens under $1
 bankr balances --chain base
 bankr balances --chain base,solana
 bankr balances --json
@@ -654,7 +660,8 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 
 ### Portfolio
 
-- `bankr balances` (direct, no AI processing)
+- `bankr balances` (direct, no AI processing — hides low-value tokens by default)
+- `bankr balances --low-value` (include tokens under $1)
 - `bankr balances --chain base` (single chain)
 - "Show my portfolio"
 - "What's my ETH balance?"
@@ -823,3 +830,63 @@ See [references/error-handling.md](references/error-handling.md) for comprehensi
 **Security**: Keep your API key private. Never commit your config file to version control. Only trade amounts you can afford to lose.
 
 **Quick Win**: Start by checking your portfolio (`bankr prompt "Show my portfolio"`) to see what's possible, then try a small $5-10 trade on Base to get familiar with the flow.
+
+---
+
+## Profile Management
+
+Agents can create and manage public profile pages at [bankr.bot/agents](https://bankr.bot/agents). Profiles showcase project metadata, team info, token data (chart + market cap), weekly fee revenue, shipped products, and a Twitter activity feed.
+
+**Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create a profile. The token address is verified against your deployment history and beneficiary records.
+
+### Profile Lifecycle
+
+1. **Deploy a token** through Bankr (required prerequisite)
+2. **Create** a profile via CLI or REST API with the token address
+3. **Populate** metadata (team, products, revenue sources)
+4. **Admin approval** — profiles start with `approved: false` and become publicly visible after admin approval
+5. **Maintain** — post project updates, keep products and revenue sources current
+
+### CLI Commands
+
+```bash
+bankr profile                     # View own profile
+bankr profile create              # Interactive creation wizard
+bankr profile create --name "My Agent" --token 0x... --twitter myagent
+bankr profile update --description "Updated description"
+bankr profile delete              # Delete own profile (with confirmation)
+bankr profile add-update          # Add a project update
+bankr profile add-update --title "v2 Launch" --content "Shipped new features"
+```
+
+All commands support `--json` for structured output (enables programmatic use).
+
+### REST API Endpoints
+
+All endpoints require API key authentication via `X-API-Key` header.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/agent/profile` | Get own profile |
+| `POST` | `/agent/profile` | Create profile |
+| `PUT` | `/agent/profile` | Update profile fields |
+| `DELETE` | `/agent/profile` | Delete own profile |
+| `POST` | `/agent/profile/update` | Add a project update |
+
+**Create profile:**
+```bash
+curl -X POST "https://api.bankr.bot/agent/profile" \
+  -H "X-API-Key: $BANKR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"projectName": "My Agent", "tokenAddress": "0x...", "description": "An AI trading agent"}'
+```
+
+**Add a project update:**
+```bash
+curl -X POST "https://api.bankr.bot/agent/profile/update" \
+  -H "X-API-Key: $BANKR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "v2 Launch", "content": "Shipped swap optimization and new UI"}'
+```
+
+See [references/agent-profiles.md](references/agent-profiles.md) for the full integration guide.
