@@ -102,6 +102,8 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "Research 
 | `--key-name <name>` | Display name for the API key (e.g. "My Agent"). Prompted if omitted |
 | `--read-write` | Enable write operations: swaps, transfers, orders, token launches, leverage, Polymarket bets. **Without this flag, the key is read-only** (portfolio, balances, prices, research only) |
 | `--llm` | Enable [LLM gateway](https://docs.bankr.bot/llm-gateway/overview) access (multi-model API at `llm.bankr.bot`). Currently limited to beta testers |
+| `--allowed-ips <ips>` | Comma-separated IP allowlist for the API key |
+| `--allowed-recipients <addresses>` | Comma-separated EVM/Solana addresses the key can send to (auto-classified by 0x prefix) |
 
 Any option not provided on the command line will be prompted interactively by the CLI, so you can mix headless and interactive as needed.
 
@@ -226,6 +228,8 @@ For full API details (request/response schemas, job states, rich data, polling s
 | `bankr balances --low-value` | Include tokens valued under $1 in the output |
 | `bankr balances --chain <chains>` | Filter by chain(s): base, polygon, mainnet, unichain, solana (comma-separated) |
 | `bankr balances --json` | Output raw JSON balances |
+| `bankr tokens search <query>` | Search tokens by name/symbol/address (no auth required) |
+| `bankr tokens info <address>` | Show token details and price (no auth required) |
 | `bankr skills` | Show all Bankr AI agent skills with examples |
 
 ### Configuration Commands
@@ -355,6 +359,10 @@ bankr llm setup openclaw --install         # Install Bankr provider into OpenCla
 bankr llm setup claude                     # Print Claude Code env vars
 bankr llm claude                           # Launch Claude Code through gateway
 ```
+
+### Model Deprecation
+
+The gateway supports model deprecation with auto-redirect to replacement models. Deprecated models return `X-Model-Deprecated` and `X-Model-Replacement` response headers. Hard-deprecated models return HTTP 410 — update your model ID to the replacement indicated in the header.
 
 For full details — setup paths, model list, provider config, SDK examples, key management, and troubleshooting — see:
 
