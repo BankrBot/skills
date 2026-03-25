@@ -32,7 +32,7 @@ curl -s "https://api.bankr.bot/wallet/portfolio?chains=base,solana" \
 
 > **Deprecation notice**: `GET /agent/balances` still works but is deprecated. Use `GET /wallet/portfolio` instead.
 
-The `/wallet/portfolio` endpoint is a read endpoint — any valid API key with a wallet can access it (no `agentApiEnabled` required).
+The `/wallet/portfolio` endpoint is a read endpoint — any valid API key with a wallet can access it (no feature flags required).
 
 ## Supported Chains
 

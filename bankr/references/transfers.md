@@ -27,7 +27,7 @@ curl -X POST "https://api.bankr.bot/wallet/transfer" \
   -d '{"to": "vitalik.eth", "token": "USDC", "amount": "50", "chain": "base"}'
 ```
 
-The `/wallet/transfer` endpoint is a write endpoint — requires `agentApiEnabled`, `readOnly: false`, and is subject to `allowedRecipients` enforcement and IP allowlist.
+The `/wallet/transfer` endpoint is a write endpoint — requires `walletApiEnabled`, `readOnly: false`, and is subject to `allowedRecipients` enforcement and IP allowlist.
 
 ## Supported Transfers
 

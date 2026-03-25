@@ -39,7 +39,7 @@ bankr login email user@example.com
 bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent" --read-write
 ```
 
-This creates a wallet, accepts terms, and generates an API key — no browser needed. Before running step 2, ask the user whether they need read-only or read-write access, LLM gateway, and their preferred key name.
+This creates a wallet, accepts terms, and generates an API key — no browser needed. Before running step 2, ask the user which APIs they need (wallet, agent, both via `--read-write`, LLM gateway) and their preferred key name.
 
 **Option B: Bankr Terminal**
 
@@ -79,20 +79,31 @@ bankr login email <user-email>
 
 1. **OTP code** — the code they received via email
 2. **Accept Terms of Service (REQUIRED)** — Present the [Terms of Service](https://bankr.bot/terms) link and confirm the user agrees. **The login command will fail for new users without `--accept-terms`.** You MUST ask for ToS acceptance and do not pass `--accept-terms` unless the user has explicitly confirmed.
-3. **Read-only or read-write API key?**
-   - **Read-only** (default) — portfolio, balances, prices, research only
-   - **Read-write** (`--read-write`) — enables swaps, transfers, orders, token launches, leverage, Polymarket bets
+3. **Which APIs do they need?**
+   - **Wallet API** — enabled by default, use `--no-wallet-api` to disable
+   - **Agent API** (`--agent-api`) — AI-powered prompts and natural language operations
+   - **Token Launch** — enabled by default, use `--no-token-launch` to disable
+   - Add `--read-write` to allow transactions (without it, enabled APIs are read-only)
 4. **Enable LLM gateway access?** (`--llm`) — multi-model API at `llm.bankr.bot` (currently limited to beta testers). Skip if user doesn't need it.
 5. **Key name?** (`--key-name`) — a display name for the API key (e.g. "My Agent", "Trading Bot")
 
 **Step 3 — Construct and run the step 2 command** with the user's choices. **Do NOT execute if the user has not explicitly accepted the Terms of Service** — ask again if needed:
 
 ```bash
-# Example with all options
-bankr login email <user-email> --code <otp> --accept-terms --key-name "My Agent" --read-write --llm
+# Full access: wallet + agent with write + LLM
+bankr login email <user-email> --code <otp> --accept-terms --key-name "My Agent" --agent-api --read-write --llm
 
-# Example read-only, no LLM
-bankr login email <user-email> --code <otp> --accept-terms --key-name "Research Bot"
+# Agent with write access (AI can execute transactions)
+bankr login email <user-email> --code <otp> --accept-terms --key-name "Trading Agent" --agent-api --read-write
+
+# Default key (wallet + token launch, read-only)
+bankr login email <user-email> --code <otp> --accept-terms --key-name "My Key"
+
+# Agent read-only (research, prices, balances — no transactions)
+bankr login email <user-email> --code <otp> --accept-terms --key-name "Research Agent" --agent-api
+
+# LLM-only (no wallet, no token launch)
+bankr login email <user-email> --code <otp> --accept-terms --key-name "LLM Client" --no-wallet-api --no-token-launch --llm
 ```
 
 #### Login options reference
@@ -102,8 +113,21 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "Research 
 | `--code <otp>` | OTP code received via email (step 2) |
 | `--accept-terms` | Accept [Terms of Service](https://bankr.bot/terms) without prompting (required for new users) |
 | `--key-name <name>` | Display name for the API key (e.g. "My Agent"). Prompted if omitted |
-| `--read-write` | Enable write operations: swaps, transfers, orders, token launches, leverage, Polymarket bets. **Without this flag, the key is read-only** (portfolio, balances, prices, research only) |
+| `--no-wallet-api` | Disable Wallet API (enabled by default) |
+| `--agent-api` | Enable Agent API (AI prompts, natural language operations) |
+| `--read-write` | Disable read-only mode (allow transactions). Without this, enabled APIs are read-only |
+| `--no-token-launch` | Disable Token Launch API (enabled by default) |
 | `--llm` | Enable [LLM gateway](https://docs.bankr.bot/llm-gateway/overview) access (multi-model API at `llm.bankr.bot`). Currently limited to beta testers |
+
+**New key defaults** (when no flags are passed):
+
+| Flag | Default | To change |
+|------|---------|-----------|
+| `walletApiEnabled` | Enabled | `--no-wallet-api` |
+| `agentApiEnabled` | Disabled | `--agent-api` |
+| `tokenLaunchApiEnabled` | Enabled | `--no-token-launch` |
+| `llmGatewayEnabled` | Disabled | `--llm` |
+| `readOnly` | Enabled (read-only) | `--read-write` |
 
 Any option not provided on the command line will be prompted interactively by the CLI, so you can mix headless and interactive as needed.
 
@@ -204,7 +228,7 @@ Omit `threadId` to start a new conversation. CLI equivalent: `bankr agent prompt
 | `/wallet/submit` | POST | Write | Submit raw transactions to chain |
 
 - **Read endpoints** (`/wallet/me`, `/wallet/portfolio`) — any valid API key with a wallet
-- **Write endpoints** (`/wallet/transfer`, `/wallet/sign`, `/wallet/submit`) — require `agentApiEnabled`, `readOnly` check, and `allowedRecipients` enforcement
+- **Write endpoints** (`/wallet/transfer`, `/wallet/sign`, `/wallet/submit`) — require `walletApiEnabled`, `readOnly` check, and `allowedRecipients` enforcement
 - IP allowlist enforced on all endpoints
 
 #### Agent API (`/agent/*`) — AI-powered endpoints (async)
@@ -543,9 +567,9 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 **Dedicated Agent Wallet**: When building autonomous agents, create a separate Bankr account rather than using your personal wallet. This isolates agent funds — if a key is compromised, only the agent wallet is exposed. Fund it with limited amounts and replenish as needed.
 
-**API Key Types**: Bankr uses a single key format (`bk_...`) with capability flags (`agentApiEnabled`, `llmGatewayEnabled`). You can optionally configure a separate LLM Gateway key via `bankr config set llmKey` or `BANKR_LLM_KEY` — useful when you want independent revocation or different permissions for agent vs LLM access.
+**API Key Types**: Bankr uses a single key format (`bk_...`) with capability flags (`walletApiEnabled`, `agentApiEnabled`, `tokenLaunchApiEnabled`, `llmGatewayEnabled`). You can optionally configure a separate LLM Gateway key via `bankr config set llmKey` or `BANKR_LLM_KEY` — useful when you want independent revocation or different permissions for agent vs LLM access.
 
-**Read-Only API Keys**: Keys with `readOnly: true` filter all write tools (swaps, transfers, staking, token launches, etc.) from agent sessions. The `/wallet/sign`, `/wallet/submit`, and `/wallet/transfer` write endpoints return 403. Ideal for monitoring bots and research agents.
+**Read-Only API Keys**: New keys default to `readOnly: true`. This filters all write tools (swaps, transfers, staking, token launches, etc.) from agent sessions. The `/wallet/sign`, `/wallet/submit`, and `/wallet/transfer` write endpoints return 403. Use `--read-write` during login or toggle in the web settings to disable. Ideal for monitoring bots and research agents.
 
 **IP Whitelisting**: Set `allowedIps` on your API key to restrict usage to specific IPs. Requests from non-whitelisted IPs are rejected with 403 at the auth layer.
 

@@ -13,7 +13,7 @@ Unlike the async prompt endpoint, these endpoints are **synchronous** and return
 
 > **Deprecation notice**: The old `/agent/sign` and `/agent/submit` endpoints still work but are deprecated. Use `/wallet/sign` and `/wallet/submit` instead.
 
-Both write endpoints require an API key with `agentApiEnabled` and will be rejected if the key is `readOnly`. IP allowlist is enforced.
+Both write endpoints require an API key with `walletApiEnabled` and will be rejected if the key is `readOnly`. IP allowlist is enforced.
 
 ## POST /wallet/sign
 
@@ -313,7 +313,7 @@ await submit({ transaction: swapTx });
 
 ## Security Notes
 
-- API keys with write access (`agentApiEnabled`, not `readOnly`) can submit transactions — keep them secure
+- API keys with write access (`walletApiEnabled`, not `readOnly`) can submit transactions — keep them secure
 - The `submit` endpoint has no confirmation prompts — it executes immediately
 - `allowedRecipients` enforcement applies to `/wallet/transfer` — restricts which addresses can receive funds
 - Validate all transaction parameters before submission
