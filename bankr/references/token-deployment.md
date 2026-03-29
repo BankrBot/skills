@@ -229,25 +229,12 @@ Deploy ERC20 tokens on Base and Unichain using Clanker or Doppler (rehype pools)
 
 ### Fee Structure (Doppler Rehype Pools)
 
-**Standard deploys (non-partner):**
-
 | Share | Recipient | Description |
 |-------|-----------|-------------|
 | 95% | Creator | Creator trading fees |
 | 5% | Protocol | Protocol fee |
 
 Rehype pools route the Bankr share to a buyback mechanism instead of direct beneficiary splits. Pool fee is 0.7%.
-
-**Partner deploys (without custom split):**
-
-| Share | Recipient | Description |
-|-------|-----------|-------------|
-| 57% | Creator | Creator trading fees |
-| 36.1% | Bankr | Platform fee |
-| 1.9% | Bankr Ecosystem | Ecosystem fund |
-| 5% | Protocol | Protocol fee |
-
-**Partner deploys (with custom split):** Fully custom fee splits override all defaults.
 
 ### Fee Structure (Clanker)
 

@@ -546,7 +546,7 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 - **EVM (Base)**: Deploy ERC20 tokens via Clanker with customizable metadata and social links
 - **Solana**: Launch SPL tokens via Raydium LaunchLab with bonding curve and auto-migration to CPMM
-- Rehype (decay) pools: 95% creator fees on standard deploys, 57% on partner deploys
+- Rehype (decay) pools: 95% creator fees, 5% protocol fee
 - Creator fee claiming on both chains
 - Fee Key NFTs for Solana (50% LP trading fees post-migration)
 - Optional fee recipient designation with 99.9%/0.1% split (Solana)
@@ -676,20 +676,6 @@ bankr agent prompt "What tokens are trending on Base?"
 # Compare tokens
 bankr agent prompt "Compare ETH vs SOL"
 ```
-
-## Partner API
-
-The Partner API enables programmatic wallet provisioning for platforms integrating Bankr. Partners authenticate via `x-partner-key` header with keys in the format `bk_ptr_{keyId}_{secret}`.
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/partner/wallets` | POST | Provision a new Bankr wallet for an end-user |
-| `/partner/wallets` | GET | List all wallets provisioned by this partner |
-| `/partner/wallets/:identifier` | GET | Look up wallet by public ID, EVM, or Solana address |
-| `/partner/wallets/:identifier/api-key` | POST | Generate a user API key for a provisioned wallet |
-| `/partner/wallets/:identifier/api-key` | DELETE | Revoke a wallet's API key |
-
-Partner capabilities are scoped per organization: `walletApi`, `agentApi`, `llmGatewayApi`, `tokenLaunchApi`. All partner keys are SHA-256 hashed at rest.
 
 ## API Workflow
 
