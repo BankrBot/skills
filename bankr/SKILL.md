@@ -1,6 +1,6 @@
 ---
 name: bankr
-description: AI-powered crypto trading agent, wallet API, and LLM gateway via natural language. Use when the user wants to trade crypto, check portfolio balances (with PnL and NFTs), view token prices, search tokens, transfer crypto, manage NFTs, use leverage, bet on Polymarket, deploy tokens, set up automated trading, sign and submit raw transactions, or access LLM models through the Bankr LLM gateway funded by your Bankr wallet. Supports Base, Ethereum, Polygon, Solana, and Unichain.
+description: AI-powered crypto trading agent, wallet API, and LLM gateway via natural language. Use when the user wants to trade crypto, check portfolio balances (with PnL and NFTs), view token prices, search tokens, transfer crypto, manage NFTs, use leverage, trade perpetuals on Hyperliquid, bet on Polymarket, deploy tokens, set up automated trading, sign and submit raw transactions, or access LLM models through the Bankr LLM gateway funded by your Bankr wallet. Supports Base, Ethereum, Polygon, Solana, Unichain, World Chain, Arbitrum, BNB Chain, and Hyperliquid.
 metadata:
   {
     "clawdbot":
@@ -310,6 +310,8 @@ CLI 0.2.0 organizes commands into three namespaces: `wallet`, `agent`, and `toke
 | `bankr config get [key]` | Get config value(s) |
 | `bankr config set <key> <value>` | Set a config value |
 | `bankr --config <path> <command>` | Use a custom config file path |
+| `bankr update` | Check for and install CLI updates from npm |
+| `bankr update --check` | Check for available updates without installing |
 
 Valid config keys: `apiKey`, `apiUrl`, `llmKey`, `llmUrl`
 
@@ -527,16 +529,30 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 **Reference**: [references/leverage-trading.md](references/leverage-trading.md)
 
+### Hyperliquid Trading
+
+- Perpetual futures on 200+ crypto assets, stocks (TSLA, AAPL, NVDA), and commodities
+- Spot trading on Hyperliquid-native tokens (HYPE, PURR, etc.)
+- Up to 50x leverage with isolated or cross margin
+- Take profit / stop loss on new and existing positions
+- Limit orders on perps and spot
+- Bridge USDC from Arbitrum (and other EVM chains) to Hyperliquid
+- Internal transfers between spot and perps accounts
+- Order management: modify, cancel, update leverage/margin
+
+**Reference**: [references/hyperliquid.md](references/hyperliquid.md)
+
 ### Token Deployment
 
 - **EVM (Base)**: Deploy ERC20 tokens via Clanker with customizable metadata and social links
 - **Solana**: Launch SPL tokens via Raydium LaunchLab with bonding curve and auto-migration to CPMM
+- Rehype (decay) pools: 95% creator fees on standard deploys, 57% on partner deploys
 - Creator fee claiming on both chains
 - Fee Key NFTs for Solana (50% LP trading fees post-migration)
 - Optional fee recipient designation with 99.9%/0.1% split (Solana)
 - Both creator AND fee recipient can claim bonding curve fees (gas sponsored)
 - Optional vesting parameters (Solana)
-- Rate limits: 1/day standard, 10/day Bankr Club (gas sponsored within limits)
+- Rate limits: 50/day standard, 100/day Bankr Club (gas sponsored within daily limits)
 
 **Reference**: [references/token-deployment.md](references/token-deployment.md)
 
@@ -569,8 +585,9 @@ For full details — setup paths, model list, provider config, SDK examples, key
 | Solana      | SOL          | High-speed trading            | Minimal  |
 | Unichain    | ETH          | Newer L2 option               | Very Low |
 | World Chain | ETH          | Uniswap V3/V4 swaps          | Very Low |
-| Arbitrum    | ETH          | DeFi, low-cost transactions   | Very Low |
+| Arbitrum    | ETH          | DeFi, low-cost transactions   | Very Low (gas sponsored) |
 | BNB Chain   | BNB          | BSC ecosystem trading         | Low      |
+| Hyperliquid | USDC         | Perps, spot, stocks (HIP-3)   | Minimal  |
 
 ## Safety & Access Control
 
@@ -660,6 +677,20 @@ bankr agent prompt "What tokens are trending on Base?"
 bankr agent prompt "Compare ETH vs SOL"
 ```
 
+## Partner API
+
+The Partner API enables programmatic wallet provisioning for platforms integrating Bankr. Partners authenticate via `x-partner-key` header with keys in the format `bk_ptr_{keyId}_{secret}`.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/partner/wallets` | POST | Provision a new Bankr wallet for an end-user |
+| `/partner/wallets` | GET | List all wallets provisioned by this partner |
+| `/partner/wallets/:identifier` | GET | Look up wallet by public ID, EVM, or Solana address |
+| `/partner/wallets/:identifier/api-key` | POST | Generate a user API key for a provisioned wallet |
+| `/partner/wallets/:identifier/api-key` | DELETE | Revoke a wallet's API key |
+
+Partner capabilities are scoped per organization: `walletApi`, `agentApi`, `llmGatewayApi`, `tokenLaunchApi`. All partner keys are SHA-256 hashed at rest.
+
 ## API Workflow
 
 Bankr uses an asynchronous job-based API:
@@ -698,8 +729,9 @@ Common issues and fixes:
 - **Authentication errors** → Run `bankr login` or check `bankr whoami` (CLI), or verify your `X-API-Key` header (REST API)
 - **Insufficient balance** → Add funds or reduce amount
 - **Token not found** → Verify symbol and chain
-- **Transaction reverted** → Check parameters and balances
+- **Transaction reverted** → Check parameters and balances; swap failures now return descriptive error messages (gas insufficiency, on-chain reverts)
 - **Rate limiting** → Wait and retry
+- **Gas insufficient** → Add native tokens to cover gas fees; gas is sponsored on Base, Polygon, Unichain, and Arbitrum (up to 10 tx/day)
 
 For comprehensive error troubleshooting, setup instructions, and debugging steps, see:
 
@@ -804,6 +836,17 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 - "Open 5x long on ETH with $100"
 - "Short BTC 10x with stop loss at $45k"
 - "Show my Avantis positions"
+
+### Hyperliquid
+
+- "Long $100 of BTC on hyperliquid with 10x"
+- "Short ETH on hyperliquid with 5x leverage"
+- "Buy $50 of HYPE on hyperliquid"
+- "Show my hyperliquid positions"
+- "Close my BTC position on hyperliquid"
+- "Set take profit at $70000 on my BTC position"
+- "Deposit $500 USDC to hyperliquid"
+- "What's the funding rate for SOL on hyperliquid?"
 
 ### Automation
 

@@ -53,9 +53,11 @@ bankr config get llmKey
 | `gpt-5.2-codex` | OpenAI | Code generation |
 | `gpt-5.4-mini` | OpenAI | Fast, economical (400K context, image input) |
 | `gpt-5.4-nano` | OpenAI | Ultra-fast, lowest cost (400K context, image input) |
+| `minimax-m2.5` | MiniMax | Cost-effective (204.8K context) |
 | `minimax-m2.7` | MiniMax | Balanced performance (204.8K context) |
 | `kimi-k2.5` | Moonshot AI | Long-context reasoning |
 | `qwen3-coder` | Alibaba | Code generation, debugging |
+| `glm-5-turbo` | Z.ai | Fast, large context (202K tokens) |
 
 ```bash
 # Fetch live model list from the gateway
