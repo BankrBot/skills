@@ -120,6 +120,7 @@ Manage API key settings at [bankr.bot/api](https://bankr.bot/api):
 |-------|------|-------------|
 | `readOnly` | boolean | When true, only read tools are available |
 | `allowedIps` | string[] | IP whitelist (empty = all allowed) |
+| `allowedRecipients` | string[] | Restrict transfer recipients to specific EVM/Solana addresses |
 | `walletApiEnabled` | boolean | Whether `/wallet/*` write endpoints are accessible |
 | `agentApiEnabled` | boolean | Whether `/agent/*` AI endpoints are accessible |
 | `tokenLaunchApiEnabled` | boolean | Whether token deployment is accessible |
@@ -197,12 +198,15 @@ When building autonomous agents that execute transactions, use a **separate Bank
 
 Fund the agent wallet with enough for gas and intended operations, not more:
 
-| Chain | Gas Buffer | Trading Capital |
-|-------|-----------|-----------------|
-| Base | 0.01 - 0.05 ETH | As needed for trades |
-| Polygon | 5 - 10 MATIC | As needed for trades |
-| Ethereum | 0.05 - 0.1 ETH | As needed for trades |
-| Solana | 0.1 - 0.5 SOL | As needed for trades |
+| Chain | Gas Buffer | Trading Capital | Gas Sponsored |
+|-------|-----------|-----------------|---------------|
+| Base | 0.01 - 0.05 ETH | As needed for trades | Yes |
+| Polygon | 5 - 10 MATIC | As needed for trades | Yes |
+| Ethereum | 0.05 - 0.1 ETH | As needed for trades | No |
+| Solana | 0.1 - 0.5 SOL | As needed for trades | No |
+| Arbitrum | 0.01 - 0.05 ETH | As needed for trades | Yes |
+| World Chain | 0.01 - 0.05 ETH | As needed for trades | No |
+| BNB Chain | 0.01 - 0.05 BNB | As needed for trades | No |
 
 Replenish periodically rather than pre-loading large amounts.
 

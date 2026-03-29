@@ -6,7 +6,7 @@ Deploy and manage tokens on EVM chains (via Clanker) and Solana (via Raydium Lau
 
 | Chain | Protocol | Token Standard | Best For |
 |-------|----------|----------------|----------|
-| **Base** | Clanker | ERC20 | Memecoins, social tokens |
+| **Base** | Clanker / Doppler (rehype) | ERC20 | Memecoins, social tokens |
 | **Unichain** | Clanker | ERC20 | Lower fees, newer ecosystem |
 | **Solana** | Raydium LaunchLab | SPL | High-speed trading, bonding curves |
 
@@ -178,16 +178,16 @@ Shared fee claims are always sponsored to ensure atomic claim+transfer.
 
 | User Type | Daily Limit | Gas Sponsored |
 |-----------|-------------|---------------|
-| Standard Users | Unlimited | 1 token/day |
-| Bankr Club Members | Unlimited | 10 tokens/day |
+| Standard Users | 50 tokens/day | Yes (within limits) |
+| Bankr Club Members | 100 tokens/day | Yes (within limits) |
 
 Users can launch additional tokens beyond sponsored limits by paying ~0.01 SOL gas.
 
 ---
 
-## EVM Token Launches (Clanker)
+## EVM Token Launches (Clanker / Doppler)
 
-Deploy ERC20 tokens on Base and Unichain using Clanker.
+Deploy ERC20 tokens on Base and Unichain using Clanker or Doppler (rehype pools).
 
 ### Deployment Parameters
 
@@ -224,14 +224,24 @@ Deploy ERC20 tokens on Base and Unichain using Clanker.
 
 | User Type | Daily Limit |
 |-----------|-------------|
-| Standard Users | 1 token/day |
-| Bankr Club Members | 10 tokens/day |
+| Standard Users | 50 tokens/day |
+| Bankr Club Members | 100 tokens/day |
 
-### Fee Structure
+### Fee Structure (Doppler Rehype Pools)
+
+| Share | Recipient | Description |
+|-------|-----------|-------------|
+| 95% | Creator | Creator trading fees |
+| 5% | Protocol | Protocol fee |
+
+Rehype pools route the Bankr share to a buyback mechanism instead of direct beneficiary splits. Pool fee is 0.7%.
+
+### Fee Structure (Clanker)
 
 - Small fee on each trade, accumulated for token creator
 - Claimable anytime via "Claim fees for my token"
 - Legacy fees (older Clanker versions) claimed separately
+- `transfer_fee_recipient` tool works for both Clanker and Doppler tokens
 
 ### Chain Selection
 
