@@ -89,8 +89,15 @@ const claim = await rewards.claim(userId, walletAddress)
 ## Fee Model
 
 Every claim is split automatically onchain:
+
+**Without `creatorAddress`:**
 - **95%** → user wallet
-- **5%** → Blue Agent treasury (burn + ecosystem)
+- **5%** → Blue Agent treasury
+
+**With `creatorAddress`:**
+- **92%** → user wallet
+- **3%** → agent creator (you earn this)
+- **5%** → Blue Agent treasury
 
 ## Links
 
