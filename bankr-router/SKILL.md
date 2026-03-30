@@ -1,12 +1,15 @@
 ---
 name: bankr-router
 description: Local smart routing layer for Bankr LLM Gateway traffic. Use when explaining or installing Bankr Router, switching auto/eco/premium profiles, configuring OpenClaw providers, verifying routing, or debugging router/Bankr model issues.
+repository: https://github.com/tachikomared/bankr-router
 ---
 
 # Bankr Router (OpenClaw plugin skill)
 
 ## Summary
-Bankr Router is a **local smart router** that sits in front of the **Bankr LLM Gateway**. It does **not** replace Bankr. It chooses **which model/profile to use** before requests go to Bankr, then forwards the request upstream.
+Bankr Router is a **local smart router** that sits in front of the **Bankr LLM Gateway**. You can find the source code and latest releases here: [https://github.com/tachikomared/bankr-router](https://github.com/tachikomared/bankr-router)
+
+It does **not** replace Bankr. It chooses **which model/profile to use** before requests go to Bankr, then forwards the request upstream.
 
 **Benefits:**
 - Lower cost by default (route simpler prompts to cheaper models).
