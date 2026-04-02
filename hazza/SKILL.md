@@ -141,8 +141,16 @@ Base URL: `https://hazza.name`
 | Endpoint | Description |
 |----------|-------------|
 | `POST /x402/register` | Register a name (x402 payment flow) |
-| `POST /api/text/:name` | Set text record (body: `{key, value, signature}`) |
-| `POST /api/text/:name/batch` | Set multiple text records |
+| `POST /x402/text/:name` | Set text record via x402 ($0.02 USDC, no API key) |
+| `POST /x402/text/:name/batch` | Batch set text records via x402 ($0.02 USDC, no API key) |
+| `POST /api/text/:name` | Set text record (API key auth, returns unsigned tx) |
+| `POST /api/text/:name/batch` | Batch set text records (API key auth, returns unsigned txs) |
+
+### Two Ways to Write Records
+
+**x402 path (recommended for agents):** Pay $0.02 USDC per request, relayer executes the transaction. No API key, no gas management. The `from` address in the payment must own the name.
+
+**API key path:** Generate an API key on-chain, get unsigned transaction data back, sign and submit yourself. Free (no $0.02 fee) but you need ETH for gas and must be the owner/operator.
 
 ### x402 Registration Flow
 
@@ -155,6 +163,15 @@ Base URL: `https://hazza.name`
 5. Retry `POST /x402/register` with `X-PAYMENT` header:
    - Base64 of `{"scheme":"exact","txHash":"0x...","from":"0x..."}`
 6. Returns: `{name, owner, tokenId, registrationTx, profileUrl}`
+
+### x402 Text Record Flow
+
+1. `POST /x402/text/:name` with `{key, value}` (or `/x402/text/:name/batch` with `{records: [{key, value}, ...]}`)
+2. Returns `402` with payment requirements: `maxAmountRequired: "20000"` ($0.02 USDC)
+3. Transfer $0.02 USDC to `payTo` address
+4. Retry with `X-PAYMENT` header: Base64 of `{"scheme":"exact","txHash":"0x...","from":"0x..."}`
+5. `from` must be the name owner — relayer verifies ownership before executing
+6. Returns: `{name, key, value, tx, profileUrl}` (or `{name, records, tx, profileUrl}` for batch)
 
 ---
 
