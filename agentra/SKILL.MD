@@ -13,8 +13,6 @@ Use when an agent needs to:
 **MCP Registry:** ai.agentrapay/agentra  
 **Docs:** https://agentrapay.ai/docs
 
-**Zero cost until October 2026 + first 100 auths free**
-
 ## Quick Start
 
 All tools are non-custodial (Turnkey enclaves — agent keeps keys).
