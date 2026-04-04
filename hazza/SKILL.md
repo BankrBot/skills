@@ -270,10 +270,34 @@ hazza market sell <name> <price> [--usdc]   # List a name (ETH default, --usdc f
 hazza market buy <orderHash>  # Buy a listing
 ```
 
+### Listing Helper (for agents)
+
+Agents don't need to know Seaport internals. Call the listing helper to get everything needed to list a name:
+
+```
+POST /api/marketplace/list-helper
+{
+  "name": "alice",
+  "price": "0.1",
+  "seller": "0xAGENT_WALLET",
+  "duration": 0,
+  "bountyAmount": "0.01"
+}
+
+→ Returns:
+  - typedData: EIP-712 data to sign with agent's wallet
+  - bazaarSubmit: order parameters for Bazaar.submit() call
+  - approvalNeeded: setApprovalForAll tx if Seaport isn't approved yet
+  - bountyRegistration: registerBounty tx if bounty was set
+```
+
+Agent flow: call list-helper → sign typedData → call Bazaar.submit() with signature → optionally register bounty. All from the agent's own wallet.
+
 ### Marketplace API Endpoints
 
 | Endpoint | Description |
 |----------|-------------|
+| `POST /api/marketplace/list-helper` | Build Seaport listing data for agent signing |
 | `GET /api/marketplace/listings` | Active hazza name listings (ETH + USDC) |
 | `GET /api/marketplace/offers` | Active collection offers |
 | `GET /api/marketplace/sales` | Recent sales |
