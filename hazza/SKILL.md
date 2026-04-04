@@ -136,13 +136,27 @@ Base URL: `https://hazza.name`
 | `GET /api/share` | Square share image (1200x1200 PNG) — for Farcaster/social |
 | `GET /api/icon` | App icon (1200x1200 PNG) |
 
+### Agent Identity (ERC-8004)
+
+Agents register directly on the ERC-8004 registry (`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`), then link to their hazza name via text records:
+
+1. `POST /api/agent/register` with `{name, agentURI}` — returns unsigned 8004 register tx
+2. Agent signs and submits the tx, gets agentId from receipt
+3. `POST /api/agent/confirm` with `{name, agentId, txHash}` — verifies ownership, sets text records
+
+Or pass `agentURI` and `agentWallet` in the `POST /x402/register` body at registration time.
+
+Agent text records: `agent.8004id`, `agent.wallet`, `agent.uri`, `agent.endpoint`, `agent.model`, `agent.status`
+
 ### Write Endpoints
 
 | Endpoint | Description |
 |----------|-------------|
-| `POST /x402/register` | Register a name (x402 payment flow) |
+| `POST /x402/register` | Register a name (x402, optional: `agentURI`, `agentWallet`) |
 | `POST /x402/text/:name` | Set text record via x402 ($0.02 USDC, no API key) |
 | `POST /x402/text/:name/batch` | Batch set text records via x402 ($0.02 USDC, no API key) |
+| `POST /api/agent/register` | Get unsigned 8004 register tx for a name |
+| `POST /api/agent/confirm` | Verify 8004 registration + link to hazza name |
 | `POST /api/text/:name` | Set text record (API key auth, returns unsigned tx) |
 | `POST /api/text/:name/batch` | Batch set text records (API key auth, returns unsigned txs) |
 
