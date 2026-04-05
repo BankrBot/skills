@@ -124,7 +124,7 @@ Base URL: `https://hazza.name`
 |----------|-------------|
 | `GET /api/available/:name` | Check name availability |
 | `GET /api/resolve/:name` | Resolve name to owner address |
-| `GET /api/quote/:name?wallet=` | Get registration price |
+| `GET /api/quote/:name?wallet=&verifiedPass=true` | Get registration price (wallet required for accurate pricing) |
 | `GET /api/free-claim/:address` | Check free claim eligibility (first-registration + Unlimited Pass) |
 | `GET /api/profile/:name` | Full profile with text records |
 | `GET /api/text/:name/:key` | Get single text record |
@@ -140,13 +140,19 @@ Base URL: `https://hazza.name`
 
 Agents register directly on the ERC-8004 registry (`0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`), then link to their hazza name via text records:
 
-1. `POST /api/agent/register` with `{name, agentURI}` — returns unsigned 8004 register tx
-2. Agent signs and submits the tx, gets agentId from receipt
-3. `POST /api/agent/confirm` with `{name, agentId, txHash}` — verifies ownership, sets text records
+1. `POST /api/agent/register` with `{name, agentURI}` (optional: `agentWallet`) — returns unsigned 8004 register tx + instructions
+2. Agent signs and submits the tx from the name owner wallet, gets agentId from Transfer event (topics[3])
+3. `POST /api/agent/confirm` with `{name, agentId, txHash}` (optional: `agentWallet`) — verifies 8004 token is owned by name owner, sets text records via relayer
 
-Or pass `agentURI` and `agentWallet` in the `POST /x402/register` body at registration time.
+Or pass `agentURI` and `agentWallet` in the `POST /x402/register` body at registration time — agent text records are set automatically (but you still need to register on 8004 separately).
 
-Agent text records: `agent.8004id`, `agent.wallet`, `agent.uri`, `agent.endpoint`, `agent.model`, `agent.status`
+Agent text records:
+- `agent.8004id` — ERC-8004 agent token ID (set by `/api/agent/confirm`)
+- `agent.wallet` — agent's operational wallet address
+- `agent.uri` — agent metadata URI (same as the URI passed to 8004 register)
+- `agent.endpoint` — agent's API endpoint URL
+- `agent.model` — LLM model the agent runs
+- `agent.status` — operational status (e.g., "active")
 
 ### Write Endpoints
 
@@ -162,7 +168,7 @@ Agent text records: `agent.8004id`, `agent.wallet`, `agent.uri`, `agent.endpoint
 
 ### Two Ways to Write Records
 
-**x402 path (recommended for agents):** Pay $0.02 USDC per request, relayer executes the transaction. No API key, no gas management. The `from` address in the payment must own the name.
+**x402 path (recommended for agents):** Pay $0.02 USDC per request, relayer executes the transaction. No API key, no gas management. You can only update records on names you own — the `from` address in the X-PAYMENT header must match the name owner.
 
 **API key path:** Generate an API key on-chain, get unsigned transaction data back, sign and submit yourself. Free (no $0.02 fee) but you need ETH for gas and must be the owner/operator.
 
@@ -171,8 +177,11 @@ Agent text records: `agent.8004id`, `agent.wallet`, `agent.uri`, `agent.endpoint
 1. `POST /x402/register` with `{name, owner}`
 2. If eligible for free claim → returns success immediately
 3. If paid → returns `402` with payment requirements:
-   - `accepts[0].maxAmountRequired` = USDC amount (6 decimals)
-   - `accepts[0].payTo` = relayer address
+   - `accepts[0].scheme` = `"exact"` (direct USDC transfer)
+   - `accepts[0].network` = `"base"` (chain)
+   - `accepts[0].maxAmountRequired` = USDC amount in raw units (6 decimals, e.g. `"5000000"` = $5)
+   - `accepts[0].asset` = USDC contract address
+   - `accepts[0].payTo` = relayer address (transfer USDC here)
 4. Transfer USDC to `payTo` address
 5. Retry `POST /x402/register` with `X-PAYMENT` header:
    - Base64 of `{"scheme":"exact","txHash":"0x...","from":"0x..."}`
