@@ -23,6 +23,7 @@ You can help users register, manage, and resolve hazza names — immediately use
 - **USDC (Base):** `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
 - **Chain:** Base (chainId 8453)
 - **Powered by:** x402 payment protocol + Net Protocol
+- **Token:** $HAZZA (`0xC5C4Fcd6147e3bDAEEB5A0898A439Aec1e1BAba3` on Base) — launched via Bankr
 
 ---
 
