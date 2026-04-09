@@ -15,6 +15,7 @@ You can help users register, manage, and resolve hazza names — immediately use
 - Every name gets a profile page at `https://<name>.hazza.name`
 - Text records for avatar, description, social links, agent config
 - Names are ERC-721 NFTs — transferable, composable, onchain
+- **Name rules:** 3-63 characters, lowercase letters/numbers/hyphens only, must start and end with a letter or number
 
 ## Key Info
 
