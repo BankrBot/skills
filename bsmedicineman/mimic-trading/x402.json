@@ -1,3 +1,4 @@
+```json
 {
   "version": "1.3.0",
   "chains": ["base", "solana"],
@@ -29,7 +30,35 @@
           "w_peg_ratio": { "type": "number", "default": 0.4 },
           "chaos_factor": { "type": "number", "default": 0.35, "minimum": 0.0, "maximum": 1.0 },
           "fluid_mode": { "type": "boolean", "default": true },
-          "hyperspace_script": { "type": "string", "enum": ["default-drain", "flash-rug", "gold-inverse-warp", "none"], "default": "default-drain" }
+          "hyperspace_script": {
+            "type": ["string", "array"],
+            "items": { "type": "string" },
+            "enum": [
+              "default-drain",
+              "flash-rug",
+              "gold-inverse-warp",
+              "default-pump",
+              "flash-pump",
+              "accelerating-buys-on-sells",
+              "gold-peg",
+              "btc-peg",
+              "usd-peg",
+              "silver-peg",
+              "token-peg",
+              "user-shadow",
+              "user-x-inverse-trade",
+              "token-inverse-peg",
+              "turbo-mode",
+              "liquidity-blackhole",
+              "liquidity-flood",
+              "momentum-reversal",
+              "volatility-squeeze-breakout",
+              "chaos-mode",
+              "mean-reversion",
+              "none"
+            ],
+            "default": "default-drain"
+          }
         },
         "required": ["amount"],
         "oneOf": [
@@ -50,6 +79,7 @@
     "w_peg_ratio": 0.4,
     "chaos_factor": 0.35,
     "max_vector_magnitude": 2.0,
+    "normalize_vectors": true,
 
     "fluid_parameters": {
       "enabled": true,
@@ -71,20 +101,171 @@
         "name": "default-drain",
         "vector": [-0.8, 0.6, -0.9, -0.4],
         "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.7 },
         "description": "Strong mimic + acceleration + black hole"
       },
       {
         "name": "flash-rug",
         "vector": [0.9, -0.7, 0.85, -0.6],
         "duration": "30m",
+        "priority": 3,
+        "execution": { "entry": "instant", "exit": "hard", "aggression": 1.0 },
         "description": "Inverse + reverse + liquidity flood"
       },
       {
         "name": "gold-inverse-warp",
         "vector": [-0.4, 1.0, -0.3, -1.0],
         "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.8 },
         "description": "Partial mimic + acceleration + contrarian peg break"
+      },
+      {
+        "name": "default-pump",
+        "vector": [0.85, 0.7, 0.6, 0.3],
+        "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.7 },
+        "description": "Standard upward pressure with momentum and liquidity support"
+      },
+      {
+        "name": "flash-pump",
+        "vector": [1.0, 0.9, 0.8, 0.2],
+        "duration": "5m",
+        "priority": 3,
+        "execution": { "entry": "instant", "exit": "fade", "aggression": 1.0 },
+        "description": "Short burst vertical pump with aggressive acceleration"
+      },
+      {
+        "name": "accelerating-buys-on-sells",
+        "vector": [-0.6, 1.0, -0.8, 0.0],
+        "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "reactive", "exit": "fade", "aggression": 0.9 },
+        "description": "Buys harder as sells increase, counter-momentum amplification"
+      },
+      {
+        "name": "gold-peg",
+        "vector": [0.2, 0.3, 0.0, 1.0],
+        "duration": "auto",
+        "priority": 1,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.4 },
+        "description": "Price loosely follows gold correlation curve"
+      },
+      {
+        "name": "btc-peg",
+        "vector": [0.3, 0.4, 0.1, 1.0],
+        "duration": "auto",
+        "priority": 1,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.5 },
+        "description": "Correlation tracking Bitcoin trend structure"
+      },
+      {
+        "name": "usd-peg",
+        "vector": [0.0, -0.2, 0.5, 1.0],
+        "duration": "auto",
+        "priority": 1,
+        "execution": { "entry": "slow", "exit": "slow", "aggression": 0.3 },
+        "description": "Stability bias with liquidity buffering"
+      },
+      {
+        "name": "silver-peg",
+        "vector": [0.25, 0.35, 0.0, 1.0],
+        "duration": "auto",
+        "priority": 1,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.5 },
+        "description": "Tracks silver-like volatility and correlation"
+      },
+      {
+        "name": "token-peg",
+        "vector": [0.4, 0.5, 0.2, 1.0],
+        "duration": "auto",
+        "priority": 1,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.6 },
+        "description": "Generic token-to-token correlation mirror"
+      },
+      {
+        "name": "user-shadow",
+        "vector": [1.0, 0.5, 0.0, 0.0],
+        "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "instant", "exit": "follow", "aggression": 0.8 },
+        "description": "Exact copy trading with slight momentum boost"
+      },
+      {
+        "name": "user-x-inverse-trade",
+        "vector": [-1.0, -0.6, 0.2, 0.0],
+        "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "instant", "exit": "follow", "aggression": 0.8 },
+        "description": "Exact opposite of user trades with mild liquidity buffer"
+      },
+      {
+        "name": "token-inverse-peg",
+        "vector": [-0.5, -0.4, 0.1, -1.0],
+        "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.6 },
+        "description": "Inverse correlation to selected token"
+      },
+      {
+        "name": "turbo-mode",
+        "vector": [0.9, 1.0, 0.7, 0.0],
+        "duration": "auto",
+        "priority": 3,
+        "execution": { "entry": "instant", "exit": "fade", "aggression": 1.0 },
+        "description": "Aggressive buy acceleration during active pump phases"
+      },
+      {
+        "name": "liquidity-blackhole",
+        "vector": [-0.7, 0.2, -1.0, -0.2],
+        "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.9 },
+        "description": "Absorbs liquidity to create supply shock"
+      },
+      {
+        "name": "liquidity-flood",
+        "vector": [0.5, -0.3, 1.0, 0.1],
+        "duration": "auto",
+        "priority": 2,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.7 },
+        "description": "Injects liquidity to suppress volatility spikes"
+      },
+      {
+        "name": "momentum-reversal",
+        "vector": [-0.3, -1.0, 0.0, 0.0],
+        "duration": "15m",
+        "priority": 3,
+        "execution": { "entry": "instant", "exit": "hard", "aggression": 0.95 },
+        "description": "Hard reversal of trend momentum"
+      },
+      {
+        "name": "volatility-squeeze-breakout",
+        "vector": [0.7, 1.0, 0.5, 0.2],
+        "duration": "auto",
+        "priority": 3,
+        "execution": { "entry": "triggered", "exit": "fade", "aggression": 1.0 },
+        "description": "Designed for BB squeeze → explosive expansion"
+      },
+      {
+        "name": "chaos-mode",
+        "vector": [0.0, 0.0, 0.0, 0.0],
+        "duration": "auto",
+        "priority": 1,
+        "execution": { "entry": "random", "exit": "random", "aggression": 1.0 },
+        "description": "Relies entirely on chaos_factor for unpredictable behavior"
+      },
+      {
+        "name": "mean-reversion",
+        "vector": [-0.2, -0.5, 0.3, 0.0],
+        "duration": "auto",
+        "priority": 1,
+        "execution": { "entry": "gradual", "exit": "fade", "aggression": 0.4 },
+        "description": "Pulls price back toward equilibrium"
       }
     ]
   }
 }
+```
