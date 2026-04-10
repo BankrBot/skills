@@ -1,5 +1,6 @@
 {
-  "version": "1.0.0",
+  "version": "1.3.0",
+  "chains": ["base", "solana"],
   "services": {
     "mimic-trading": {
       "path": "./index.js",
@@ -21,7 +22,14 @@
           "side": { "type": "string", "enum": ["buy", "sell"] },
           "strategy": { "type": "string", "enum": ["mimic", "inverse"], "default": "mimic" },
           "stopLoss": { "type": "number", "default": 0.05 },
-          "takeProfit": { "type": "number", "default": 0.10 }
+          "takeProfit": { "type": "number", "default": 0.10 },
+          "y_bias": { "type": "number", "default": -0.8, "minimum": -1.0, "maximum": 1.0 },
+          "x_momentum": { "type": "number", "default": 0.0, "minimum": -1.0, "maximum": 1.0 },
+          "z_gravity": { "type": "number", "default": -0.7, "minimum": -1.0, "maximum": 1.0 },
+          "w_peg_ratio": { "type": "number", "default": 0.4 },
+          "chaos_factor": { "type": "number", "default": 0.35, "minimum": 0.0, "maximum": 1.0 },
+          "fluid_mode": { "type": "boolean", "default": true },
+          "hyperspace_script": { "type": "string", "enum": ["default-drain", "flash-rug", "gold-inverse-warp", "none"], "default": "default-drain" }
         },
         "required": ["amount"],
         "oneOf": [
@@ -30,5 +38,53 @@
         ]
       }
     }
+  },
+  "b4nkr_4d_layer": {
+    "enabled": true,
+    "name": "B4NKR Hyperspace Layer",
+    "description": "Every trade = 4D vector (ΔY, ΔX, ΔZ, ΔW). Fluid parameters now react to MACD Histogram and Bollinger Band Width (squeeze → turbo).",
+
+    "y_bias": -0.8,
+    "x_momentum": 0.0,
+    "z_gravity": -0.7,
+    "w_peg_ratio": 0.4,
+    "chaos_factor": 0.35,
+    "max_vector_magnitude": 2.0,
+
+    "fluid_parameters": {
+      "enabled": true,
+      "primary_momentum": "macd_histogram",
+      "volatility_squeeze": "bollinger_band_width",
+      "bb_period": 20,
+      "bb_std_dev": 2.0,
+      "squeeze_threshold": 0.015,
+      "expansion_trigger": 0.025,
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 9,
+      "x_fluid_strength": 0.8,
+      "behavior": "compress = reduce X momentum (slow/coil), strong expansion after squeeze = turbo positive X (accelerate hard)"
+    },
+
+    "hyperspace_scripts": [
+      {
+        "name": "default-drain",
+        "vector": [-0.8, 0.6, -0.9, -0.4],
+        "duration": "auto",
+        "description": "Strong mimic + acceleration + black hole"
+      },
+      {
+        "name": "flash-rug",
+        "vector": [0.9, -0.7, 0.85, -0.6],
+        "duration": "30m",
+        "description": "Inverse + reverse + liquidity flood"
+      },
+      {
+        "name": "gold-inverse-warp",
+        "vector": [-0.4, 1.0, -0.3, -1.0],
+        "duration": "auto",
+        "description": "Partial mimic + acceleration + contrarian peg break"
+      }
+    ]
   }
 }
