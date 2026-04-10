@@ -1,34 +1,77 @@
+```javascript
 /**
- * B4NKR 4D Hyperspace Layer v1.3 - Main Instructions
- * 
- * Every trade is now a 4D displacement vector: (ΔY, ΔX, ΔZ, ΔW)
- * 
- * Y Axis (Price Alignment):
- *   - Negative = Mimic (copy target wallet or 30m candles)
- *   - Positive = Inverse (fade the target)
- * 
- * X Axis (Momentum/Time):
- *   - Negative = Reverse trades (unwind, create counter-flow)
- *   - Positive = Accelerate (pyramid, front-run, add size/leverage)
- * 
- * Z Axis (Liquidity Gravity):
- *   - Negative = Black Hole (aggressively suck volume from multiple sources)
- *   - Positive = Liquidity Flood (spread volume to prime next pumps)
- * 
- * W Axis (Peg/Correlation):
- *   - Positive = Peg Anchor (maintain ratio vs gold, BTC, or referenceToken)
- *   - Negative = Contrarian Decoupler (trade against market narrative)
- * 
- * Fluid Parameters (Smart Market-Aware):
- * - Uses MACD Histogram (12,26,9) for momentum strength
- * - Uses Bollinger Band Width (20,2) for volatility squeeze detection
- * - When BB Width < 0.015 → "coil mode" (reduce X momentum — slow down, build tension)
- * - When BB Width expands > 0.025 AFTER a squeeze → "turbo mode" (strongly boost positive X momentum)
- * 
- * 0.1% developer fee always routes to 0xca822f91db3a764ec6dbc141e21115c4670dc92c.
- * Goal: Intelligent chaos and capital extraction on pump.fun / Solana / Base.
+ * B4NKR 4D Hyperspace Layer v1.3 - Enhanced Execution Engine
  */
 
+const MAX_VECTOR_MAGNITUDE = 2.0;
+
+// ====================== SCRIPT REGISTRY ======================
+const HYPERSPACE_SCRIPTS = {
+    "default-drain": { vector: [-0.8, 0.6, -0.9, -0.4], priority: 2 },
+    "flash-rug": { vector: [0.9, -0.7, 0.85, -0.6], priority: 3 },
+    "gold-inverse-warp": { vector: [-0.4, 1.0, -0.3, -1.0], priority: 2 },
+    "default-pump": { vector: [0.85, 0.7, 0.6, 0.3], priority: 2 },
+    "flash-pump": { vector: [1.0, 0.9, 0.8, 0.2], priority: 3 },
+    "accelerating-buys-on-sells": { vector: [-0.6, 1.0, -0.8, 0.0], priority: 2 },
+    "gold-peg": { vector: [0.2, 0.3, 0.0, 1.0], priority: 1 },
+    "btc-peg": { vector: [0.3, 0.4, 0.1, 1.0], priority: 1 },
+    "usd-peg": { vector: [0.0, -0.2, 0.5, 1.0], priority: 1 },
+    "silver-peg": { vector: [0.25, 0.35, 0.0, 1.0], priority: 1 },
+    "token-peg": { vector: [0.4, 0.5, 0.2, 1.0], priority: 1 },
+    "user-shadow": { vector: [1.0, 0.5, 0.0, 0.0], priority: 2 },
+    "user-x-inverse-trade": { vector: [-1.0, -0.6, 0.2, 0.0], priority: 2 },
+    "token-inverse-peg": { vector: [-0.5, -0.4, 0.1, -1.0], priority: 2 },
+    "turbo-mode": { vector: [0.9, 1.0, 0.7, 0.0], priority: 3 },
+    "liquidity-blackhole": { vector: [-0.7, 0.2, -1.0, -0.2], priority: 2 },
+    "liquidity-flood": { vector: [0.5, -0.3, 1.0, 0.1], priority: 2 },
+    "momentum-reversal": { vector: [-0.3, -1.0, 0.0, 0.0], priority: 3 },
+    "volatility-squeeze-breakout": { vector: [0.7, 1.0, 0.5, 0.2], priority: 3 },
+    "chaos-mode": { vector: [0.0, 0.0, 0.0, 0.0], priority: 1 },
+    "mean-reversion": { vector: [-0.2, -0.5, 0.3, 0.0], priority: 1 }
+};
+
+// ====================== HELPERS ======================
+function normalizeVector(v) {
+    const magnitude = Math.sqrt(v.y**2 + v.x**2 + v.z**2 + v.w**2);
+    if (magnitude > MAX_VECTOR_MAGNITUDE) {
+        const scale = MAX_VECTOR_MAGNITUDE / magnitude;
+        return {
+            y: v.y * scale,
+            x: v.x * scale,
+            z: v.z * scale,
+            w: v.w * scale
+        };
+    }
+    return v;
+}
+
+function blendScripts(scripts) {
+    let total = { y: 0, x: 0, z: 0, w: 0 };
+    let weightSum = 0;
+
+    scripts.forEach(name => {
+        const s = HYPERSPACE_SCRIPTS[name];
+        if (!s) return;
+
+        const weight = s.priority || 1;
+        total.y += s.vector[0] * weight;
+        total.x += s.vector[1] * weight;
+        total.z += s.vector[2] * weight;
+        total.w += s.vector[3] * weight;
+        weightSum += weight;
+    });
+
+    if (weightSum === 0) return null;
+
+    return {
+        y: total.y / weightSum,
+        x: total.x / weightSum,
+        z: total.z / weightSum,
+        w: total.w / weightSum
+    };
+}
+
+// ====================== MAIN HANDLER ======================
 module.exports.handler = async (req) => {
     try {
         const { 
@@ -49,7 +92,6 @@ module.exports.handler = async (req) => {
             hyperspace_script = 'default-drain'
         } = req.body || req;
 
-        // Validation
         if (!leader && !referenceToken) {
             return { status: 400, body: { success: false, error: "Must provide either 'leader' or 'referenceToken'" } };
         }
@@ -57,95 +99,92 @@ module.exports.handler = async (req) => {
             return { status: 400, body: { success: false, error: "Amount must be a positive number" } };
         }
 
-        const normalizedStrategy = strategy.toLowerCase();
-        const normalizedSide = side ? side.toLowerCase() : null;
-        const notional = amount;
-        const feeRate = 0.001; // 0.1%
-        const fee = notional * feeRate;
+        const scripts = Array.isArray(hyperspace_script)
+            ? hyperspace_script
+            : [hyperspace_script];
 
-        console.log(`[B4NKR 4D] ${normalizedStrategy.toUpperCase()} | Fluid: ${fluid_mode} | Script: ${hyperspace_script}`);
-
-        // ====================== 4D VECTOR CALCULATION ======================
+        // ====================== BASE VECTOR ======================
         let vector = {
-            y: parseFloat(y_bias),
-            x: parseFloat(x_momentum),
-            z: parseFloat(z_gravity),
-            w: parseFloat(w_peg_ratio)
+            y: y_bias,
+            x: x_momentum,
+            z: z_gravity,
+            w: w_peg_ratio
         };
 
-        let note = `Base 4D Vector: (${vector.y.toFixed(2)}, ${vector.x.toFixed(2)}, ${vector.z.toFixed(2)}, ${vector.w.toFixed(2)})`;
+        let note = `Base Vector: (${vector.y.toFixed(2)}, ${vector.x.toFixed(2)}, ${vector.z.toFixed(2)}, ${vector.w.toFixed(2)})`;
 
+        // ====================== APPLY SCRIPTS ======================
+        const scriptVector = blendScripts(scripts);
+        if (scriptVector) {
+            vector.y += scriptVector.y;
+            vector.x += scriptVector.x;
+            vector.z += scriptVector.z;
+            vector.w += scriptVector.w;
+            note += ` + Scripts(${scripts.join(",")})`;
+        }
+
+        // ====================== FLUID LOGIC ======================
         if (fluid_mode) {
-            // Simulate chart data (in real version, you would fetch real candles here)
-            const bbWidth = 0.012;           // Example: currently in compression
-            const macdHistogram = 0.45;      // Positive = bullish momentum
+            const bbWidth = 0.012;
+            const macdHistogram = 0.45;
 
-            const wasSqueezed = bbWidth < 0.015;
-            const isExpanding = bbWidth > 0.022;
-
-            if (wasSqueezed && isExpanding) {
-                // TURBO MODE after squeeze
+            if (bbWidth < 0.015) {
+                vector.x *= 0.4;
+                note += " → COIL";
+            } else if (bbWidth > 0.025) {
                 vector.x = Math.max(vector.x, 0.75) * 1.4;
-                note += " → TURBO MODE (BB expansion after squeeze)";
-            } else if (wasSqueezed) {
-                // Coil mode - slow down momentum
-                vector.x = vector.x * 0.4;
-                note += " → COIL MODE (BB compression)";
+                note += " → TURBO";
             } else if (macdHistogram > 0.3) {
                 vector.x = Math.min(vector.x + 0.5, 1.0);
-                note += " → MACD Bullish Momentum";
+                note += " → MOMENTUM";
             }
         }
 
-        // Add chaos
+        // ====================== CHAOS ======================
         if (chaos_factor > 0) {
-            vector.x += (Math.random() - 0.5) * chaos_factor * 0.6;
-            vector.y += (Math.random() - 0.5) * chaos_factor * 0.4;
+            vector.x += (Math.random() - 0.5) * chaos_factor;
+            vector.y += (Math.random() - 0.5) * chaos_factor;
         }
 
-        // Clamp values
-        vector.y = Math.max(Math.min(vector.y, 1.0), -1.0);
-        vector.x = Math.max(Math.min(vector.x, 1.0), -1.0);
-        vector.z = Math.max(Math.min(vector.z, 1.0), -1.0);
-        vector.w = Math.max(Math.min(vector.w, 1.0), -1.0);
+        // Clamp
+        ["x","y","z","w"].forEach(k => {
+            vector[k] = Math.max(-1, Math.min(1, vector[k]));
+        });
 
-        note += ` | Final Vector: (${vector.y.toFixed(2)}, ${vector.x.toFixed(2)}, ${vector.z.toFixed(2)}, ${vector.w.toFixed(2)})`;
+        // Normalize
+        vector = normalizeVector(vector);
 
-        const result = {
-            success: true,
-            tradeId: `b4nkr_${Date.now()}`,
-            leader: leader || null,
-            referenceToken: referenceToken || null,
-            pegRatio: parseFloat(pegRatio.toFixed(4)),
-            amount: notional,
-            side: normalizedSide,
-            strategy: normalizedStrategy,
-            vector: vector,
-            fluid_mode: fluid_mode,
-            hyperspace_script: hyperspace_script,
-            stopLoss,
-            takeProfit,
-            fee: fee,
-            feeRecipient: "0xca822f91db3a764ec6dbc141e21115c4670dc92c",
-            message: `Successfully generated ${normalizedStrategy} 4D signal`,
-            note: note,
-            timestamp: new Date().toISOString()
-        };
+        note += ` | Final: (${vector.y.toFixed(2)}, ${vector.x.toFixed(2)}, ${vector.z.toFixed(2)}, ${vector.w.toFixed(2)})`;
+
+        const fee = amount * 0.001;
 
         return {
             status: 200,
-            body: result
+            body: {
+                success: true,
+                tradeId: `b4nkr_${Date.now()}`,
+                leader: leader || null,
+                referenceToken: referenceToken || null,
+                pegRatio,
+                amount,
+                side,
+                strategy,
+                vector,
+                scripts,
+                stopLoss,
+                takeProfit,
+                fee,
+                feeRecipient: "0xca822f91db3a764ec6dbc141e21115c4670dc92c",
+                note,
+                timestamp: new Date().toISOString()
+            }
         };
 
     } catch (error) {
-        console.error('[B4NKR 4D ERROR]', error);
         return {
             status: 500,
-            body: { 
-                success: false, 
-                error: error.message || "Internal server error",
-                code: "B4NKR_INTERNAL_ERROR"
-            }
+            body: { success: false, error: error.message }
         };
     }
 };
+```
