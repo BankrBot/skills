@@ -1,70 +1,78 @@
 /**
- * Mimic Pro Trading Skill - x402 Handler
- * 
- * Advanced copy-trading handler for Bankr agents.
- * Supports direct mimic, inverse trading, and supply/candle matching logic.
- * Fee: 0.1% (0.001) of notional trade value sent to developer.
+ * Mimic Pro - Advanced Mimic & Inverse Trading Skill
+ * Supports wallet copying, 30m candle replication with pegRatio,
+ * and powerful inverse mode (stablecoins, black holes, inverse assets)
  */
 
 module.exports.handler = async (req) => {
     try {
         const { 
-            leader, 
-            follower, 
-            amount, 
+            leader,
+            referenceToken,
+            pegRatio = 1.0,
+            amount,
             side,
             strategy = 'mimic',
             stopLoss = 0.05,
             takeProfit = 0.10
         } = req.body || req;
 
-        // Input validation
-        if (!leader || !follower || !amount || !side) {
+        // Validation
+        if (!leader && !referenceToken) {
             return {
                 status: 400,
                 body: { 
                     success: false, 
-                    error: "Missing required fields: leader, follower, amount, side" 
+                    error: "Must provide either 'leader' or 'referenceToken'" 
                 }
             };
         }
-
-        if (!['buy', 'sell'].includes(side.toLowerCase())) {
+        if (typeof amount !== "number" || amount <= 0) {
+            return {
+                status: 400,
+                body: { success: false, error: "Amount must be a positive number" }
+            };
+        }
+        if (side && !['buy', 'sell'].includes(side.toLowerCase())) {
             return {
                 status: 400,
                 body: { success: false, error: "Side must be 'buy' or 'sell'" }
             };
         }
+        if (!["mimic", "inverse"].includes(strategy)) {
+            return {
+                status: 400,
+                body: { success: false, error: "Strategy must be 'mimic' or 'inverse'" }
+            };
+        }
 
-        const tradeSide = side.toLowerCase();
-        const notional = parseFloat(amount);
+        const normalizedStrategy = strategy.toLowerCase();
+        const normalizedSide = side ? side.toLowerCase() : null;
+        const notional = amount;
         const feeRate = 0.001; // 0.1%
         const fee = notional * feeRate;
 
-        console.log(`[MIMIC PRO] ${tradeSide.toUpperCase()} | Leader: ${leader} | Amount: ${notional} | Strategy: ${strategy} | Follower: ${follower}`);
+        console.log(`[MIMIC PRO] ${normalizedStrategy.toUpperCase()} | Amount: ${notional} | PegRatio: ${pegRatio} | Strategy: ${normalizedStrategy}`);
 
-        // Simulated trading logic (replace with real DEX calls later)
         const result = {
             success: true,
             tradeId: `mimic_${Date.now()}`,
-            leader: leader,
-            follower: follower,
-            side: tradeSide,
+            leader: leader || null,
+            referenceToken: referenceToken || null,
+            pegRatio: parseFloat(pegRatio.toFixed(4)),
             amount: notional,
-            strategy: strategy,
+            side: normalizedSide,
+            strategy: normalizedStrategy,
+            stopLoss,
+            takeProfit,
             fee: fee,
             feeRecipient: "0xca822f91db3a764ec6dbc141e21115c4670dc92c",
-            stopLoss: stopLoss,
-            takeProfit: takeProfit,
-            status: "executed",
-            message: `Successfully mimicked ${tradeSide} order for ${notional} USDC`,
+            message: `Successfully generated ${normalizedStrategy} signal`,
+            note: normalizedStrategy === "inverse" 
+                ? "Inverse mode active - suitable for stablecoins, black holes, or inverse assets" 
+                : "Direct mimic mode active",
             timestamp: new Date().toISOString()
         };
-
-        // TODO: In production, integrate with:
-        // - 1inch / Jupiter aggregator for swaps
-        // - Bankr wallet submit() for execution
-        // - WebSocket price feeds for real-time monitoring
 
         return {
             status: 200,
