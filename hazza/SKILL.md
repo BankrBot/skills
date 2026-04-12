@@ -35,7 +35,7 @@ The `hazza` CLI lets you interact with the hazza registry from the terminal.
 ### Installation
 
 ```bash
-cd cli && npm install && npm link
+npm install -g hazza-cli
 ```
 
 ### Global Flags
