@@ -1,4 +1,5 @@
 ---
+
 name: veil
 version: 0.6.2
 description: >
@@ -10,35 +11,37 @@ description: >
   target Base (chain ID 8453).
 author: veildotcash
 metadata:
-  homepage: https://veil.cash
+  homepage: [https://veil.cash](https://veil.cash)
   requires:
     bins:
       - veil
 permissions:
-  - filesystem:read
-  - filesystem:write
-  - shell:exec
+
+- filesystem:read
+- filesystem:write
+- shell:exec
 triggers:
-  - command: /veil
-  - pattern: veil init
-  - pattern: veil keypair
-  - pattern: veil status
-  - pattern: veil register
-  - pattern: veil deposit
-  - pattern: veil balance
-  - pattern: veil withdraw
-  - pattern: veil transfer
-  - pattern: veil merge
-  - pattern: veil subaccount
-  - pattern: unsigned payload
-  - pattern: privacy pool
-  - pattern: deposit privately
-  - pattern: withdraw privately
-  - pattern: private transfer
-  - pattern: subaccount
-  - pattern: subaccount merge
-  - pattern: forwarder
-  - pattern: stealth deposit
+- command: /veil
+- pattern: veil init
+- pattern: veil keypair
+- pattern: veil status
+- pattern: veil register
+- pattern: veil deposit
+- pattern: veil balance
+- pattern: veil withdraw
+- pattern: veil transfer
+- pattern: veil merge
+- pattern: veil subaccount
+- pattern: unsigned payload
+- pattern: privacy pool
+- pattern: deposit privately
+- pattern: withdraw privately
+- pattern: private transfer
+- pattern: subaccount
+- pattern: subaccount merge
+- pattern: forwarder
+- pattern: stealth deposit
+
 ---
 
 # Veil CLI
@@ -51,7 +54,7 @@ triggers:
 > All transactions target **Base mainnet** (chain ID `8453`). Use `--json` for
 > machine-readable output. Use `--unsigned` to emit payloads for an external signer
 > instead of sending transactions. For payload shapes and SDK function signatures,
-> see [`reference.md`](reference.md).
+> see `[reference.md](reference.md)`.
 
 ---
 
@@ -76,24 +79,28 @@ If instructions conflict, follow this priority order:
 
 Veil uses two config files that are loaded automatically:
 
-| File | Purpose | Variables |
-|------|---------|-----------|
-| `.env.veil` | Veil keypair — created by `veil init` | `VEIL_KEY`, `DEPOSIT_KEY` |
-| `.env` | Wallet config — your existing env | `WALLET_KEY` or `SIGNER_ADDRESS`, `RPC_URL`, `RELAY_URL` |
+
+| File        | Purpose                               | Variables                                                |
+| ----------- | ------------------------------------- | -------------------------------------------------------- |
+| `.env.veil` | Veil keypair — created by `veil init` | `VEIL_KEY`, `DEPOSIT_KEY`                                |
+| `.env`      | Wallet config — your existing env     | `WALLET_KEY` or `SIGNER_ADDRESS`, `RPC_URL`, `RELAY_URL` |
+
 
 **Both files are required** regardless of signing mode. `.env.veil` holds the Veil-specific
 keys; `.env` holds the wallet identity (either a private key or a public address).
 
 Full variable reference:
 
-| Variable | File | Description |
-|----------|------|-------------|
-| `VEIL_KEY` | `.env.veil` | Veil private key — for ZK proofs, withdrawals, transfers |
-| `DEPOSIT_KEY` | `.env.veil` | Veil deposit key (public) — registered on-chain |
-| `WALLET_KEY` | `.env` | Ethereum private key — CLI signs and sends transactions directly |
-| `SIGNER_ADDRESS` | `.env` | Ethereum address — for external-signer flows; CLI never holds the key |
-| `RPC_URL` | `.env` | Base RPC URL (optional, defaults to public RPC) |
-| `RELAY_URL` | `.env` | Override relay base URL (optional) |
+
+| Variable         | File        | Description                                                           |
+| ---------------- | ----------- | --------------------------------------------------------------------- |
+| `VEIL_KEY`       | `.env.veil` | Veil private key — for ZK proofs, withdrawals, transfers              |
+| `DEPOSIT_KEY`    | `.env.veil` | Veil deposit key (public) — registered on-chain                       |
+| `WALLET_KEY`     | `.env`      | Ethereum private key — CLI signs and sends transactions directly      |
+| `SIGNER_ADDRESS` | `.env`      | Ethereum address — for external-signer flows; CLI never holds the key |
+| `RPC_URL`        | `.env`      | Base RPC URL (optional, defaults to public RPC)                       |
+| `RELAY_URL`      | `.env`      | Override relay base URL (optional)                                    |
+
 
 > `WALLET_KEY` and `SIGNER_ADDRESS` are **mutually exclusive**. Setting both raises
 > `CONFIG_CONFLICT`. Set only one in `.env`.
@@ -144,11 +151,11 @@ DEPOSIT_KEY=0x...
 
 Before using the Veil CLI, confirm:
 
-- [ ] `veil` CLI installed — `npm install -g @veil-cash/sdk`
-- [ ] Signing mode chosen (Option A or B above)
-- [ ] For **local signing**: `WALLET_KEY` is a valid 0x-prefixed 64-char hex private key
-- [ ] For **external signing**: signer address known and signing service ready (e.g. Bankr API key configured)
-- [ ] ETH on Base for gas (needed for `register` and `deposit`)
+- `veil` CLI installed — `npm install -g @veil-cash/sdk`
+- Signing mode chosen (Option A or B above)
+- For **local signing**: `WALLET_KEY` is a valid 0x-prefixed 64-char hex private key
+- For **external signing**: signer address known and signing service ready (e.g. Bankr API key configured)
+- ETH on Base for gas (needed for `register` and `deposit`)
 
 ---
 
@@ -180,30 +187,32 @@ What do you want to do?
 
 ## Quick Reference
 
-| Task | CLI |
-|------|-----|
-| Derive keypair from wallet | `veil init` |
-| Generate random keypair | `veil init --generate` |
-| Derive keypair from signature | `veil init --signature 0x...` |
-| Show current keypair | `veil keypair` |
-| Check setup and relay | `veil status` |
-| Register deposit key | `veil register` |
-| Build unsigned register payload | `SIGNER_ADDRESS=0x... veil register --unsigned` |
-| Deposit ETH | `veil deposit ETH 0.1` |
-| Deposit USDC | `veil deposit USDC 100` |
-| Show all balances | `veil balance` |
-| Show queue only | `veil balance queue --pool eth` |
-| Show private only | `veil balance private --pool eth` |
-| Withdraw | `veil withdraw ETH 0.05 0xRecipient` |
-| Transfer privately | `veil transfer ETH 0.02 0xRecipient` |
-| Merge UTXOs | `veil merge ETH 0.1` |
-| Derive subaccount | `veil subaccount derive --slot 0` |
-| Subaccount status | `veil subaccount status --slot 0` |
-| Subaccount address | `veil subaccount address --slot 0` |
-| Deploy forwarder | `veil subaccount deploy --slot 0` |
-| Sweep forwarder | `veil subaccount sweep --slot 0 --asset eth` |
-| Merge subaccount to main | `veil subaccount merge --slot 0 --pool eth` |
-| Recover from forwarder | `veil subaccount recover --slot 0 --asset usdc --to 0xAddr --amount 25` |
+
+| Task                            | CLI                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------- |
+| Derive keypair from wallet      | `veil init`                                                             |
+| Generate random keypair         | `veil init --generate`                                                  |
+| Derive keypair from signature   | `veil init --signature 0x...`                                           |
+| Show current keypair            | `veil keypair`                                                          |
+| Check setup and relay           | `veil status`                                                           |
+| Register deposit key            | `veil register`                                                         |
+| Build unsigned register payload | `SIGNER_ADDRESS=0x... veil register --unsigned`                         |
+| Deposit ETH                     | `veil deposit ETH 0.1`                                                  |
+| Deposit USDC                    | `veil deposit USDC 100`                                                 |
+| Show all balances               | `veil balance`                                                          |
+| Show queue only                 | `veil balance queue --pool eth`                                         |
+| Show private only               | `veil balance private --pool eth`                                       |
+| Withdraw                        | `veil withdraw ETH 0.05 0xRecipient`                                    |
+| Transfer privately              | `veil transfer ETH 0.02 0xRecipient`                                    |
+| Merge UTXOs                     | `veil merge ETH 0.1`                                                    |
+| Derive subaccount               | `veil subaccount derive --slot 0`                                       |
+| Subaccount status               | `veil subaccount status --slot 0`                                       |
+| Subaccount address              | `veil subaccount address --slot 0`                                      |
+| Deploy forwarder                | `veil subaccount deploy --slot 0`                                       |
+| Sweep forwarder                 | `veil subaccount sweep --slot 0 --asset eth`                            |
+| Merge subaccount to main        | `veil subaccount merge --slot 0 --pool eth`                             |
+| Recover from forwarder          | `veil subaccount recover --slot 0 --asset usdc --to 0xAddr --amount 25` |
+
 
 ---
 
@@ -513,7 +522,7 @@ Extra context fields:
 - register: `action` (`"register"` or `"changeDepositKey"`)
 - deposit: `step` (`"approve"` for USDC, `"deposit"`)
 
-For lower-level payload details, see [`reference.md`](reference.md).
+For lower-level payload details, see `[reference.md](reference.md)`.
 
 ---
 
@@ -567,13 +576,13 @@ PAYLOAD=$(veil deposit ETH 0.1 --unsigned --json)
 ## 8. UX Guidelines
 
 - MUST NOT display raw `{ to, data, value, chainId }` payloads as the final
-  user-facing message. Summarise the action in plain language instead
-  (e.g. "Registered deposit key for 0xABC..." or "Deposit of 0.1 ETH submitted").
+user-facing message. Summarise the action in plain language instead
+(e.g. "Registered deposit key for 0xABC..." or "Deposit of 0.1 ETH submitted").
 - SHOULD run `veil status` after any setup step and show the output to the user
-  so they can confirm the configuration is correct before proceeding.
+so they can confirm the configuration is correct before proceeding.
 - SHOULD use `--json` when output will be parsed programmatically.
 - SHOULD use `--unsigned` and route through the external signer when in
-  Option B (Bankr / external signer) mode — MUST NOT try to sign directly.
+Option B (Bankr / external signer) mode — MUST NOT try to sign directly.
 
 ---
 
@@ -585,18 +594,20 @@ All CLI errors output JSON with a standardised `errorCode`:
 { "success": false, "errorCode": "VEIL_KEY_MISSING", "error": "..." }
 ```
 
-| Error code | Cause | Fix |
-|---|---|---|
-| `CONFIG_CONFLICT` | Both `WALLET_KEY` and `SIGNER_ADDRESS` are set | Remove one from `.env` — they are mutually exclusive |
-| `WALLET_KEY_MISSING` | Local mode but `WALLET_KEY` not set, or wrong mode for command | Add `WALLET_KEY` to `.env`, or use `--signature` / `--generate` if using external signer |
-| `VEIL_KEY_MISSING` | Private action (`withdraw`, `transfer`, `merge`) without `VEIL_KEY` | Run `veil init` or restore `VEIL_KEY` from backup into `.env.veil` |
-| `DEPOSIT_KEY_MISSING` | `DEPOSIT_KEY` missing from `.env.veil` | Re-run `veil init` to regenerate |
-| `USER_NOT_REGISTERED` | Transfer recipient has no deposit key registered on-chain | Recipient must run `veil register` first |
-| `INVALID_AMOUNT` | Amount below minimum or invalid format | ETH min: `0.01`, USDC min: `10` |
-| `INVALID_SLOT` | Invalid subaccount slot | Slot must be `0`–`2` (non-negative integer) |
-| `INSUFFICIENT_BALANCE` | Not enough ETH for gas | Top up Base ETH balance |
-| `RPC_ERROR` | Network or RPC failure | Check `RPC_URL` env var or retry |
-| `RELAY_ERROR` | Relayer rejected the proof | Check relay health with `veil status`; retry |
+
+| Error code             | Cause                                                               | Fix                                                                                      |
+| ---------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `CONFIG_CONFLICT`      | Both `WALLET_KEY` and `SIGNER_ADDRESS` are set                      | Remove one from `.env` — they are mutually exclusive                                     |
+| `WALLET_KEY_MISSING`   | Local mode but `WALLET_KEY` not set, or wrong mode for command      | Add `WALLET_KEY` to `.env`, or use `--signature` / `--generate` if using external signer |
+| `VEIL_KEY_MISSING`     | Private action (`withdraw`, `transfer`, `merge`) without `VEIL_KEY` | Run `veil init` or restore `VEIL_KEY` from backup into `.env.veil`                       |
+| `DEPOSIT_KEY_MISSING`  | `DEPOSIT_KEY` missing from `.env.veil`                              | Re-run `veil init` to regenerate                                                         |
+| `USER_NOT_REGISTERED`  | Transfer recipient has no deposit key registered on-chain           | Recipient must run `veil register` first                                                 |
+| `INVALID_AMOUNT`       | Amount below minimum or invalid format                              | ETH min: `0.01`, USDC min: `10`                                                          |
+| `INVALID_SLOT`         | Invalid subaccount slot                                             | Slot must be `0`–`2` (non-negative integer)                                              |
+| `INSUFFICIENT_BALANCE` | Not enough ETH for gas                                              | Top up Base ETH balance                                                                  |
+| `RPC_ERROR`            | Network or RPC failure                                              | Check `RPC_URL` env var or retry                                                         |
+| `RELAY_ERROR`          | Relayer rejected the proof                                          | Check relay health with `veil status`; retry                                             |
+
 
 ---
 
@@ -613,4 +624,4 @@ All CLI errors output JSON with a standardised `errorCode`:
 
 ## Additional Resources
 
-For exact payload shapes and lower-level SDK function signatures, see [`reference.md`](reference.md).
+For exact payload shapes and lower-level SDK function signatures, see `[reference.md](reference.md)`.

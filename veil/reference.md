@@ -19,12 +19,14 @@ All `--unsigned` CLI output and programmatic builders target **Base mainnet** (c
 
 ### Field reference
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `to` | `string` | yes | Target contract address (`0x` + 40 hex chars) |
-| `data` | `string` | yes | ABI-encoded calldata (`0x` + hex) |
-| `value` | `string` | yes | ETH amount in wei as a **string** (e.g. `"0"`, `"1000000000000000000"` for 1 ETH) |
-| `chainId` | `number` | yes | `8453` (Base) |
+
+| Field     | Type     | Required | Description                                                                       |
+| --------- | -------- | -------- | --------------------------------------------------------------------------------- |
+| `to`      | `string` | yes      | Target contract address (`0x` + 40 hex chars)                                     |
+| `data`    | `string` | yes      | ABI-encoded calldata (`0x` + hex)                                                 |
+| `value`   | `string` | yes      | ETH amount in wei as a **string** (e.g. `"0"`, `"1000000000000000000"` for 1 ETH) |
+| `chainId` | `number` | yes      | `8453` (Base)                                                                     |
+
 
 `value` must always be a string. For register and USDC transactions it is `"0"`.
 For ETH deposits it equals the deposit amount in wei.
@@ -226,14 +228,16 @@ Install globally: `npm install -g @veil-cash/sdk`
 
 ### Environment variables
 
-| Variable | Description |
-|----------|-------------|
-| `VEIL_KEY` | Veil private key (for ZK proofs) |
-| `DEPOSIT_KEY` | Veil deposit key (public) |
-| `WALLET_KEY` | Ethereum wallet private key (for signing) |
-| `SIGNER_ADDRESS` | Ethereum address for unsigned/query flows when signing is external |
-| `RPC_URL` | Base RPC URL (optional, defaults to public RPC) |
-| `RELAY_URL` | Override relay base URL for relayed CLI operations, subaccount deploy/sweep, and status checks |
+
+| Variable         | Description                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| `VEIL_KEY`       | Veil private key (for ZK proofs)                                                               |
+| `DEPOSIT_KEY`    | Veil deposit key (public)                                                                      |
+| `WALLET_KEY`     | Ethereum wallet private key (for signing)                                                      |
+| `SIGNER_ADDRESS` | Ethereum address for unsigned/query flows when signing is external                             |
+| `RPC_URL`        | Base RPC URL (optional, defaults to public RPC)                                                |
+| `RELAY_URL`      | Override relay base URL for relayed CLI operations, subaccount deploy/sweep, and status checks |
+
 
 `WALLET_KEY` and `SIGNER_ADDRESS` are mutually exclusive. Use `SIGNER_ADDRESS` only for address-only CLI flows.
 
@@ -305,10 +309,12 @@ Common codes: `VEIL_KEY_MISSING`, `WALLET_KEY_MISSING`, `DEPOSIT_KEY_MISSING`,
 
 ## Deposit minimums
 
-| Asset | Minimum (net) | Notes |
-|-------|--------------|-------|
-| ETH | 0.01 | Fee (0.3%) added automatically via on-chain `getDepositAmountWithFee` |
-| USDC | 10 | Fee (0.3%) added automatically via on-chain `getDepositAmountWithFee` |
+
+| Asset | Minimum (net) | Notes                                                                 |
+| ----- | ------------- | --------------------------------------------------------------------- |
+| ETH   | 0.01          | Fee (0.3%) added automatically via on-chain `getDepositAmountWithFee` |
+| USDC  | 10            | Fee (0.3%) added automatically via on-chain `getDepositAmountWithFee` |
+
 
 The CLI amount is the **net** amount that lands in the pool. The fee is calculated on-chain and added to the transaction automatically — users do not need to account for it.
 
@@ -318,3 +324,4 @@ The CLI amount is the **net** amount that lands in the pool. The fee is calculat
 
 - npm: [@veil-cash/sdk](https://www.npmjs.com/package/@veil-cash/sdk)
 - Veil Cash: [https://veil.cash](https://veil.cash)
+

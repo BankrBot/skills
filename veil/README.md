@@ -4,9 +4,9 @@ This folder tracks the current [@veil-cash/sdk](https://github.com/veildotcash/v
 
 ## Source of truth
 
-- Main skill instructions: [`SKILL.md`](SKILL.md)
-- CLI payload and SDK reference: [`reference.md`](reference.md)
-- Troubleshooting: [`references/troubleshooting.md`](references/troubleshooting.md)
+- Main skill instructions: `[SKILL.md](SKILL.md)`
+- CLI payload and SDK reference: `[reference.md](reference.md)`
+- Troubleshooting: `[references/troubleshooting.md](references/troubleshooting.md)`
 
 ## Current model
 
@@ -50,3 +50,4 @@ scripts/veil-merge.sh ETH 0.1
 - Bankr-backed helpers use the current wallet APIs: `POST /wallet/sign` and `POST /wallet/submit`.
 - `veil-deposit-via-bankr.sh` submits the approval transaction first for USDC, then submits the deposit transaction.
 - `veil-bankr-prompt.sh` is for natural-language wallet queries, not transaction submission.
+
