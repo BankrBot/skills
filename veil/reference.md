@@ -143,6 +143,81 @@ const priv = await getPrivateBalance({
 });
 ```
 
+### Subaccounts
+
+```typescript
+import {
+  deriveSubaccountSlot,
+  getSubaccountPrivateBalance,
+  getSubaccountStatus,
+  deploySubaccountForwarder,
+  sweepSubaccountForwarder,
+  mergeSubaccount,
+  buildSubaccountRecoveryTx,
+  isSubaccountForwarderDeployed,
+  MAX_SUBACCOUNT_SLOTS,
+} from '@veil-cash/sdk';
+
+// Derive slot metadata (child key, salt, predicted forwarder address)
+const slot = await deriveSubaccountSlot({
+  rootPrivateKey: '0xVEIL_KEY',
+  slot: 0,           // 0–2
+});
+// slot.forwarderAddress, slot.childOwner, slot.childDepositKey, slot.salt
+
+// Check deployment status
+const deployed = await isSubaccountForwarderDeployed({
+  forwarderAddress: slot.forwarderAddress,
+});
+
+// Full status (deployment, forwarder balances, private balances, queue state)
+const status = await getSubaccountStatus({
+  rootPrivateKey: '0xVEIL_KEY',
+  slot: 0,
+});
+// status.deployed, status.balances, status.privateBalances, status.queues
+
+// Private pool balance for a single slot + pool
+const privateBalance = await getSubaccountPrivateBalance({
+  rootPrivateKey: '0xVEIL_KEY',
+  slot: 0,
+  pool: 'eth',
+});
+// privateBalance.privateBalance, privateBalance.unspentCount, privateBalance.utxos
+
+// Deploy forwarder (relay-backed, no WALLET_KEY needed)
+const deployResult = await deploySubaccountForwarder({
+  rootPrivateKey: '0xVEIL_KEY',
+  slot: 0,
+});
+// deployResult.transactionHash, deployResult.slot.forwarderAddress
+
+// Sweep assets into pool (relay-backed)
+const sweepResult = await sweepSubaccountForwarder({
+  forwarderAddress: slot.forwarderAddress,
+  asset: 'eth',     // 'eth' | 'usdc'
+});
+
+// Merge subaccount's private balance back to main wallet (relay-backed)
+const mergeResult = await mergeSubaccount({
+  rootPrivateKey: '0xVEIL_KEY',
+  slot: 0,
+  pool: 'eth',     // 'eth' | 'usdc' (default: 'eth')
+});
+// mergeResult.success, mergeResult.transactionHash, mergeResult.amount, mergeResult.slot, mergeResult.pool
+
+// Build recovery transaction (for assets stuck on forwarder)
+const recovery = await buildSubaccountRecoveryTx({
+  rootPrivateKey: '0xVEIL_KEY',
+  slot: 0,
+  asset: 'usdc',
+  to: '0xRecipient',
+  amount: '25',
+});
+// recovery.transaction — submit with your wallet client
+// recovery.forwarderAddress, recovery.signature, recovery.nonce, recovery.deadline
+```
+
 ---
 
 ## CLI quick reference
@@ -158,7 +233,7 @@ Install globally: `npm install -g @veil-cash/sdk`
 | `WALLET_KEY` | Ethereum wallet private key (for signing) |
 | `SIGNER_ADDRESS` | Ethereum address for unsigned/query flows when signing is external |
 | `RPC_URL` | Base RPC URL (optional, defaults to public RPC) |
-| `RELAY_URL` | Override relay base URL for relayed CLI operations |
+| `RELAY_URL` | Override relay base URL for relayed CLI operations, subaccount deploy/sweep, and status checks |
 
 `WALLET_KEY` and `SIGNER_ADDRESS` are mutually exclusive. Use `SIGNER_ADDRESS` only for address-only CLI flows.
 
@@ -195,6 +270,20 @@ veil balance queue --pool eth                      # Queue-only balance
 veil balance queue --address 0x... --json          # Queue balance for explicit address
 veil balance private --pool eth                    # Private-only balance
 veil balance private --json                        # Private balance as JSON
+
+veil subaccount derive --slot 0                    # Derive slot metadata
+veil subaccount derive --slot 0 --json             # Derive as JSON
+veil subaccount address --slot 0                   # Print forwarder address
+veil subaccount status --slot 0                    # Deployment, forwarder balances, private balances, queue state
+veil subaccount status --slot 0 --json             # Status as JSON
+veil subaccount deploy --slot 0                    # Deploy forwarder (relay-backed)
+veil subaccount deploy --slot 0 --json             # Deploy as JSON
+veil subaccount sweep --slot 0 --asset eth         # Sweep ETH into pool (relay-backed)
+veil subaccount sweep --slot 0 --asset usdc --json # Sweep USDC as JSON
+veil subaccount merge --slot 0 --pool eth          # Merge subaccount balance to main wallet
+veil subaccount merge --slot 0 --pool usdc --json  # Merge USDC as JSON
+veil subaccount recover --slot 0 --asset usdc --to 0x... --amount 25   # Recover assets (needs WALLET_KEY)
+veil subaccount recover --slot 0 --asset eth --to 0x... --amount 0.05 --json
 ```
 
 ### Error format
@@ -210,7 +299,7 @@ All CLI errors output JSON with a standardized `errorCode`:
 ```
 
 Common codes: `VEIL_KEY_MISSING`, `WALLET_KEY_MISSING`, `DEPOSIT_KEY_MISSING`,
-`CONFIG_CONFLICT`, `INVALID_AMOUNT`, `INSUFFICIENT_BALANCE`, `CONTRACT_ERROR`, `RPC_ERROR`.
+`CONFIG_CONFLICT`, `INVALID_AMOUNT`, `INVALID_SLOT`, `INSUFFICIENT_BALANCE`, `CONTRACT_ERROR`, `RPC_ERROR`.
 
 ---
 

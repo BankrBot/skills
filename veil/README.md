@@ -1,6 +1,6 @@
 # Veil skill
 
-This folder tracks the current [@veil-cash/sdk](https://github.com/veildotcash/veildotcash-sdk) CLI-first skill for Veil on Base, with optional helper scripts for OpenClaw and Bankr workflows.
+This folder tracks the current [@veil-cash/sdk](https://github.com/veildotcash/veildotcash-sdk) CLI-first skill for Veil on Base (`0.6.2`), with optional helper scripts for OpenClaw and Bankr workflows.
 
 ## Source of truth
 

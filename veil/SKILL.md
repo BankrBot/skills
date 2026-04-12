@@ -1,11 +1,13 @@
 ---
 name: veil
-version: 0.5.0
+version: 0.6.2
 description: >
   Veil CLI for private ETH and USDC transactions on Base. Use when the user wants
   to deposit, withdraw, or transfer assets privately, check private balances,
-  manage Veil keypairs, register on-chain, or build unsigned transaction payloads
-  for an external signer (e.g. Bankr). All operations target Base (chain ID 8453).
+  manage Veil keypairs, register on-chain, manage deterministic subaccounts
+  (forwarder deploy, sweep, merge to main wallet, recover), or build unsigned
+  transaction payloads for an external signer (e.g. Bankr). All operations
+  target Base (chain ID 8453).
 author: veildotcash
 metadata:
   homepage: https://veil.cash
@@ -27,11 +29,16 @@ triggers:
   - pattern: veil withdraw
   - pattern: veil transfer
   - pattern: veil merge
+  - pattern: veil subaccount
   - pattern: unsigned payload
   - pattern: privacy pool
   - pattern: deposit privately
   - pattern: withdraw privately
   - pattern: private transfer
+  - pattern: subaccount
+  - pattern: subaccount merge
+  - pattern: forwarder
+  - pattern: stealth deposit
 ---
 
 # Veil CLI
@@ -164,6 +171,8 @@ What do you want to do?
 |
 +-- Withdraw / transfer / merge       → Section 5
 |
++-- Subaccounts (forwarders)          → Section 5B
+|
 +-- Inspect or rotate keypair         → veil keypair / veil init --force
 ```
 
@@ -188,6 +197,13 @@ What do you want to do?
 | Withdraw | `veil withdraw ETH 0.05 0xRecipient` |
 | Transfer privately | `veil transfer ETH 0.02 0xRecipient` |
 | Merge UTXOs | `veil merge ETH 0.1` |
+| Derive subaccount | `veil subaccount derive --slot 0` |
+| Subaccount status | `veil subaccount status --slot 0` |
+| Subaccount address | `veil subaccount address --slot 0` |
+| Deploy forwarder | `veil subaccount deploy --slot 0` |
+| Sweep forwarder | `veil subaccount sweep --slot 0 --asset eth` |
+| Merge subaccount to main | `veil subaccount merge --slot 0 --pool eth` |
+| Recover from forwarder | `veil subaccount recover --slot 0 --asset usdc --to 0xAddr --amount 25` |
 
 ---
 
@@ -315,6 +331,8 @@ Important:
 
 Deposits treat the CLI amount as the **net** amount that lands in the pool.
 The `0.3%` protocol fee is calculated on-chain and added automatically.
+After submission, deposits go through screening / queue processing before they
+are accepted into the private pool. This typically takes around `10-15 minutes`.
 
 ```bash
 veil deposit ETH 0.1
@@ -369,6 +387,9 @@ Human-readable balance output includes:
 - wallet public balances (`ETH`, `USDC`)
 - queue and private balances
 
+If a recent deposit still appears in queue balance, screening / queue processing
+may still be in progress. Typical processing time is around `10-15 minutes`.
+
 ---
 
 ## 5. Private Actions
@@ -400,6 +421,74 @@ veil merge ETH 0.1 --json
 Human-readable transaction output uses Basescan links instead of raw hashes.
 
 Note: withdraw proof generation is single-threaded for reliable CLI exit after success.
+
+---
+
+## 5B. Subaccounts
+
+Subaccounts are deterministic child slots derived from your main `VEIL_KEY`:
+
+`root key → slot → child key → child deposit key → forwarder`
+
+Base mainnet only. Slots are `0`–`2` (max 3 subaccounts). Deploy and sweep are
+relay-backed (no `WALLET_KEY` needed). Merge transfers the subaccount's private
+pool balance back to the main wallet via a ZK proof (relay-backed, no `WALLET_KEY`
+needed). Recovery submits a direct on-chain transaction and **requires `WALLET_KEY`**
+as a gas payer.
+
+Status reports the child slot's forwarder wallet balances, private pool
+balances, and queue state.
+
+### Derive and inspect
+
+```bash
+veil subaccount derive --slot 0           # Full slot metadata
+veil subaccount derive --slot 0 --json
+veil subaccount address --slot 0          # Just the forwarder address
+veil subaccount status --slot 0           # Deployment, forwarder balances, private balances, queue state
+veil subaccount status --slot 0 --json
+```
+
+### Deploy and sweep (relay-backed)
+
+```bash
+veil subaccount deploy --slot 0           # Deploy the forwarder contract
+veil subaccount deploy --slot 0 --json
+veil subaccount sweep --slot 0 --asset eth    # Sweep ETH into the pool
+veil subaccount sweep --slot 0 --asset usdc   # Sweep USDC into the pool
+veil subaccount sweep --slot 0 --asset eth --json
+```
+
+### Merge subaccount to main wallet (relay-backed)
+
+Merge transfers the subaccount's entire private pool balance back to the main
+wallet. It builds a ZK proof transferring child UTXOs to the parent keypair and
+submits via the relay. Only needs `VEIL_KEY`.
+
+```bash
+veil subaccount merge --slot 0 --pool eth
+veil subaccount merge --slot 0 --pool usdc
+veil subaccount merge --slot 0 --pool eth --json
+```
+
+### Recover (direct on-chain — requires WALLET_KEY)
+
+Recovery is for assets still sitting on the forwarder after refund or rejection.
+It signs a forwarder withdraw with the child key and submits the transaction
+using `WALLET_KEY` as the gas payer.
+
+```bash
+veil subaccount recover --slot 0 --asset usdc --to 0xRecipient --amount 25
+veil subaccount recover --slot 0 --asset eth --to 0xRecipient --amount 0.05 --json
+```
+
+Important:
+
+- `--asset` is `eth` or `usdc` (case-insensitive in the CLI)
+- `--slot` is `0`–`2`
+- Deploy and sweep only need `VEIL_KEY`
+- Merge only needs `VEIL_KEY`
+- Recover needs both `VEIL_KEY` and `WALLET_KEY`
 
 ---
 
@@ -504,6 +593,7 @@ All CLI errors output JSON with a standardised `errorCode`:
 | `DEPOSIT_KEY_MISSING` | `DEPOSIT_KEY` missing from `.env.veil` | Re-run `veil init` to regenerate |
 | `USER_NOT_REGISTERED` | Transfer recipient has no deposit key registered on-chain | Recipient must run `veil register` first |
 | `INVALID_AMOUNT` | Amount below minimum or invalid format | ETH min: `0.01`, USDC min: `10` |
+| `INVALID_SLOT` | Invalid subaccount slot | Slot must be `0`–`2` (non-negative integer) |
 | `INSUFFICIENT_BALANCE` | Not enough ETH for gas | Top up Base ETH balance |
 | `RPC_ERROR` | Network or RPC failure | Check `RPC_URL` env var or retry |
 | `RELAY_ERROR` | Relayer rejected the proof | Check relay health with `veil status`; retry |
