@@ -10,7 +10,7 @@ Drop in a news link, a tweet URL, a ticker, or a plain-text topic and get back s
 
 **Endpoint:** `https://app.capacitr.xyz/api/analyze-link`
 **Method:** `POST`
-**Payment:** `$0.01 USDC on Base` per request (x402)
+**Payment:** `$0.05 USDC (text query)` or `$0.10 USDC (URL scan)` on Base per request (x402)
 **Content-Type:** `application/json`
 
 No API key needed — pay per request using the x402 protocol.
@@ -190,7 +190,7 @@ const markets = await res.json();
 ### With Bankr agent
 ```bash
 bankr agent prompt "Find tradeable markets for this article: https://bloomberg.com/news/articles/..."
-# The agent will call the Capacitr skill, pay $0.01 USDC via x402, and return ranked markets
+# The agent will call the Capacitr skill, pay $0.10 USDC via x402 (URL) or $0.05 (text query), and return ranked markets
 ```
 
 ---
@@ -218,12 +218,14 @@ Present to user:
 
 ## ⚡ Pricing & Cost
 
-| Call type | Cost |
-|-----------|------|
-| URL scan + market discovery | $0.01 USDC |
-| Text query + market discovery | $0.01 USDC |
+| Call type | Cost | Notes |
+|-----------|------|-------|
+| URL scan + market discovery | **$0.10 USDC** | Includes Jina scraping + Quotient enrichment |
+| Text query + market discovery | **$0.05 USDC** | Quotient enrichment only, no scraping |
 
 Payment via x402 on Base. No subscription, no API key, no account required.
+
+**Why the difference?** URL calls include a Jina AI scrape pass (renders JS, extracts clean text) on top of the Quotient intelligence layer. Text queries skip the scrape step — faster and cheaper to run.
 
 ---
 

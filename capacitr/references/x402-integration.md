@@ -17,8 +17,9 @@ Agents that support x402 pay automatically — no API keys, no subscriptions.
 ```
 Network:  Base (chain ID 8453)
 Token:    USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
-Amount:   $0.01 (10000 USDC units, 6 decimals)
-Payee:    [capacitr payment address — see x402 402 response]
+Amount:   $0.10 (100000 USDC units, 6 decimals) for URL scans
+          $0.05 (50000 USDC units, 6 decimals) for text queries
+Payee:    0x6503fB61705EB6B3C57EE1ab88a1a75A6eE01869
 ```
 
 ## JavaScript / TypeScript
@@ -91,11 +92,12 @@ Bankr's agent automatically handles x402 payments from its embedded wallet.
 
 ## Cost Estimation
 
-| Volume | Monthly Cost |
-|--------|-------------|
-| 100 scans/day | ~$30/month |
-| 500 scans/day | ~$150/month |
-| 1000 scans/day | ~$300/month |
+| Volume | Type | Monthly Cost |
+|--------|------|-------------|
+| 100 calls/day | URL scans | ~$300/month |
+| 100 calls/day | Text queries | ~$150/month |
+| 500 calls/day | URL scans | ~$1,500/month |
+| 500 calls/day | Text queries | ~$750/month |
 
 ## What's Included Per Call
 
