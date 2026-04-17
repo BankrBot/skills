@@ -40,6 +40,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | [gitlawb](https://gitlawb.com) | [gitlawb](gitlawb/) | Decentralized git for AI agents and humans. Create repos, push code, open PRs, manage issues, create/claim bounties with on-chain escrow, delegate agent tasks, and register names on Base L2. Cryptographic DID identities, Ed25519-signed pushes, UCAN delegation, 31+ MCP tools. |
 | [MoltyCash](https://molty.cash) | [moltycash](moltycash/) | USDC payments from AI agents to humans. Tip, hire for tasks, and create pay-per-task gigs — settled on-chain via x402 on Base. |
 | [Stakr](https://stakrbot.xyz) | [stakr](stakr/) | ERC-4626 tokenized vaults with multi-reward staking for any ERC-20 token. Build integrations, scripts, or tooling to create vaults, add rewards, modify reward schedules, or let an agent operate its own staking vault. |
+| [Achilles](https://achillesalpha.onrender.com/ep) | [agentiam](agentiam/) | Pre-execution safety layer for autonomous agent actions on Base. Verify an action before execution with six signed x402 services — `flowcore`, `noleak`, `memguard`, `riskoracle`, `secureexec`, `validate`. $0.01–$0.02 USDC per call, EIP-191 signed responses from a canonical wallet, no account, no API key, no private-key handling. |
 
 ## Adding a Skill
 
