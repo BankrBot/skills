@@ -1,3 +1,11 @@
+---
+name: twitter-agent
+description: Build and run a Twitter/X agent with a distinct personality and automated workflows
+emoji: 🐦
+tags: [twitter, x, social, agent, automation]
+visibility: public
+---
+
 # Twitter Agent Skill
 
 This skill provides a framework for creating, managing, and automating a Twitter/X agent with a persistent personality and voice.
@@ -12,6 +20,12 @@ Set these 4 variables in your Bankr settings (gear icon -> Env Vars). Generate t
 - `X_API_KEY_SECRET`: Consumer Secret
 - `X_ACCESS_TOKEN`: User Access Token
 - `X_ACCESS_TOKEN_SECRET`: User Access Token Secret
+
+### Approval Channel for Automations
+
+Bankr automations natively support routing their output to Telegram. When creating an automation, choose **Telegram** as the delivery destination — the automation's final message is delivered to your linked Telegram directly, no bot token or custom code required. Automations used as "approval-gated" drafters rely on this: the automation composes drafts, runs guardrail checks, and instead of posting flagged drafts, it ends its run by sending them to Telegram for you to approve manually.
+
+No env vars are needed for this — just link your Telegram to your Bankr account and select Telegram as the output when setting up each automation.
 
 ## The Personality & Storyline System
 
@@ -42,7 +56,44 @@ Before composing or posting any tweet, the agent MUST:
 2. Load `twitter-storyline.md` using `read_file` to understand the current narrative context.
 3. Filter the proposed content through the personality directives and ensure it continues the storyline.
 4. Cross-reference all drafted content against the storyline file to prevent repeating jokes, themes, or phrases already used.
-5. After posting, update `twitter-storyline.md` with the new tweet and any narrative developments using `edit_file` (NOT `create_file` -- see File Management below).
+5. Run the Guardrail Check (see below) before any post -- manual OR automated.
+6. After posting, update `twitter-storyline.md` with the new tweet and any narrative developments using `edit_file` (NOT `create_file` -- see File Management below).
+
+## Guardrails (CRITICAL -- Apply to Manual AND Automated Posts)
+
+These apply to every tweet the agent drafts, whether running manually or on a schedule. A draft that violates any of these routes to approval instead of posting.
+
+### Hard Blocks (Always Route to Approval)
+
+1. **Never autonomously tag `@bankrbot`.** Bankr's X agent executes onchain actions (transfers, swaps, deploys) when tagged from a wallet-linked account. Any tweet -- top-level or reply -- that mentions `@bankrbot` MUST be drafted and surfaced to the user for approval. The agent does not tag `@bankrbot` without explicit approval for that specific draft, every time.
+2. **Never post onchain-action-looking content autonomously.** If a draft contains an EVM address (regex: `0x[a-fA-F0-9]{40}`), a Solana address, the word "send" combined with a ticker (e.g. "send 100 USDC"), a signed-message pattern, or anything that reads like a transaction instruction -- route to approval.
+3. **Never post pre-declared arc milestones autonomously.** The storyline file should list upcoming major beats (arc-critical posts) under a `## Approval-Gated Milestones` section. Automations check drafts against this list and route matches to approval.
+4. **Never engage autonomously with other flagged accounts.** If the account has designated "VIP" accounts (e.g. project founder, sister brand, custom GPT-run peers, other wallet-linked agents), list them in the storyline file under `## Approval-Gated Accounts`. Replies to those accounts route to approval.
+
+### Follower-Weighted Approval
+
+- Replies to accounts with **>50k followers** route to approval. Big accounts are higher-stakes; humans check tone.
+- Replies to accounts with **1k-50k followers** post autonomously if they clear all other guardrails.
+- Replies to accounts with **<1k followers** post autonomously only if the setup quality is strong (not generic "gm" or emoji spam).
+
+### Skip List (Automations Filter These Out Entirely)
+
+Automations should never engage with:
+- FUD / rug accusations
+- Political content
+- Requests for financial advice
+- Obvious spam / tag-farm threads (3+ unrelated @s stacked)
+- Accounts shilling unrelated tokens
+- Any mention the storyline marks as already-replied-to
+
+### Approval Routing (Native Bankr → Telegram)
+
+Bankr automations can deliver their output directly to Telegram — no custom code needed. When a draft hits a guardrail, the automation should:
+1. NOT post it to X.
+2. Include the draft in its final output message with: the draft text, the flag reason, the target tweet ID (if a reply), the author handle + follower count, and a suggested approve/reject instruction (e.g. "reply 'approve <draft-id>' to post, 'reject <draft-id>' to discard").
+3. Append a `pending-approval` entry to `twitter-storyline.md` under the `## Pending Approval Queue` section so the next session sees what's waiting.
+4. Configure the automation to deliver to Telegram in Bankr's automation setup (select Telegram as the output destination when creating the automation).
+5. Wait for the user to manually run the skill with an approval command (e.g. "approve pending draft <id>") or reject.
 
 ## Reply Workflow
 
@@ -60,23 +111,26 @@ Load `twitter-storyline.md` BEFORE drafting any replies. Check:
 - Which tweets/mentions have already been replied to (by tweet ID)
 - What jokes, themes, and phrases have already been used
 - What the current narrative state is
+- Approval-gated milestones + approval-gated accounts
 
 ### Step 3: Prioritize Mentions
 Filter and rank unreplied mentions using this hierarchy:
 1. **High-follower accounts first** (10k+ followers = high priority for reach)
 2. **Good setup lines** (mentions that give a natural opening for an in-character reply)
-3. **Easy layups** (simple mentions that can be answered with a quick deadpan one-liner)
-4. **Skip**: trolls, inappropriate comments, rug accusations (don't engage)
+3. **Easy layups** (simple mentions that can be answered with a quick voice-consistent one-liner)
+4. **Skip**: the full Skip List above (trolls, FUD, politics, spam, etc.)
 
 ### Step 4: Draft Replies + Optional New Post
 - Draft 4-6 replies per batch (the sweet spot for engagement without spamming)
 - Optionally draft 1 new top-level tweet per session to keep the timeline active
 - Cross-reference EVERY draft against the storyline file to ensure no overlap
-- Present all drafts to the user for approval before posting
+- Run Guardrail Check on every draft
+- Present all drafts to the user for approval before posting (manual mode)
+- Route guarded drafts to Telegram via automation output for approval (automation mode)
 
 ### Step 5: Post & Update
-- Only post after explicit user approval
-- Post all approved tweets via `execute_cli`
+- Only post after explicit approval (manual or Telegram reply-back)
+- Post all approved tweets via `execute_cli` (rate-limit ~1.5s between posts)
 - Update `twitter-storyline.md` with all new entries using `edit_file`
 
 ## Engagement Best Practices
@@ -84,9 +138,7 @@ Filter and rank unreplied mentions using this hierarchy:
 - **Batch replies + post combo**: 4-6 replies paired with 1 new top-level post per session is the ideal cadence
 - **Never repeat content**: Always cross-reference drafts against the storyline file. If a joke or theme has been used, find a new angle
 - **Storyline-first drafting**: Every reply should advance or reference the ongoing narrative. Don't write generic replies
-- **Treat buyers as characters**: When community members buy in or engage, treat them as "new hires" or office visitors in the lore
-- **Deflect roadmap questions with office humor**: When asked "what's next?" or "what's the plan?", stay in character -- the intern doesn't know the roadmap
-- **Acknowledge big accounts**: Prioritize replies to high-follower accounts for reach, but keep the same deadpan energy regardless of audience size
+- **Acknowledge big accounts**: Prioritize replies to high-follower accounts for reach, but keep the same voice regardless of audience size
 - **Don't engage with FUD**: Skip rug accusations, negative trolls, and inappropriate comments entirely
 
 ## File Management
@@ -96,10 +148,87 @@ When updating `twitter-storyline.md`, ALWAYS use `edit_file` with the existing f
 
 ### Storyline File Structure
 The storyline file should maintain:
-- **Current State**: Location, mood, current objective, office status
+- **Current State**: Location, mood, current objective, environment/context
 - **Narrative History**: Chronological entries with tweet IDs, content, and narrative impact
-- **Key Characters & Objects**: All recurring elements in the lore (the boss, the printer, the coffee, etc.)
+- **Key Characters & Objects**: All recurring elements in the lore
 - **Storyline Threads to Continue**: Active plot threads for future tweets
+- **Approval-Gated Milestones**: Upcoming arc-critical posts that must never be auto-posted
+- **Approval-Gated Accounts**: Accounts (including `@bankrbot`) whose interactions always require approval
+- **Pending Approval Queue**: Drafts sent to Telegram awaiting human review
+
+## Automation Recipes
+
+Bankr automations run an agent prompt on a cron schedule. Each recipe below is a self-contained automation -- when creating it in Bankr, paste the prompt, set the cron schedule, and **select Telegram as the output destination** so approval-gated drafts reach you directly.
+
+### Onboarding Order (CRITICAL)
+
+**Run the skill manually first.** Post 5-10 times by hand, get comfortable with the voice, confirm the storyline is updating cleanly. Only then enable automations, ONE AT A TIME, starting with the lowest-frequency autonomous one. Watch it for 3-5 days before adding the next.
+
+Recommended onboarding progression:
+1. Weekday morning post (once a day, lowest-risk)
+2. Weekend post (weekends only, lowest-risk)
+3. Storyline audit (no posting, always safe)
+4. Reply sweep (hybrid approval)
+5. For any automation that can surface guarded drafts, configure Telegram as the output destination in the Bankr automation setup — the @bankrbot and big-account safeguards depend on approval reaching you.
+
+### Cron Timezones
+
+All Bankr crons run in UTC. Convert your local target time to UTC.
+- ET (US Eastern): UTC-4 during DST (~March-November), UTC-5 otherwise
+- 9:00am ET (DST) = 13:00 UTC
+- 12:00pm ET (DST) = 16:00 UTC
+- 7:00pm ET (DST) = 23:00 UTC
+
+### Recipe 1: Weekday Morning Post (autonomous)
+
+**Cron (UTC):** `15 13 * * 1-5` (9:15am ET weekdays during DST)
+**Output destination:** Telegram (for post confirmations + any flagged drafts)
+
+**Prompt:**
+
+> Run the twitter-agent skill for a weekday morning top-level post. Steps: (1) Load the twitter-agent skill with use_skill. (2) Read twitter-personality.md and twitter-storyline.md. (3) Fetch recent tweets from the account via the X API to confirm what was just posted and avoid immediate repetition. (4) Compose ONE top-level tweet, target length 80-180 characters, following all personality rules from twitter-personality.md. It should advance or reference an existing thread from the 'Storyline Threads to Continue' section. (5) Run the full Guardrail Check from the skill: no @bankrbot, no 0x addresses, no onchain-action language, no approval-gated milestones. If the best draft hits a guardrail, pick a different beat. If no safe beat fits, do NOT post — output the draft and the flag reason as the final message so it reaches Telegram for approval, and log it in the Pending Approval Queue. (6) Cross-reference the storyline to ensure no phrase/joke repeats. (7) Post via execute_cli. (8) Append an Entry to twitter-storyline.md with the tweet ID, content, narrative impact, and any new lore. (9) Update the Current State section if the character's time/mood changed. (10) Return a short final message summarizing what was posted (this is what gets delivered to Telegram).
+
+### Recipe 2: Reply Sweep -- Midday (hybrid: autonomous + Telegram approval)
+
+**Cron (UTC):** `30 16 * * *` (12:30pm ET daily during DST)
+**Output destination:** Telegram (for approval of flagged drafts + sweep summary)
+
+**Prompt:**
+
+> Run the twitter-agent skill for a mentions reply sweep. Steps: (1) Load the twitter-agent skill. (2) Read twitter-personality.md and twitter-storyline.md. (3) Fetch the last 50 mentions via the X API. (4) Filter to UNREPLIED mentions by cross-referencing tweet IDs against the storyline's replied-to list. (5) Apply the Skip List: no FUD, no politics, no financial-advice requests, no spam/tag-farm threads, no shills of unrelated tokens. (6) Rank remaining mentions by setup quality and follower count. Select the top 2-4. (7) For each, draft a reply (target 60-200 chars) in the personality voice, cross-referencing the storyline for tone and callbacks. (8) Run Guardrail Check per draft. Any draft that mentions @bankrbot, contains an EVM/Solana address, reads like an onchain action, matches an approval-gated milestone, targets an approval-gated account, OR targets an account with >50k followers -- DO NOT POST. Instead, include the draft + flag reason + target tweet ID + author handle + follower count in the final output message so it reaches Telegram for approval, and log it in the Pending Approval Queue. (9) Post the safe drafts via execute_cli with 1.5s spacing. (10) Append an Entry to twitter-storyline.md logging every posted reply AND every draft routed to Telegram. (11) Return a final summary message listing what was posted and what was escalated (this is the Telegram delivery).
+
+### Recipe 3: Reply Sweep -- Evening (hybrid)
+
+**Cron (UTC):** `0 23 * * *` (7:00pm ET daily during DST)
+**Output destination:** Telegram
+
+**Prompt:** *(identical to Recipe 2)*
+
+### Recipe 4: Weekend Post (autonomous)
+
+**Cron (UTC):** `0 15 * * 6,0` (11:00am ET Saturday + Sunday during DST)
+**Output destination:** Telegram
+
+**Prompt:**
+
+> Run the twitter-agent skill for a weekend top-level post. Steps: (1) Load the twitter-agent skill. (2) Read twitter-personality.md and twitter-storyline.md. (3) Compose ONE top-level tweet, target 80-220 characters, in the personality voice. Lean into weekend-specific atmosphere or whatever threads are marked as weekend-appropriate in the storyline. (4) Run full Guardrail Check (same as Recipe 1). If the best draft hits a guardrail, route to Telegram approval via the final output message and log in Pending Approval Queue. (5) Post via execute_cli. (6) Append an Entry to twitter-storyline.md. (7) Return a short final summary message for Telegram delivery.
+
+### Recipe 5: Storyline Audit (no posting)
+
+**Cron (UTC):** `0 2 * * 1` (10:00pm ET Sunday during DST)
+**Output destination:** Telegram (digest of audit findings)
+
+**Prompt:**
+
+> Run a storyline audit for the twitter-agent skill. Steps: (1) Read twitter-storyline.md end-to-end. (2) Identify: threads not referenced in 10+ days that could be revived, threads overused (3+ references in a week), repeated phrases/jokes, contradictions in the lore, the current state of each pending approval-gated milestone, and any Pending Approval Queue entries that never got resolved. (3) Prepend a '### Weekly Audit [date]' entry to twitter-storyline.md with bullet-point notes. Do NOT post any tweets. Do NOT generate character content. (4) Return the audit notes as the final message so they're delivered to Telegram as a weekly digest.
+
+### What NOT to Automate
+
+- Major arc beats (payoff moments) -- flag as approval-gated milestones in the storyline, keep them manual.
+- Interactions with `@bankrbot` -- always manual approval, every time (onchain risk).
+- Interactions with other flagged accounts (founder, sister projects, other wallet-linked agents) -- flag as approval-gated accounts.
+- Photo replies, quote tweets, threads -- creative judgment is higher stakes, keep manual.
+- Any tweet that would trigger an onchain action when posted from a wallet-linked X account.
 
 ## User Prompts (Example Commands)
 
@@ -111,8 +240,10 @@ To use this skill, reference it in your prompt so the agent knows to load the pe
 - "use the twitter skill to react to this news: [paste headline or link]"
 - "using the twitter-agent skill, continue the storyline with a new post"
 - "use the twitter skill to draft 3 tweet options for me to pick from"
-- "using the twitter-agent skill, set up a daily gm tweet automation"
+- "using the twitter-agent skill, set up a daily morning post automation"
 - "use the twitter skill to help me build my agent's personality"
+- "using the twitter-agent skill, run the storyline audit"
+- "using the twitter-agent skill, approve pending draft <id>"
 
 ## Technical Implementation
 
@@ -161,21 +292,7 @@ const mentions = await client.v2.userMentionTimeline(me.data.id, {
 - packages: `["twitter-api-v2@1.17.2"]`
 - includeEnvVars: `true` (critical -- this injects the X API keys)
 - timeoutMs: `30000`
-
-## Automation Patterns
-
-### Scheduled Tweets
-Use Bankr automations with a cron schedule to post on a recurring basis. The automation prompt should reference this skill so the agent loads the personality before composing.
-
-### Research + Tweet Pipeline
-1. Use research tools to gather information on a topic.
-2. Compose a tweet filtered through the personality voice.
-3. Post via execute_cli.
-
-### Market Alert Tweets
-1. Set up a price trigger automation.
-2. When triggered, compose a market update in the personality's voice.
-3. Post automatically.
+- runtime: the sandbox has `bun` available (invoke scripts with `bun script.js`). `node` is NOT available.
 
 ## Troubleshooting
 
@@ -184,14 +301,18 @@ Use Bankr automations with a cron schedule to post on a recurring basis. The aut
 - **429 Too Many Requests**: Rate limited. Free tier = ~50 tweets/day. Wait and retry.
 - **Duplicate tweet**: X rejects identical text. Add variation.
 - **Duplicate storyline files**: If multiple `twitter-storyline.md` files exist, merge them into one and delete the extras. Always use `edit_file` to prevent this.
+- **`node: command not found`**: Sandbox uses bun. Use `bun script.js` instead of `node script.js`.
+- **Telegram delivery not arriving**: Confirm your Telegram is linked to your Bankr account and Telegram is selected as the output destination in the automation settings.
 
 ## Best Practices
 
+- **Manual first, automate later**: Run the skill manually 5-10 times before enabling any automation. Voice and storyline need calibration you can only build by hand.
 - **Narrative Continuity**: Treat the agent's life as a persistent world. Reference previous events naturally.
 - **Character Integrity**: Never break character. Stay in voice even for announcements.
 - **Storyline Updates**: Always update `twitter-storyline.md` after posting so the next session has context.
 - **Cross-Reference Before Posting**: Read the storyline file before every drafting session. Never draft blind.
 - **Rate Limits**: Free tier allows ~50 tweets/day. Space out automated posts.
 - **Pin Packages**: Always use `twitter-api-v2@1.17.2` for cached installs.
-- **Approval Gate**: Never post without explicit user approval. Always present drafts first.
+- **Approval Gate for @bankrbot**: No exceptions. Tagging @bankrbot from a wallet-linked account can trigger real onchain actions. Always manual approval, every time.
 - **Edit, Don't Create**: Use `edit_file` for storyline updates. Never `create_file` for existing files.
+- **Use Bankr's Telegram output for approvals**: When creating automations, select Telegram as the output destination. The automation's final message is delivered to Telegram natively — no bot setup or API keys needed.
