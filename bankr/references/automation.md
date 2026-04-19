@@ -2,6 +2,13 @@
 
 Set up automated orders and scheduled trading strategies.
 
+## Automation Limits
+
+| User Type | Concurrent Automations |
+|-----------|----------------------|
+| Max Mode (Standard) | 3 |
+| Bankr Club | 5 |
+
 ## Order Types
 
 ### Limit Orders
