@@ -104,6 +104,7 @@ API keys support an `allowedIps` whitelist with both individual IPs and CIDR ran
 - **Empty array** (`[]`) = all IPs allowed (default)
 - **Non-empty array** = only listed IPs/ranges can use the key
 - **CIDR notation** supported (e.g., `10.0.0.0/24`, `192.168.1.0/16`)
+- **Overly broad CIDRs rejected** — CIDR ranges that are too permissive (e.g., `/0`, `/1`) are rejected to prevent accidentally allowing all IPs
 
 **403 error response:**
 ```json
