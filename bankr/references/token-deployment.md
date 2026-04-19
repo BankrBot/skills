@@ -174,6 +174,8 @@ Optional vesting for team tokens or investor allocations.
 Gas is sponsored for token launches within daily limits (1/day standard, 10/day Bankr Club).
 Shared fee claims are always sponsored to ensure atomic claim+transfer.
 
+**EVM ETH Minimum:** All non-partner EVM deploys require a minimum of 0.0001 ETH on Base, including the first deploy of the day. This prevents zero-balance wallets from consuming sponsored gas.
+
 ### Rate Limits
 
 | User Type | Daily Limit | Gas Sponsored |
