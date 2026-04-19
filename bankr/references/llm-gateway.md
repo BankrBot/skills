@@ -40,12 +40,14 @@ bankr config get llmKey
 
 | Model | Provider | Best For |
 |-------|----------|----------|
-| `claude-opus-4.6` | Anthropic | Most capable, advanced reasoning |
+| `claude-opus-4.7` | Anthropic | Most capable, latest generation (1M context) |
+| `claude-opus-4.6` | Anthropic | Advanced reasoning (1M context) |
 | `claude-opus-4.5` | Anthropic | Complex reasoning, architecture |
-| `claude-sonnet-4.6` | Anthropic | Balanced speed and quality |
-| `claude-sonnet-4.5` | Anthropic | Previous generation Sonnet |
+| `claude-sonnet-4.6` | Anthropic | Balanced speed and quality (1M context) |
+| `claude-sonnet-4.5` | Anthropic | Previous generation Sonnet (1M context) |
 | `claude-haiku-4.5` | Anthropic | Fast, cost-effective |
-| `gemini-3-pro` | Google | Long context (2M tokens) |
+| `gemini-3.1-pro` | Google | Long context (2M tokens) |
+| ~~`gemini-3-pro`~~ | Google | **Deprecated** → use `gemini-3.1-pro` (returns HTTP 410) |
 | `gemini-3-flash` | Google | High throughput |
 | `gemini-2.5-pro` | Google | Long context, multimodal |
 | `gemini-2.5-flash` | Google | Speed, high throughput |
@@ -53,6 +55,8 @@ bankr config get llmKey
 | `gpt-5.2-codex` | OpenAI | Code generation |
 | `gpt-5.4-mini` | OpenAI | Fast, economical (400K context, image input) |
 | `gpt-5.4-nano` | OpenAI | Ultra-fast, lowest cost (400K context, image input) |
+| `venice-claude-opus-4.6` | Venice.ai | Claude Opus via Venice (alternative provider) |
+| `venice-claude-sonnet-4.6` | Venice.ai | Claude Sonnet via Venice (alternative provider) |
 | `minimax-m2.7` | MiniMax | Balanced performance (204.8K context) |
 | `kimi-k2.5` | Moonshot AI | Long-context reasoning |
 | `qwen3-coder` | Alibaba | Code generation, debugging |
@@ -216,6 +220,8 @@ bankr llm claude --resume
 ```
 
 All arguments after `claude` are forwarded to the `claude` binary. The CLI sets `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` automatically from your config (using `llmKey` if set, otherwise `apiKey`).
+
+**Model ID auto-translation:** The CLI automatically converts gateway-format dotted model IDs (e.g., `claude-opus-4.7`) to Claude Code's dashed wire format (e.g., `claude-opus-4-7`). The `[1m]` context-tier suffix is preserved if present. This means `bankr llm claude --model claude-opus-4.7` just works — no manual ID conversion needed.
 
 **Option B: Set environment variables**
 
