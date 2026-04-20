@@ -23,7 +23,7 @@ Before anything else, the agent's X account MUST be marked as an **automated acc
 4. Re-enter the password when prompted.
 5. Set **Managing account** to the human/handle responsible for the bot and save.
 
-Direct link: https://x.com/settings/automation
+Direct link: https://x.com/settings/account/automation
 
 This adds the "Automated by @…" label to the profile and replies. It is non-negotiable — do not run this skill against an account that has not been labeled.
 
@@ -347,11 +347,11 @@ const eligible = (mentions.data.data || []).filter(t => {
 - **Duplicate storyline files**: If multiple `twitter-storyline.md` files exist, merge them into one and delete the extras. Always use `edit_file` to prevent this.
 - **`node: command not found`**: Sandbox uses bun. Use `bun script.js` instead of `node script.js`.
 - **Telegram delivery not arriving**: Confirm your Telegram is linked to your Bankr account and Telegram is selected as the output destination in the automation settings.
-- **Account flagged / suspended warning**: Verify the automated-account label is still set at https://x.com/settings/automation and that no recent posts were unprompted replies.
+- **Account flagged / suspended warning**: Verify the automated-account label is still set at https://x.com/settings/account/automation and that no recent posts were unprompted replies.
 
 ## Best Practices
 
-- **Label the account as automated first**: https://x.com/settings/automation — without this, X can suspend the account at any time.
+- **Label the account as automated first**: https://x.com/settings/account/automation — without this, X can suspend the account at any time.
 - **Never reply unprompted**: Only reply when explicitly tagged or when someone is commenting on the agent's own post. Three legal post types, nothing else.
 - **Manual first, automate later**: Run the skill manually 5-10 times before enabling any automation. Voice and storyline need calibration you can only build by hand.
 - **Narrative Continuity**: Treat the agent's life as a persistent world. Reference previous events naturally.
