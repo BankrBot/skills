@@ -43,6 +43,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | [gitlawb](https://gitlawb.com) | [gitlawb](gitlawb/) | Decentralized git for AI agents and humans. Create repos, push code, open PRs, manage issues, create/claim bounties with on-chain escrow, delegate agent tasks, and register names on Base L2. Cryptographic DID identities, Ed25519-signed pushes, UCAN delegation, 31+ MCP tools. |
 | [MoltyCash](https://molty.cash) | [moltycash](moltycash/) | USDC payments from AI agents to humans. Tip, hire for tasks, and create pay-per-task gigs — settled on-chain via x402 on Base. |
 | [Stakr](https://stakrbot.xyz) | [stakr](stakr/) | ERC-4626 tokenized vaults with multi-reward staking for any ERC-20 token. Build integrations, scripts, or tooling to create vaults, add rewards, modify reward schedules, or let an agent operate its own staking vault. |
+| [Clanker](https://clanker.world) | [clanker](clanker/) | ERC20 token deployment on Base, Ethereum, Arbitrum, and other EVM chains via the Clanker SDK. Deploy tokens with Uniswap V4 liquidity pools, vaults, airdrops, dev buys, custom market caps, vanity addresses, vesting, and multi-chain support. |
 
 ## Adding a Skill
 
