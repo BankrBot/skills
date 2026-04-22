@@ -24,12 +24,12 @@ fi
 
 VEIL_SIGNED_MESSAGE="Sign this message to create your Veil Wallet private key. This will be used to decrypt your balances. Ensure you are signing this message on the Veil Cash website."
 
-# Try Bankr signature-based derivation first, fall back to random.
+# Try Bankr wallet-signature derivation first, fall back to random.
 KP_JSON=""
 try_bankr_signature() {
   local api_key api_url sign_resp sig
 
-  # Need Bankr config for the signing API
+  # Need Bankr config for the wallet signing API.
   if ! [[ -f "$BANKR_CONFIG" ]]; then
     return 1
   fi
@@ -40,7 +40,7 @@ try_bankr_signature() {
   fi
 
   echo "Requesting wallet signature from Bankr..." >&2
-  sign_resp=$(curl -sf -X POST "$api_url/agent/sign" \
+  sign_resp=$(curl -sf -X POST "$api_url/wallet/sign" \
     -H "X-API-Key: $api_key" \
     -H "Content-Type: application/json" \
     -d "$(jq -nc --arg msg "$VEIL_SIGNED_MESSAGE" '{signatureType: "personal_sign", message: $msg}')" 2>/dev/null) || return 1
