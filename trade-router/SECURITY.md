@@ -1,14 +1,15 @@
 # Security Model
 
-This document explains the security architecture of the Trade Router MCP skill. It exists to address the "suspicious" verdict returned by static analysis tools (e.g., VirusTotal, ClawHub moderation) that cannot infer the non-custodial flow from behavior alone.
+This document explains the security architecture of the Trade Router skill. It exists to address the "suspicious" verdict returned by static analysis tools (VirusTotal, ClawHub moderation, npm secret scanners) that cannot infer the non-custodial flow from observed behavior alone.
 
-## TL;DR
+The skill describes a trading API. Two consumption modes ship in this repo: **(A) direct API integration** (see `SKILL.md` for the reference agent pattern) and **(B) the ready-made MCP server** (`@traderouter/trade-router-mcp` on npm / PyPI / MCP Registry). The trust model is identical across both — only the env-var conventions differ.
 
-- **Your private key never leaves your machine.** It is read once from an environment variable, used to sign transactions locally using the standard Solana cryptography library, and never transmitted, logged, or persisted.
-- **The remote service (api.traderouter.ai) only receives signed transactions** — cryptographically sealed bundles that cannot be used to compromise the originating wallet.
-- **The private key is only required for actual trading.** Read-only operations (`/holdings`, `/mcap`) do not require any key at all.
-- **Dry-run mode is available** (`TRADEROUTER_DRY_RUN=1`) — no swaps are submitted, only unsigned transactions returned for inspection.
-- **Daily loss limits and server-side signature verification** provide additional guardrails.
+## TL;DR (both modes)
+
+- **The private key never leaves the agent's machine.** It is read once from an environment variable, used for local Solana signing, and never transmitted, logged, or persisted.
+- **api.traderouter.ai only receives signed transactions** — cryptographically sealed bundles that cannot be used to compromise the originating wallet.
+- **Read-only operations (`/holdings`, `/mcap`, `/flex`) do not require any key.**
+- **Server messages are Ed25519-verified** against a hard-coded trust anchor `EXX3nRzfDUvbjZSmxFzHDdiSYeGVP1EGr77iziFZ4Jd4`.
 
 ## Threat model
 
@@ -16,61 +17,65 @@ This document explains the security architecture of the Trade Router MCP skill. 
 
 | Threat | Mitigation |
 |---|---|
-| Private key exfiltration to remote service | Key never leaves local process. Only signed transactions (which cannot be replayed beyond their single intended swap) are transmitted. |
-| Key being logged/persisted on disk | Private key is read from `PRIVATE_KEY` env var, held in memory for the signing operation, never written to disk. No log statement in the codebase includes the key. |
-| Key being captured by a compromised dependency | All cryptography is performed via `solders` (Rust-backed Solana library) — isolated signing primitives. No custom crypto. |
-| MITM attack on API calls | All requests use HTTPS to api.traderouter.ai. Server responses are verified via Ed25519 signatures using a hard-coded trust anchor public key (see `/security` endpoint). |
-| Malicious server asking to sign arbitrary tx | Client validates every returned transaction is a legitimate swap of the expected input/output amounts before signing. |
-| Sandwich / MEV attacks on the swap itself | `/protect` endpoint submits via Jito bundles, preventing mempool visibility. |
-| Slippage abuse | User sets slippage tolerance; chain enforces it at settlement. |
+| Private key exfiltration to remote service | Key never leaves the local process. Only signed transactions (which cannot be replayed beyond their single intended swap) are transmitted. |
+| Key being logged/persisted on disk | Key is held in memory only for the signing operation. No log statement in the reference agent or MCP server includes the key. |
+| Key being captured by a compromised dependency | Signing uses standard Solana libraries (`@solana/web3.js` + `tweetnacl` in the MCP server; `solders` in the Python port; `@solana/web3.js` in the reference agent). No custom crypto. |
+| MITM attack on API calls | All requests use HTTPS to api.traderouter.ai. |
+| Server impersonation of fills | Every `order_filled`, `order_created`, and `twap_execution` message is Ed25519-verified against the hard-coded trust anchor. Rotation is supported via a "next key" mechanism. |
+| Signature verification bypass | Verification is fail-closed by default. Disabling it is an explicit opt-in. |
+| Sandwich / MEV attacks on the swap | `/protect` submits via Jito bundles, preventing mempool visibility. |
+| Slippage abuse | Slippage is included in the server-signed `params_hash`; altering it invalidates the signature. |
 
 ### What's out of scope
 
-- User running this MCP on a compromised machine (local key theft via malware is beyond our remit — user is responsible for operating system security).
-- User revealing `PRIVATE_KEY` via shell history, `.env` files committed to public repos, or exposed process env (see "User responsibilities" below).
-- Attacks on Solana itself (consensus, validator compromise, etc.).
+- User running the skill/MCP on a compromised machine (local key theft via malware is beyond our remit — user is responsible for operating system security).
+- User revealing their private key via shell history, committed `.env` files, or exposed process env.
+- Attacks on Solana itself (consensus, validator compromise).
 
 ## Data flow
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ LOCAL MACHINE                                                │
+│ AGENT MACHINE                                                │
 │                                                              │
-│ 1. PRIVATE_KEY env var  ──────► MCP server process           │
-│                                  │                           │
-│                                  │ (read once, held in mem)  │
-│                                  ▼                           │
-│ 2. Agent calls `swap` tool      Local signing with solders   │
-│                                  │                           │
-└──────────────────────────────────┼───────────────────────────┘
-                                   │
-                                   │  (NETWORK boundary)
-                                   │
-                                   ▼
-  POST /swap  (wallet_address, token, amount, action)
-  GET  /mcap  (token_mint)
-  GET  /holdings (wallet_address)
+│ 1. Private key env var ─────────► agent process              │
+│                                     │                        │
+│                                     │ (read once,            │
+│                                     │  held in memory)       │
+│                                     ▼                        │
+│ 2. Agent calls swap action  Local signing                    │
+│                             (@solana/web3.js + tweetnacl)    │
+│                                     │                        │
+└─────────────────────────────────────┼────────────────────────┘
+                                      │
+                                      │   (NETWORK boundary)
+                                      ▼
+  POST /swap    { wallet_address, token, amount, action }
+  POST /holdings { wallet_address }
+  GET  /mcap    { token_mint }
        ↓
   api.traderouter.ai returns an unsigned transaction
-
-                                   │
-                                   │  (back to local)
-                                   ▼
+                                      │
+                                      │   (back to local)
+                                      ▼
 ┌──────────────────────────────────────────────────────────────┐
-│ LOCAL MACHINE                                                │
+│ AGENT MACHINE                                                │
 │                                                              │
-│ 3. Unsigned tx signed with PRIVATE_KEY (local)               │
-│ 4. SIGNED tx sent to /protect endpoint                       │
+│ 3. Unsigned tx signed with private key (local)               │
+│ 4. SIGNED tx submitted to /protect                           │
 │                                                              │
-│    >>> THE PRIVATE KEY NEVER LEAVES THIS BOX <<<             │
+│       >>> THE PRIVATE KEY NEVER LEAVES THIS BOX <<<          │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-  POST /protect  (signed_tx_base64)
+                                      │
+                                      ▼
+  POST /protect { signed_tx_base64 }
        ↓
-  api.traderouter.ai submits to Jito bundle
-  Returns: (signature, pre/post balances)
+  Server submits to Jito bundle
+  Returns { signature, pre/post balances } — Ed25519 signed
+       ↓
+  Client verifies signature against hard-coded trust anchor
+  before treating the fill as authoritative.
 ```
 
 ## What each endpoint sends
@@ -78,23 +83,60 @@ This document explains the security architecture of the Trade Router MCP skill. 
 | Endpoint | Request contents | Never includes |
 |---|---|---|
 | `POST /swap` | wallet_address (public key), token_mint, action (buy/sell), amount | Private key, seed phrase, any signing material |
-| `POST /protect` | signed_tx_base64 (fully signed transaction) | Private key, unsigned tx, session data |
+| `POST /protect` | signed_tx_base64 (fully signed transaction) | Private key, unsigned tx |
 | `POST /holdings` | wallet_address only | Private key, any auth material |
 | `GET /mcap` | token_mint(s) | Anything user-specific |
 | `GET /flex` | wallet + token (for PNG generation) | Private key |
-| WebSocket `/ws` | wallet_address to register, order params | Private key (signing happens client-side on fill) |
+| WebSocket `/ws` | wallet_address to register (challenge-signed), order params | Private key (signing happens client-side on fill) |
 
-## Permissions manifest
+## Mode A — direct API integration (SKILL.md reference agent)
+
+The reference agent example code in `SKILL.md` uses these conventions. **These are the agent's own choices, not required by the API.** If you're implementing from scratch, pick whatever names you like.
+
+```yaml
+env_vars (reference agent convention):
+  PRIVATE_KEY: "Solana base58 key. Read once, used for local signing, never transmitted."
+  DRY_RUN:
+    default: "true"
+    purpose: "Safe-by-default gate. Swap submissions only fire when DRY_RUN=false.
+              A fresh agent runs paper-mode automatically; you must explicitly opt in
+              to live trading."
+  MAX_DAILY_LOSS_LAMPORTS:
+    default: "2_000_000_000 (2 SOL)"
+    purpose: "Activates the reference agent's KILL_SWITCH when cumulative same-day
+              loss exceeds this. Halts all further submissions."
+  KILL_SWITCH:
+    default: "false"
+    purpose: "Hard kill. Set true or triggered automatically by the daily-loss
+              enforcement. Blocks submitTx and ws.send."
+```
+
+These guardrails live in the reference agent's own code, not in the API. Reimplementations can choose to skip them — the API accepts whatever the wallet signs — but we recommend keeping at least DRY_RUN and a daily-loss cap in any production agent.
+
+## Mode B — MCP server (`@traderouter/trade-router-mcp`)
+
+The MCP server published on npm (`@traderouter/trade-router-mcp`) and PyPI (`traderouter-mcp`) uses prefixed env vars for namespace hygiene when multiple MCP servers run in the same client:
 
 ```yaml
 required_env_vars:
-  PRIVATE_KEY: "Read once. Used locally for signing. Never transmitted."
-  SOLANA_RPC_URL: "Optional — your own RPC. Used locally for queries."
+  TRADEROUTER_PRIVATE_KEY: "Required for any swap/order. Read once, used locally, never transmitted."
+
+optional_env_vars:
+  SOLANA_RPC_URL: "Defaults to https://api.mainnet-beta.solana.com. Used for local queries only."
+  TRADEROUTER_SERVER_PUBKEY: "Override the baked-in server trust anchor. For testing or rotation."
+  TRADEROUTER_SERVER_PUBKEY_NEXT: "Accept messages signed by this key in addition to the primary. Supports rotation without a client upgrade."
+  TRADEROUTER_REQUIRE_SERVER_SIGNATURE: "Default 'true'. Set 'false' to skip fill-event verification — NOT RECOMMENDED."
+  TRADEROUTER_REQUIRE_ORDER_CREATED_SIGNATURE: "Default 'true'. Set 'false' to skip order-created verification — NOT RECOMMENDED."
+
+not_implemented_in_this_release:
+  - Dry-run mode      # Reference agent (Mode A) has it. MCP server does not. Future release.
+  - Daily loss cap    # Reference agent (Mode A) has it. MCP server does not. Future release.
+  - On-disk tx log    # Server is stateless by design.
 
 network_access:
-  - api.traderouter.ai:443   # HTTPS for REST endpoints
-  - api.traderouter.ai:443   # WSS for WebSocket limit orders
-  - (optional) any.rpc.solana.com  # Direct Solana RPC if SOLANA_RPC_URL set
+  - api.traderouter.ai:443   # HTTPS for REST
+  - api.traderouter.ai:443   # WSS for WebSocket (same host, upgrade)
+  - SOLANA_RPC_URL host      # Only if set — direct Solana RPC for reads
 
 filesystem_access:
   - read-only: none required
@@ -103,38 +145,33 @@ filesystem_access:
 outbound_data:
   - wallet public addresses
   - token mints
-  - swap parameters (amounts, slippage)
+  - swap parameters (amounts, slippage, expiry)
   - signed transactions
   NEVER:
   - private keys
-  - seed phrases  
+  - seed phrases
   - unsigned transactions with key attached
   - keystore files
   - passwords
 ```
 
+If you need dry-run or daily-loss behavior end-to-end with the MCP server, wrap the tool calls with your own gate, or use the Mode A reference agent pattern directly.
+
 ## User responsibilities
 
-The following are the user's responsibility — even a perfect tool cannot protect you from these:
+A perfect tool cannot protect you from the following — these are yours:
 
 1. **Do not commit `.env` files to public repos.** Add `.env` to `.gitignore`.
-2. **Do not export `PRIVATE_KEY` in shells where history is logged to shared systems** (shared servers, bastion hosts).
-3. **Use a dedicated trading wallet with limited balance** — not your main wallet. Treat it as a hot wallet.
-4. **Rotate keys periodically.** Every 30-90 days, move funds to a new wallet, stop using the old one.
-5. **Run on trusted hardware.** Do not run this MCP on a machine you don't control.
-6. **Set reasonable slippage.** Low-liquidity tokens require 15-25% slippage; your own risk tolerance applies.
-7. **Set `MAX_DAILY_LOSS`** if concerned about runaway automation.
-
-## Safety features built in
-
-- **Dry-run mode** — set `TRADEROUTER_DRY_RUN=1` and no swaps will be submitted. Safe to test.
-- **Daily loss limits** — set `MAX_DAILY_LOSS_SOL=N` and the MCP will refuse trades if cumulative same-day loss exceeds N SOL.
-- **Server-side signature verification** — `/protect` rejects any tx that doesn't match its claimed signer.
-- **Trust anchor** — server public key `EXX3nRzfDUvbjZSmxFzHDdiSYeGVP1EGr77iziFZ4Jd4` hard-coded in both Python and JS implementations. Client verifies `order_filled` Ed25519 signatures against this anchor before accepting.
+2. **Do not export your private key in shells whose history is logged to shared systems** (shared servers, bastion hosts).
+3. **Use a dedicated trading wallet with limited balance.** Treat it as a hot wallet, not your main holdings.
+4. **Rotate keys periodically.** Every 30–90 days, move funds to a new wallet and stop using the old one.
+5. **Run on trusted hardware.** Do not run this on a machine you don't control.
+6. **Set reasonable slippage.** Low-liquidity tokens require 15–25%; your own risk tolerance applies.
+7. **If you use the Mode B MCP server in production, wrap it.** The MCP server itself doesn't have a daily-loss cap — add one at your agent layer.
 
 ## Disclosure
 
-Found a vulnerability? Please email **security@traderouter.ai** or use GitHub Security Advisories on this repo.
+Found a vulnerability? Email **security@traderouter.ai** or use GitHub Security Advisories on this repo.
 
 We commit to:
 - Acknowledge within 48 hours
@@ -143,9 +180,9 @@ We commit to:
 
 ## Audit status
 
-- 2026-04-23: Self-audited, documentation-complete (this file). External audit pending.
-- We plan to commission a formal audit from a reputable firm (Offside Labs / OtterSec / Zellic) in Q2 2026.
+- 2026-04-24: Self-audited, documentation-complete (this file). External audit pending.
+- A formal audit from a reputable firm (Offside Labs / OtterSec / Zellic) is planned for Q2 2026.
 
 ## License
 
-See `LICENSE`. This code is available under the MIT License.
+See `LICENSE`. MIT.
