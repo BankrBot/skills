@@ -34,22 +34,25 @@ If this account posts programmatically, mark it automated on X:
 
 ## Creating a Poll
 
-To create a poll, use `execute_cli` with the `twitter-api-v2@1.17.2` package. The script should:
+Run via `execute_cli` or terminal:
 
-1. Read OAuth credentials from env vars: `X_API_KEY`, `X_API_KEY_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET`
-2. Create a `TwitterApi` client with OAuth 1.0a credentials
-3. Call `client.v2.tweet()` with a `poll` object containing:
-   - `options` — array of plain strings (2–4 options, e.g. `["Yes", "No"]`)
-   - `duration_minutes` — integer between 5 and 10080 (default: `1440` = 24h)
-   - `text` — the poll question as the tweet text
-4. Output the tweet ID, question, options, duration, end time, and URL as JSON
+```bash
+node scripts/create-poll.js \
+  --question "Which chain has the best UX?" \
+  --options "Base" "Solana" "Ethereum" "Other" \
+  --duration 1440
+```
 
-**Duration limits:**
-- Minimum: 5 minutes
-- Maximum: 10,080 minutes (7 days)
-- Default: 1,440 minutes (24 hours)
+**Arguments:**
 
-**Example output:**
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--question` | ✅ | — | Poll question / tweet text |
+| `--options` | ✅ | — | 2–4 poll options (space-separated, quote each) |
+| `--duration` | ❌ | `1440` | Poll duration in minutes (5–10080; default = 24h) |
+
+**Output (JSON to stdout):**
+
 ```json
 {
   "tweetId": "1234567890",
@@ -65,16 +68,18 @@ To create a poll, use `execute_cli` with the `twitter-api-v2@1.17.2` package. Th
 
 ## Fetching Poll Results
 
-To get current vote counts for a poll, use `execute_cli` with `twitter-api-v2@1.17.2`. The script should:
+```bash
+node scripts/get-poll-results.js --tweet-id 1234567890
+```
 
-1. Read OAuth credentials from env vars (same as above)
-2. Call `client.v2.singleTweet(tweetId, { expansions: ['attachments.poll_ids'], 'tweet.fields': ['attachments'], 'poll.fields': ['options', 'end_datetime', 'voting_status', 'duration_minutes'] })`
-3. Extract the poll from `response.includes.polls[0]`
-4. Calculate total votes and percentage per option
-5. Set `status` to `"open"` or `"closed"` based on `voting_status` or whether end time has passed
-6. Output results as JSON
+**Arguments:**
 
-**Example output:**
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--tweet-id` | ✅ | Tweet ID of the poll (from create output or URL) |
+
+**Output (JSON to stdout):**
+
 ```json
 {
   "tweetId": "1234567890",
@@ -91,6 +96,8 @@ To get current vote counts for a poll, use `execute_cli` with `twitter-api-v2@1.
 }
 ```
 
+`status` is `"open"` while running, `"closed"` once ended.
+
 ---
 
 ## Recurring Polls
@@ -103,7 +110,17 @@ To run a poll on a schedule, use a Bankr automation.
 
 **Prompt:**
 
-> Run the twitter-poll skill. Use execute_cli with twitter-api-v2@1.17.2 to create a poll with question "What's your biggest crypto focus this week?" and options "Trading", "Building", "Learning", "HODLing". Use the default 24h duration. Read OAuth credentials from X_API_KEY, X_API_KEY_SECRET, X_ACCESS_TOKEN, X_ACCESS_TOKEN_SECRET. Output the tweet URL and end time.
+> Run the twitter-poll skill. Create a poll with question "What's your biggest crypto focus this week?" and options "Trading" "Building" "Learning" "HODLing". Use the default 24h duration. After creating, output the tweet URL and the time it ends.
+
+---
+
+## Duration Limits (X API)
+
+- Minimum: **5 minutes**
+- Maximum: **10,080 minutes** (7 days)
+- Default: **1,440 minutes** (24 hours)
+
+Durations outside this range are clamped automatically.
 
 ---
 
@@ -123,7 +140,6 @@ This poll was created and resolved using this skill:
 - "Create a poll: 'Best meme coin?' with options PEPE, DOGE, WIF, Other — run for 48 hours"
 - "Check the results on my poll, tweet ID is 1234567890"
 - "Set up a weekly Monday poll asking my followers what they're building"
-- "How is my poll doing?" *(requires tweet ID from the create step)*
 
 ---
 
@@ -134,5 +150,5 @@ This poll was created and resolved using this skill:
 | `403 Forbidden` | App lacks Write permissions — enable in X Developer Portal |
 | `401 Unauthorized` | Keys wrong or expired — regenerate in X Developer Portal |
 | `429 Too Many Requests` | Rate limited — wait and retry |
-| Poll options error | Pass options as plain strings, not objects — `["Yes", "No"]` not `[{label: "Yes"}]` |
-| Poll shows 0 votes | Poll may have just been created — votes appear in real-time as they come in |
+| Poll options error | Pass options as plain strings: `"Yes" "No"` not `{label: "Yes"}` |
+| Poll shows 0 votes | Votes appear in real-time — check again after someone votes |
