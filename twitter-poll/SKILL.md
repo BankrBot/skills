@@ -37,11 +37,13 @@ If this account posts programmatically, mark it automated on X:
 Run via `execute_cli` or terminal:
 
 ```bash
-node scripts/create-poll.js \
+./scripts/create-poll.sh \
   --question "Which chain has the best UX?" \
   --options "Base" "Solana" "Ethereum" "Other" \
   --duration 1440
 ```
+
+**Requires:** `bash`, `curl`, `openssl`, `python3`
 
 **Arguments:**
 
@@ -69,7 +71,7 @@ node scripts/create-poll.js \
 ## Fetching Poll Results
 
 ```bash
-node scripts/get-poll-results.js --tweet-id 1234567890
+./scripts/get-poll-results.sh --tweet-id 1234567890
 ```
 
 **Arguments:**
@@ -150,5 +152,5 @@ This poll was created and resolved using this skill:
 | `403 Forbidden` | App lacks Write permissions — enable in X Developer Portal |
 | `401 Unauthorized` | Keys wrong or expired — regenerate in X Developer Portal |
 | `429 Too Many Requests` | Rate limited — wait and retry |
-| Poll options error | Pass options as plain strings: `"Yes" "No"` not `{label: "Yes"}` |
+| Poll options error | Pass options as separate quoted args: `"Yes" "No"` |
 | Poll shows 0 votes | Votes appear in real-time — check again after someone votes |
