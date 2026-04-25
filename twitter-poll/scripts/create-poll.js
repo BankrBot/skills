@@ -113,12 +113,10 @@ const client = new TwitterApi({
 // Create poll
 // ---------------------------------------------------------------------------
 async function main() {
-  const pollOptions = options.map((label) => ({ label }));
-
   const response = await client.v2.tweet({
     text: question,
     poll: {
-      options: pollOptions,
+      options: options,
       duration_minutes: durationMinutes,
     },
   });
