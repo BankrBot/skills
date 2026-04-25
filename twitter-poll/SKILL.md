@@ -34,7 +34,7 @@ If this account posts programmatically, mark it automated on X:
 
 ## Creating a Poll
 
-Run via `execute_cli` or terminal:
+Use `execute_cli` to run the script. Pass the question, options, and duration as arguments:
 
 ```bash
 ./scripts/create-poll.sh \
@@ -69,6 +69,8 @@ Run via `execute_cli` or terminal:
 ---
 
 ## Fetching Poll Results
+
+Use `execute_cli` to run the script with the tweet ID:
 
 ```bash
 ./scripts/get-poll-results.sh --tweet-id 1234567890
