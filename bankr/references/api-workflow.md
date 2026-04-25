@@ -1,12 +1,28 @@
 # Bankr API Workflow Reference
 
-Understanding the asynchronous job pattern for Bankr API operations.
+Understanding the asynchronous job pattern for Bankr Agent API operations.
 
-**Source**: [Agent API Reference](https://www.notion.so/Agent-API-2e18e0f9661f80cb83ccfc046f8872e3)
+**Source**: [Agent API Reference](https://www.notion.so/Agent-API-2e18e0f9661f80cb83ccfc046f8872e3) | [Wallet API Docs](https://docs.bankr.bot/wallet-api/overview)
 
-## Core Pattern: Submit-Poll-Complete
+> **Note**: This reference covers the **Agent API** async prompt workflow (`/agent/prompt`). For direct synchronous wallet operations (portfolio, transfer, sign, submit), see the **Wallet API** endpoints at `/wallet/*` documented in [sign-submit-api.md](sign-submit-api.md), [portfolio.md](portfolio.md), and [transfers.md](transfers.md).
 
-All Bankr operations follow this pattern:
+## Using the Bankr CLI
+
+The CLI handles submit-poll-complete automatically. For installation and login, see the main [SKILL.md](../SKILL.md).
+
+```bash
+bankr agent prompt "What is my ETH balance?"   # submit + poll + display
+bankr agent status <jobId>                      # check a specific job
+bankr agent cancel <jobId>                      # cancel a running job
+```
+
+## Using the REST API Directly
+
+Call the endpoints below with `curl`, `fetch`, or any HTTP client. All requests require an `X-API-Key` header.
+
+### Core Pattern: Submit-Poll-Complete
+
+All operations follow this pattern:
 
 ```
 1. SUBMIT  → Send prompt, get job ID
@@ -19,6 +35,8 @@ All Bankr operations follow this pattern:
 ### POST /agent/prompt
 Submit a natural language prompt to start a job.
 
+**CLI equivalent:** `bankr agent prompt "What is my ETH balance?"`
+
 **Request:**
 ```bash
 curl -X POST "https://api.bankr.bot/agent/prompt" \
@@ -27,14 +45,24 @@ curl -X POST "https://api.bankr.bot/agent/prompt" \
   -d '{"prompt": "What is my ETH balance?"}'
 ```
 
+**Continue a conversation:**
+```bash
+curl -X POST "https://api.bankr.bot/agent/prompt" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "And what about SOL?", "threadId": "thr_ABC123"}'
+```
+
 **Request Body:**
 - **prompt** (string, required): The prompt to send to the AI agent (max 10,000 characters)
+- **threadId** (string, optional): Continue an existing conversation thread. If omitted, a new thread is created.
 
 **Response (202 Accepted):**
 ```json
 {
   "success": true,
   "jobId": "job_abc123",
+  "threadId": "thr_XYZ789",
   "status": "pending",
   "message": "Job submitted successfully"
 }
@@ -51,6 +79,8 @@ curl -X POST "https://api.bankr.bot/agent/prompt" \
 ### GET /agent/job/{jobId}
 Check job status and results.
 
+**CLI equivalent:** `bankr agent status job_abc123`
+
 **Request:**
 ```bash
 curl -X GET "https://api.bankr.bot/agent/job/job_abc123" \
@@ -62,6 +92,7 @@ curl -X GET "https://api.bankr.bot/agent/job/job_abc123" \
 {
   "success": true,
   "jobId": "job_abc123",
+  "threadId": "thr_XYZ789",
   "status": "completed",
   "prompt": "What is my ETH balance?",
   "response": "You have 0.5 ETH worth approximately $1,825.",
@@ -86,6 +117,8 @@ curl -X GET "https://api.bankr.bot/agent/job/job_abc123" \
 
 ### POST /agent/job/{jobId}/cancel
 Cancel a pending or processing job. Cancel requests are idempotent — cancelling an already-cancelled job returns success.
+
+**CLI equivalent:** `bankr agent cancel job_abc123`
 
 **Request:**
 ```bash
@@ -129,6 +162,7 @@ curl -X POST "https://api.bankr.bot/agent/job/job_abc123/cancel" \
 ### Standard Fields
 - **success**: Boolean, true if request succeeded
 - **jobId**: Unique job identifier
+- **threadId**: Conversation thread ID (reuse to continue the conversation)
 - **status**: Current job status (`pending`, `processing`, `completed`, `failed`, `cancelled`)
 - **prompt**: Original user prompt
 - **createdAt**: ISO 8601 timestamp
@@ -255,7 +289,7 @@ done
 }
 ```
 
-**Resolution**: Check API key, ensure "Agent API" access is enabled at https://bankr.bot/api
+**Resolution**: Check API key, ensure "Wallet & Agent API" access is enabled at https://bankr.bot/api
 
 ### Forbidden (403)
 ```json
@@ -265,7 +299,7 @@ done
 }
 ```
 
-**Resolution**: Visit https://bankr.bot/api and enable Agent API access on your key
+**Resolution**: Visit https://bankr.bot/api and enable Wallet & Agent API access on your key
 
 ### Rate Limiting (429)
 ```json
