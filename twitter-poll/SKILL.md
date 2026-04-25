@@ -153,7 +153,7 @@ Free-tier X API: ~50 tweets/day. Each poll creation counts as 1 tweet.
 
 ### Fetching Poll Results
 
-Poll data (vote counts) requires the `polls` expansion and is only available to apps with **Elevated** access or above. If your app is at Basic tier, vote counts may be unavailable — the script will return the question and end time but note the limitation.
+Poll data (vote counts) uses the `polls` expansion with `poll.fields=options`. Vote counts are returned in real-time while the poll is open and at final tally after it closes. Note: very recently created polls may show `0` votes briefly before X's API catches up.
 
 ---
 
@@ -164,8 +164,18 @@ Poll data (vote counts) requires the `polls` expansion and is only available to 
 | `403 Forbidden` | App lacks Write permissions — enable in X Developer Portal |
 | `401 Unauthorized` | Keys wrong or expired — regenerate in X Developer Portal |
 | `429 Too Many Requests` | Rate limited — wait and retry |
-| Poll results show `null` votes | App needs Elevated access for poll metrics |
+| Poll shows `0` votes on closed poll | Check if votes were actually cast; newly closed polls may lag briefly |
 | `node: command not found` | Use `bun scripts/create-poll.js` if node isn't available |
+
+---
+
+## Live Example
+
+This poll was created and resolved using this skill:
+
+- **Tweet:** https://x.com/i/web/status/2048058839522509102
+- **Question:** "testing my twitter poll skill again 🧪 vote yes if you see this!"
+- **Result:** Yes 👍 — 3 votes (100%), No 👎 — 0 votes (0%) — closed after 5 minutes
 
 ---
 
