@@ -66,7 +66,7 @@ parse, filter, or route.
   },
   "whispers": [
     {
-      "model": "claude-opus-4.6",
+      "model": "claude-opus-4.7",
       "family": "Claude",
       "direction": "DOWN",
       "conviction": 6,
@@ -165,16 +165,17 @@ netprotocol.app/app/profile/base/0xd16f8c10e7a696a3e46093c60ede43d5594d2bad
 **bankr-signals** — automated signal publishing to the bankr-signals
 feed is in development. not yet live.
 
-## 22 models, 7 labs
+## 22 models, 8 labs
 
 ```
-Claude (5):   opus-4.6  opus-4.5  sonnet-4.5  haiku-4.5  sonnet-4.6
+Claude (4):   opus-4.7  opus-4.6  opus-4.5  haiku-4.5
 Gemini (6):   3-pro  3-flash  2.5-pro  2.5-flash  3.1-pro  3.1-flash-lite
-OpenAI (6):   gpt-5.2  gpt-5.2-codex  gpt-5-mini  gpt-5.4  gpt-5.4-mini  gpt-5.4-nano
+OpenAI (5):   5.2  5.2-codex  5.4  5.4-mini  5.4-nano
 DeepSeek (1): v3.2
-xAI (1):      grok-4.1-fast
-MiniMax (2):  m2.5  m2.7
-Qwen (1):     qwen3-coder
+xAI (2):      grok-4.1-fast  grok-4.20
+MiniMax (1):  m2.5
+Qwen (2):     qwen3-coder  qwen3.5-flash
+Google (1):   gemma-4-26b
 ```
 
 7 labs. errors don't correlate across training sets. insights do.
