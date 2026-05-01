@@ -279,6 +279,8 @@ const ui = await apinow.generateUIAndWait({
   customPrompt: 'Use a clean dark theme with clear loading and error states',
 });
 
+if (!ui.source) throw new Error(`UI generation failed: ${ui.errorMessage}`);
+
 console.log(ui.source['main.ts']);
 console.log(ui.source['main.css']);
 ```
