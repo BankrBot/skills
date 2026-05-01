@@ -1,12 +1,13 @@
 ---
 name: apinow
 description: >-
-  Use APINow (apinow-sdk / CLI) to call pay-per-request APIs on APINow.fun with
-  automatic x402 payments, discover endpoints, run workflow pipelines, probe
-  external x402 URLs, use user-factory for new LLM endpoints, and generate AI
-  UIs. Use for agent API marketplaces, x402 micropayments on Base, and Rye-style
-  external x402 commerce via callExternal. Pair a Bankr or other wallet signer
-  in-browser, or PRIVATE_KEY for headless agents.
+  Use APINow (apinow-sdk / CLI) to discover, inspect, call, compose, publish,
+  and monetize pay-per-request APIs on APINow.fun with automatic x402 settlement
+  on Base. Use for API marketplace discovery, paid endpoint calls, workflow
+  pipelines, external x402 URLs, LLM endpoint creation via user-factory, AI UI
+  generation, and agent commerce probes such as Rye checkout intents. Works
+  headless with PRIVATE_KEY or in apps with a connected wallet signer such as
+  Bankr-compatible wallets.
 metadata:
   {
     "clawdbot":
@@ -17,78 +18,332 @@ metadata:
   }
 ---
 
-# APINow — x402 API marketplace & SDK
+# APINow - x402 API marketplace, SDK, CLI, workflows, and UI generation
 
-[APINow.fun](https://apinow.fun) is a pay-per-request API marketplace on [Base](https://base.org) using [x402](https://www.x402.org/). Agents use **`apinow-sdk`** or **`apinow` CLI** so payments and signing follow one code path.
+[APINow.fun](https://apinow.fun) is a pay-per-request API marketplace on [Base](https://base.org) using [x402](https://www.x402.org/). Agents use **`apinow-sdk`** or the **`apinow` CLI** to discover APIs, pay for calls, create and run workflows, proxy external x402 endpoints, create LLM endpoints, and generate sandbox UIs.
 
-## Install
+## When to use this skill
 
-```bash
-npm install apinow-sdk
-```
+Use this skill when the user wants to:
 
-Bankr registry install:
+- Find an API endpoint by capability, price, schema, namespace, or owner.
+- Call a paid APINow endpoint with automatic x402 payment.
+- Run or manage a multi-endpoint workflow pipeline.
+- Call an external x402 URL through APINow (`discoverPrice`, `callExternal`).
+- Create, test, publish, update, version, or delete an APINow endpoint.
+- Generate an LLM-backed endpoint from a prompt via user-factory.
+- Generate an interactive AI UI for an existing endpoint.
+- Integrate APINow into a headless agent, browser app, Bankr wallet flow, or other connected wallet signer.
+
+Do not use APINow for arbitrary web scraping or non-x402 payments. For external x402 commerce, discover and quote first; only perform final purchase/confirm steps after explicit user approval.
+
+## Install the skill
+
+Bankr skill registry install:
 
 ```text
 > install the apinow skill from https://github.com/BankrBot/skills/tree/main/apinow
 ```
 
-## Quick start (TypeScript)
+After installing the skill, install the SDK in the project that will call APINow:
+
+```bash
+npm install apinow-sdk
+```
+
+Run CLI commands with the package binary:
+
+```bash
+npm exec -- apinow --help
+```
+
+If `npm exec -- apinow` is unavailable in your package manager, use the local binary directly: `./node_modules/.bin/apinow`.
+
+## Full system setup
+
+### Headless agent / server
+
+Use a funded EVM private key on Base for paid x402 calls and signed write operations.
+
+```bash
+export PRIVATE_KEY=0x...
+export APINOW_API_KEY=apk_... # optional funded API key fallback for paid calls
+export APINOW_BASE_URL=https://www.apinow.fun
+```
+
+`APINOW_BASE_URL` is optional; the production default is `https://apinow.fun` or `https://www.apinow.fun` depending on the SDK version. Set it explicitly in examples and production agents to avoid ambiguity.
+
+### Browser or connected wallet
+
+Use `address` + `signer` for signed auth. Paid browser calls require an x402-capable `paidFetch` if the app performs paid calls client-side.
 
 ```typescript
 import { createClient } from 'apinow-sdk';
 
 const apinow = createClient({
-  privateKey: process.env.PRIVATE_KEY as `0x${string}`,
+  address,
+  signer: (message) => walletClient.signMessage({ message }),
   baseUrl: 'https://www.apinow.fun',
-});
-
-const data = await apinow.call('/api/endpoints/apinowfun/translate', {
-  method: 'POST',
-  body: { text: 'Hello world', targetLanguage: 'es' },
 });
 ```
 
-### Browser / connected wallet (Bankr-compatible)
+### Bankr-style wallet flow
 
-Use `address` + `signer` instead of `privateKey` for EIP-191 `personal_sign`. For paid `call` / `runWorkflow` / `callExternal` from the browser, pass an x402-wrapped `paidFetch` if your stack uses it.
+If the environment exposes a Bankr-compatible signer, wire it through the same `signer(message)` shape. The private key never needs to be passed to browser code.
 
 ```typescript
-createClient({
-  address: userAddress,
-  signer: (msg) => walletClient.signMessage({ message: msg }),
+const apinow = createClient({
+  address: bankrWalletAddress,
+  signer: (message) => bankr.signMessage(message),
   baseUrl: 'https://www.apinow.fun',
 });
 ```
 
-## CLI
+## Smoke test
+
+Before spending money, verify discovery and metadata calls. These are public reads.
 
 ```bash
-export PRIVATE_KEY=0x...
-apinow search "weather" --limit 5
-apinow info gg402/horoscope
-apinow call gg402/horoscope -d '{"sign":"aries"}'
-apinow discover https://example.com/x402/path
-apinow call-external https://example.com/x402/path -d '{}'
+npm exec -- apinow search "weather" --limit 5
+npm exec -- apinow list --sort newest --limit 5
+npm exec -- apinow info gg402/horoscope
 ```
 
-## Core capabilities
+Then perform one small paid call with a spending cap appropriate for the endpoint.
 
-| Area | What to use |
-|------|-------------|
-| List / search / metadata | `listEndpoints`, `search`, `info` |
-| Paid HTTP to listed APIs | `call(endpoint, opts)` |
-| Multi-step pipelines | `runWorkflow`, `createWorkflow`, versioning APIs |
-| Any x402 URL | `discoverPrice`, `callExternal` |
-| Spin up LLM endpoints | `factoryPipeline`, `factoryCreate`, etc. |
-| Sandbox UIs | `generateUI` / `generateUIAndWait` |
+```bash
+PRIVATE_KEY=0x... npm exec -- apinow call gg402/horoscope \
+  --max-cost 0.05 \
+  -d '{"sign":"aries"}'
+```
 
-**Rye / physical checkout:** `callExternal` to `https://x402.rye.com/...` can create checkout intents; do **not** confirm purchases unless the user explicitly approves totals (real charges).
+## Core SDK client
 
-## Auth model (short)
+```typescript
+import { createClient } from 'apinow-sdk';
 
-- Paid calls: **x402** (payment as identity).
-- Writes (workflows, factory, endpoint CRUD): **signed bearer** headers from the SDK; keep `PRIVATE_KEY` or wallet signer scoped and funded on Base.
+const rawPrivateKey = process.env.PRIVATE_KEY;
+if (!rawPrivateKey) throw new Error('PRIVATE_KEY is required');
+
+const apinow = createClient({
+  privateKey: rawPrivateKey.startsWith('0x')
+    ? (rawPrivateKey as `0x${string}`)
+    : (`0x${rawPrivateKey}` as `0x${string}`),
+  apiKey: process.env.APINOW_API_KEY,
+  baseUrl: process.env.APINOW_BASE_URL ?? 'https://www.apinow.fun',
+  policy: {
+    maxPerQueryUsd: 0.25,
+    maxPerDayUsd: 5,
+  },
+});
+```
+
+## Discover and call endpoints
+
+Prefer this sequence: `search` -> `info` -> validate schema/price -> `call`.
+
+```typescript
+const matches = await apinow.search('translate text', 5);
+const details = await apinow.info('apinowfun', 'translate');
+
+const result = await apinow.call('/api/endpoints/apinowfun/translate', {
+  method: 'POST',
+  maxCostUsd: 0.05,
+  body: {
+    text: 'Hello world',
+    targetLanguage: 'es',
+  },
+});
+```
+
+CLI equivalent:
+
+```bash
+npm exec -- apinow search "translate text" --limit 5
+npm exec -- apinow info apinowfun/translate
+PRIVATE_KEY=0x... npm exec -- apinow call apinowfun/translate \
+  --max-cost 0.05 \
+  -d '{"text":"Hello world","targetLanguage":"es"}'
+```
+
+## Workflows
+
+Workflows chain multiple endpoints into one paid DAG pipeline with payment splitting. Use workflows when the user wants a repeatable multi-step API process rather than one endpoint call.
+
+```typescript
+const workflows = await apinow.listWorkflows({ status: 'active', limit: 10 });
+
+const output = await apinow.runWorkflow('f5d40784593aa972', {
+  query: 'birthday gift ideas for a friend who loves cooking',
+}, {
+  maxCostUsd: 0.50,
+});
+```
+
+Useful workflow commands:
+
+```bash
+npm exec -- apinow workflows --status active
+npm exec -- apinow workflow f5d40784593aa972
+PRIVATE_KEY=0x... npm exec -- apinow run-workflow f5d40784593aa972 \
+  --max-cost 0.50 \
+  -d '{"query":"gift ideas"}'
+```
+
+Workflow owners can create versions instead of editing live behavior in-place:
+
+```typescript
+await apinow.createWorkflowVersion('f5d40784593aa972', {
+  totalPrice: '0.12',
+  changelog: 'Tune prompt and raise price after usage spike',
+});
+
+await apinow.setDefaultWorkflowVersion('f5d40784593aa972', 2);
+```
+
+## External x402 proxy
+
+Use this for x402 endpoints that are not listed directly on APINow.
+
+```typescript
+const price = await apinow.discoverPrice(
+  'https://example.com/x402/profile',
+  'POST',
+);
+
+const data = await apinow.callExternal('https://example.com/x402/profile', {
+  method: 'POST',
+  body: { handle: 'apinow' },
+});
+```
+
+For SDK external calls, set `policy.maxPerQueryUsd` on the client to enforce a default spend ceiling. For CLI external calls, use `--max-cost`.
+
+CLI:
+
+```bash
+npm exec -- apinow discover https://example.com/x402/profile --method POST
+PRIVATE_KEY=0x... npm exec -- apinow call-external https://example.com/x402/profile \
+  --method POST \
+  --max-cost 0.05 \
+  -d '{"handle":"apinow"}'
+```
+
+### Rye / physical commerce guardrail
+
+Rye exposes physical checkout intents over x402 at `https://x402.rye.com`. Creating or inspecting a checkout intent can be a safe quote step. Confirming can place a real order.
+
+Rules for agents:
+
+- It is OK to create a checkout intent or inspect an existing intent when the user requested a quote.
+- Do not call a Rye confirm endpoint unless the user explicitly approves the final product total, taxes, shipping, fees, and destination.
+- Do not rely on URL-only discovery for final confirm pricing; use the real intent and body.
+- Always pass a conservative `maxCostUsd` / `--max-cost`, or configure `policy.maxPerQueryUsd`, for x402 calls.
+
+## User-factory: create LLM endpoints
+
+Use user-factory when the user wants to turn a prompt into a hosted, monetizable API endpoint.
+
+```typescript
+const created = await apinow.factoryPipeline('Score startup pitches on 8 criteria', {
+  markup: { markupPercent: 30 },
+});
+
+console.log(`${created.endpoint.namespace}/${created.endpoint.endpointName}`);
+```
+
+CLI:
+
+```bash
+PRIVATE_KEY=0x... npm exec -- apinow factory-pipeline \
+  "Score startup pitches on 8 criteria" \
+  --markup 30
+```
+
+## Generate AI UIs
+
+Use UI generation when the user wants an embeddable or inspectable sandbox frontend for an endpoint.
+
+```typescript
+const details = await apinow.info('gg402', 'horoscope');
+
+const ui = await apinow.generateUIAndWait({
+  endpointName: details.endpointName,
+  namespace: details.namespace,
+  description: details.description,
+  querySchema: details.querySchema,
+  responseSchema: details.responseSchema,
+  examples: details.exampleQuery
+    ? [{ input: details.exampleQuery, output: details.exampleOutput }]
+    : undefined,
+  customPrompt: 'Use a clean dark theme with clear loading and error states',
+});
+
+console.log(ui.source['main.ts']);
+console.log(ui.source['main.css']);
+```
+
+CLI:
+
+```bash
+PRIVATE_KEY=0x... npm exec -- apinow ui-generate gg402/horoscope \
+  --prompt "clean dark theme with clear loading and error states"
+npm exec -- apinow ui-list gg402/horoscope --sort recent
+npm exec -- apinow ui-get <id> --source-only
+```
+
+## Endpoint CRUD
+
+Use endpoint CRUD only when the user is intentionally publishing or maintaining an API listing.
+
+Common lifecycle:
+
+1. Create endpoint config.
+2. Test the endpoint with safe inputs.
+3. Publish / update metadata and price.
+4. Monitor usage and iterate via updates or workflow versions.
+
+SDK methods include:
+
+- `createEndpoint(config)`
+- `getEndpoint(id)`
+- `updateEndpoint(id, updates)`
+- `deleteEndpoint(id)`
+
+All mutating calls require signed auth from `PRIVATE_KEY` or a connected wallet signer.
+
+## Capability map
+
+| Goal | SDK / CLI |
+|------|-----------|
+| Search endpoint catalog | `search`, `listEndpoints`, `apinow search`, `apinow list` |
+| Inspect schema, price, wallet | `info`, `apinow info` |
+| Pay and call listed endpoint | `call`, `apinow call` |
+| Run multi-step pipeline | `runWorkflow`, `apinow run-workflow` |
+| Manage workflow versions | `createWorkflowVersion`, `setDefaultWorkflowVersion`, version CLI commands |
+| Probe external x402 price | `discoverPrice`, `apinow discover` |
+| Pay and call external x402 | `callExternal`, `apinow call-external` |
+| Create LLM endpoint | `factoryPipeline`, `factoryCreate`, `apinow factory-*` |
+| Generate UI source | `generateUIAndWait`, `apinow ui-*` |
+| Publish/manage endpoints | endpoint CRUD SDK methods |
+
+## Auth and payment model
+
+- Public reads: `search`, `listEndpoints`, `info`, workflow metadata reads.
+- Paid calls: x402 payment is attached automatically by SDK / CLI.
+- Writes: SDK signs an auth header with `PRIVATE_KEY` or wallet signer.
+- Funding: keep the paying wallet funded with Base USDC or the asset required by the endpoint's x402 terms.
+- Spending limits: pass `maxCostUsd` for listed endpoint/workflow SDK calls, configure `policy.maxPerQueryUsd` for client-wide limits, and pass `--max-cost` for CLI paid calls.
+
+## Operational rules for agents
+
+- Inspect schemas before calling paid endpoints.
+- Ask for confirmation before high-cost calls, physical purchases, irreversible writes, deletes, or publishing monetized endpoints.
+- Never print, log, commit, or expose `PRIVATE_KEY`.
+- Prefer `APINOW_BASE_URL=https://www.apinow.fun` for production examples.
+- For browser apps, never embed private keys; use connected wallet signing.
+- Treat generated UI source as untrusted until reviewed before deploying it into an app.
+- If a call fails with an x402/payment error, check wallet balance, chain/network, max cost, and endpoint price first.
 
 ## Links
 
