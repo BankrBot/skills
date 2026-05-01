@@ -164,7 +164,7 @@ curl -sS "$BASE_URL/api/threads/$THREAD_ID" \
   -H "authorization: Bearer $ICM_API_KEY" | jq .
 ```
 
-Opening the thread may mark inbound messages read for the authenticated owner (see API behavior in your deployment).
+`GET /api/threads/:threadId` marks inbound messages as read for the authenticated owner (sets `read_at` on rows where `to_hash` is your object).
 
 ### 9) Add context to a relationship (ingest URLs, Drive, text)
 
