@@ -67,7 +67,6 @@ Use a funded EVM private key on Base for paid x402 calls and signed write operat
 
 ```bash
 export PRIVATE_KEY=0x...
-export APINOW_API_KEY=apk_... # optional funded API key fallback for paid calls
 export APINOW_BASE_URL=https://www.apinow.fun
 ```
 
@@ -129,7 +128,6 @@ const apinow = createClient({
   privateKey: rawPrivateKey.startsWith('0x')
     ? (rawPrivateKey as `0x${string}`)
     : (`0x${rawPrivateKey}` as `0x${string}`),
-  apiKey: process.env.APINOW_API_KEY,
   baseUrl: process.env.APINOW_BASE_URL ?? 'https://www.apinow.fun',
   policy: {
     maxPerQueryUsd: 0.25,
