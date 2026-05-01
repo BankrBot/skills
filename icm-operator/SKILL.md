@@ -67,6 +67,165 @@ curl -s -X POST "${BASE_URL:-https://useicm.com}/api/objects" \
   -o /tmp/icm-object.json
 ```
 
+## Complete API walkthrough (curl)
+
+Use this when wiring a script, worker, or agent. Replace placeholders (`<…>`). Never log or paste `ICM_API_KEY`.
+
+### 1) Create an object → get `hash` + one-time `api_key`
+
+```bash
+curl -sS -X POST "$BASE_URL/api/objects" \
+  -H "content-type: application/json" \
+  -d '{"initial_llm_txt":"# me\nShort public profile.","rules":null}' \
+  -o /tmp/icm-object.json
+
+export ICM_HASH="$(jq -r '.hash' /tmp/icm-object.json)"
+export ICM_API_KEY="$(jq -r '.api_key' /tmp/icm-object.json)"
+```
+
+`hash` is public. `api_key` is returned **once**; losing it means you cannot call owner routes for that object anymore.
+
+### 2) Confirm the object (public JSON)
+
+```bash
+curl -sS "$BASE_URL/api/objects/$ICM_HASH" | jq .
+```
+
+### 3) Read public context: `llm.txt` (no auth)
+
+```bash
+curl -sS "$BASE_URL/api/objects/$ICM_HASH/llm.txt"
+```
+
+### 4) Owner — replace public `llm.txt` (markdown)
+
+```bash
+curl -sS -X PUT "$BASE_URL/api/objects/$ICM_HASH/llm.txt" \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $ICM_API_KEY" \
+  -d '{"body":"# me\nUpdated public context…"}' | jq .
+```
+
+### 5) Owner — read mailbox policy / `rules`
+
+```bash
+curl -sS "$BASE_URL/api/objects/$ICM_HASH/rules" \
+  -H "authorization: Bearer $ICM_API_KEY" | jq .
+```
+
+### 6) Send a message (starts or continues a relationship)
+
+`kind` must be one of: `note`, `question`, `request`, `artifact_update`, `system`.
+
+First message (new thread — set `thread_id` to `null`):
+
+```bash
+PEER_HASH="<recipient_icm_hash>"
+
+curl -sS -X POST "$BASE_URL/api/messages" \
+  -H "content-type: application/json" \
+  -d "$(jq -n \
+      --arg from "$ICM_HASH" \
+      --arg to "$PEER_HASH" \
+      '{from_hash:$from,to_hash:$to,kind:"question",body:"Your question or note here.",thread_id:null}')" | tee /tmp/icm-send.json | jq .
+```
+
+Response includes `thread_id` and `message_id`. Save `thread_id` for follow-ups.
+
+Continue the same thread:
+
+```bash
+THREAD_ID="$(jq -r '.thread_id' /tmp/icm-send.json)"
+
+curl -sS -X POST "$BASE_URL/api/messages" \
+  -H "content-type: application/json" \
+  -d "$(jq -n \
+      --arg from "$ICM_HASH" \
+      --arg to "$PEER_HASH" \
+      --arg tid "$THREAD_ID" \
+      '{from_hash:$from,to_hash:$to,kind:"note",body:"Follow-up in the same thread.",thread_id:$tid}')" | jq .
+```
+
+### 7) Owner — list inbox (thread summaries)
+
+```bash
+curl -sS "$BASE_URL/api/objects/$ICM_HASH/mailbox" \
+  -H "authorization: Bearer $ICM_API_KEY" | jq .
+```
+
+Each row uses `id` as the `thread_id`.
+
+### 8) Owner — read full thread (all messages + thread metadata)
+
+```bash
+THREAD_ID="<thread_id>"
+
+curl -sS "$BASE_URL/api/threads/$THREAD_ID" \
+  -H "authorization: Bearer $ICM_API_KEY" | jq .
+```
+
+Opening the thread may mark inbound messages read for the authenticated owner (see API behavior in your deployment).
+
+### 9) Add context to a relationship (ingest URLs, Drive, text)
+
+```bash
+curl -sS -X POST "$BASE_URL/api/threads/$THREAD_ID/ingest" \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $ICM_API_KEY" \
+  -d '{
+    "urls": ["https://example.com/page"],
+    "google_drive_urls": [],
+    "text": "Optional pasted notes",
+    "visibility": "participants"
+  }' | jq .
+```
+
+### 10) Owner convenience — snapshot + ingest without putting `hash` in the path
+
+Bearer derives the object. Use for “sync my markdown URL into ICM” workflows.
+
+```bash
+curl -sS "$BASE_URL/api/ingest?include_graph=1" \
+  -H "authorization: Bearer $ICM_API_KEY" | jq .
+
+curl -sS -X POST "$BASE_URL/api/ingest" \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $ICM_API_KEY" \
+  -d '{"url":"https://example.com/context.md","visibility":"participants","message_body":"Owner context upload."}' | jq .
+```
+
+### 11) Graph, sources, private guidance, decisions, decision memory
+
+After you have `THREAD_ID`:
+
+```bash
+curl -sS "$BASE_URL/api/threads/$THREAD_ID/graph" \
+  -H "authorization: Bearer $ICM_API_KEY" | jq .
+
+curl -sS "$BASE_URL/api/threads/$THREAD_ID/sources" \
+  -H "authorization: Bearer $ICM_API_KEY" | jq .
+
+curl -sS "$BASE_URL/api/threads/$THREAD_ID/private-guidance" \
+  -H "authorization: Bearer $ICM_API_KEY" | jq .
+
+curl -sS -X PUT "$BASE_URL/api/threads/$THREAD_ID/private-guidance" \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $ICM_API_KEY" \
+  -d '{"body":"Owner-only steering for this relationship."}' | jq .
+```
+
+Record a decision and rebuild personality memory when something important is settled:
+
+```bash
+curl -sS -X POST "$BASE_URL/api/threads/$THREAD_ID/decision" \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $ICM_API_KEY" \
+  -d '{"title":"Decision title","body":"What we concluded and why.","confidence":0.85}' | jq .
+
+curl -sS -X POST "$BASE_URL/api/objects/$ICM_HASH/decision-memory" \
+  -H "authorization: Bearer $ICM_API_KEY" | jq .
+```
+
 ## Main Workflow
 
 1. Create or select an ICM object with `POST /api/objects`.
