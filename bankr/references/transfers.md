@@ -51,6 +51,8 @@ curl "https://api.bankr.bot/addresses/resolve?value=vitalik.eth&type=ens"
 
 ## Recipient Formats
 
+Pass the bare username for social handles (no `.eth` suffix even if the user's display name has one) — the resolver only matches by exact Farcaster/Twitter username.
+
 | Format | Example | `bankr wallet transfer` | AI agent (`bankr agent`) |
 |--------|---------|:-----------------------:|:------------------------:|
 | EVM address | `0x1234...abcd` | ✓ | ✓ |
@@ -59,7 +61,7 @@ curl "https://api.bankr.bot/addresses/resolve?value=vitalik.eth&type=ens"
 | Basename | `name.base.eth` | ✓ (resolved client-side) | ✓ |
 | Coinbase ID | `name.cb.id` | ✓ (resolved client-side) | ✓ |
 | Twitter | `@elonmusk` | — | ✓ |
-| Farcaster | `@dwr.eth` | — | ✓ |
+| Farcaster | `@dwr` | — | ✓ |
 | Telegram | `@username` | — | ✓ |
 
 **Social handle resolution** (agent only): handles are resolved to a linked wallet address before sending. The user must have linked a wallet to the social platform for resolution to succeed.
