@@ -1,6 +1,6 @@
 ---
 name: bankr
-description: AI-powered crypto trading agent, wallet API, and LLM gateway via natural language. Use when the user wants to trade crypto, check portfolio balances (with PnL and NFTs), view token prices, search tokens, transfer crypto, manage NFTs, use leverage (Hyperliquid or Avantis), bet on Polymarket, deploy tokens, set up automated trading, sign and submit raw transactions, call x402 paid API endpoints, or access LLM models through the Bankr LLM gateway funded by your Bankr wallet. Supports Base, Ethereum, Polygon, Solana, and Unichain.
+description: AI-powered crypto trading agent, wallet API, and LLM gateway via natural language. Use when the user wants to trade crypto, check portfolio balances (with PnL and NFTs), view token prices, search tokens, transfer crypto, manage NFTs, use leverage (Hyperliquid or Avantis), bet on Polymarket, deploy tokens, set up automated trading, sign and submit raw transactions, call or deploy x402 paid API endpoints, browse the web, or access LLM models through the Bankr LLM gateway funded by your Bankr wallet. Supports Base, Ethereum, Polygon, Solana, and Unichain.
 metadata:
   {
     "clawdbot":
@@ -233,6 +233,15 @@ Omit `threadId` to start a new conversation. CLI equivalent: `bankr agent prompt
 - **Write endpoints** (`/wallet/transfer`, `/wallet/sign`, `/wallet/submit`) — require `walletApiEnabled`, `readOnly` check, and `allowedRecipients` enforcement
 - IP allowlist enforced on all endpoints
 
+#### Recipient & user lookup helpers (public, no auth)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/addresses/resolve?value=<recipient>&type=<address\|ens\|twitter\|farcaster>` | GET | Resolve a recipient (0x address, ENS-style name `.eth`/`.base.eth`/`.cb.id`, or social handle) to a 0x address. Used by `bankr wallet transfer --to` to support ENS input. |
+| `/users/search?...` | GET | Search Bankr users by Twitter or Farcaster username. |
+
+The legacy aliases `/public/resolve-recipient` and `/public/search-users` still work but are marked deprecated (Sunset: 2026-06-03) — migrate callers to the structured `/addresses/*` and `/users/*` namespaces.
+
 #### Agent API (`/agent/*`) — AI-powered endpoints (async)
 
 | Endpoint | Method | Description |
@@ -240,6 +249,12 @@ Omit `threadId` to start a new conversation. CLI equivalent: `bankr agent prompt
 | `/agent/prompt` | POST | Submit a prompt (async, returns job ID) |
 | `/agent/job/{jobId}` | GET | Check job status and results |
 | `/agent/job/{jobId}/cancel` | POST | Cancel a running job |
+
+#### Public endpoints (no auth required)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/token-launches` | GET | List recent token launches (cached, public) |
 
 #### Deprecated endpoints
 
@@ -256,9 +271,9 @@ For full API details (request/response schemas, job states, rich data, polling s
 
 **Reference**: [references/api-workflow.md](references/api-workflow.md) | [references/sign-submit-api.md](references/sign-submit-api.md)
 
-## CLI Command Reference (v0.2.0)
+## CLI Command Reference (v0.3.x)
 
-CLI 0.2.0 organizes commands into three namespaces: `wallet`, `agent`, and `tokens`. Old flat commands (`balances`, `prompt`, `status`, etc.) still work as deprecated aliases.
+`@bankr/cli` 0.2+ organizes commands into three namespaces: `wallet`, `agent`, and `tokens`. Old flat commands (`balances`, `prompt`, `status`, etc.) still work as deprecated aliases.
 
 ### `bankr wallet` — Wallet Operations
 
@@ -271,8 +286,8 @@ CLI 0.2.0 organizes commands into three namespaces: `wallet`, `agent`, and `toke
 | `bankr wallet portfolio --all` | Include both PnL and NFTs |
 | `bankr wallet portfolio --chain <chains>` | Filter by chain(s): base, polygon, mainnet, unichain, solana (comma-separated) |
 | `bankr wallet portfolio --json` | Output raw JSON |
-| `bankr wallet transfer --to <recipient> --token <symbol> --amount <amount>` | Transfer tokens with symbol resolution |
-| `bankr wallet transfer --to <recipient> --token USDC --amount 50 --chain base` | Transfer with explicit chain |
+| `bankr wallet transfer --to <recipient> --token <symbol> --amount <amount>` | Transfer tokens; `--to` accepts a 0x address or ENS-style name (`.eth`, `.base.eth`, `.cb.id`), `--token` resolves symbols to contracts. Social handles work via the AI agent only. |
+| `bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base` | ENS recipient with explicit chain |
 | `bankr wallet sign` | Sign messages/typed data/transactions |
 | `bankr wallet submit` | Submit raw transactions |
 
@@ -433,6 +448,7 @@ The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unifie
 - **New accounts start with $0 LLM credits** — top up via `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) before making any LLM calls, or you will get a 402 error
 - Check credits: `bankr llm credits` | Top up: `bankr llm credits add <amount>` | Auto top-up: `bankr llm credits auto --enable --amount 25 --tokens USDC`
 - In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`)
+- **Per-model discounts** available for Bankr Club members and partners — applied automatically at billing time
 
 ### Quick Commands
 
@@ -492,10 +508,11 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 ### Transfers
 
-- Send to addresses, ENS, or social handles
+- Send to 0x addresses, ENS-style names (`.eth`, `.base.eth`, `.cb.id`), or social handles
+- CLI direct (`bankr wallet transfer`) accepts 0x addresses + ENS only — social handles go through the AI agent
 - Multi-chain support
 - Flexible amount formats
-- Social handle resolution (Twitter, Farcaster, Telegram)
+- Social handle resolution (Twitter, Farcaster, Telegram) via the agent
 
 **Reference**: [references/transfers.md](references/transfers.md)
 
@@ -538,6 +555,7 @@ For full details — setup paths, model list, provider config, SDK examples, key
 - Both creator AND fee recipient can claim bonding curve fees (gas sponsored)
 - Optional vesting parameters (Solana)
 - Rate limits: 1/day standard, 10/day Bankr Club (gas sponsored within limits)
+- Tokens deployed through Bankr are always visible in your portfolio, even without market price data
 
 **Reference**: [references/token-deployment.md](references/token-deployment.md)
 
@@ -553,12 +571,25 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 ### x402 Paid API Calls
 
-The agent can discover and call x402-protected API endpoints, automatically handling USDC payments on Base:
+The agent can discover, call, and deploy x402-protected API endpoints, automatically handling USDC payments on Base:
 
 - **Discover** endpoints in the Bankr registry or via web search
 - **Inspect** endpoint pricing, methods, and input/output schemas
 - **Call** endpoints with automatic payment signing (max $10/request)
+- **Deploy** new x402 endpoints directly through the agent (write handler code, set pricing, deploy)
 - Works with any x402-compatible endpoint (Bankr-hosted or external)
+
+**Reference**: [references/x402-cloud.md](references/x402-cloud.md)
+
+### Web Browsing
+
+The agent has a built-in headless browser for web interactions:
+
+- **Open** URLs and navigate web pages
+- **Read** page content, extract data, and take screenshots
+- **Interact** with page elements (click, type, scroll)
+- **Persist** browser sessions across multi-step workflows
+- Useful for research, data extraction, and interacting with web apps that don't have APIs
 
 **Reference**: [references/x402-cloud.md](references/x402-cloud.md)
 
@@ -850,6 +881,14 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 - "Find x402 endpoints for sentiment analysis"
 - "Call the weather endpoint on x402"
 - "What x402 endpoints are available for price data?"
+- "Deploy an x402 endpoint that returns crypto prices"
+- "Create an x402 service that summarizes articles"
+
+### Web Browsing
+
+- "Browse coingecko.com and get the top trending tokens"
+- "Go to this URL and extract the token contract address"
+- "Check the Uniswap UI for the current ETH/USDC pool stats"
 
 ### Arbitrary Transactions
 
@@ -859,11 +898,12 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 
 ### Transfers (Direct)
 
-Transfer tokens via CLI or Wallet API without AI processing:
+Transfer tokens via CLI or Wallet API without AI processing. The CLI's `--to` accepts a 0x address or ENS-style name (`.eth`, `.base.eth`, `.cb.id`); the Wallet API accepts the same plus anything `/addresses/resolve` understands. For social handles (Twitter, Farcaster, Telegram) use the AI agent.
 
 ```bash
-# CLI — token symbol resolution built in
+# CLI — token symbol resolution + ENS resolution built in
 bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base
+bankr wallet transfer --to name.base.eth --native --amount 0.01
 bankr wallet transfer --to 0x1234... --token ETH --amount 0.1
 
 # REST API
