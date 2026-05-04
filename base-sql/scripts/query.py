@@ -47,7 +47,22 @@ def _load_api_key(override: str = "") -> str:
     return ""
 
 
-def run_query(sql: str, api_key: str, timeout: int = 30) -> dict:
+def run_query(sql: str, api_key: str = "", timeout: int = 30) -> list:
+    """
+    Run a SQL query. Returns a list of row dicts.
+    Raises RuntimeError on failure.
+
+    api_key is optional — if omitted, auto-loads from CDP_CLIENT_KEY env var
+    or ~/.cdp/client-key.txt.
+    """
+    if not api_key:
+        api_key = _load_api_key()
+    if not api_key:
+        raise RuntimeError(
+            "No CDP Client API key found. "
+            "Set CDP_CLIENT_KEY env var, use --key, or save key to ~/.cdp/client-key.txt. "
+            "Get a free key: https://portal.cdp.coinbase.com/projects/api-keys/client-key"
+        )
     payload = json.dumps({"sql": sql}).encode("utf-8")
     req = urllib.request.Request(
         API_URL,
@@ -60,7 +75,8 @@ def run_query(sql: str, api_key: str, timeout: int = 30) -> dict:
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("result", [])
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8")
         raise RuntimeError(f"HTTP {e.code}: {body}")
@@ -75,7 +91,6 @@ def main():
     parser.add_argument("sql", nargs="?", help="SQL query string, or '-' to read from stdin")
     parser.add_argument("--file", "-f", help="Path to .sql file")
     parser.add_argument("--key", "-k", help="CDP Client API key (overrides env/file)")
-    parser.add_argument("--raw", action="store_true", help="Print raw JSON response")
     args = parser.parse_args()
 
     api_key = _load_api_key(args.key or "")
@@ -100,20 +115,13 @@ def main():
         sys.exit(1)
 
     try:
-        result = run_query(sql, api_key)
+        rows = run_query(sql, api_key)
     except RuntimeError as e:
         print(f"Query failed: {e}", file=sys.stderr)
         sys.exit(1)
 
-    if args.raw:
-        print(json.dumps(result, indent=2))
-    else:
-        meta = result.get("metadata", {})
-        rows = result.get("result", [])
-        print(f"-- {meta.get('rowCount', len(rows))} rows "
-              f"({meta.get('executionTimeMs', '?')}ms) "
-              f"cached={meta.get('cached', False)}")
-        print(json.dumps(rows, indent=2))
+    print(f"-- {len(rows)} rows")
+    print(json.dumps(rows, indent=2))
 
 
 if __name__ == "__main__":
