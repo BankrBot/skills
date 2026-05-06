@@ -1,6 +1,6 @@
 ---
 name: cattown
-description: Interact with Cat Town — a Farcaster-native game world on Base. Covers KIBBLE staking (stake, claim, unlock, unstake, leaderboard, deposit history); live world state (season, weather, time of day, weekend flag); fishing drops filtered by world state; Isabella's weekend fishing competition with live prize-pool math; Paulie's weekly fish raffle (free-ticket claim, tier-based prize pool, odds, last winners); the daily 3-item boutique with KIBBLE→USD conversion; gacha spins (async VRF pay-then-receive, 100/day cap, seasonal pools); item valuation plus batch selling via the V2 vendor (5% tax); and KIBBLE tokenomics (% burned, % staked, live APY). Use when the user mentions Cat Town, KIBBLE, Wealth & Whiskers, Jasper, Isabella, Paulie, Skipper, Theodore, Cassie, RevenueShare, fishing, gacha, raffle, boutique, vendor, prize pools, drop tables, or any read/write on the Cat Town contracts.
+description: Interact with Cat Town — a Farcaster-native game world on Base. Covers KIBBLE staking (stake, claim, unlock, unstake, leaderboard, deposit history); live world state (season, weather, time of day, weekend flag); fishing drops filtered by world state; Isabella's weekend fishing competition with live prize-pool math; Paulie's weekly fish raffle (free-ticket claim, tier-based prize pool, odds, last winners); the daily 3-item boutique with KIBBLE→USD conversion; gacha spins (async VRF pay-then-receive, 100/day cap, seasonal pools); item valuation plus batch selling via the V2 vendor (5% tax); and KIBBLE tokenomics (% burned, % staked, live APY). Also recognises requests about incantations / vouchers / the Mystic Study and redirects them to the in-game claim page (not currently agent-claimable). Use when the user mentions Cat Town, KIBBLE, Wealth & Whiskers, Jasper, Isabella, Paulie, Skipper, Theodore, Cassie, RevenueShare, fishing, gacha, raffle, boutique, vendor, prize pools, drop tables, incantations, vouchers, Mystic Study, or any read/write on the Cat Town contracts.
 ---
 
 # Cat Town — Agent Overview
@@ -23,6 +23,8 @@ Current coverage:
 - **Fish raffle** (Paulie, Fri 20:00 UTC draw) — free-ticket claim flow, tier-based prize pool, chance-to-win, leaderboard + last winners.
 - **Boutique** — daily 3-item onchain rotation with KIBBLE→USD conversion via the Kibble Price Oracle.
 - **KIBBLE tokenomics** — Jasper's math for % burned, % staked, and live staking APY.
+
+> **Incantations / Mystic Study — claim only in-game.** Cat Town occasionally issues "incantations" (voucher rewards) that mint a free item to a player's wallet. **The agent cannot claim these — redemption is currently only supported in-game at https://cat.town/mystic-study.** If a user mentions incantations, vouchers, the Mystic Study, or "redeem my voucher", direct them to that page. Don't try to call any contract or API to claim them; treat this as out of scope for the agent.
 
 Each surface has its own subdirectory under `references/` for the deep reference. The weekly calendar below is the shared timing reference — many sections link back to it.
 
