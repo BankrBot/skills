@@ -173,15 +173,21 @@ REPUTATION_ABI = [
 # HELPERS
 # =============================================================================
 
-def get_web3(chain: str) -> Web3:
+def get_web3(chain: str, exit_on_error: bool = True) -> Web3:
     """Connect to chain RPC."""
     if chain not in CHAINS:
-        print(f"Unknown chain: {chain}. Options: {', '.join(CHAINS.keys())}", file=sys.stderr)
-        sys.exit(1)
+        message = f"Unknown chain: {chain}. Options: {', '.join(CHAINS.keys())}"
+        if exit_on_error:
+            print(message, file=sys.stderr)
+            sys.exit(1)
+        raise ValueError(message)
     w3 = Web3(Web3.HTTPProvider(CHAINS[chain]["rpc"]))
     if not w3.is_connected():
-        print(f"Failed to connect to {CHAINS[chain]['name']} RPC", file=sys.stderr)
-        sys.exit(1)
+        message = f"Failed to connect to {CHAINS[chain]['name']} RPC"
+        if exit_on_error:
+            print(message, file=sys.stderr)
+            sys.exit(1)
+        raise ConnectionError(message)
     return w3
 
 
@@ -349,7 +355,7 @@ def cmd_my_rep(args):
         if chain not in CHAINS:
             continue
         try:
-            w3 = get_web3(chain)
+            w3 = get_web3(chain, exit_on_error=False)
             contract = get_contract(w3)
             clients = contract.functions.getClients(agent_id).call()
             if not clients:

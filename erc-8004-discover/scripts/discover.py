@@ -50,14 +50,10 @@ def api_request(url: str, exit_on_error: bool = True) -> dict:
             sys.exit(1)
         raise
     except json.JSONDecodeError:
-        print("Error: Invalid JSON response from API", file=sys.stderr)
-        sys.exit(1)
-
-
-def fetch_agents(page: int = 1, page_size: int = 100) -> dict:
-    """Fetch a single page of agents."""
-    url = f"{AGENTS_ENDPOINT}?page={page}&page_size={page_size}"
-    return api_request(url)
+        if exit_on_error:
+            print("Error: Invalid JSON response from API", file=sys.stderr)
+            sys.exit(1)
+        raise
 
 
 def fetch_agents_pages(page_size: int = 100, max_pages: int = 5) -> list:
@@ -353,7 +349,7 @@ def cmd_stats(args):
 
     # Fetch networks
     try:
-        networks = api_request(NETWORKS_ENDPOINT)
+        networks = api_request(NETWORKS_ENDPOINT, exit_on_error=False)
     except Exception:
         networks = []
 
@@ -484,8 +480,7 @@ Examples:
     subparsers.add_parser("stats", help="Show ecosystem statistics")
 
     # skills command
-    skills_parser = subparsers.add_parser("skills", help="List all skills/capabilities")
-    skills_parser.add_argument("--list", "-l", action="store_true", help="List format")
+    subparsers.add_parser("skills", help="List all skills/capabilities")
 
     args = parser.parse_args()
 
