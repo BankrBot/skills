@@ -438,12 +438,17 @@ Then `purchaseItem(itemId)` mints the NFT to `msg.sender` and emits `ItemPurchas
 
 If `purchaseItem` reverts, you'll see a Solidity **custom error** (4-byte selector, no message) — `ItemNotFound()`, `ItemNotActive()`, `ItemOutOfStock()`, `ItemNotAvailableYet()`, `ItemNoLongerAvailable()`, `ItemNotAvailableThisSeason()`, `ItemNotInDailyRotation()`, or `EnforcedPause()`. Friendly strings only come from `canPurchaseItem` — that's why the preflight matters.
 
+#### Never compute the price — read it
+
+`ShopItemView.price` is the literal token amount in `paymentToken` wei. Read it from the contract; do **not** infer it from doc snippets, the docs site, or prior conversation. Prices change (admin-updated) and currencies vary per item. The only correct flow is: read `getShopItem(itemId)` (or pull the item out of `getTodaysRotationDetails()`), use `paymentToken` and `price` exactly as returned, divide `price` by the right decimals for display.
+
 #### Example — Rat Skull Charm (DOTA collab, live as of writing)
 
 ```
 itemId       = 208
 paymentToken = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07   // DOTA ("Defense of the Agents"), 18 decimals
-price        = ~93,750 DOTA (read live from ShopItemView.price)
+price        = 1,499,999,999,999,999,974,834,176 wei = 1,500,000 DOTA
+               (read live from ShopItemView.price — do not hardcode)
 
 0. paused() == false
 1. canPurchaseItem(208)                                  // expect (true, "")
@@ -454,7 +459,7 @@ price        = ~93,750 DOTA (read live from ShopItemView.price)
 
 #### Example — KIBBLE-priced item (the common case)
 
-Same recipe, but step 3 is `KIBBLE.approve(boutique, price)` against the KIBBLE token (`0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb`).
+Live as of writing: **Striking Baseball Cap** (`itemId = 173`, Legendary Hat) at **50,000 KIBBLE**, stock 1 of 1; **Cherry Neckerchief** (`196`, Epic Neck) at **25,000 KIBBLE**, stock 1 of 1. Same recipe as DOTA, but step 3 is `KIBBLE.approve(boutique, price)` against the KIBBLE token (`0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb`).
 
 #### Bankr execution
 
@@ -635,9 +640,31 @@ Because the pay tx and the mint tx are decoupled, the frontend correlates them b
 
 If the user spins 10 times, you must wait for 10 items with `id > latestId`. Partial results are fine to preview, but be explicit about how many are still pending. Don't assume pull-1's result has a smaller id than pull-2's — VRF callbacks can interleave.
 
-### Response patterns
+### Response pattern — ALWAYS poll and report in the same message
 
-**Can Bankr poll for results?** If yes, use the loop above and report when all N have landed. If not, submit the pay tx(s), return immediately with "Spin submitted — ask me again in ~30 seconds to see what dropped" and let the user re-prompt. When they come back, pull `/v2/items/capsule/<user>` and show items with `id > latestId` (where `latestId` was cached in the original turn).
+**Default: poll, then reply.** Do not return "ask me again in 30 seconds" as a normal response. The agent has a working HTTP tool and a sleep — use them. The pay tx is async at the contract level, but the user-facing experience must not be: cat.town's own UI polls every 1 s and shows the result inline, and so should we. Telling the user to re-prompt is a regression.
+
+The flow inside one user turn:
+
+```
+1. Cache latestId before any tx:
+     latestId = max(item.id for item in GET /v2/items/capsule/<user>)
+     # endpoint returns 500 for cold wallets — treat as latestId = 0
+2. Submit the pay tx(s). Wait for each one's receipt (Base confirms in ~2 s).
+3. Loop, sleeping 2 s between attempts:
+     newItems = [i for i in GET /v2/items/capsule/<user> if i.id > latestId]
+     if len(newItems) >= N: break          # all results landed
+4. Cap the loop at ~60 s of total polling (≈30 attempts).
+5. Report inline: rarity + name + collection + KIBBLE/$ value, plus "X pulls left today."
+```
+
+VRF on Base typically lands in 5–15 s per pull. Polling cost is one cheap GET every couple seconds — keep going until you have all N or you hit the 60 s cap.
+
+**Only fall back to "ask me again" if the 60 s budget genuinely expires** without all N items landing. That fallback should be specific:
+
+> 4 of 5 spins minted (results below). The 5th is still pending — VRF backed up. Ask me "what else did I get?" in ~30 seconds and I'll grab it.
+
+Don't preempt this fallback. Don't issue it as the *first* response after submitting the tx — that's the regression we're fixing.
 
 ### Always quote the item's value + offer a sell
 
@@ -645,9 +672,7 @@ When reporting a gacha result, look up the item's `sellValue` (in US cents) from
 
 Format: `"<Rarity> <Name>" (<Type>, <Collection>) worth ~<X> KIBBLE (~$<Y>)`. Example for Fern: `"Common Fern (Collectible, Plant Minis) worth ~105 KIBBLE (~$0.10)"`.
 
-### Example replies
-
-**Polling path (Bankr can wait):**
+### Example reply (the only one — same message, polled to completion)
 
 > Spinning once… paid ~527 KIBBLE. Waiting on VRF…
 >
@@ -655,9 +680,17 @@ Format: `"<Rarity> <Name>" (<Type>, <Collection>) worth ~<X> KIBBLE (~$<Y>)`. Ex
 >
 > Want me to sell it for you? After the 5% vendor fee, you'd get ~100 KIBBLE.
 
-**Non-polling path (no async support):**
+For an N-pull batch, lead with the headline (highest-rarity drop) and list the rest:
 
-> Submitted 5 pulls (~2,635 KIBBLE total). VRF needs a few seconds to mint each one. Ask me "what did I get?" in ~30 seconds and I'll check — I can also sell the results right away if you want.
+> Spun 5x (~2,635 KIBBLE). All 5 results landed:
+>
+> 🎉 **Epic Diamond** (Treasure, Spring Treasures) — ~10,500 KIBBLE (~$10.00) — your headline pull
+> - Common Fern — ~105 KIBBLE
+> - Common Pebble — ~50 KIBBLE
+> - Uncommon Acorn — ~210 KIBBLE
+> - Common Twig — ~50 KIBBLE
+>
+> 95 pulls left today. Want me to sell the four commons/uncommon and keep the Diamond? You'd net ~395 KIBBLE after the 5% fee.
 
 ### Reads cheat-sheet
 

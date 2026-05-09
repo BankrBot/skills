@@ -213,29 +213,37 @@ event ItemPurchased(
 
 `mintedTokenId` is the V2-minter token id the user now owns — useful if you immediately want to surface a sell quote (see [../sell-items/contract.md](../sell-items/contract.md)) or render the item.
 
+### Never hardcode the price — read it from the contract
+
+`ShopItemView.price` is the literal token amount in `paymentToken`'s native wei. Read it via `getShopItem(itemId)` or `getTodaysRotationDetails()`. Don't infer from any doc, including this one; admin can update prices, the rotation rotates daily, and the currency varies per item. The recipes below use **today's live values** as illustrations — they will be wrong tomorrow.
+
 ### Recipe — KIBBLE-priced item (the common case)
 
-Live example as of writing — **Striking Baseball Cap** (`itemId = 173`, Legendary, 800,000 KIBBLE; rotation IDs and prices change daily, always re-read).
+Live as of writing — **Striking Baseball Cap** (`itemId = 173`, Legendary, **50,000 KIBBLE**, 1/1 stock).
 
 ```
-0. paused() == false                                             # else everything reverts
+price = ShopItemView.price for itemId 173        # = 50_000 * 10^18 today
+
+0. paused() == false                              # else everything reverts
 1. canPurchaseItem(173) → must be (true, "")
-2. KIBBLE.balanceOf(user) ≥ 800_000 * 10^18
-3. KIBBLE.allowance(user, boutique) ≥ 800_000 * 10^18
-     - if not: KIBBLE.approve(boutique, 800_000 * 10^18)         # standard ERC-20 wei
-4. Boutique.purchaseItem(173)                                    # plain integer, no scaling
+2. KIBBLE.balanceOf(user) ≥ price
+3. KIBBLE.allowance(user, boutique) ≥ price
+     - if not: KIBBLE.approve(boutique, price)    # standard ERC-20 wei
+4. Boutique.purchaseItem(173)                     # plain integer, no scaling
 ```
 
 ### Recipe — DOTA-priced item (collab / partnership)
 
-Live example as of writing — **Rat Skull Charm** (`itemId = 208`, Rare, ~93,750 DOTA, "Friends of Cat Town" collection).
+Live as of writing — **Rat Skull Charm** (`itemId = 208`, Rare, **1,500,000 DOTA**, ~64/100 stock remaining, "Friends of Cat Town" collection).
 
 ```
+price = ShopItemView.price for itemId 208        # = 1_500_000 * 10^18 today (DOTA, 18 decimals)
+
 0. paused() == false
 1. canPurchaseItem(208) → must be (true, "")
-2. DOTA.balanceOf(user) ≥ price                                  # else swap (see below)
+2. DOTA.balanceOf(user) ≥ price                   # else swap (see below)
 3. DOTA.allowance(user, boutique) ≥ price
-     - if not: DOTA.approve(boutique, price)                     # DOTA = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07, 18 decimals
+     - if not: DOTA.approve(boutique, price)      # DOTA = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07
 4. Boutique.purchaseItem(208)
 ```
 
@@ -266,23 +274,28 @@ Natural-language prompt (handles approval + buy in one shot):
 bankr agent prompt "Buy the Rat Skull Charm from the Cat Town boutique"
 ```
 
-Or encode calldata directly:
+Or encode calldata directly. **Do NOT copy a hex price from this doc** — read `ShopItemView.price` live and encode that exact value. Below is a worked example for today's Rat Skull Charm price (1,500,000 DOTA), purely to show the byte layout:
 
 ```bash
-# 1) approve DOTA → boutique for 93,750 DOTA
+# Today's price hex for Rat Skull Charm (read live; will change):
+PRICE_HEX=0x13da329b6336470000000        # = 1_499_999_999_999_999_974_834_176 wei DOTA
+
+# 1) approve DOTA → boutique for that price
+#    (cast calldata "approve(address,uint256)" 0xf9843bF01ae7EF5203fc49C39E4868C7D0ca7a02 $PRICE_HEX)
 bankr wallet submit \
   --to 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07 \
-  --data 0x095ea7b3000000000000000000000000f9843bf01ae7ef5203fc49c39e4868c7d0ca7a020000000000000000000000000000000000000000000013da329b633647000000 \
+  --data 0x095ea7b3000000000000000000000000f9843bf01ae7ef5203fc49c39e4868c7d0ca7a02000000000000000000000000000000000000000000013da329b6336470000000 \
   --chain base
 
 # 2) purchaseItem(208)
+#    (cast calldata "purchaseItem(uint256)" 208)
 bankr wallet submit \
   --to 0xf9843bF01ae7EF5203fc49C39E4868C7D0ca7a02 \
   --data 0xd38ea5bf00000000000000000000000000000000000000000000000000000000000000d0 \
   --chain base
 ```
 
-(For a KIBBLE-priced item, swap the approve target to the KIBBLE token `0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb` and recompute the amount.)
+For a KIBBLE-priced item, swap the approve target to the KIBBLE token (`0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb`) and re-encode against the live `price`. Always re-encode from a fresh contract read; never reuse stale hex.
 
 ## Notes
 
