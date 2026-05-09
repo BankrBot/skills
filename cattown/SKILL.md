@@ -419,29 +419,33 @@ Include all four season links in every response — a user interested in the cur
 
 ### Buying an item
 
-Single-item purchase per tx — the contract has no batch buy.
+Single-item purchase per tx — the contract has no batch buy. Mint is **synchronous** (unlike gacha's async VRF mint): the same tx pulls payment to the treasury and mints the NFT to the buyer.
 
 ```
-Boutique.purchaseItem(uint256 itemId) returns (uint256 mintedTokenId)
+Boutique.purchaseItem(uint256 itemId) external nonReentrant whenNotPaused returns (uint256 mintedTokenId)
 ```
 
-`itemId` is the **plain rotation id** from `getTodaysRotation()` (e.g. 208, 173, 196). **Not** wei-scaled, **not** payable — do not send `msg.value`.
+`itemId` is the **plain rotation id** from `getTodaysRotation()` (live as of writing: 208, 173, 196 — these change daily, always re-read). **Not** wei-scaled, **not** payable — do not send `msg.value`.
 
 Preconditions, in order:
 
-1. **`canPurchaseItem(itemId)` → `(bool, string reason)`** — preflight. If false, surface `reason` verbatim ("Item is sold out", "Item not in today's rotation", season miss, etc.). Cheaper than letting the tx revert.
-2. **`paymentToken.balanceOf(user) >= price`** — `price` is in `paymentToken` wei at that token's decimals (KIBBLE/DOTA = 18, USDC = 6). If the user is short, offer a swap *into* `paymentToken` from KIBBLE/ETH/USDC via the `trails` or `symbiosis` skill. cat.town's UI directly links DOTA buyers to Uniswap.
-3. **`paymentToken.approve(boutique, price_wei)`** if `allowance(user, boutique) < price`. **`paymentToken` is the per-item one — read it from `ShopItemView`. NEVER assume KIBBLE.**
+1. **`paused()` == false** — modifier is `whenNotPaused`; the tx reverts otherwise. One read protects against a town-wide pause.
+2. **`canPurchaseItem(itemId)` → `(bool, string reason)`** — view-only preflight. If false, surface `reason` verbatim. The exact strings the contract returns: `"Item does not exist"`, `"Item is not active"`, `"Item is out of stock"`, `"Item not available yet"`, `"Item no longer available"`, `"Item not available this season"`, `"Item not in today's rotation"`. (Note: `canPurchaseItem` does **not** check `paused()` — that's why step 1 is separate.)
+3. **`paymentToken.balanceOf(user) >= price`** — `price` is in `paymentToken`'s native unit. KIBBLE / DOTA / BARON = 18 decimals; USDC = 6; cbBTC = 8. If short, offer a swap *into* `paymentToken` via `trails` or `symbiosis`. cat.town's UI sends DOTA buyers straight to Uniswap (`https://app.uniswap.org/swap?…outputCurrency=0x5f09821cbb61e09d2a83124ae0b56aaa3ae85b07`).
+4. **`paymentToken.approve(boutique, price)`** if `allowance(user, boutique) < price`. **`paymentToken` is the per-item one — read it from `ShopItemView`. NEVER assume KIBBLE.** The spender is the Boutique address even though the tokens flow through to a `treasury`.
 
-Then `purchaseItem(itemId)` mints the NFT to `msg.sender` and emits `ItemPurchased(buyer, itemId, mintedTokenId, paymentToken, price)`.
+Then `purchaseItem(itemId)` mints the NFT to `msg.sender` and emits `ItemPurchased(buyer, itemId, mintedTokenId, paymentToken, price)`. `mintedTokenId` is the V2-minter token id the user now owns.
 
-#### Example — Rat Skull Charm (DOTA collab, today's rotation)
+If `purchaseItem` reverts, you'll see a Solidity **custom error** (4-byte selector, no message) — `ItemNotFound()`, `ItemNotActive()`, `ItemOutOfStock()`, `ItemNotAvailableYet()`, `ItemNoLongerAvailable()`, `ItemNotAvailableThisSeason()`, `ItemNotInDailyRotation()`, or `EnforcedPause()`. Friendly strings only come from `canPurchaseItem` — that's why the preflight matters.
+
+#### Example — Rat Skull Charm (DOTA collab, live as of writing)
 
 ```
 itemId       = 208
-paymentToken = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07   // DOTA, 18 decimals
-price        = ~93,750 DOTA (read live)
+paymentToken = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07   // DOTA ("Defense of the Agents"), 18 decimals
+price        = ~93,750 DOTA (read live from ShopItemView.price)
 
+0. paused() == false
 1. canPurchaseItem(208)                                  // expect (true, "")
 2. DOTA.balanceOf(user) >= price                         // else swap
 3. DOTA.approve(boutique, price)                         // if allowance < price
@@ -450,7 +454,7 @@ price        = ~93,750 DOTA (read live)
 
 #### Example — KIBBLE-priced item (the common case)
 
-Same recipe, but step 3 is `KIBBLE.approve(boutique, price_wei)` against the KIBBLE token (`0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb`).
+Same recipe, but step 3 is `KIBBLE.approve(boutique, price)` against the KIBBLE token (`0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb`).
 
 #### Bankr execution
 

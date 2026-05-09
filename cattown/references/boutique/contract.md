@@ -154,24 +154,50 @@ The oracle tracks KIBBLE's real market price; re-read at least every few minutes
 
 ## Buying an item
 
-Single-item purchase per tx — no batch/multi-buy on the contract.
+Single-item purchase per tx — no batch/multi-buy on the contract. Mint is **synchronous** (unlike gacha's async VRF mint): the same `purchaseItem` tx pulls payment, mints the NFT, and returns its token id.
 
 ### Write path
 
 ```
-Boutique.purchaseItem(uint256 itemId) returns (uint256 mintedTokenId)
+Boutique.purchaseItem(uint256 itemId) external nonReentrant whenNotPaused returns (uint256 mintedTokenId)
 ```
 
 - Selector: `0xd38ea5bf`
-- `itemId` is the **plain rotation id** from `getTodaysRotation()` (208, 173, 196, …) — **not** scaled, **not** wei. Pass the integer as-is.
+- `itemId` is the **plain rotation id** from `getTodaysRotation()` (e.g. 208, 173, 196 in today's rotation) — **not** scaled, **not** wei. Pass the integer as-is.
 - State mutability: `nonpayable` — do **not** send `msg.value`.
-- On success, mints the item NFT to `msg.sender` (via the configured V2 minter) and emits `ItemPurchased`.
+- Modifiers: `nonReentrant` and `whenNotPaused` — if `paused()` returns true, all purchases revert. Read `paused()` first if you suspect downtime.
+- Internally: pulls `price` of `paymentToken` from `msg.sender` to a contract-set `treasury` address (NOT held by the Boutique itself), then mints the NFT via the configured V2 minter, then emits `ItemPurchased`. There's no boutique fee — the full price flows to treasury.
 
-### Preconditions (run all three before submitting)
+### Preconditions (run before submitting)
 
-1. `paymentToken.allowance(user, boutique) >= price` — note `price` is in **`paymentToken` wei** at that token's decimals. KIBBLE and DOTA are 18 decimals; USDC is 6. Don't reflexively use 18.
-2. `paymentToken.balanceOf(user) >= price`.
-3. `canPurchaseItem(itemId)` → `(bool canPurchase, string reason)`. If `canPurchase == false`, surface `reason` verbatim — it's human-readable ("Item is sold out", "Item is not active", "Item not in today's rotation", season-gate misses, etc.). Cheaper and more informative than letting the tx revert.
+1. **`canPurchaseItem(itemId)` → `(bool canPurchase, string reason)`** — view-only preflight. If `canPurchase == false`, surface `reason` verbatim. The exact strings the contract returns:
+   - `"Item does not exist"`
+   - `"Item is not active"`
+   - `"Item is out of stock"`
+   - `"Item not available yet"` (start-time gate)
+   - `"Item no longer available"` (end-time gate)
+   - `"Item not available this season"`
+   - `"Item not in today's rotation"`
+
+   Note: `canPurchaseItem` does **not** check `paused()`. If the contract is paused but the item is otherwise fine, this returns `(true, "")` and the actual `purchaseItem` tx reverts. Read `paused()` separately when in doubt.
+2. **`paymentToken.balanceOf(user) >= price`** — `price` is in `paymentToken`'s native unit (KIBBLE/DOTA/BARON are 18 decimals; USDC is 6 decimals; cbBTC is 8 decimals). Don't reflexively use 18.
+3. **`paymentToken.allowance(user, boutique) >= price`** — if not, approve first. The spender is the Boutique address (`0xf9843bF01ae7EF5203fc49C39E4868C7D0ca7a02`), even though tokens flow through to the treasury.
+
+### Reverts from `purchaseItem` are custom errors, NOT strings
+
+The friendly strings only come from `canPurchaseItem`. The actual `purchaseItem` reverts with Solidity custom errors (4-byte selectors, no message). If a tx reverts and you only see a hex selector in the trace, this table maps them:
+
+| Custom error                       | Same condition as `canPurchaseItem` reason |
+|------------------------------------|--------------------------------------------|
+| `ItemNotFound()`                   | "Item does not exist"                      |
+| `ItemNotActive()`                  | "Item is not active"                       |
+| `ItemOutOfStock()`                 | "Item is out of stock"                     |
+| `ItemNotAvailableYet()`            | "Item not available yet"                   |
+| `ItemNoLongerAvailable()`          | "Item no longer available"                 |
+| `ItemNotAvailableThisSeason()`     | "Item not available this season"           |
+| `ItemNotInDailyRotation()`         | "Item not in today's rotation"             |
+
+This is exactly why preflighting with `canPurchaseItem` is worth one cheap RPC — you get a string the user can read.
 
 ### `ItemPurchased` event
 
@@ -189,24 +215,28 @@ event ItemPurchased(
 
 ### Recipe — KIBBLE-priced item (the common case)
 
-Today's example: **Striking Baseball Cap** (`itemId = 173`, Legendary, 800,000 KIBBLE).
+Live example as of writing — **Striking Baseball Cap** (`itemId = 173`, Legendary, 800,000 KIBBLE; rotation IDs and prices change daily, always re-read).
 
 ```
+0. paused() == false                                             # else everything reverts
 1. canPurchaseItem(173) → must be (true, "")
-2. KIBBLE.allowance(user, boutique) ≥ 800_000 * 10^18 ?
-     - if not: KIBBLE.approve(boutique, 800_000 * 10^18)        # standard ERC-20 wei
-3. Boutique.purchaseItem(173)                                    # plain integer, no scaling
+2. KIBBLE.balanceOf(user) ≥ 800_000 * 10^18
+3. KIBBLE.allowance(user, boutique) ≥ 800_000 * 10^18
+     - if not: KIBBLE.approve(boutique, 800_000 * 10^18)         # standard ERC-20 wei
+4. Boutique.purchaseItem(173)                                    # plain integer, no scaling
 ```
 
 ### Recipe — DOTA-priced item (collab / partnership)
 
-Today's example: **Rat Skull Charm** (`itemId = 208`, Rare, 93,750 DOTA, "Friends of Cat Town" collection).
+Live example as of writing — **Rat Skull Charm** (`itemId = 208`, Rare, ~93,750 DOTA, "Friends of Cat Town" collection).
 
 ```
+0. paused() == false
 1. canPurchaseItem(208) → must be (true, "")
-2. DOTA.allowance(user, boutique) ≥ 93_750 * 10^18 ?
-     - if not: DOTA.approve(boutique, 93_750 * 10^18)            # DOTA = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07, 18 decimals
-3. Boutique.purchaseItem(208)
+2. DOTA.balanceOf(user) ≥ price                                  # else swap (see below)
+3. DOTA.allowance(user, boutique) ≥ price
+     - if not: DOTA.approve(boutique, price)                     # DOTA = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07, 18 decimals
+4. Boutique.purchaseItem(208)
 ```
 
 If the user doesn't hold any DOTA, the cat.town UI sends them to Uniswap to swap in:
@@ -219,17 +249,14 @@ For collab tokens generally, prefer to swap *into* the required token from KIBBL
 
 ### Per-wallet purchase counts
 
-`getUserPurchaseCount(itemId, user)` returns how many times a wallet has bought a specific item. The contract enforces stock via `stockRemaining` globally (not per-user), but check this read if you want to tell a user "you've already bought this one" before another attempt.
+`getUserPurchaseCount(itemId, user)` returns how many times a wallet has bought a specific item. The contract increments this on every buy but does **not** enforce a per-user max — stock is enforced globally via `stockRemaining`. Useful only as a "you've already bought this" UX hint.
 
 ### Common revert reasons
 
-- **`ERC20: transfer amount exceeds allowance`** — wrong token approved, or allowance too low. Reread `paymentToken` from `ShopItemView` and approve that exact address.
-- **`ERC20: transfer amount exceeds balance`** — user doesn't hold enough of `paymentToken`. Offer a swap.
-- **`canPurchaseItem` reason strings** (preflight catches these without burning gas):
-  - "Item is sold out" → `stockRemaining == 0`
-  - "Item is not active" → admin disabled it
-  - "Item not in today's rotation" → out of the daily 3
-  - season / time-window misses
+- **`ERC20: transfer amount exceeds allowance`** (or `ERC20InsufficientAllowance`) — wrong token approved, or allowance too low. Reread `paymentToken` from `ShopItemView` and approve that exact address with the spender set to the Boutique.
+- **`ERC20: transfer amount exceeds balance`** (or `ERC20InsufficientBalance`) — user doesn't hold enough of `paymentToken`. Offer a swap.
+- **`EnforcedPause()`** — contract is paused. Read `paused()`; nothing actionable until ops un-pauses.
+- **Custom errors** (`ItemNotFound()` etc., see table above) — these come through as bare 4-byte selectors. Always preflight with `canPurchaseItem` so you can show the user the matching string.
 
 ### Bankr execution
 
