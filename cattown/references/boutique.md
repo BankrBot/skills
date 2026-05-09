@@ -25,7 +25,7 @@ Tokens currently surfaced by the cat.town frontend: **KIBBLE, DOTA, USDC, BARON,
 - Each day starts at **00:00 UTC**; `getCurrentDayNumber()` returns days since Unix epoch (`block.timestamp / 86400`).
 - Rotation is deterministic from `(dayNumber, currentSeason)` — same day + same season = same 3 items.
 - `itemsPerDay()` = **3** (constant).
-- Season boundaries follow `GameData.getCurrentSeason()` (see [../world/contract.md](../world/contract.md)); each season has its own pool.
+- Season boundaries follow `GameData.getCurrentSeason()` (see [world.md](world.md)); each season has its own pool.
 - The matching human-readable doc pages:
   - Top-level shop: https://docs.cat.town/shops/boutique
   - Spring: https://docs.cat.town/boutique/spring-fashion
@@ -262,7 +262,7 @@ event ItemPurchased(
 )
 ```
 
-`mintedTokenId` is the V2-minter token id the user now owns — useful if you immediately want to surface a sell quote (see [../sell-items/contract.md](../sell-items/contract.md)) or render the item.
+`mintedTokenId` is the V2-minter token id the user now owns — useful if you immediately want to surface a sell quote (see [sell-items.md](sell-items.md)) or render the item.
 
 ### Never hardcode the price — read it from the contract
 
