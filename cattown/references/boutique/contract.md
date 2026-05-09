@@ -1,8 +1,16 @@
 # Cat Town Boutique — contract + KIBBLE oracle reference
 
-The boutique is a fully onchain daily shop on Base. Every day at **00:00 UTC** the contract surfaces **3 items** selected deterministically from the current season's pool. No offchain API is needed — items, prices, stock, and rotation are all readable directly from the Boutique contract.
+The boutique is a fully onchain daily shop on Base. Every day at **00:00 UTC** the contract surfaces **3 items** selected deterministically from the current season's pool. No offchain API is needed — items, prices, stock, rotation, **and the buy path** are all directly on the Boutique contract.
 
-This doc covers the **Boutique** contract (rotation + item state) and the **KIBBLE price oracle** (for USD conversion — the in-game UI shows KIBBLE only).
+This doc covers the **Boutique** contract (rotation, item state, **purchase flow**) and the **KIBBLE price oracle** (for USD conversion — the in-game UI shows native-token prices only).
+
+## ⚠️ CRITICAL: each item carries its own `paymentToken` — read it before approving
+
+Most items are priced in **KIBBLE**, but partnership / collab items use other ERC-20s — for example today's **Rat Skull Charm** (Friends of Cat Town collab) is priced in **DOTA** ("Defense of the Agents", `0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07`). The contract pulls the price from `msg.sender` in **whichever token the item specifies**, so you must approve the **right token**.
+
+If you reflexively `kibble.approve(boutique, …)` for a DOTA-priced item, the `purchaseItem` tx reverts on the internal `transferFrom` (insufficient DOTA allowance — KIBBLE allowance is irrelevant). The fix is to read `ShopItemView.paymentToken` per item and approve **that** token.
+
+Tokens currently surfaced by the cat.town frontend: **KIBBLE, DOTA, USDC, BARON, cbBTC**. Any ERC-20 the team configures will work; treat the address as authoritative, not the symbol.
 
 ## Addresses (Base, chain 8453)
 
@@ -144,9 +152,114 @@ The oracle tracks KIBBLE's real market price; re-read at least every few minutes
 > - Winter: https://docs.cat.town/boutique/winter-fashion
 > - Overview: https://docs.cat.town/shops/boutique
 
+## Buying an item
+
+Single-item purchase per tx — no batch/multi-buy on the contract.
+
+### Write path
+
+```
+Boutique.purchaseItem(uint256 itemId) returns (uint256 mintedTokenId)
+```
+
+- Selector: `0xd38ea5bf`
+- `itemId` is the **plain rotation id** from `getTodaysRotation()` (208, 173, 196, …) — **not** scaled, **not** wei. Pass the integer as-is.
+- State mutability: `nonpayable` — do **not** send `msg.value`.
+- On success, mints the item NFT to `msg.sender` (via the configured V2 minter) and emits `ItemPurchased`.
+
+### Preconditions (run all three before submitting)
+
+1. `paymentToken.allowance(user, boutique) >= price` — note `price` is in **`paymentToken` wei** at that token's decimals. KIBBLE and DOTA are 18 decimals; USDC is 6. Don't reflexively use 18.
+2. `paymentToken.balanceOf(user) >= price`.
+3. `canPurchaseItem(itemId)` → `(bool canPurchase, string reason)`. If `canPurchase == false`, surface `reason` verbatim — it's human-readable ("Item is sold out", "Item is not active", "Item not in today's rotation", season-gate misses, etc.). Cheaper and more informative than letting the tx revert.
+
+### `ItemPurchased` event
+
+```
+event ItemPurchased(
+    address indexed buyer,
+    uint256 indexed itemId,
+    uint256 indexed mintedTokenId,
+    address paymentToken,
+    uint256 price
+)
+```
+
+`mintedTokenId` is the V2-minter token id the user now owns — useful if you immediately want to surface a sell quote (see [../sell-items/contract.md](../sell-items/contract.md)) or render the item.
+
+### Recipe — KIBBLE-priced item (the common case)
+
+Today's example: **Striking Baseball Cap** (`itemId = 173`, Legendary, 800,000 KIBBLE).
+
+```
+1. canPurchaseItem(173) → must be (true, "")
+2. KIBBLE.allowance(user, boutique) ≥ 800_000 * 10^18 ?
+     - if not: KIBBLE.approve(boutique, 800_000 * 10^18)        # standard ERC-20 wei
+3. Boutique.purchaseItem(173)                                    # plain integer, no scaling
+```
+
+### Recipe — DOTA-priced item (collab / partnership)
+
+Today's example: **Rat Skull Charm** (`itemId = 208`, Rare, 93,750 DOTA, "Friends of Cat Town" collection).
+
+```
+1. canPurchaseItem(208) → must be (true, "")
+2. DOTA.allowance(user, boutique) ≥ 93_750 * 10^18 ?
+     - if not: DOTA.approve(boutique, 93_750 * 10^18)            # DOTA = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07, 18 decimals
+3. Boutique.purchaseItem(208)
+```
+
+If the user doesn't hold any DOTA, the cat.town UI sends them to Uniswap to swap in:
+
+```
+https://app.uniswap.org/swap?chain=mainnet&outputChain=base&inputCurrency=NATIVE&outputCurrency=0x5f09821cbb61e09d2a83124ae0b56aaa3ae85b07
+```
+
+For collab tokens generally, prefer to swap *into* the required token from KIBBLE / ETH / USDC rather than asking users to source it themselves. Bankr's swap surface (via the `trails` or `symbiosis` skill) handles this.
+
+### Per-wallet purchase counts
+
+`getUserPurchaseCount(itemId, user)` returns how many times a wallet has bought a specific item. The contract enforces stock via `stockRemaining` globally (not per-user), but check this read if you want to tell a user "you've already bought this one" before another attempt.
+
+### Common revert reasons
+
+- **`ERC20: transfer amount exceeds allowance`** — wrong token approved, or allowance too low. Reread `paymentToken` from `ShopItemView` and approve that exact address.
+- **`ERC20: transfer amount exceeds balance`** — user doesn't hold enough of `paymentToken`. Offer a swap.
+- **`canPurchaseItem` reason strings** (preflight catches these without burning gas):
+  - "Item is sold out" → `stockRemaining == 0`
+  - "Item is not active" → admin disabled it
+  - "Item not in today's rotation" → out of the daily 3
+  - season / time-window misses
+
+### Bankr execution
+
+Natural-language prompt (handles approval + buy in one shot):
+
+```bash
+bankr agent prompt "Buy the Rat Skull Charm from the Cat Town boutique"
+```
+
+Or encode calldata directly:
+
+```bash
+# 1) approve DOTA → boutique for 93,750 DOTA
+bankr wallet submit \
+  --to 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07 \
+  --data 0x095ea7b3000000000000000000000000f9843bf01ae7ef5203fc49c39e4868c7d0ca7a020000000000000000000000000000000000000000000013da329b633647000000 \
+  --chain base
+
+# 2) purchaseItem(208)
+bankr wallet submit \
+  --to 0xf9843bF01ae7EF5203fc49C39E4868C7D0ca7a02 \
+  --data 0xd38ea5bf00000000000000000000000000000000000000000000000000000000000000d0 \
+  --chain base
+```
+
+(For a KIBBLE-priced item, swap the approve target to the KIBBLE token `0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb` and recompute the amount.)
+
 ## Notes
 
-- **Purchase flow is out of scope for this revision.** It involves `approve(boutique, price_wei)` on KIBBLE, then `purchaseItem(itemId)` which mints an NFT and returns `mintedTokenId`. A future skill update will add the write path (watch the integer-vs-wei convention on `purchaseItem`'s `itemId` — likely raw uint256 not scaled).
 - **Caching:** `getTodaysRotationDetails()` is stable within a UTC day — cache freely. The oracle moves with market — 1–5 min cache is reasonable.
 - **Future rotations:** `previewRotationForDay(day, season)` supports "what's in the boutique tomorrow?" queries without waiting.
 - **Season mismatch:** if `GameData.getCurrentSeason()` disagrees with `Boutique.getCurrentSeason()`, trust Boutique's for rotation questions (they should match, but boutique may lag a block).
+- **No batch buy.** Two purchases = two `purchaseItem` calls. Approve the cumulative amount once if both items share the same `paymentToken`.

@@ -1,6 +1,6 @@
 ---
 name: cattown
-description: Interact with Cat Town — a Farcaster-native game world on Base. Covers KIBBLE staking (stake, claim, unlock, unstake, leaderboard, deposit history); live world state (season, weather, time of day, weekend flag); fishing drops filtered by world state; Isabella's weekend fishing competition with live prize-pool math; Paulie's weekly fish raffle (free-ticket claim, tier-based prize pool, odds, last winners); the daily 3-item boutique with KIBBLE→USD conversion; gacha spins (async VRF pay-then-receive, 100/day cap, seasonal pools); item valuation plus batch selling via the V2 vendor (5% tax); and KIBBLE tokenomics (% burned, % staked, live APY). Also recognises requests about incantations / vouchers / the Mystic Study and redirects them to the in-game claim page (not currently agent-claimable). Use when the user mentions Cat Town, KIBBLE, Wealth & Whiskers, Jasper, Isabella, Paulie, Skipper, Theodore, Cassie, RevenueShare, fishing, gacha, raffle, boutique, vendor, prize pools, drop tables, incantations, vouchers, Mystic Study, or any read/write on the Cat Town contracts.
+description: Interact with Cat Town — a Farcaster-native game world on Base. Covers KIBBLE staking (stake, claim, unlock, unstake, leaderboard, deposit history); live world state (season, weather, time of day, weekend flag); fishing drops filtered by world state; Isabella's weekend fishing competition with live prize-pool math; Paulie's weekly fish raffle (free-ticket claim, tier-based prize pool, odds, last winners); the daily 3-item boutique — read rotation, KIBBLE→USD conversion, and **buy items** (most priced in KIBBLE, collab items in other ERC-20s like DOTA); gacha spins (async VRF pay-then-receive, 100/day cap, seasonal pools); item valuation plus batch selling via the V2 vendor (5% tax); and KIBBLE tokenomics (% burned, % staked, live APY). Also recognises requests about incantations / vouchers / the Mystic Study and redirects them to the in-game claim page (not currently agent-claimable). Use when the user mentions Cat Town, KIBBLE, Wealth & Whiskers, Jasper, Isabella, Paulie, Skipper, Theodore, Cassie, RevenueShare, fishing, gacha, raffle, boutique, vendor, prize pools, drop tables, incantations, vouchers, Mystic Study, or any read/write on the Cat Town contracts.
 ---
 
 # Cat Town — Agent Overview
@@ -21,7 +21,7 @@ Current coverage:
 - **Fishing drops** — the public item-truth catalog filtered by world state (weather/season/time).
 - **Fishing competition** (Isabella, Sat–Mon) — live prize-pool math, top-10 leaderboard, active/inactive response patterns.
 - **Fish raffle** (Paulie, Fri 20:00 UTC draw) — free-ticket claim flow, tier-based prize pool, chance-to-win, leaderboard + last winners.
-- **Boutique** — daily 3-item onchain rotation with KIBBLE→USD conversion via the Kibble Price Oracle.
+- **Boutique** — daily 3-item onchain rotation with KIBBLE→USD conversion via the Kibble Price Oracle, plus the **buy path** (`purchaseItem` + ERC-20 approve on the item's `paymentToken` — most items are KIBBLE, collab items use other tokens like DOTA).
 - **KIBBLE tokenomics** — Jasper's math for % burned, % staked, and live staking APY.
 
 > **Incantations / Mystic Study — claim only in-game.** Cat Town occasionally issues "incantations" (voucher rewards) that mint a free item to a player's wallet. **The agent cannot claim these — redemption is currently only supported in-game at https://cat.town/mystic-study.** If a user mentions incantations, vouchers, the Mystic Study, or "redeem my voucher", direct them to that page. Don't try to call any contract or API to claim them; treat this as out of scope for the agent.
@@ -372,6 +372,12 @@ The boutique is a fully onchain daily shop. Every day at **00:00 UTC** the Bouti
 - **Boutique**: `0xf9843bF01ae7EF5203fc49C39E4868C7D0ca7a02`
 - **Kibble Price Oracle** (for USD conversion): `0xE97B7ab01837A4CbF8C332181A2048EEE4033FB7`
 
+### ⚠️ Buy path: each item carries its own `paymentToken` — approve THAT token
+
+Most boutique items are priced in **KIBBLE**, but partnership / collab items use other ERC-20s. Live example: today's **Rat Skull Charm** ("Friends of Cat Town" collab) is priced in **DOTA** ("Defense of the Agents", `0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07`), not KIBBLE. The contract pulls the price from `msg.sender` in **whichever token the item specifies** via `ShopItemView.paymentToken`. Read it per item — never assume KIBBLE.
+
+If you reflexively approve KIBBLE for a DOTA-priced item, the buy reverts on the internal `transferFrom` because the contract is pulling DOTA, not KIBBLE.
+
 ### Primary read — `getTodaysRotationDetails()`
 
 Single call returns today's 3 items as `ShopItemView[]`. Each item carries `price` (in KIBBLE **wei**, divide by `10^18`), `stockRemaining`, `maxSupply`, `isPurchasableNow`, and a `traitNames`/`traitValues` parallel pair that encodes Name, Rarity, Slot, Image. Parse those into a dict to render.
@@ -411,9 +417,52 @@ Example reply (real data from today's rotation) — note the **"N of M remaining
 
 Include all four season links in every response — a user interested in the current collection will often want to peek at others.
 
-Full ABI surface, trait schema (real keys: `Item Name`, `Rarity`, `Item Type`, `Source`, `Slot`, `Sprite`, `imageUrl`, `Collection`, etc.), preview future rotations, and the complete oracle math: [references/boutique/contract.md](references/boutique/contract.md).
+### Buying an item
 
-**Purchase flow is out of scope for this revision** — this skill currently reads the boutique only.
+Single-item purchase per tx — the contract has no batch buy.
+
+```
+Boutique.purchaseItem(uint256 itemId) returns (uint256 mintedTokenId)
+```
+
+`itemId` is the **plain rotation id** from `getTodaysRotation()` (e.g. 208, 173, 196). **Not** wei-scaled, **not** payable — do not send `msg.value`.
+
+Preconditions, in order:
+
+1. **`canPurchaseItem(itemId)` → `(bool, string reason)`** — preflight. If false, surface `reason` verbatim ("Item is sold out", "Item not in today's rotation", season miss, etc.). Cheaper than letting the tx revert.
+2. **`paymentToken.balanceOf(user) >= price`** — `price` is in `paymentToken` wei at that token's decimals (KIBBLE/DOTA = 18, USDC = 6). If the user is short, offer a swap *into* `paymentToken` from KIBBLE/ETH/USDC via the `trails` or `symbiosis` skill. cat.town's UI directly links DOTA buyers to Uniswap.
+3. **`paymentToken.approve(boutique, price_wei)`** if `allowance(user, boutique) < price`. **`paymentToken` is the per-item one — read it from `ShopItemView`. NEVER assume KIBBLE.**
+
+Then `purchaseItem(itemId)` mints the NFT to `msg.sender` and emits `ItemPurchased(buyer, itemId, mintedTokenId, paymentToken, price)`.
+
+#### Example — Rat Skull Charm (DOTA collab, today's rotation)
+
+```
+itemId       = 208
+paymentToken = 0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07   // DOTA, 18 decimals
+price        = ~93,750 DOTA (read live)
+
+1. canPurchaseItem(208)                                  // expect (true, "")
+2. DOTA.balanceOf(user) >= price                         // else swap
+3. DOTA.approve(boutique, price)                         // if allowance < price
+4. Boutique.purchaseItem(208)                            // returns mintedTokenId
+```
+
+#### Example — KIBBLE-priced item (the common case)
+
+Same recipe, but step 3 is `KIBBLE.approve(boutique, price_wei)` against the KIBBLE token (`0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb`).
+
+#### Bankr execution
+
+Natural-language path handles approval + buy in one shot:
+
+```bash
+bankr agent prompt "Buy the Rat Skull Charm from the Cat Town boutique"
+```
+
+Or submit calldata directly — see [references/boutique/contract.md](references/boutique/contract.md) for raw calldata recipes per token.
+
+Full ABI surface, trait schema (real keys: `Item Name`, `Rarity`, `Item Type`, `Source`, `Slot`, `Sprite`, `imageUrl`, `Collection`, etc.), per-token approval recipes, revert catalogue, and preview future rotations: [references/boutique/contract.md](references/boutique/contract.md).
 
 ---
 
