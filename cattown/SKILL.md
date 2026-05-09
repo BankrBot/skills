@@ -380,11 +380,36 @@ If you reflexively approve KIBBLE for a DOTA-priced item, the buy reverts on the
 
 ### Primary read — `getTodaysRotationDetails()`
 
-Single call returns today's 3 items as `ShopItemView[]`. Each item carries `price` (in KIBBLE **wei**, divide by `10^18`), `stockRemaining`, `maxSupply`, `isPurchasableNow`, and a `traitNames`/`traitValues` parallel pair that encodes Name, Rarity, Slot, Image. Parse those into a dict to render.
+Single call returns today's 3 items as `ShopItemView[]`. Each item carries `price` (in **`paymentToken` wei** at that token's decimals), `paymentToken` address, `stockRemaining`, `maxSupply`, `isPurchasableNow`, and a `traitNames`/`traitValues` parallel pair that encodes Name, Rarity, Slot, Collection, Image. Parse those into a dict to render. **Never assume `price` is in KIBBLE wei — read `paymentToken` and use that token's decimals.**
 
-### KIBBLE → USD conversion (the game UI doesn't do this — we should)
+### ⚠️ paymentToken → USD: the Kibble Price Oracle ONLY works for KIBBLE-priced items
 
-The in-game boutique shows KIBBLE prices only. To give users a USD readout, read the Kibble Price Oracle:
+This is the same trap as the approval one — reflexively reaching for `getKibbleUsdPrice()` produces wildly wrong USD for non-KIBBLE items. Real failure mode caught in production: 1.5M DOTA × KIBBLE-rate (~$0.00095) = ~$1,420 quoted, when the actual DOTA market price puts it at **~$2.17**. Off by ~700×.
+
+Branch on `paymentToken` first:
+
+```
+if paymentToken == KIBBLE (0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb):
+    usd = (price * getKibbleUsdPrice()) / 10^36         # KIBBLE oracle is valid here
+elif paymentToken == USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913):
+    usd = price / 10^6                                   # dollar-pegged
+else:                                                    # DOTA, BARON, cbBTC, future collabs
+    usd = (price / 10^decimals) * dexscreener_usd_price(paymentToken, chain="base")
+    # if DEX lookup fails or low confidence: skip the USD readout entirely
+```
+
+For non-KIBBLE collab tokens, hit Dexscreener (no auth):
+
+```
+GET https://api.dexscreener.com/latest/dex/tokens/<paymentToken>
+  → filter pairs where chainId == "base"
+  → sort by liquidity.usd DESC
+  → use pairs[0].priceUsd
+```
+
+**Sanity check before quoting USD:** rare boutique items typically land $5–$15, epic $15–$40, legendary $40–$100+. If your computed USD is orders of magnitude off-band (a Rare item at $1,000+, a Legendary at $0.01), the price source is wrong — almost always the Kibble oracle was applied to a non-KIBBLE amount. Re-check `paymentToken` and re-route. If you can't price a token confidently, **omit the USD readout** rather than quote a wrong one — users trust whatever number you show.
+
+#### KIBBLE oracle (only for KIBBLE-priced items)
 
 - `getKibbleUsdPrice()` → `uint256` USD per 1 KIBBLE, scaled by **`10^18`** (not 1e8 — **don't confuse with `getEthUsdPrice()` which is `10^8` Chainlink style**).
 - Formula: `usd_value = (price_wei * rawKibbleUsdPrice) / 10^36`
@@ -392,21 +417,23 @@ The in-game boutique shows KIBBLE prices only. To give users a USD readout, read
 
 ### Response pattern — "what's in the boutique today?"
 
-1. Parallel reads: `getTodaysRotationDetails()` + `getKibbleUsdPrice()`.
-2. For each of the 3 items: parse the trait arrays (Name/Rarity/Slot), compute KIBBLE and USD price, check stock.
-3. Sort big-ticket first — **rarity DESC** (Legendary → Common), then **KIBBLE price DESC**, then name ASC.
+1. Parallel reads: `getTodaysRotationDetails()` + `getKibbleUsdPrice()`. For any item whose `paymentToken` is not KIBBLE / USDC, also fetch its DEX price via Dexscreener.
+2. For each of the 3 items: parse the trait arrays (Name/Rarity/Slot/Collection), compute token amount (using `paymentToken` decimals) and USD via the branch above, check stock.
+3. Sort big-ticket first — **rarity DESC** (Legendary → Common), then **USD price DESC** (cross-token comparable; don't sort by raw token amount, since 1M of one token can be worth less than 100 of another), then name ASC.
 4. Flag `stockRemaining == 0` as "Sold Out"; otherwise format as `"{stockRemaining} of {maxSupply} remaining"` — **stockRemaining first, maxSupply second**. Sanity check: if your first number is larger than the second, you've swapped them — reread the struct fields. `stockRemaining` can never exceed `maxSupply`.
 5. Open the reply with the current season; close with the matching `docs.cat.town/boutique/…-fashion` link for fuller context.
 
 The collection name (e.g. `"Spring Fashion"`) is on the item itself as the **`Collection`** trait — surface it at the top of the reply so the user knows which collection is currently rotating.
 
-Example reply (real data from today's rotation) — note the **"N of M remaining"** phrasing:
+Example reply (live rotation as of writing — mixed-currency, with the **"N of M remaining"** phrasing and per-token USD):
 
-> **Boutique today — Spring Fashion collection:**
+> **Boutique today — mixed Spring Fashion and Friends of Cat Town collab:**
 >
-> 1. **White Longsleeve** — Rare Body — **12,500 KIBBLE (~$11.86)** — 1 of 1 remaining
-> 2. **Royal Blue Varsity** — Uncommon Body — **6,000 KIBBLE (~$5.69)** — 2 of 2 remaining
-> 3. **Classic Academic Blouse** — Uncommon Body — **6,000 KIBBLE (~$5.69)** — 1 of 2 remaining
+> 1. **Striking Baseball Cap** — Legendary Hat (Spring Fashion) — **50,000 KIBBLE (~$47)** — 1 of 1 remaining
+> 2. **Cherry Neckerchief** — Epic Neck (Spring Fashion) — **25,000 KIBBLE (~$24)** — 1 of 1 remaining
+> 3. **Rat Skull Charm** — Rare Neck (Friends of Cat Town collab) — **1,500,000 DOTA (~$2)** — 64 of 100 remaining
+>
+> Note the third item is priced in **DOTA** (`0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07`), not KIBBLE. To buy it, approve DOTA → Boutique, not KIBBLE.
 >
 > Browse the other seasonal collections:
 > - Spring: https://docs.cat.town/boutique/spring-fashion

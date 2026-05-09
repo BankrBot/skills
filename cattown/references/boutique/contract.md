@@ -92,9 +92,24 @@ Boutique metadata is **onchain via the trait arrays** — don't cross-reference 
 | `itemsPerDay()`                       | `uint8`                       | Currently 3                                    |
 | `defaultPaymentToken()`               | `address`                     | KIBBLE                                         |
 
-## KIBBLE → USD conversion
+## paymentToken → USD conversion
 
-### Oracle reads
+### ⚠️ The Kibble Price Oracle ONLY converts KIBBLE → USD. Branch on `paymentToken` first.
+
+The Kibble Price Oracle quotes **KIBBLE only**. Applying its rate to a non-KIBBLE amount silently returns nonsense — e.g. 1.5M DOTA × KIBBLE-rate gives ~$1,420, but the actual DOTA market value is ~$2 (off by ~700×). Always check `ShopItemView.paymentToken` against the KIBBLE address before reaching for the oracle:
+
+```
+if paymentToken == KIBBLE_ADDRESS:                  # 0x64cc19A52f4D631eF5BE07947CABA14aE00c52Eb
+    usd = (price * getKibbleUsdPrice()) / 10^36     # KIBBLE → USD via the oracle (below)
+elif paymentToken == USDC_ADDRESS:
+    usd = price / 10^6                              # USDC is dollar-pegged
+else:
+    usd = price_via_dex(paymentToken, price)        # see "Non-KIBBLE collab tokens" below — DOTA, BARON, cbBTC, etc.
+```
+
+If you can't get a reliable USD for a non-KIBBLE token, **quote the token amount only and skip the USD readout**. A wrong USD is worse than no USD — users will trust whatever number you show.
+
+### KIBBLE oracle reads (only valid for KIBBLE-priced items)
 
 | Function              | Selector     | Returns                        | Scale       |
 |-----------------------|--------------|--------------------------------|-------------|
@@ -104,9 +119,7 @@ Boutique metadata is **onchain via the trait arrays** — don't cross-reference 
 
 **Watch the scale mismatch:** `getKibbleUsdPrice()` is `10^18`, but `getEthUsdPrice()` is `10^8`. Easy to mix up — use the right divisor per call.
 
-### Formula
-
-Boutique `price` is in KIBBLE wei (18 decimals). Oracle returns USD × `10^18` per 1 KIBBLE:
+#### Formula (KIBBLE-priced items only)
 
 ```
 kibble_human    = price / 10^18                           # KIBBLE count
@@ -117,7 +130,7 @@ usd_value       = kibble_human * usd_per_kibble
 
 For integer cents: `usd_cents = (price * rawKibbleUsdPrice) / 10^34`.
 
-### Live example (captured during writing)
+#### Live example (captured during writing)
 
 - `getKibbleUsdPrice()` = `948,723,424,083,878` → **$0.0009487 per KIBBLE**
 - 1,000 KIBBLE ≈ $0.95
@@ -126,15 +139,53 @@ For integer cents: `usd_cents = (price * rawKibbleUsdPrice) / 10^34`.
 
 The oracle tracks KIBBLE's real market price; re-read at least every few minutes if you care about accuracy.
 
+### Non-KIBBLE collab tokens — pricing via DEX
+
+For paymentTokens the cat.town frontend doesn't price internally (DOTA, partnership/collab tokens), use a public DEX aggregator. Dexscreener's API works without auth and ranks pools by liquidity, which avoids the "stale low-liquidity pool" failure mode:
+
+```
+GET https://api.dexscreener.com/latest/dex/tokens/<paymentToken>
+  → response.pairs: array of pools across DEXes/chains
+  → filter: chainId == "base"
+  → sort: liquidity.usd DESC
+  → use: pairs[0].priceUsd                            # most-liquid Base pool, USD per 1 token
+
+usd_value = (price / 10^paymentTokenDecimals) * priceUsd
+```
+
+#### Live example — DOTA (`0x5F09821CBb61e09D2a83124Ae0B56aaa3ae85B07`, 18 decimals)
+
+- Most liquid Base pool: Uniswap v4 DOTA/WETH (~$130k liquidity)
+- `priceUsd` ≈ **$0.000001447 per DOTA** (re-read live; small caps move fast)
+- 1,500,000 DOTA × $0.000001447 ≈ **$2.17** ← this is what the Rat Skull Charm actually costs in USD, NOT $1,400
+
+#### Sanity check — does the USD make sense for the rarity?
+
+Boutique cosmetics typically price in this band:
+
+| Rarity     | Typical USD range observed |
+|------------|----------------------------|
+| Common     | $1–$3                      |
+| Uncommon   | $3–$8                      |
+| Rare       | $5–$15                     |
+| Epic       | $15–$40                    |
+| Legendary  | $40–$100+                  |
+
+If you compute a USD for a Rare collab item and get something like $1,000+ or $0.0001, the price source is wrong — almost certainly the Kibble oracle was applied to a non-KIBBLE amount. Re-check `paymentToken` and re-route. Collab items can sit slightly below the band (partnership discounts), but never orders of magnitude off.
+
+### USDC — dollar-pegged, no oracle needed
+
+If `paymentToken == USDC` (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` on Base, 6 decimals): `usd = price / 10^6`. Skip the oracle entirely.
+
 ## Response pattern — "what's in the boutique today?"
 
-1. Read in parallel: `getTodaysRotationDetails()` (single call, 3 items) and `getKibbleUsdPrice()`.
+1. Read in parallel: `getTodaysRotationDetails()` (single call, 3 items) and `getKibbleUsdPrice()`. If any item's `paymentToken` is not KIBBLE, also fan out to a DEX price source for those tokens (Dexscreener `/latest/dex/tokens/<addr>`).
 2. For each `ShopItemView`:
-   - Parse `traitNames`/`traitValues` into a dict → pull `Name`, `Rarity`, `Slot`.
-   - `kibble_price = price / 10^18`
-   - `usd_price = (price * rawKibbleUsdPrice) / 10^36`
+   - Parse `traitNames`/`traitValues` into a dict → pull `Name`, `Rarity`, `Slot`, `Collection`.
+   - `token_price = price / 10^paymentTokenDecimals` (KIBBLE/DOTA/BARON = 18; USDC = 6; cbBTC = 8).
+   - `usd_price` — branch on `paymentToken`: KIBBLE → oracle; USDC → `price / 10^6`; else DEX. Sanity-check against the rarity band (above). If you can't price it confidently, drop the USD and just show the token amount.
    - Stock: if `stockRemaining == 0` → **"Sold Out"**; otherwise format as **`"{stockRemaining} of {maxSupply} remaining"`** — stockRemaining first, maxSupply second. The order matters: `stockRemaining` ≤ `maxSupply` always, so if the first number ever exceeds the second you've swapped them. Reread the struct fields if unsure.
-3. Sort with the big-ticket order: **rarity DESC** (Legendary → Common), then **KIBBLE price DESC**, then name ASC.
+3. Sort with the big-ticket order: **rarity DESC** (Legendary → Common), then **USD price DESC** (cross-token comparable), then name ASC.
 4. Open the reply with the current season, and end with a link to the matching `docs.cat.town/boutique/...-fashion` page.
 
 ### Example response (real data from today's rotation)
