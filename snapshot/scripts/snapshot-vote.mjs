@@ -56,7 +56,7 @@ if (!args.space || !args.proposal || !args.choice) {
 let address = args.from;
 if (!address) {
   const whoami = execSync('bankr whoami 2>&1', { encoding: 'utf8' });
-  const match = whoami.match(/0x[0-9a-fA-F]{40}/);
+  const match = whoami.match(/\b0x[0-9a-fA-F]{40}\b/);
   if (!match) { console.error('Could not get address from bankr whoami'); process.exit(1); }
   address = match[0];
 }
