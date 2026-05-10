@@ -25,7 +25,8 @@
  * ~/.bankr/config.json before running this script.
  */
 import { execSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, rmSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -173,26 +174,52 @@ console.log(JSON.stringify(body, null, 2));
 
 /**
  * Sign EIP-712 typed data via bankr wallet sign.
- * Writes typed data to a temp file and invokes bankr via a bash wrapper
+ * Writes typed data to a unique temp file and invokes bankr via a bash wrapper
  * to avoid shell escaping issues with complex JSON payloads.
+ * Cleans up temp files in a finally block and on process signals.
  */
 function signWithBankr(typedData) {
-  const tmpData = '/tmp/snapshot-typed-data.json';
-  const tmpScript = '/tmp/bankr-sign.sh';
-  writeFileSync(tmpData, JSON.stringify(typedData));
-  writeFileSync(tmpScript, [
-    '#!/bin/bash',
-    `TD=$(cat ${tmpData})`,
-    'bankr wallet sign --type eth_signTypedData_v4 --typed-data "$TD"',
-  ].join('\n') + '\n');
-  execSync(`chmod +x ${tmpScript}`);
-  const output = execSync(tmpScript, { encoding: 'utf8', timeout: 30000 });
-  const match = output.match(/0x[0-9a-fA-F]{130}/);
-  if (!match) {
-    console.error('Could not extract signature from bankr output:', output);
-    process.exit(1);
+  const id = randomUUID();
+  const tmpData = `/tmp/snapshot-typed-data-${id}.json`;
+  const tmpScript = `/tmp/bankr-sign-${id}.sh`;
+
+  function cleanup() {
+    rmSync(tmpData, { force: true });
+    rmSync(tmpScript, { force: true });
   }
-  return match[0];
+
+  // Register signal handlers so cleanup runs even if interrupted
+  const signals = ['SIGINT', 'SIGTERM'];
+  const sigHandlers = {};
+  for (const sig of signals) {
+    sigHandlers[sig] = () => { cleanup(); process.exit(1); };
+    process.once(sig, sigHandlers[sig]);
+  }
+  process.once('exit', cleanup);
+
+  try {
+    writeFileSync(tmpData, JSON.stringify(typedData));
+    writeFileSync(tmpScript, [
+      '#!/bin/bash',
+      `TD=$(cat ${tmpData})`,
+      'bankr wallet sign --type eth_signTypedData_v4 --typed-data "$TD"',
+    ].join('\n') + '\n');
+    execSync(`chmod +x ${tmpScript}`);
+    const output = execSync(tmpScript, { encoding: 'utf8', timeout: 30000 });
+    const match = output.match(/0x[0-9a-fA-F]{130}/);
+    if (!match) {
+      console.error('Could not extract signature from bankr output:', output);
+      process.exit(1);
+    }
+    return match[0];
+  } finally {
+    cleanup();
+    // Remove signal handlers to avoid leaks
+    for (const sig of signals) {
+      process.removeListener(sig, sigHandlers[sig]);
+    }
+    process.removeListener('exit', cleanup);
+  }
 }
 
 /** EIP-55 checksum address. Uses @ethersproject/address if available. */
