@@ -20,8 +20,8 @@ npm ls @snapshot-labs/snapshot.js 2>/dev/null || npm i @snapshot-labs/snapshot.j
 ### Authentication
 
 - **Reading (GraphQL queries):** No auth needed. Optional `SNAPSHOT_API_KEY` header for higher rate limits.
-- **Writing (vote/propose):** Requires a private key with EIP-712 signing. Set `PRIVATE_KEY` env var or pass `--pk`.
-- If using Bankr wallet, export the private key: `bankr wallet export-key`
+- **Writing (vote/propose):** Uses `bankr wallet sign` for EIP-712 signing — no private key export needed.
+- The scripts auto-detect the signer address via `bankr whoami`. Override with `--from 0x...` if needed.
 
 ## Quick Reference
 
@@ -93,13 +93,14 @@ node scripts/snapshot-vote.mjs \
   --proposal "0xabc123..." \
   --choice 1 \
   --type "single-choice" \
-  --reason "Agree with the proposal rationale" \
-  --pk "$PRIVATE_KEY"
+  --reason "Agree with the proposal rationale"
 ```
 
 For weighted/quadratic: `--choice '{"1":70,"2":30}'`
 For approval: `--choice '[1,3]'`
 For ranked-choice: `--choice '[2,1,3]'`
+
+Signing is handled by `bankr wallet sign` — no private key needed.
 
 ### 6. Create a Proposal
 
@@ -111,11 +112,11 @@ node scripts/snapshot-propose.mjs \
   --choices '["For","Against","Abstain"]' \
   --type "basic" \
   --start $(date -d '+1 hour' +%s) \
-  --end $(date -d '+7 days' +%s) \
-  --pk "$PRIVATE_KEY"
+  --end $(date -d '+7 days' +%s)
 ```
 
 The script auto-fetches the latest block for the snapshot parameter if omitted.
+Signing is handled by `bankr wallet sign` — no private key needed.
 
 ### 7. Get Space Info
 
