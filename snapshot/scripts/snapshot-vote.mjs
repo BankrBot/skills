@@ -27,7 +27,8 @@
 import { execSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 
 const SEQUENCER = process.env.SNAPSHOT_SEQUENCER || 'https://seq.snapshot.org';
 const DOMAIN = { name: 'snapshot', version: '0.1.4' };
@@ -194,13 +195,14 @@ function signWithBankr(typedData) {
   return match[0];
 }
 
-/** EIP-55 checksum address using Node.js built-in crypto (no deps). */
+/** EIP-55 checksum address. Uses @ethersproject/address if available. */
 function toChecksumAddress(addr) {
-  addr = addr.toLowerCase().replace('0x', '');
-  const hash = createHash('sha3-256').update(addr).digest('hex');
-  let ret = '0x';
-  for (let i = 0; i < 40; i++) {
-    ret += parseInt(hash[i], 16) >= 8 ? addr[i].toUpperCase() : addr[i];
+  try {
+    const { getAddress } = require('@ethersproject/address');
+    return getAddress(addr);
+  } catch {
+    console.warn('Warning: @ethersproject/address not found, using lowercase address.');
+    console.warn('Install it: npm i @ethersproject/address');
+    return addr.toLowerCase();
   }
-  return ret;
 }

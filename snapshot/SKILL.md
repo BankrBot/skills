@@ -11,9 +11,15 @@ Query, vote, and create proposals on Snapshot — the leading off-chain governan
 
 ### Dependencies
 
-The vote and propose scripts use **zero npm dependencies** — only Node.js built-ins and `bankr wallet sign`. No need to install `snapshot.js` or ethers.
-
 The query script needs only `curl` and `jq`.
+
+The vote and propose scripts need `@ethersproject/address` for EIP-55 checksumming:
+
+```bash
+npm ls @ethersproject/address 2>/dev/null || npm i @ethersproject/address
+```
+
+No `snapshot.js` dependency required — the scripts build EIP-712 payloads and talk to the sequencer directly.
 
 ### Authentication
 
