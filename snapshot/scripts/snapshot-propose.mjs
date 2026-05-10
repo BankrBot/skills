@@ -185,6 +185,7 @@ const res = await fetch(SEQUENCER, {
   method: 'POST',
   headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
   body: JSON.stringify(envelope),
+  signal: AbortSignal.timeout(30000),
 });
 const resBody = await res.json();
 if (!res.ok) {
