@@ -105,6 +105,11 @@ if (!snapshotBlock) {
 const start = args.start ? parseInt(args.start, 10) : now;
 const end = args.end ? parseInt(args.end, 10) : now + 7 * 24 * 3600;
 
+if (start >= end) {
+  console.error('Error: --start must be before --end (start=' + start + ', end=' + end + ')');
+  process.exit(1);
+}
+
 // Build EIP-712 message
 const timestamp = Math.floor(Date.now() / 1000);
 const message = {
