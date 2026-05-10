@@ -11,17 +11,21 @@ Query, vote, and create proposals on Snapshot — the leading off-chain governan
 
 ### Dependencies
 
-Install snapshot.js (required for vote/propose scripts):
+The vote and propose scripts use **zero npm dependencies** — only Node.js built-ins and `bankr wallet sign`. No need to install `snapshot.js` or ethers.
 
-```bash
-npm ls @snapshot-labs/snapshot.js 2>/dev/null || npm i @snapshot-labs/snapshot.js @ethersproject/wallet @ethersproject/providers
-```
+The query script needs only `curl` and `jq`.
 
 ### Authentication
 
 - **Reading (GraphQL queries):** No auth needed. Optional `SNAPSHOT_API_KEY` header for higher rate limits.
 - **Writing (vote/propose):** Uses `bankr wallet sign` for EIP-712 signing — no private key export needed.
 - The scripts auto-detect the signer address via `bankr whoami`. Override with `--from 0x...` if needed.
+
+### ⚠️ Bankr API Key Restrictions
+
+Bankr's default API key may have **trusted-recipient restrictions** that block EIP-712 typed-data signing for non-transaction messages (Snapshot uses a domain with no `verifyingContract`, so there's no address to whitelist).
+
+If signing fails with a 403 error about trusted recipients, temporarily swap `~/.bankr/config.json` to use an **unrestricted API key** (e.g., the CoW Swap key if you have one), then swap back after.
 
 ## Quick Reference
 
@@ -104,16 +108,20 @@ Signing is handled by `bankr wallet sign` — no private key needed.
 
 ### 6. Create a Proposal
 
+For long proposal bodies, write the markdown to a file and use `--body-file`:
+
 ```bash
 node scripts/snapshot-propose.mjs \
   --space "your-space.eth" \
   --title "Proposal Title" \
-  --body "Full proposal body in **markdown**." \
+  --body-file /tmp/proposal-body.md \
   --choices '["For","Against","Abstain"]' \
   --type "basic" \
   --start $(date -d '+1 hour' +%s) \
   --end $(date -d '+7 days' +%s)
 ```
+
+Or pass short bodies inline with `--body "text"`.
 
 The script auto-fetches the latest block for the snapshot parameter if omitted.
 Signing is handled by `bankr wallet sign` — no private key needed.

@@ -18,9 +18,16 @@
  *
  * Signs via `bankr wallet sign` (no private key needed).
  * Submits the signed envelope to the Snapshot sequencer.
+ *
+ * NOTE: Bankr's default API key may have trusted-recipient restrictions that
+ * block EIP-712 typed-data signing for non-transaction messages. If signing
+ * fails with a 403 error, configure an unrestricted Bankr API key in
+ * ~/.bankr/config.json before running this script.
  */
 import { execSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
+import { createHash } from 'node:crypto';
 
 const SEQUENCER = process.env.SNAPSHOT_SEQUENCER || 'https://seq.snapshot.org';
 const DOMAIN = { name: 'snapshot', version: '0.1.4' };
@@ -51,6 +58,7 @@ if (!address) {
   if (!match) { console.error('Could not get address from bankr whoami'); process.exit(1); }
   address = match[0];
 }
+address = toChecksumAddress(address);
 
 // Parse choice based on type
 let choice;
@@ -137,25 +145,8 @@ console.log(`Voting on proposal ${args.proposal} in space ${args.space}`);
 console.log(`Voter: ${address} | Type: ${args.type} | Choice: ${JSON.stringify(choice)}`);
 
 // Sign with Bankr
-const typedDataJson = JSON.stringify(typedData);
-let sig;
-try {
-  const result = execSync(
-    `bankr wallet sign --type eth_signTypedData_v4 --typed-data '${typedDataJson.replace(/'/g, "'\\''")}'`,
-    { encoding: 'utf8', timeout: 30000 }
-  );
-  // Extract signature from output
-  const sigMatch = result.match(/0x[0-9a-fA-F]{130}/);
-  if (!sigMatch) {
-    console.error('Could not extract signature from bankr output:', result);
-    process.exit(1);
-  }
-  sig = sigMatch[0];
-  console.log('Signed successfully');
-} catch (err) {
-  console.error('Signing failed:', err.message || err);
-  process.exit(1);
-}
+const sig = signWithBankr(typedData);
+console.log('Signed successfully');
 
 // Submit to Snapshot sequencer
 const envelope = {
@@ -164,20 +155,52 @@ const envelope = {
   data: { domain: DOMAIN, types: voteTypes, message },
 };
 
-try {
-  const res = await fetch(SEQUENCER, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(envelope),
-  });
-  const body = await res.json();
-  if (!res.ok) {
-    console.error('Sequencer rejected vote:', JSON.stringify(body, null, 2));
+const res = await fetch(SEQUENCER, {
+  method: 'POST',
+  headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+  body: JSON.stringify(envelope),
+});
+const body = await res.json();
+if (!res.ok) {
+  console.error('Sequencer rejected vote:', JSON.stringify(body, null, 2));
+  process.exit(1);
+}
+console.log('Vote submitted successfully!');
+console.log(JSON.stringify(body, null, 2));
+
+// ── Helpers ──
+
+/**
+ * Sign EIP-712 typed data via bankr wallet sign.
+ * Writes typed data to a temp file and invokes bankr via a bash wrapper
+ * to avoid shell escaping issues with complex JSON payloads.
+ */
+function signWithBankr(typedData) {
+  const tmpData = '/tmp/snapshot-typed-data.json';
+  const tmpScript = '/tmp/bankr-sign.sh';
+  writeFileSync(tmpData, JSON.stringify(typedData));
+  writeFileSync(tmpScript, [
+    '#!/bin/bash',
+    `TD=$(cat ${tmpData})`,
+    'bankr wallet sign --type eth_signTypedData_v4 --typed-data "$TD"',
+  ].join('\n') + '\n');
+  execSync(`chmod +x ${tmpScript}`);
+  const output = execSync(tmpScript, { encoding: 'utf8', timeout: 30000 });
+  const match = output.match(/0x[0-9a-fA-F]{130}/);
+  if (!match) {
+    console.error('Could not extract signature from bankr output:', output);
     process.exit(1);
   }
-  console.log('Vote submitted successfully!');
-  console.log(JSON.stringify(body, null, 2));
-} catch (err) {
-  console.error('Submission failed:', err.message || err);
-  process.exit(1);
+  return match[0];
+}
+
+/** EIP-55 checksum address using Node.js built-in crypto (no deps). */
+function toChecksumAddress(addr) {
+  addr = addr.toLowerCase().replace('0x', '');
+  const hash = createHash('sha3-256').update(addr).digest('hex');
+  let ret = '0x';
+  for (let i = 0; i < 40; i++) {
+    ret += parseInt(hash[i], 16) >= 8 ? addr[i].toUpperCase() : addr[i];
+  }
+  return ret;
 }
