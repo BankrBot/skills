@@ -14,4 +14,4 @@ HEADERS=(-H 'Content-Type: application/json')
 
 BODY=$(jq -n --arg q "$QUERY" --argjson v "$VARS" '{query: $q, variables: $v}')
 
-curl -s "$HUB" "${HEADERS[@]}" -d "$BODY" | jq .
+curl -sf "$HUB" "${HEADERS[@]}" -d "$BODY" | jq .
