@@ -40,7 +40,8 @@ bankr config get llmKey
 
 | Model | Provider | Best For |
 |-------|----------|----------|
-| `claude-opus-4.6` | Anthropic | Most capable, advanced reasoning |
+| `claude-opus-4.7` | Anthropic | Latest, most capable reasoning |
+| `claude-opus-4.6` | Anthropic | Advanced reasoning |
 | `claude-opus-4.5` | Anthropic | Complex reasoning, architecture |
 | `claude-sonnet-4.6` | Anthropic | Balanced speed and quality |
 | `claude-sonnet-4.5` | Anthropic | Previous generation Sonnet |
@@ -51,15 +52,22 @@ bankr config get llmKey
 | `gemini-2.5-flash` | Google | Speed, high throughput |
 | `gpt-5.2` | OpenAI | Advanced reasoning |
 | `gpt-5.2-codex` | OpenAI | Code generation |
-| `gpt-5-mini` | OpenAI | Fast, economical |
-| `gpt-5-nano` | OpenAI | Ultra-fast, lowest cost |
+| `gpt-5.4-mini` | OpenAI | Fast, economical (400K context, image input) |
+| `gpt-5.4-nano` | OpenAI | Ultra-fast, lowest cost (400K context, image input) |
+| `minimax-m2.7` | MiniMax | Balanced performance (204.8K context) |
 | `kimi-k2.5` | Moonshot AI | Long-context reasoning |
 | `qwen3-coder` | Alibaba | Code generation, debugging |
+| `glm-5` | Z.ai | General purpose reasoning |
+| `glm-5-turbo` | Z.ai | Fast, cost-effective |
 
 ```bash
 # Fetch live model list from the gateway
 bankr llm models
 ```
+
+### Per-Model Discounts
+
+The gateway supports per-model discounts based on account tier. Bankr Club members and partner-provisioned wallets receive automatic discounts on eligible models — applied at billing time with no configuration needed. Check `bankr llm models` for current pricing and active promotions.
 
 ## Credits
 
@@ -88,6 +96,17 @@ bankr llm credits auto --disable
 ```
 
 When credits are exhausted, gateway requests will fail with HTTP 402.
+
+### Agent Credit Top-Up
+
+The AI agent can also top up credits directly in conversation:
+
+```bash
+bankr agent prompt "Top up my LLM credits with $25"
+bankr agent prompt "Add $10 of LLM credits using my ETH"
+```
+
+1 credit = $1 USD. Paid in USDC on Base by default; any other Base ERC-20 token you hold is auto-swapped to USDC at checkout. Maximum $1,000 per top-up.
 
 > **LLM credits vs trading wallet:** These are completely separate balances on the same account and API key. Your trading wallet (ETH, SOL, USDC) is for on-chain transactions. LLM credits (USD) are for gateway API calls. Having crypto does NOT give you LLM credits.
 
@@ -325,6 +344,15 @@ message = client.messages.create(
     messages=[{"role": "user", "content": "Hello"}],
 )
 ```
+
+## Model Deprecation
+
+The gateway supports model deprecation with automatic redirect to replacement models:
+
+- **Soft-deprecated models** still work but return `X-Model-Deprecated: true` and `X-Model-Replacement: <new-model-id>` response headers. Migrate to the replacement model at your earliest convenience.
+- **Hard-deprecated models** return HTTP 410 (Gone) with the replacement model in the `X-Model-Replacement` header. Update your model ID to continue.
+
+Check `bankr llm models` for current model status and replacement mappings.
 
 ## Troubleshooting
 

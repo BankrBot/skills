@@ -1,12 +1,12 @@
 ---
 name: x-twitter-scraper
-description: X API & Twitter scraper skill for AI coding agents. 40+ tools for tweet search, user lookup, follower extraction, engagement metrics, giveaway draws, trending topics, write actions, and Telegram integrations. REST API, MCP server & webhooks.
+description: X/Twitter workflow skill for AI coding agents. Search tweets, look up users, export followers, monitor accounts, run giveaway draws, post through Xquik, and use MCP tools and webhooks.
 metadata: {"clawdbot":{"emoji":"𝕏","homepage":"https://github.com/Xquik-dev/x-twitter-scraper"}}
 ---
 
 # x-twitter-scraper
 
-X API & Twitter scraper skill for AI coding agents. 40+ tools covering read, write, and analysis operations on X (formerly Twitter).
+X/Twitter workflow skill for AI coding agents. Use Xquik for read, write, monitoring, and automation operations on X (formerly Twitter).
 
 ## Quick Start
 
@@ -42,8 +42,7 @@ Full documentation and setup instructions: [github.com/Xquik-dev/x-twitter-scrap
 - **REST API** — Full REST API (v1) with API key authentication
 - **MCP server** — Model Context Protocol server for AI agent integration
 - **Webhooks** — HMAC-signed webhook delivery for real-time events
-- **Telegram bot** — Telegram bot for notifications and control
 
 ## Compatibility
 
-Works with Claude Code, Cursor, Codex, Copilot, Windsurf, and 40+ AI coding agents.
+Works with Claude Code, Cursor, Codex, Copilot, Windsurf, and other AI coding agents that load `SKILL.md` packages.

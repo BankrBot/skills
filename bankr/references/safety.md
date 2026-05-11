@@ -1,6 +1,52 @@
 # Safety & Access Control Reference
 
-Comprehensive safety guidance for building agents and integrations with the Bankr API and CLI. Covers API key types, access controls, wallet separation, rate limits, and operational best practices.
+Comprehensive safety guidance for building agents and integrations with the Bankr API and CLI. Covers wallet-level security settings, API key access controls, wallet separation, rate limits, and operational best practices.
+
+Bankr has two independent layers of safety controls: **wallet-level** (configured at [bankr.bot](https://bankr.bot) → Security; applies to every surface) and **per-API-key** (configured at [bankr.bot/api](https://bankr.bot/api); applies to one key). Both run independently — a transaction must satisfy both to broadcast.
+
+## Wallet-Level Security Settings
+
+User-controlled wallet safety features configured at [bankr.bot](https://bankr.bot) → Security. These apply to every surface — chat, agent, API, CLI — because they are enforced at the transaction broadcast chokepoint. Modifying them requires web (Privy) authentication; an API key cannot change them.
+
+### Controls
+
+| Control | Default | Effect |
+|---------|---------|--------|
+| Pause all transactions | Off | Blocks every outbound transaction until unpaused |
+| Daily spending limit | $500 / 24h | Rejects any tx that pushes rolling-24h USD outflow past the limit |
+| Per-transaction limit | $500 | Rejects any single tx priced above the limit |
+| Permitted recipients | Off | Restricts transfers/swaps to an allowlist; new entries enter a configurable cooldown |
+| Disable arbitrary contract calls | Off | Blocks `write_contract`, raw `/wallet/submit`, and arbitrary transaction tools (named operations like swaps still work) |
+
+USD limits accept `1` to `1,000,000`. Setting `0` is rejected — disable the limit instead. Cooldown accepts `0` to `168` hours (default 24h).
+
+### Pricing & Fail-Closed Behavior
+
+Bankr prices each transaction at submission time using on-chain quotes (0x for EVM, Jupiter for Solana). If pricing is unavailable and a USD limit is enabled, the transaction is **rejected** rather than waved through. Disable the limit if you need to proceed unpriced.
+
+### Recipient Cooldown
+
+Newly-added entries on the permitted-recipients list wait the configured cooldown (default 24h) before they're usable. Re-adding a previously-removed recipient restarts the cooldown. Your own EVM and Solana addresses are always implicitly allowed.
+
+### Spend Tracking
+
+Successful transactions are recorded in a per-wallet spend log, idempotent on transaction hash, so retries can't inflate the daily counter.
+
+### Relationship to API-Key Controls
+
+The wallet-level permitted-recipients list is independent from the API-key `allowedRecipients`. When both are configured, both must pass:
+
+- **API-key allowlist** = where this key is allowed to send
+- **Wallet allowlist** = where this wallet is allowed to send, regardless of key
+
+### Incident Response
+
+If you suspect a key is compromised:
+
+1. **Pause** the wallet at [bankr.bot](https://bankr.bot) → Security. Halts every outbound transaction immediately, including in-flight broadcasts. Revoking the key alone does not stop transactions already past auth.
+2. **Revoke** the key at [bankr.bot/api](https://bankr.bot/api).
+3. **Rotate** — generate a new key with the same access profile and update deployments.
+4. **Audit** — review recent transactions and agent job history before unpausing.
 
 ## API Key Types & Separation
 
@@ -12,10 +58,11 @@ Each API key has independent toggles managed at [bankr.bot/api](https://bankr.bo
 
 | Flag | Controls Access To | Default |
 |------|-------------------|---------|
-| `agentApiEnabled` | `/agent/*` endpoints (prompt, sign, submit, job status) | false |
+| `walletApiEnabled` | `/wallet/*` write endpoints (transfer, sign, submit) | true |
+| `agentApiEnabled` | `/agent/*` AI endpoints (prompt, job status, profile) | false |
+| `tokenLaunchApiEnabled` | Token deployment (`/token-launches/deploy`) and agent deploy tool | true |
 | `llmGatewayEnabled` | LLM Gateway at `llm.bankr.bot` (chat completions, model access) | false |
-| `externalOrdersEnabled` | External order submission endpoints | false |
-| `readOnly` | When true, restricts agent sessions to read-only tools | false |
+| `readOnly` | When true, restricts Wallet/Agent API to read-only tools | true |
 
 A single key can have multiple capabilities enabled (e.g., both Agent API and LLM Gateway).
 
@@ -27,7 +74,7 @@ For most users, **one key works for both** the Agent API and LLM Gateway. Howeve
 |--------|--------------|-----------------|
 | Environment variable | `BANKR_API_KEY` | `BANKR_LLM_KEY` (falls back to `BANKR_API_KEY`) |
 | CLI config key | `apiKey` | `llmKey` (falls back to `apiKey`) |
-| Used by | `bankr prompt`, `/agent/*` endpoints | `bankr llm claude`, `llm.bankr.bot` |
+| Used by | `bankr agent`, `/agent/*` endpoints | `bankr llm claude`, `llm.bankr.bot` |
 
 **When to use separate keys:**
 - Your agent API key is read-only but your LLM key needs no such restriction (LLM calls are inherently read-only)
@@ -98,10 +145,11 @@ The agent receives a system directive and will explain the restriction if a user
 
 ### IP Whitelisting
 
-API keys support an `allowedIps` whitelist. When configured, requests from non-whitelisted IPs are rejected at the authentication layer before reaching any endpoint.
+API keys support an `allowedIps` whitelist with both individual IPs and CIDR ranges. When configured, requests from non-whitelisted IPs are rejected at the authentication layer before reaching any endpoint.
 
 - **Empty array** (`[]`) = all IPs allowed (default)
-- **Non-empty array** = only listed IPs can use the key
+- **Non-empty array** = only listed IPs/ranges can use the key
+- **CIDR notation** supported (e.g., `10.0.0.0/24`, `192.168.1.0/16`)
 
 **403 error response:**
 ```json
@@ -118,8 +166,10 @@ Manage API key settings at [bankr.bot/api](https://bankr.bot/api):
 | Field | Type | Description |
 |-------|------|-------------|
 | `readOnly` | boolean | When true, only read tools are available |
-| `allowedIps` | string[] | IP whitelist (empty = all allowed) |
-| `agentApiEnabled` | boolean | Whether `/agent/*` endpoints are accessible |
+| `allowedIps` | string[] | IP/CIDR whitelist (e.g., `["1.2.3.4", "10.0.0.0/24"]`, empty = all allowed) |
+| `walletApiEnabled` | boolean | Whether `/wallet/*` write endpoints are accessible |
+| `agentApiEnabled` | boolean | Whether `/agent/*` AI endpoints are accessible |
+| `tokenLaunchApiEnabled` | boolean | Whether token deployment is accessible |
 | `llmGatewayEnabled` | boolean | Whether LLM Gateway endpoints are accessible |
 
 ## CLI Security
@@ -166,7 +216,7 @@ Access controls (read-only, IP whitelist) apply identically whether you use the 
 
 ```bash
 # These two are equivalent — same access controls apply
-bankr prompt "What is my balance?"
+bankr agent "What is my balance?"
 curl -X POST "https://api.bankr.bot/agent/prompt" \
   -H "X-API-Key: bk_YOUR_KEY" \
   -d '{"prompt": "What is my balance?"}'
@@ -207,12 +257,13 @@ Replenish periodically rather than pre-loading large amounts.
 
 Choose the right combination based on your agent's purpose:
 
-| Use Case | readOnly | allowedIps | Funding Level |
-|----------|----------|------------|---------------|
-| Monitoring / analytics bot | Yes | Yes (server IP) | None needed |
-| Trading bot (server-side) | No | Yes (server IP) | Limited trading capital |
-| Development / testing | No | No | Minimal (test amounts) |
-| Read-only research agent | Yes | No | None needed |
+| Use Case | readOnly | allowedIps | Recipient Allowlist | Wallet Daily Limit |
+|----------|----------|------------|---------------------|-------------------|
+| Monitoring / analytics bot | Yes | Yes (server IP) | — | — |
+| Trading bot (server-side) | No | Yes (server IP) | Yes | Yes ($500–$5,000) |
+| Public-facing demo | Yes | No | — | — |
+| Development / testing | No | No | No | Yes ($100) |
+| Read-only research agent | Yes | No | — | — |
 
 ## Rate Limits
 
@@ -270,7 +321,7 @@ Blockchain transactions are **irreversible** once confirmed. Key safety rules:
 
 ### Rotation & Revocation
 
-- **Rotate periodically** — Generate new keys and deactivate old ones at [bankr.bot/api](https://bankr.bot/api). After rotating, update both env vars and CLI config (`bankr login --api-key NEW_KEY`)
+- **Rotate periodically** — Rotate keys via the dashboard at [bankr.bot/api](https://bankr.bot/api) or programmatically via the API key rotation endpoint. Rotation atomically generates a new key and deactivates the old one. After rotating, update both env vars and CLI config (`bankr login --api-key NEW_KEY`)
 - **Revoke immediately** — If any key (API or LLM) is leaked, deactivate it immediately at the dashboard
 - **One key per purpose** — Use separate keys for different agents, environments, and services (Agent API vs LLM Gateway) so you can revoke individually without disrupting unrelated systems
 
@@ -303,6 +354,8 @@ Before deploying an agent or integration:
 
 - [ ] Use a **dedicated agent wallet** — not your personal account
 - [ ] Fund the agent wallet with **limited amounts** appropriate to its purpose
+- [ ] Review **wallet-level security settings** at [bankr.bot](https://bankr.bot) → Security — set appropriate daily and per-transaction USD limits
+- [ ] Enable **permitted recipients** with cooldown if the agent sends to a known set of addresses
 - [ ] Set API key to **read-only** if the agent only needs to query data
 - [ ] Configure **IP whitelisting** for server-side agents with known IPs
 - [ ] Store keys in **environment variables** (`BANKR_API_KEY`, `BANKR_LLM_KEY`), never in source code or version control
@@ -313,3 +366,4 @@ Before deploying an agent or integration:
 - [ ] Implement **error handling** for rate limits (429) and access control errors (403)
 - [ ] Monitor the agent's **daily message usage** against your tier limit
 - [ ] Review and **rotate all keys** (API and LLM) periodically; revoke immediately if compromised
+- [ ] Know the **incident response** procedure: pause wallet → revoke key → rotate → audit
