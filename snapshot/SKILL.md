@@ -1,6 +1,6 @@
 ---
 name: snapshot
-description: Interact with the Snapshot governance platform — query spaces, proposals, and votes via the Hub GraphQL API, cast votes, create proposals, check voting power, and review delegation. Use when user says "vote on snapshot", "snapshot proposal", "governance vote", "check proposals", "create proposal", "snapshot space", "voting power", "delegate votes", "governance status", "DAO proposal", "cast vote", or mentions Snapshot, DAO governance, or off-chain voting.
+description: Interact with the Snapshot governance platform — query spaces, proposals, and votes via the Hub GraphQL API, cast votes, create proposals, delete proposals, check voting power, and review delegation. Use when user says "vote on snapshot", "snapshot proposal", "governance vote", "check proposals", "create proposal", "delete proposal", "cancel proposal", "remove proposal", "snapshot space", "voting power", "delegate votes", "governance status", "DAO proposal", "cast vote", or mentions Snapshot, DAO governance, or off-chain voting.
 ---
 
 # Snapshot Governance
@@ -40,6 +40,7 @@ If signing fails with a 403 error about trusted recipients, temporarily swap `~/
 | Query spaces/proposals/votes | `scripts/snapshot-query.sh` |
 | Cast a vote | `scripts/snapshot-vote.mjs` |
 | Create a proposal | `scripts/snapshot-propose.mjs` |
+| Delete a proposal | `scripts/snapshot-delete.mjs` |
 | Detailed query patterns | `references/graphql-api.md` |
 | Voting type formats | `references/voting-types.md` |
 
@@ -132,7 +133,23 @@ Or pass short bodies inline with `--body "text"`.
 The script auto-fetches the latest block for the snapshot parameter if omitted.
 Signing is handled by `bankr wallet sign` — no private key needed.
 
-### 7. Get Space Info
+### 7. Delete a Proposal
+
+Only the proposal author or space admins/moderators can delete a proposal.
+
+```bash
+node scripts/snapshot-delete.mjs \
+  --space "your-space.eth" \
+  --proposal "0xabc123..."
+```
+
+Signing is handled by `bankr wallet sign` — no private key needed.
+
+> **Note:** The signer address must be EIP-55 checksummed. A lowercase address will fail schema validation at the sequencer. The script handles this automatically.
+
+> **Note:** This uses the `CancelProposal` EIP-712 type (not `DeleteProposal`). For proposals with IDs starting with `0x`, the sequencer maps this to its `delete-proposal` writer via a SHA-256 hash of the type structure.
+
+### 8. Get Space Info
 
 ```bash
 bash scripts/snapshot-query.sh '{
@@ -146,7 +163,7 @@ bash scripts/snapshot-query.sh '{
 }'
 ```
 
-### 8. Get Vote Results
+### 9. Get Vote Results
 
 ```bash
 bash scripts/snapshot-query.sh '{
@@ -157,7 +174,7 @@ bash scripts/snapshot-query.sh '{
 }'
 ```
 
-### 9. Check Follows / Subscriptions
+### 10. Check Follows / Subscriptions
 
 ```bash
 bash scripts/snapshot-query.sh '{
