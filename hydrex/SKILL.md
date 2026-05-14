@@ -95,6 +95,10 @@ Convert my oHYDX to veHYDX on Hydrex
 - Withdraw with up to 70/30 split (deposit token / counter token)
 - No need to source both sides of a pair
 
+**Checking position value** — fetch the strategy from `https://api.hydrex.fi/strategies?depositTokens=<TOKEN>`, find the matching object by `title` (e.g., `"BNKR/WETH"`), then `balanceOf(userAddress)` on the vault `address`. Value = `(rawBalance / 1e18) × lpPriceUsd`. Full breakdown in [references/single-sided-liquidity.md](references/single-sided-liquidity.md).
+
+**Important**: The deposit token is required to look up a position. If a user asks something open-ended like `"What are my Hydrex deposits?"`, **ask which token to check** (e.g., BNKR, USDC, WETH, HYDX) and encourage them to phrase it as `"check my deposit for [TOKEN]"`.
+
 **Reference**: [references/single-sided-liquidity.md](references/single-sided-liquidity.md)
 
 ### Claiming and Managing Rewards
