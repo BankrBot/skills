@@ -85,7 +85,7 @@ scripts/veil-balance.sh --address 0xYOUR_ADDRESS --pool usdc
 
 ### Bankr API Errors
 
-**Symptom**: `apiKey missing` or authentication errors
+**Symptom**: `apiKey missing`, authentication errors, or `403` responses from Bankr wallet endpoints.
 
 **Solution**: Ensure Bankr is configured:
 
@@ -93,6 +93,12 @@ scripts/veil-balance.sh --address 0xYOUR_ADDRESS --pool usdc
 cat ~/.clawdbot/skills/bankr/config.json
 # Should contain: {"apiKey": "bk_...", "apiUrl": "https://api.bankr.bot"}
 ```
+
+If the config is present but writes still fail:
+
+- confirm the key has wallet API access enabled
+- confirm the key is not `readOnly`
+- use the current wallet endpoints: `POST /wallet/sign` and `POST /wallet/submit`
 
 ### Scripts Not Executable
 
@@ -109,7 +115,7 @@ chmod +x scripts/*.sh
 1. **Check balances first** — Most issues stem from funds being in queue vs private pool
 2. **Check the right pool** — Use `--pool usdc` to check USDC balances
 3. **Use `--quiet` flag** — Suppresses progress output for cleaner JSON parsing
-4. **Check Bankr job status** — If a deposit via Bankr hangs, the job ID is printed for manual status checks
+4. **Inspect the Wallet API response** — `veil-bankr-submit-tx.sh` now calls Bankr's synchronous `POST /wallet/submit` endpoint, so check the returned JSON for `success`, `status`, and any error details
 5. **Verify RPC connectivity** — `curl -s YOUR_RPC_URL -X POST -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'`
 6. **ERC20 deposits need two txs** — For USDC, ensure the approval tx confirms before the deposit tx is submitted
 

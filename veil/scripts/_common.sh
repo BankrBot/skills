@@ -78,7 +78,14 @@ need_bankr() {
   exit 1
 }
 
-# Legacy alias
+# Config-file specific check for scripts that call Bankr APIs directly.
 need_bankr_config() {
-  need_bankr
+  if [[ -f "$BANKR_CONFIG" ]]; then
+    need_bin jq
+    need_bin curl
+    return 0
+  fi
+  echo "Bankr config not found at $BANKR_CONFIG" >&2
+  echo "Run bankr login or set BANKR_CONFIG to a valid config.json path" >&2
+  exit 1
 }
