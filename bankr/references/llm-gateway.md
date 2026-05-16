@@ -1,6 +1,6 @@
 # LLM Gateway Reference
 
-The Bankr LLM Gateway is a unified API for Claude, Gemini, GPT, and other models. It provides multi-provider access, cost tracking, automatic failover, and SDK compatibility through a single endpoint.
+The Bankr LLM Gateway is a unified API for Claude, Gemini, GPT, Grok, and other models. It provides multi-provider access, cost tracking, automatic failover, and SDK compatibility through a single endpoint.
 
 **Base URL:** `https://llm.bankr.bot`
 
@@ -57,6 +57,7 @@ bankr config get llmKey
 | `minimax-m2.7` | MiniMax | Balanced performance (204.8K context) |
 | `kimi-k2.5` | Moonshot AI | Long-context reasoning |
 | `qwen3-coder` | Alibaba | Code generation, debugging |
+| `grok-4.3` | xAI | Reasoning, value-tier (1M context, image input) |
 | `glm-5` | Z.ai | General purpose reasoning |
 | `glm-5-turbo` | Z.ai | Fast, cost-effective |
 
