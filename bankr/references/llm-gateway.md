@@ -372,6 +372,7 @@ Check `bankr llm models` for current model status and replacement mappings.
 - Set up auto top-up to prevent this: `bankr llm credits auto --enable --amount 25 --threshold 5 --tokens USDC`
 - New wallets start with $0 — you must add credits before first use
 - LLM credits are separate from your trading wallet balance
+- If your 402 came from a **non-Bankr x402 endpoint**, this section does not apply; see [clawcredit integration](./clawcredit-integration.md)
 
 ### Model not found
 - Use exact model IDs (e.g., `claude-sonnet-4.6`, not `claude-3-sonnet`)
