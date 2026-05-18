@@ -88,7 +88,8 @@ Rules to enforce client-side before calling:
 |---|---|
 | "claim my bean" | `GridMining.claimBEAN()`. Warn user: 10% roasting fee applies to mined BEAN only (not roasted bonus). |
 | "claim my eth rewards on bean" | `GridMining.claimETH()` |
-| "claim everything on bean" | `claimETH()` then `claimBEAN()` (two transactions) |
+| "claim my bean staking yield" | `Staking.claimYield()` |
+| "claim everything on bean" | Check `/api/user/<addr>/rewards` for pending ETH/BEAN and `/api/staking/<addr>` for `pendingRewards`. Send only the txs where the corresponding amount is greater than zero: `GridMining.claimETH()`, `GridMining.claimBEAN()`, `Staking.claimYield()`. Skip the ones with zero balance to avoid wasted gas. |
 
 ### AutoMiner (basic automation, on-chain only, no off-chain strategy)
 
