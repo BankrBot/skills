@@ -5,6 +5,27 @@ homepage: https://minebean.com
 twitter: https://x.com/minebean_
 network: base
 chainId: 8453
+license: MIT
+metadata:
+  author: damo-nu11
+  version: "1.0.0"
+  repository: "https://github.com/damo-nu11/minebean-skills"
+  tags: [crypto, mining, defi, ai-agent, base, gaming, grid]
+  hermes:
+    tags: [crypto, mining, defi, ai-agent, base, gaming]
+    required_environment_variables:
+      - name: BANKR_API_KEY
+        prompt: "Paste your Bankr API key (starts with 'bk_'). Get one at https://bankr.bot/api with agent write access enabled."
+        help: "Controls the on-chain wallet used for deploys, claims, staking, and AutoMiner ops."
+        required_for: [mining, claims, staking, automine]
+  openclaw:
+    requires:
+      env: ["BANKR_API_KEY"]
+      primaryEnv: "BANKR_API_KEY"
+  clawdbot:
+    requires:
+      env: ["BANKR_API_KEY"]
+      primaryEnv: "BANKR_API_KEY"
 ---
 
 # MineBean
