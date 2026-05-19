@@ -230,7 +230,6 @@ To buy or sell $GRWR:
 - **Cash-out fails with `HarvestCooldownActive`:** 5-min cooldown between cash-outs.
 - **Cash-out fails with `DailyCapExceeded`:** tier daily cap reached, resets at UTC midnight.
 - **Fusion "NOT ENOUGH TOKENS":** the player needs the real ERC-20 tokens in their wallet at live DexScreener-priced amounts. Suggest buying small amounts on Uniswap first (~$1–$2 of each token in the recipe).
-- **Phishing warnings on growr.farm:** the domain is brand-new and some scanners auto-flag new Web3 domains. The site is legitimate — contracts are verified on BaseScan, token is Bankr-launched (`ba3` suffix), $GRWR is tracked on DexScreener.
 
 ## References
 
