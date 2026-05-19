@@ -102,7 +102,7 @@ Then return JSON that shows:
 - trustChecked: `nipmod inspect` verified trust, provenance, witness evidence and permissions.
 - installPlanReady: `nipmod install --plan` produced a plan without installing.
 - repoDraftReady: `nipmod package pr` prepared `nipmod.json` and `README.nipmod.md` with no remote writes.
-- safety: no wallet action, no signing, no install, no workspace mutation unless the user explicitly approves.
+- safety: no wallet action, no signing, no install, no user workspace mutation unless the user explicitly approves.
 
 ## Safety rules
 
