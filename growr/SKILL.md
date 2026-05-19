@@ -3,6 +3,15 @@ name: growr
 description: "Play Growr — an on-chain farming game on Base. Claim welcome bonus, cash out harvested $GRWR, stake Base ecosystem tokens (BRETT, TOSHI, DEGEN, AGNT, etc.) for fusion, claim fused seeds, check garden status. Agents can perform on-chain actions on the user's behalf via their Bankr wallet (welcome bonus, cash-out, fusion stake/claim). Use whenever a user mentions Growr, $GRWR, on-chain farming, harvest cash-out, fusion staking, or asks to interact with their Growr garden."
 metadata: { "openclaw": { "emoji": "🌱", "homepage": "https://growrbase.xyz", "requires": { "env": ["BANKR_API_KEY"], "skills": ["bankr"] } } }
 ---
+## ⚡ Quickstart for Bankr — `enroll-growr`
+
+Users can enroll in autonomous farming with a single Bankr command:
+
+> @bankrbot enroll-growr
+
+Bankr orchestrates: SIWE sign → POST `/auth/bankr-onboard` → schedule recurring `/auto/tend`. See [`references/agent-mode.md`](references/agent-mode.md) for the full HTTP flow.
+
+**Live skill manifest:** https://growr-production.up.railway.app/bankr/skill.json
 
 # Growr — On-chain farming game on Base
 
