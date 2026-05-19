@@ -29,7 +29,7 @@ Gas:     ~100,000
 
 **Success response to user:**
 > Claimed 500,000 $GRWR welcome bonus! BaseScan: https://basescan.org/tx/<hash>
-> Visit https://growrbase.xyz to start growing.
+> Visit https://growr.farm to start growing.
 
 ---
 
@@ -132,7 +132,7 @@ event FusionStarted(uint256 indexed fuseId, address indexed player, address inde
 One per token. Store the `(fuseId, secret, rarity)` triple persistently — needed for claim.
 
 **Success message:**
-> Staked 1 BRETT + 22 DEGEN to fuse FOMO Fungus 🍄. Unlocks in 30 minutes — I'll claim it for you then, or you can claim from growrbase.xyz.
+> Staked 1 BRETT + 22 DEGEN to fuse FOMO Fungus 🍄. Unlocks in 30 minutes — I'll claim it for you then, or you can claim from growr.farm.
 
 ---
 
@@ -160,7 +160,7 @@ Gas:     ~200,000
 - `RarityRateLimitExceeded` → contract auto-downgrades to Common; this only fires for hard-cap violations
 
 **Success message:**
-> Claimed fusion! Your FOMO Fungus is now in your Growr inventory + small GRWR bonus sent. Visit https://growrbase.xyz to plant it.
+> Claimed fusion! Your FOMO Fungus is now in your Growr inventory + small GRWR bonus sent. Visit https://growr.farm to plant it.
 
 ---
 
