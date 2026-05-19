@@ -16,7 +16,10 @@ Interact with Gnosis Safe multisig wallets on Base, Ethereum, and Polygon. Suppo
 - `python3` with `eth_utils` — for EIP-712 hash computation (`pip install eth-utils`)
 - `bankr` — for on-chain calls (`approveHash`, `execTransaction`)
 
-> ⚠️ **Important:** The Safe contract address must be in Bankr's **trusted addresses list** before you can call `approveHash` or `execTransaction` via Bankr. Add it once with `bankr address add <safe_address>`.
+> ⚠️ **Important:** The Safe contract address must be in Bankr's **trusted recipients list** before you can call `approveHash` or `execTransaction` via Bankr. Add it via the Bankr dashboard, or run:
+> ```
+> bankr agent 'add 0xYourSafeAddress to my trusted recipient addresses'
+> ```
 
 ---
 
@@ -68,9 +71,15 @@ python3 scripts/propose_tx.py \
   --safe    0xYourSafeAddress \
   --to      0xRecipientAddress \
   --value   0.01 \
+  --chain   8453
+
+# With explicit signer address (optional — auto-detected via 'bankr whoami' if omitted):
+python3 scripts/propose_tx.py \
+  --safe    0xYourSafeAddress \
+  --to      0xRecipientAddress \
+  --value   0.01 \
   --chain   8453 \
-  --rpc     https://mainnet.base.org \
-  --key     YOUR_BANKR_KEY_NAME
+  --signer  0xYourSignerAddress
 
 # With calldata (optional):
 python3 scripts/propose_tx.py \
@@ -78,9 +87,7 @@ python3 scripts/propose_tx.py \
   --to      0xContractAddress \
   --value   0 \
   --data    0xabcdef1234 \
-  --chain   8453 \
-  --rpc     https://mainnet.base.org \
-  --key     YOUR_BANKR_KEY_NAME
+  --chain   8453
 ```
 
 **What happens under the hood:**
@@ -116,13 +123,14 @@ All non-essential fields (`operation`, `safeTxGas`, `baseGas`, `gasPrice`, `gasT
 
 ### Step B — On-Chain Approval via Bankr
 
-```bash
-bankr call \
-  --to <safe_address> \
-  --key <bankr_key_name> \
-  --abi 'approveHash(bytes32)' \
-  --args '[<safe_tx_hash>]' \
-  --rpc <rpc_url>
+The script uses `bankr agent` with a raw-transaction prompt to call `approveHash(bytes32)` on-chain:
+
+```
+bankr agent "Submit raw transaction on Base (chain 8453):
+- to: <safe_address>
+- data: 0xd4d9bdcd<safe_tx_hash_without_0x_padded_to_64_chars>
+- value: 0
+Wait for confirmation and return the tx hash."
 ```
 
 Function selector: `0xd4d9bdcd` (`approveHash(bytes32)`)
@@ -192,42 +200,41 @@ GET {TX_SERVICE}/api/v1/safes/{safe_address}/multisig-transactions/?executed=fal
 
 ## Operation 4: Check If a Hash Is Approved
 
-Query whether a specific owner has approved a given `safeTxHash` on-chain.
+Query whether a specific owner has approved a given `safeTxHash` on-chain via the Safe TX Service:
 
 ```bash
-bankr call \
-  --to <safe_address> \
-  --rpc <rpc_url> \
-  --abi 'approvedHashes(address,bytes32)(uint256)' \
-  --args '["<owner_address>", "<safe_tx_hash>"]'
+curl -s "{TX_SERVICE}/api/v1/safes/{safe_address}/multisig-transactions/?safe_tx_hash={safe_tx_hash}" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('Confirmed' if d['results'][0]['confirmations'] else 'Not confirmed')"
+```
+
+Or use `bankr agent` to query on-chain:
+
+```bash
+bankr agent "Call approvedHashes on Safe {safe_address} on Base with args ['{owner_address}', '{safe_tx_hash}']. Return 1 if approved, 0 if not."
 ```
 
 Function selector: `0x7d832974` (`approvedHashes(address,bytes32)`)
 
 Returns `1` if approved, `0` if not.
 
-**Example:**
-```bash
-bankr call \
-  --to 0xYourSafeAddress \
-  --rpc https://mainnet.base.org \
-  --abi 'approvedHashes(address,bytes32)(uint256)' \
-  --args '["0xYourSignerAddress", "0xSafeTxHash"]'
-```
-
 ---
 
 ## Operation 5: Execute a Transaction
 
-Once the required number of approvals (`threshold`) is reached, execute the transaction on-chain.
+Once the required number of approvals (`threshold`) is reached, execute via `bankr agent`:
 
 ```bash
-bankr call \
-  --to <safe_address> \
-  --key <bankr_key_name> \
-  --rpc <rpc_url> \
-  --abi 'execTransaction(address,uint256,bytes,uint8,uint256,uint256,uint256,address,address,bytes)(bool)' \
-  --args '["<to>","<value_wei>","<data_hex>",0,0,0,0,"0x0000000000000000000000000000000000000000","0x0000000000000000000000000000000000000000","<packed_signatures>"]'
+bankr agent "Call execTransaction on Safe contract 0xYourSafeAddress on Base with:
+- to: 0xRecipient
+- value: <value_wei>
+- data: 0x
+- operation: 0
+- safeTxGas: 0
+- baseGas: 0
+- gasPrice: 0
+- gasToken: 0x0000000000000000000000000000000000000000
+- refundReceiver: 0x0000000000000000000000000000000000000000
+- signatures: <packed_signatures>"
 ```
 
 Function selector: `0x6a761202` (`execTransaction(...)`)
@@ -257,8 +264,7 @@ def build_packed_signatures(signer_addresses):
    └─ ./scripts/safe_info.sh 0xSafe base
 
 2. Propose transaction (computes hash, approves on-chain, posts to service)
-   └─ python3 scripts/propose_tx.py --safe 0xSafe --to 0xRecipient --value 0.5 \
-        --chain 8453 --rpc https://mainnet.base.org --key mykey
+   └─ python3 scripts/propose_tx.py --safe 0xSafe --to 0xRecipient --value 0.5 --chain 8453
 
 3. Share safeTxHash with other owners so they can approve
    └─ They can approve via Safe UI or another approveHash call
@@ -267,7 +273,7 @@ def build_packed_signatures(signer_addresses):
    └─ ./scripts/list_pending.sh 0xSafe base
 
 5. Once threshold is met, execute
-   └─ bankr call --to 0xSafe --key mykey --abi 'execTransaction(...)' ...
+   └─ bankr agent "Call execTransaction on Safe 0xSafe on Base with to 0xRecipient ..."
       OR use Safe UI at app.safe.global
 ```
 
@@ -278,7 +284,7 @@ def build_packed_signatures(signer_addresses):
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `1337` (Safe TX service) | Nonce already used or invalid signature | Check nonce with `safe_info.sh`, verify signer is an owner |
-| `approveHash` reverts | Safe address not in Bankr trusted list | `bankr address add <safe_address>` |
+| `approveHash` reverts | Safe address not in Bankr trusted list | Add via Bankr dashboard or `bankr agent 'add 0xSafe to my trusted recipient addresses'` |
 | `CALL_EXCEPTION` | Wrong RPC or contract address | Verify chain ID matches RPC and safe address |
 | `confirmations not met` | Not enough approvals | Check threshold vs confirmed count with `list_pending.sh` |
 

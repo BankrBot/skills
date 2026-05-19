@@ -5,7 +5,7 @@ propose_tx.py — Propose a Gnosis Safe transaction
 Steps:
   1. Fetch current nonce from Safe Transaction Service
   2. Compute EIP-712 safeTxHash
-  3. Call approveHash(bytes32) on-chain via Bankr
+  3. Call approveHash(bytes32) on-chain via `bankr agent`
   4. POST proposal + contract signature to Safe Transaction Service
 
 Usage:
@@ -14,14 +14,13 @@ Usage:
     --to      0xRecipientAddress \
     --value   0.01 \
     --chain   8453 \
-    --rpc     https://mainnet.base.org \
-    --key     your_bankr_key_name \
-    [--data   0xabcdef]    # optional calldata
+    [--signer 0xYourSignerAddress]  # auto-detected via 'bankr whoami' if omitted
+    [--data   0xabcdef]             # optional calldata
 
 Requirements:
   pip install eth-utils requests
-  bankr must be installed and the safe address must be in its trusted list:
-    bankr address add <safe_address>
+  bankr must be installed and authenticated (`bankr whoami` must return your address).
+  The Safe contract address must be in your Bankr trusted recipients list.
 """
 
 import argparse
@@ -154,39 +153,91 @@ def get_safe_nonce(tx_service: str, safe_address: str) -> int:
     return data["nonce"]
 
 
-def get_signer_address(bankr_key: str) -> str:
-    """Resolve the Ethereum address for a Bankr key name."""
-    result = subprocess.run(
-        ["bankr", "key", "address", bankr_key],
-        capture_output=True, text=True, check=True
+def validate_address(addr: str, label: str) -> str:
+    """Validate that addr is a 42-char hex Ethereum address and return checksummed form."""
+    if not addr or not addr.startswith("0x") or len(addr) != 42:
+        print(f"ERROR: Invalid {label} address: '{addr}' (must be 0x + 40 hex chars)", file=sys.stderr)
+        sys.exit(1)
+    try:
+        return to_checksum_address(addr)
+    except Exception as exc:
+        print(f"ERROR: Invalid {label} address: '{addr}': {exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+def get_signer_address(signer_override: str = None) -> str:
+    """Resolve the signer's Ethereum address.
+
+    Priority:
+      1. signer_override (from --signer CLI arg)
+      2. `bankr whoami --json` → parse 'address' field
+      3. `bankr whoami` → scan output for a 0x... address line
+    """
+    if signer_override:
+        return validate_address(signer_override, "--signer")
+
+    # Try bankr whoami --json
+    try:
+        result = subprocess.run(
+            ["bankr", "whoami", "--json"],
+            capture_output=True, text=True, check=True, timeout=10
+        )
+        data = json.loads(result.stdout.strip())
+        # Handle various possible JSON shapes
+        address = (
+            data.get("address")
+            or (data.get("wallet") or {}).get("address")
+        )
+        if address and address.startswith("0x") and len(address) == 42:
+            return to_checksum_address(address)
+    except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError, subprocess.TimeoutExpired):
+        pass
+
+    # Fall back to plain bankr whoami — scan for an address line
+    try:
+        result = subprocess.run(
+            ["bankr", "whoami"],
+            capture_output=True, text=True, check=True, timeout=10
+        )
+        for line in result.stdout.splitlines():
+            stripped = line.strip().rstrip(",;")
+            if stripped.startswith("0x") and len(stripped) == 42:
+                return to_checksum_address(stripped)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        pass
+
+    print("ERROR: Could not determine signer address from 'bankr whoami'.", file=sys.stderr)
+    print("  Pass --signer 0xYourAddress to specify it explicitly.", file=sys.stderr)
+    sys.exit(1)
+
+
+def approve_hash_on_chain(safe_address: str, safe_tx_hash: str) -> str:
+    """Call approveHash(bytes32) on the Safe contract via `bankr agent`.
+
+    Encodes the calldata as: selector 0xd4d9bdcd + hash padded to 32 bytes.
+    Uses natural-language Bankr agent to submit the raw transaction.
+    """
+    hash_no_prefix = safe_tx_hash[2:].lower().zfill(64)
+    calldata = f"0xd4d9bdcd{hash_no_prefix}"
+    prompt = (
+        f"Submit raw transaction on Base (chain 8453):\n"
+        f"- to: {safe_address}\n"
+        f"- data: {calldata}\n"
+        f"- value: 0\n"
+        f"Wait for confirmation and return the tx hash."
     )
-    address = result.stdout.strip()
-    if not address.startswith("0x") or len(address) != 42:
-        raise ValueError(f"Unexpected address format from bankr: '{address}'")
-    return to_checksum_address(address)
-
-
-def approve_hash_on_chain(safe_address: str, safe_tx_hash: str,
-                           bankr_key: str, rpc_url: str) -> str:
-    """Call approveHash(bytes32) on the Safe contract via Bankr."""
     print(f"[*] Calling approveHash on-chain for hash: {safe_tx_hash}")
+    print(f"[*] Calldata: {calldata}")
     result = subprocess.run(
-        [
-            "bankr", "call",
-            "--to",   safe_address,
-            "--key",  bankr_key,
-            "--rpc",  rpc_url,
-            "--abi",  "approveHash(bytes32)",
-            "--args", json.dumps([safe_tx_hash]),
-        ],
+        ["bankr", "agent", prompt],
         capture_output=True, text=True
     )
     if result.returncode != 0:
-        print(f"ERROR: bankr approveHash failed:\n{result.stderr}", file=sys.stderr)
+        print(f"ERROR: bankr agent approveHash failed:\n{result.stderr}", file=sys.stderr)
         sys.exit(1)
-    tx_hash = result.stdout.strip()
-    print(f"[✓] approveHash tx: {tx_hash}")
-    return tx_hash
+    output = result.stdout.strip()
+    print(f"[✓] approveHash submitted. Bankr response: {output[:300]}")
+    return output
 
 
 def post_proposal(tx_service: str, safe_address: str, to: str, value_wei: int,
@@ -197,7 +248,7 @@ def post_proposal(tx_service: str, safe_address: str, to: str, value_wei: int,
     payload = {
         "to":                       to_checksum_address(to),
         "value":                    str(value_wei),
-        "data":                     data_hex if data_hex else None,
+        "data":                     data_hex or "0x",
         "operation":                0,
         "safeTxGas":                0,
         "baseGas":                  0,
@@ -226,14 +277,14 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Propose a Gnosis Safe transaction via approveHash + Safe TX Service"
     )
-    parser.add_argument("--safe",  required=True, help="Safe contract address (0x...)")
-    parser.add_argument("--to",    required=True, help="Destination address (0x...)")
-    parser.add_argument("--value", required=True, type=float, help="ETH value to send (e.g. 0.01)")
-    parser.add_argument("--chain", required=True, help="Chain ID or name: 8453, 1, 137, base, ethereum, polygon")
-    parser.add_argument("--rpc",   required=True, help="RPC URL for on-chain calls (e.g. https://mainnet.base.org)")
-    parser.add_argument("--key",   required=True, help="Bankr key name for signing")
-    parser.add_argument("--data",  default="",    help="Optional calldata hex (e.g. 0xabcdef)")
-    parser.add_argument("--nonce", type=int, default=None,
+    parser.add_argument("--safe",   required=True, help="Safe contract address (0x...)")
+    parser.add_argument("--to",     required=True, help="Destination address (0x...)")
+    parser.add_argument("--value",  required=True, type=float, help="ETH value to send (e.g. 0.01)")
+    parser.add_argument("--chain",  required=True, help="Chain ID or name: 8453, 1, 137, base, ethereum, polygon")
+    parser.add_argument("--signer", default=None,
+                        help="Signer address (0x...); auto-detected via 'bankr whoami' if omitted")
+    parser.add_argument("--data",   default="",    help="Optional calldata hex (e.g. 0xabcdef)")
+    parser.add_argument("--nonce",  type=int, default=None,
                         help="Override Safe nonce (auto-fetched if not provided)")
     return parser.parse_args()
 
@@ -246,9 +297,9 @@ def main():
     print(f"[*] Chain: {CHAIN_CONFIG[chain_id]['name']} (id={chain_id})")
     print(f"[*] TX Service: {tx_service}")
 
-    # Normalize addresses
-    safe_address = to_checksum_address(args.safe)
-    to_address   = to_checksum_address(args.to)
+    # Validate and normalize addresses
+    safe_address = validate_address(args.safe, "--safe")
+    to_address   = validate_address(args.to, "--to")
 
     # Convert ETH to wei
     value_wei = int(args.value * 10**18)
@@ -282,12 +333,12 @@ def main():
     )
     print(f"[*] safeTxHash: {safe_tx_hash}")
 
-    # Get signer address from Bankr key
-    signer_address = get_signer_address(args.key)
+    # Get signer address (from --signer arg or bankr whoami)
+    signer_address = get_signer_address(args.signer)
     print(f"[*] Signer: {signer_address}")
 
-    # Approve on-chain
-    approve_hash_on_chain(safe_address, safe_tx_hash, args.key, args.rpc)
+    # Approve on-chain via bankr agent
+    approve_hash_on_chain(safe_address, safe_tx_hash)
 
     # Build contract signature
     signature = build_contract_signature(signer_address)
@@ -298,7 +349,7 @@ def main():
         safe_address=safe_address,
         to=to_address,
         value_wei=value_wei,
-        data_hex=data_hex or None,
+        data_hex=data_hex,
         nonce=nonce,
         safe_tx_hash=safe_tx_hash,
         signer_address=signer_address,
