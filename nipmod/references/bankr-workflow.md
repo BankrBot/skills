@@ -68,6 +68,29 @@ nipmod audit --online
 nipmod sbom --json
 ```
 
+## Agent proof run
+
+Use this when a Bankr agent needs to show the complete Nipmod path without changing a workspace.
+
+```text
+Do not trade, transfer, sign, deploy, launch, swap, buy, sell, or spend anything. Read https://nipmod.com/integrations/bankr/nipmod/SKILL.md and https://nipmod.com/integrations/bankr/bankr.agent-proof.json. Prove the Nipmod workflow by returning JSON with: skillRead, packageFound, trustChecked, installPlanReady, repoDraftReady, safety. Use the proof package and commands from the proof JSON. Do not install packages or mutate a workspace.
+```
+
+The proof manifest is:
+
+```text
+https://nipmod.com/integrations/bankr/bankr.agent-proof.json
+```
+
+It uses the live `gitlawb-repo-reader` package and checks:
+
+```bash
+nipmod search gitlawb-repo-reader --online --json
+nipmod inspect pkg:did:key:z6MkqDAkKNtWH69ZYoFitErk1CCKofFP5AaFjVXy5bVQ4fbD/gitlawb-repo-reader@0.1.0 --json
+nipmod install --plan pkg:did:key:z6MkqDAkKNtWH69ZYoFitErk1CCKofFP5AaFjVXy5bVQ4fbD/gitlawb-repo-reader@0.1.0 --json
+nipmod package pr gitlawb://did:key:z6MkqDAkKNtWH69ZYoFitErk1CCKofFP5AaFjVXy5bVQ4fbD/gitlawb-repo-reader --dir bankr-gitlawb-repo-reader-pr --json
+```
+
 ## Repo to package
 
 Use this when a Bankr agent sees a public Gitlawb repo that should become a package.

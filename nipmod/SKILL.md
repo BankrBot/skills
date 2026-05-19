@@ -87,6 +87,23 @@ For a new Bankr agent, prefer this order:
 6. Plan with `nipmod install --plan <package> --json`.
 7. Install only after explicit user approval when the workspace will change.
 
+## Agent proof workflow
+
+When asked to prove the full Bankr path, read the proof manifest:
+
+```bash
+curl -fsSL https://nipmod.com/integrations/bankr/bankr.agent-proof.json
+```
+
+Then return JSON that shows:
+
+- skillRead: the Bankr agent read this skill.
+- packageFound: the agent found `gitlawb-repo-reader` in the Nipmod registry.
+- trustChecked: `nipmod inspect` verified trust, provenance, witness evidence and permissions.
+- installPlanReady: `nipmod install --plan` produced a plan without installing.
+- repoDraftReady: `nipmod package pr` prepared `nipmod.json` and `README.nipmod.md` with no remote writes.
+- safety: no wallet action, no signing, no install, no workspace mutation unless the user explicitly approves.
+
 ## Safety rules
 
 - Do not execute package code before inspect, install plan and audit pass.
