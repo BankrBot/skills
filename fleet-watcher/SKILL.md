@@ -15,7 +15,6 @@ metadata:
     "fleet-watcher":
       {
         "emoji": "🛡️",
-        "homepage": "https://fleet-watcher.replit.app",
         "source": "https://github.com/fleet-watcher/fleet-watcher",
         "license": "MIT"
       }
@@ -46,7 +45,11 @@ Per Bankr's own incident-response docs, every BLOCK includes a remediation line 
 
 The drainer-address list is intentionally **small and conservative** — false positives here mean real users get blocked. It is not a substitute for a full chain-analysis feed; pair it with one if you operate at scale.
 
-## Install
+## Self-host first
+
+fleet-watcher is **MIT and self-hosted**. There is no shared multi-tenant endpoint — you stand up your own instance and point the SDK / your HTTP calls at it. Self-host instructions (Express + Postgres, single Docker / Replit deploy) are in the upstream repo: <https://github.com/fleet-watcher/fleet-watcher>. Set `FLEET_WATCHER_URL` in your agent's environment to your instance's base URL.
+
+## Install (skill)
 
 ```
 > install the fleet-watcher skill from https://github.com/BankrBot/skills/tree/main/fleet-watcher
@@ -57,7 +60,7 @@ The drainer-address list is intentionally **small and conservative** — false p
 ### A. HTTP preflight (any language, recommended)
 
 ```bash
-curl -X POST https://fleet-watcher.replit.app/api/bankr-guard/inspect \
+curl -X POST $FLEET_WATCHER_URL/api/bankr-guard/inspect \
   -H "Content-Type: application/json" \
   -d '{
     "action": "transfer",
@@ -84,11 +87,20 @@ Response:
 }
 ```
 
-Public endpoint, no API key needed. Rate-limited (600 req/min global cap, plus 30 req/min per distinct payload fingerprint — a replayed identical payload gets throttled; legitimate diverse traffic does not), 16 KB payload cap. Self-host instructions: <https://github.com/fleet-watcher/fleet-watcher>.
+No API key. Rate-limited at the server (600 req/min global cap + 30 req/min per distinct payload fingerprint — a replayed identical payload gets throttled; legitimate diverse traffic does not), 16 KB payload cap.
 
 ### B. Node SDK (source-available, not yet on npm)
 
-A drop-in `wrapBankrFetch(fetch)` helper that inspects every call to `api.bankr.bot` synchronously, fail-closed by default, is in the upstream repo under `lib/bankr-guard`. It is **not** currently published to npm — copy the file or vendor it as a workspace dependency until a public release is tagged. The same HTTP endpoint above powers it, so the language-agnostic integration is feature-equivalent today.
+A drop-in `wrapBankrFetch(fetch)` helper that inspects every call to `api.bankr.bot` synchronously, fail-closed by default, is in the upstream repo under `lib/bankr-guard`. It is **not** currently published to npm — vendor the file or install directly from git until a public release is tagged. Pass `endpoint: process.env.FLEET_WATCHER_URL` when constructing it; the SDK has no default endpoint by design.
+
+```ts
+import { wrapBankrFetch, BankrGuardBlocked } from "fleet-watcher-bankr-guard";
+
+const guardedFetch = wrapBankrFetch(fetch, {
+  endpoint: process.env.FLEET_WATCHER_URL!,
+  promptContext: () => ({ prompt: currentUserPrompt, agentName: "my-agent" }),
+});
+```
 
 ## Where this fits in the Bankr threat model
 
@@ -99,7 +111,7 @@ Bankr provides defense in depth at the wallet layer (pause, daily limit, per-tx 
 - Read-only. fleet-watcher never holds, forwards, or sees your `bk_` key — only the proposed action and the prompt context.
 - The matched substring is recorded in the verdict's evidence (operator-visible in the dashboard) but is **not** echoed back in the `reason` field, so a leaked secret cannot be reflected to the caller.
 - Inputs are NFKC-normalized and basic JSON/unicode escapes are unfolded before pattern matching.
-- ALLOW verdicts are not persisted server-side; only BLOCK verdicts are written to the public aggregate ledger.
+- ALLOW verdicts are not persisted server-side; only BLOCK verdicts are written to the operator's local aggregate ledger.
 - MIT licensed. Source: <https://github.com/fleet-watcher/fleet-watcher>. Issues and pattern PRs welcome.
 
 ## Recommended pairing
