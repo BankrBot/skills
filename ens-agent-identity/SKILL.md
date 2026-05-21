@@ -51,6 +51,11 @@ npm init -y && npm install viem
 
 # Verify ENSIP-25 link between ENS name and ERC-8004 identity
 ./scripts/verify-agent-registration.sh alpha-go.bankr.eth 42
+
+# Phase A (AuthResolver pilot, scaffold): publish auth.* records, then read-only verify
+BANKR_ENS_DOMAIN=bankrtest.eth AUTH_SIGNER_ADDRESS=0x… AUTH_SCOPE="swap,bridge" \
+  ./scripts/publish-auth-records.sh authtest primary
+NODE_NO_WARNINGS=1 node ./scripts/verify-action.ts authtest.bankrtest.eth primary
 ```
 
 ## Agent Text Record Schema
@@ -82,6 +87,55 @@ agent-registration[<registry>][<agentId>] = "1"
 ```
 
 This allows any client to verify that the ENS name owner endorses the association with a specific on-chain agent identity. See `references/ensip-25-verification.md` for details.
+
+## Phase A: AuthResolver Read-Only Pilot
+
+> **Forward-declaring scaffold — not contract work.** This is **layer 3 (Authentication)** on
+> top of the existing layer-1 (ENSIP-25 identity) and layer-2 (`agent:*` attribution) records.
+> It publishes `auth.*` records and runs a **read-only** verification mirror. The contracts
+> that consume these records — the **Verifier** + **AuthResolverImpl** — are the **unfunded M1
+> deliverable** (target 2026-08-31, `github.com/steg-eth`) and are **not deployed**. Nothing
+> here performs end-to-end signature verification; it proves the **record plumbing**.
+>
+> The `auth.*` key naming and record shapes come from the AuthResolver spec; **how they map to a
+> specific platform's real auth model is a design conversation with that platform's engineers**,
+> not fixed here.
+
+**What Phase A proves:** an agent can publish credential / capability / revocation records on
+its ENS name without clobbering its existing identity/attribution records, and a counterparty
+can resolve + read + structurally pre-check them along the spec's `verifyAction` ordering. It
+**does not alter any production execution path** — it is a counterparty-side, read-only observer.
+
+**Records** (full schema in `references/auth-record-schema.md`):
+
+| Key | Purpose | Consumed by `verifyAction`? |
+|---|---|---|
+| `auth.credential[<id>]` | signing key + scheme + validity window | yes (M1) |
+| `auth.capability[<id>]` | scope declaration | no — reserved for v1.1 |
+| `auth.revocation[<id>]` | revocation flag (any bytes ⇒ revoked) | yes (M1) |
+
+Phase-A records are **JSON-in-text-record** — a deliberate simplification that migrates to
+`setData` + CBOR once the M1 `AuthResolverImpl` is deployed.
+
+**Prerequisites:** `NAMESTONE_API_KEY` (publish half) + Node 24 with `viem` (already installed
+in `ens-agent-identity/`). The on-chain verify step additionally needs the **deployed M1
+AuthResolver** and `AUTH_RESOLVER_ADDRESS` — **pending M1**; until then the verifier runs in
+demo mode.
+
+```bash
+# 1. Publish auth.* WITHOUT clobbering existing agent:*/ENSIP-25 records (read-merge-write)
+BANKR_ENS_DOMAIN=bankrtest.eth AUTH_SIGNER_ADDRESS=0x… AUTH_SCOPE="swap,bridge,limit-order" \
+  ./scripts/publish-auth-records.sh authtest primary
+
+# 2. (Real signature) produce a secp256k1 signature via Bankr's /agent/sign — unchanged endpoint
+
+# 3. Verify (read-only; on-chain verifyAction STUBBED pending M1)
+NODE_NO_WARNINGS=1 node ./scripts/verify-action.ts authtest.bankrtest.eth primary
+#   => "contract not deployed yet; record plumbing verified"  (verified: null)
+```
+
+The verifier's `verifyAction` ABI is a **design sketch** (spec §5.1), marked `// TODO(M1)`. See
+`references/phase-a-demo.md` for the full 5-minute demo incl. deny-path and fail-path examples.
 
 ## Architecture
 
