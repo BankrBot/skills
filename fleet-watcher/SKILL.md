@@ -84,7 +84,7 @@ Response:
 }
 ```
 
-Public endpoint, no API key needed. Rate-limited (60 req/min per socket, 600 req/min global), 16 KB payload cap. Self-host instructions: <https://github.com/Goblin-rush/fleet-watcher>.
+Public endpoint, no API key needed. Rate-limited (600 req/min global cap, plus 30 req/min per distinct payload fingerprint — a replayed identical payload gets throttled; legitimate diverse traffic does not), 16 KB payload cap. Self-host instructions: <https://github.com/Goblin-rush/fleet-watcher>.
 
 ### B. Node SDK (source-available, not yet on npm)
 
