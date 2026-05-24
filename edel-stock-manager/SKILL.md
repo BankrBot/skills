@@ -2,7 +2,7 @@
 name: edel-stock-manager
 title: EDEL Stock Manager
 description: Manage EDEL tokenized stocks on Ethereum Mainnet with real-time APY and safety checks.
-author: 0x78fe441e1b8c31f363696a11b1aad45d39fa243f
+author: "0x78fe441e1b8c31f363696a11b1aad45d39fa243f"
 tags: [defi, stocks, yield, ethereum]
 permissions: [read:wallet, execute:swap, fetch:http]
 ---
