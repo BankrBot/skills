@@ -482,7 +482,7 @@ bankr agent cancel job_abc123
 
 ## LLM Gateway
 
-The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unified API for Claude, Gemini, GPT, and other models — multi-provider access, cost tracking, automatic failover, and SDK compatibility through a single endpoint.
+The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unified API for Claude, Gemini, GPT, Grok, and other models — multi-provider access, cost tracking, automatic failover, and SDK compatibility through a single endpoint.
 
 **Base URL:** `https://llm.bankr.bot` | **Dashboard:** [bankr.bot/llm](https://bankr.bot/llm) | **API Keys:** [bankr.bot/api](https://bankr.bot/api)
 
@@ -624,6 +624,7 @@ For full details — setup paths, model list, provider config, SDK examples, key
 - DCA (dollar-cost averaging)
 - TWAP (time-weighted average price)
 - Scheduled commands
+- Per-automation model selection (Max Mode) — choose a specific LLM model for each automation; consumes LLM credits when enabled
 
 **Reference**: [references/automation.md](references/automation.md)
 
@@ -633,7 +634,7 @@ The agent can discover, call, and deploy x402-protected API endpoints, automatic
 
 - **Discover** endpoints in the Bankr registry or via web search
 - **Inspect** endpoint pricing, methods, and input/output schemas
-- **Call** endpoints with automatic payment signing (max $10/request)
+- **Call** endpoints with automatic payment signing (each call requires explicit approval via confirmation modal)
 - **Deploy** new x402 endpoints directly through the agent (write handler code, set pricing, deploy)
 - Works with any x402-compatible endpoint (Bankr-hosted or external)
 

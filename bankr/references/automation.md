@@ -114,6 +114,18 @@ Run any Bankr command on a schedule.
 - Can recreate anytime
 - To modify an automation, cancel and recreate with new parameters
 
+## Per-Automation Model Selection (Max Mode)
+
+Each automation can optionally run with a specific LLM model instead of the wallet-wide default. When a custom model is selected, that automation consumes **LLM credits** on each execution.
+
+- Configure via the automation detail page in the Bankr Terminal or through the agent
+- Available models match the LLM Gateway model catalog
+- When credits run out, automations using a custom model will skip their next run (or pause) until credits are topped up
+- The automation detail page shows your current credit balance and provides a top-up CTA when credits are low or exhausted
+- To revert to the wallet default model, clear the model selection
+
+**Tip:** Set up auto top-up (`bankr llm credits auto --enable`) to prevent automations from pausing due to empty credits.
+
 ## Chain Support
 
 ### EVM Chains (Base, Polygon, Ethereum)
