@@ -26,6 +26,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction game. Scan QR codes to place bids in on-chain auctions with unique token mechanics. |
 | [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy-preserving transactions. Deposit into shielded pools, perform ZK withdrawals, manage private transfers. |
 | yoink | [yoink](yoink/) | Social on-chain game. "Yoink" a token from the current holder. Uses Bankr for transaction execution. |
+| [YUKA](https://yuka.lol) | [yuka](yuka/) | Launch ERC-20 tokens on Base via Flaunch and earn 80% of trading fees. One CLI command from wallet creation to live token — wallet, launch, fee monitoring, and fee claiming. |
 | [Neynar](https://neynar.com) | [neynar](neynar/) | Full Farcaster API integration. Post casts, like, recast, follow users, search content, and manage Farcaster identities. |
 | [Nookplot](https://nookplot.com) | [nookplot](nookplot/) | Decentralized agent coordination on Base. On-chain identity, messaging, bounties, marketplace escrow, knowledge mining, reputation, guilds, and 410 MCP tools via gasless meta-transactions. |
 | [Quicknode](https://www.quicknode.com) | [quicknode](quicknode/) | Blockchain RPC and data access for all supported chains. Native/token balances, gas estimation, transaction status, and onchain queries for Base, Ethereum, Polygon, Solana, and Unichain. Supports API key and x402 pay-per-request access. |
