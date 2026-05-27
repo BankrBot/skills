@@ -28,6 +28,20 @@ Agents use Nipmod before installing or reusing a package, model, repository, or 
 - MCP endpoint: https://nipmod.com/api/mcp
 - GitHub: https://github.com/nipmod/nipmod
 
+## API Key
+
+Nipmod API calls require an API key.
+
+If the host does not already provide `NIPMOD_API_KEY`, request a free beta key:
+
+```bash
+curl -fsS -X POST "https://nipmod.com/api/keys/beta" \
+  -H "content-type: application/json" \
+  -d '{"label":"bankr-skill"}'
+```
+
+Keep the returned key in the local session or environment. Do not paste it into public logs, commits, prompts, or shared messages.
+
 ## When To Use
 
 Use this skill when the user asks to:
@@ -68,7 +82,8 @@ Do not use Nipmod as a replacement for npm, PyPI, GitHub, Hugging Face, or MCP. 
 Use search when the user has an intent or package name and wants candidates.
 
 ```bash
-curl -fsS "https://nipmod.com/api/search?q=http%20client&sources=npm,pypi,github,huggingface-model,huggingface-dataset,mcp&limit=5"
+curl -fsS "https://nipmod.com/api/search?q=http%20client&sources=npm,pypi,github,huggingface-model,huggingface-dataset,mcp&limit=5" \
+  -H "x-nipmod-api-key: $NIPMOD_API_KEY"
 ```
 
 Read the response fields:
@@ -83,11 +98,16 @@ Read the response fields:
 Use inspect when the source and package name are known.
 
 ```bash
-curl -fsS "https://nipmod.com/api/inspect?source=npm&name=undici"
-curl -fsS "https://nipmod.com/api/inspect?source=pypi&name=requests"
-curl -fsS "https://nipmod.com/api/inspect?source=github&name=vercel/next.js"
-curl -fsS "https://nipmod.com/api/inspect?source=huggingface-model&name=google-bert/bert-base-uncased"
-curl -fsS "https://nipmod.com/api/inspect?source=mcp&name=ac.tandem/docs-mcp"
+curl -fsS "https://nipmod.com/api/inspect?source=npm&name=undici" \
+  -H "x-nipmod-api-key: $NIPMOD_API_KEY"
+curl -fsS "https://nipmod.com/api/inspect?source=pypi&name=requests" \
+  -H "x-nipmod-api-key: $NIPMOD_API_KEY"
+curl -fsS "https://nipmod.com/api/inspect?source=github&name=vercel/next.js" \
+  -H "x-nipmod-api-key: $NIPMOD_API_KEY"
+curl -fsS "https://nipmod.com/api/inspect?source=huggingface-model&name=google-bert/bert-base-uncased" \
+  -H "x-nipmod-api-key: $NIPMOD_API_KEY"
+curl -fsS "https://nipmod.com/api/inspect?source=mcp&name=ac.tandem/docs-mcp" \
+  -H "x-nipmod-api-key: $NIPMOD_API_KEY"
 ```
 
 Inspect returns a single normalized record with:
@@ -108,7 +128,8 @@ Inspect returns a single normalized record with:
 Use install plan before changing dependencies or running install commands.
 
 ```bash
-curl -fsS "https://nipmod.com/api/install-plan?source=npm&name=undici"
+curl -fsS "https://nipmod.com/api/install-plan?source=npm&name=undici" \
+  -H "x-nipmod-api-key: $NIPMOD_API_KEY"
 ```
 
 Read these fields before taking action:
@@ -142,7 +163,7 @@ Agents that support hosted MCP can use:
 https://nipmod.com/api/mcp
 ```
 
-The hosted MCP surface is read-only. It exposes package discovery, inspection, and install planning. It does not expose a workspace-writing install tool.
+The hosted MCP surface is read-only and key-gated. It exposes package discovery, inspection, and install planning. It does not expose a workspace-writing install tool.
 
 ## Example Response To A User
 
