@@ -76,16 +76,15 @@ Xelqor is an agentic DeFi platform on Base. Users stake $XELQ to receive sXELQ v
 ### Fee Sweep + Reward Distribution (run every 6 hours)
 
 1. **Check wETH balance**: Read the Bankr wallet's wETH balance on Base. Record this as `wethBalance`.
-2. **Swap**: Swap all non-wETH, non-XELQ tokens to wETH. Skip any individual token below $5 USD value.
-3. **Re-read wETH balance** after swaps complete. Update `wethBalance` to the current wallet balance. Always use the wallet balance — never use "wETH received from swap" as a substitute.
-4. **Check threshold**: if `wethBalance` < 0.005 ETH (5000000000000000 wei), stop — do not approve or distribute. Report the balance and exit.
-5. **Approve** — REQUIRED regardless of whether a swap occurred. Call `approve` on the **wETH contract** (`0x4200000000000000000000000000000000000006`):
+2. **Swap only if wETH balance is zero**: If `wethBalance` > 0, skip straight to step 4 — do NOT look at other tokens or attempt any swap. Only if `wethBalance` = 0: check for non-XELQ tokens above $5 USD, swap them to wETH, then re-read `wethBalance`.
+3. **Check threshold**: if `wethBalance` < 0.005 ETH (5000000000000000 wei), stop — do not approve or distribute. Report the balance and exit.
+4. **Approve** — REQUIRED. Call `approve` on the **wETH contract** (`0x4200000000000000000000000000000000000006`):
    - `spender` = `0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe` (V6 staking)
    - `amount` = `wethBalance` in wei
-   - **Wait for this tx to confirm on-chain. Do not proceed to step 6 until confirmed.**
-6. **Distribute**: call `distributeRewards(amount)` on the **V6 staking contract** (`0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`)
-   - `amount` = same `wethBalance` in wei used in step 5
-7. Report both tx hashes and the amount distributed in ETH
+   - **Wait for this tx to confirm on-chain. Do not proceed to step 5 until confirmed.**
+5. **Distribute**: call `distributeRewards(amount)` on the **V6 staking contract** (`0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`)
+   - `amount` = same `wethBalance` in wei used in step 4
+6. Report both tx hashes and the amount distributed in ETH
 
 ### Monitor Reward Pool (run daily)
 - Read `rewardPoolBalance()` from V6 contract
