@@ -6,7 +6,7 @@ description: >
   Use this skill whenever you need to: check XELQ staking state,
   distribute wETH rewards to stakers, sweep protocol fee tokens to wETH,
   or query vault TVL/APY. All operations are on Base mainnet.
-version: 1.1.0
+version: 1.2.0
 author: Xelqor
 chains:
   - base
@@ -71,18 +71,26 @@ Xelqor is an agentic DeFi platform on Base. Users stake $XELQ to receive sXELQ v
 ]
 ```
 
+## Transaction Rules — CRITICAL
+
+> The Bankr wallet is a **smart contract account**. All write transactions MUST be submitted via `write_contract` (the smart account / UserOperation path). Never use raw `eth_sendTransaction`. Never batch approve + distributeRewards into a single multicall or atomic bundle — they must be two separate `write_contract` calls with on-chain confirmation between them.
+
 ## Standard Operations
 
 ### Fee Sweep + Reward Distribution (run every 6 hours)
 
 1. **Check wETH balance**: Read the Bankr wallet's wETH balance on Base. Record this as `wethBalance`.
-2. **Swap only if wETH balance is zero**: If `wethBalance` > 0, skip straight to step 4 — do NOT look at other tokens or attempt any swap. Only if `wethBalance` = 0: check for non-XELQ tokens above $5 USD, swap them to wETH, then re-read `wethBalance`.
+2. **Swap only if wETH balance is zero**: If `wethBalance` > 0, skip straight to step 3 — do NOT look at other tokens or attempt any swap. Only if `wethBalance` = 0: check for non-XELQ tokens above $5 USD, swap them to wETH, then re-read `wethBalance`.
 3. **Check threshold**: if `wethBalance` < 0.005 ETH (5000000000000000 wei), stop — do not approve or distribute. Report the balance and exit.
-4. **Approve** — REQUIRED. Call `approve` on the **wETH contract** (`0x4200000000000000000000000000000000000006`):
-   - `spender` = `0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe` (V6 staking)
+4. **Approve** — submit as a standalone `write_contract` call. Do NOT bundle with step 5.
+   - Contract: wETH (`0x4200000000000000000000000000000000000006`)
+   - Function: `approve(address spender, uint256 amount)`
+   - `spender` = `0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`
    - `amount` = `wethBalance` in wei
-   - **Wait for this tx to confirm on-chain. Do not proceed to step 5 until confirmed.**
-5. **Distribute**: call `distributeRewards(amount)` on the **V6 staking contract** (`0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`)
+   - **Wait for this tx to be confirmed on-chain before proceeding. Do not submit step 5 until this tx has a receipt.**
+5. **Distribute** — submit as a separate standalone `write_contract` call only after step 4 is confirmed.
+   - Contract: V6 staking (`0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`)
+   - Function: `distributeRewards(uint256 amount)`
    - `amount` = same `wethBalance` in wei used in step 4
 6. Report both tx hashes and the amount distributed in ETH
 
@@ -100,7 +108,8 @@ Same as fee sweep but prioritize immediately — stakers are running dry.
 - **Minimum distribution**: 0.005 wETH — do not approve or call distributeRewards below this
 - **Always V6 for writes** — V3 is read-only legacy
 - **All operations on Base** (chain ID 8453)
-- **Approve must confirm before distributeRewards** — never fire both in the same block or without waiting
+- **Always use `write_contract`** — never raw `eth_sendTransaction`
+- **Never batch approve + distributeRewards** — two separate transactions, confirmation required between them
 - **Gas is sponsored on Base** — don't skip small operations over gas fear
 
 ## Example Prompts
