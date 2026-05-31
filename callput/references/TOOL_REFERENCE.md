@@ -1,493 +1,417 @@
-# Callput Lite MCP Tool Reference
+# Tool Reference
 
-Complete reference for all 10 Callput trading tools. Each tool serves a specific role in the spread trading workflow: scanning markets, executing trades, tracking P&L, and managing positions.
+Complete tool documentation for the Callput Lite MCP Server.
 
 ---
 
-## 1. callput_scan_spreads
+## Unsigned-TX Flow Overview
 
-**Purpose** — Scan the options market and return pre-ranked spread candidates ready for execution, filtered by underlying asset and directional bias.
+The Callput Lite MCP server follows a **unsigned-TX architecture**: MCP builds transaction calldata and returns `unsigned_tx` (ready to sign), but does NOT sign or broadcast transactions itself.
 
-**Input Parameters**
+### Key Design Principle
 
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| underlying_asset | string | Yes | `"ETH"` | Asset symbol (ETH, BTC, etc.) |
-| bias | enum | Yes | `"bullish"` | Options: bullish, bearish, neutral-bearish, neutral-bullish |
-| max_results | number | No | `3` | Return top N results (1–5, default auto) |
+**Note:** The unsigned-tx flow shown here is agent-agnostic. The MCP server builds the transaction calldata and returns `unsigned_tx`. Responsibility for signing varies by deployment:
+- **Bankr**: Uses `/agent/sign` internally to sign with your secure wallet
+- **Standalone agents** (OpenClaw, custom): Call `ethers.signer.signTransaction()` with the agent's own key
+- **Other runtimes**: May use HSM, Ledger, or other signing infrastructure
 
-**Strategy Mapping**
-- `bullish` → BuyCallSpread (pay debit, profit if spot rises)
-- `bearish` → BuyPutSpread (pay debit, profit if spot falls)
-- `neutral-bearish` → SellCallSpread (collect premium)
-- `neutral-bullish` → SellPutSpread (collect premium)
+The MCP server **never holds, manages, or signs private keys**. The agent runtime is responsible for signing and broadcasting.
 
-**Example Input**
-```json
+---
+
+## Request Key Persistence & Ownership
+
+### Session State Management
+
+Every time you broadcast an unsigned transaction built by `callput_execute_spread` or `callput_close_position`, extract the resulting `request_key` from the receipt. This key is **critical for P&L tracking**.
+
+**Important:** The MCP server does NOT persist `request_keys`. Your agent runtime (Bankr, OpenClaw, etc.) must save and manage request_keys to track open positions across sessions.
+
+### Why This Matters
+
+- Without persisted `request_keys`, you lose cost-basis information and cannot compute accurate P&L
+- Lost `request_keys` can be recovered by scanning on-chain events with `callput_list_positions_by_wallet`, but this is slower and requires RPC queries
+- Modern agent runtimes (Bankr, OpenClaw) include built-in session state — use it
+
+### Recovery Pattern
+
+If `request_keys` are lost:
+```
+callput_list_positions_by_wallet({ address, from_block: optional })
+```
+This scans on-chain `GenerateRequestKey` events to recover all open position keys.
+
+---
+
+## Supported Underlyings
+
+- Crypto: `BTC`, `ETH`
+- Stock/ETF feed symbols: `TSLA`, `QQQ`, `SPY`, `EWY`, `NVDA`, `COIN`, `CRCL`, `SAMSUNG`, `HYNIX`
+- Configured option-token contracts: `BTC`, `ETH`, `TSLA`, `QQQ`, `SPY`, `EWY`, `NVDA`, `COIN`
+- Live tradability is feed-driven. A supported symbol can still return no candidates if every contract is unavailable.
+- Leg IDs may be decimal strings or `0x` hex strings from the live Callput feed.
+
+## Tool Definitions (10 Tools)
+
+### 1. callput_scan_spreads
+
+**Purpose**: Primary market scan. Returns up to 5 pre-ranked, ready-to-execute spread candidates anchored at ATM.
+
+**Schema**:
+```javascript
 {
-  "underlying_asset": "ETH",
-  "bias": "bullish",
-  "max_results": 3
+  underlying_asset: string,        // "ETH", "BTC", "TSLA", "NVDA", "COIN", "EWY", etc.
+  bias: enum,                      // "bullish" | "bearish" | "neutral-bearish" | "neutral-bullish"
+  max_results: number (optional)   // default 3, max 5
 }
 ```
 
-**Example Output**
-```json
+**Response**:
+```javascript
 {
-  "underlying_asset": "ETH",
-  "atm_iv": 0.65,
-  "spreads": [
+  atm_iv: number,                  // ATM implied volatility (0–100%)
+  expiry_date: string,             // "2026-03-28"
+  days_to_expiry: number,
+  spot_price: number,
+  spreads: [
     {
-      "rank": 1,
-      "spread_id": "spread_0x123abc",
-      "strategy": "BuyCallSpread",
-      "long_leg_id": "opt_long_0x456def",
-      "short_leg_id": "opt_short_0x789ghi",
-      "long_strike": 2100,
-      "short_strike": 2200,
-      "expiry_date": "2026-04-30",
-      "days_to_expiry": 38,
-      "width": 100,
-      "entry_debit_usd": 45.50,
-      "max_profit_usd": 54.50,
-      "win_probability": 0.62,
-      "long_iv": 0.64,
-      "short_iv": 0.62
+      rank: number,
+      long_leg_id: string,         // Pass to execute_spread
+      short_leg_id: string,        // Pass to execute_spread
+      strike_pair: string,         // "3200/3100 PUT"
+      cost_usd: number,            // For buy spreads
+      credit_usd: number,          // For sell spreads
+      cost_pct_of_max: number,     // ↓ lower = better value
+      max_profit: number,
+      max_loss: number,
+      rr_ratio: number             // Risk/reward
     }
   ]
 }
 ```
 
-**Key Output Fields**
-- `atm_iv` — At-the-money implied volatility; high IV favors sell spreads (more premium)
-- `long_leg_id`, `short_leg_id` — Pass directly to `execute_spread`
-- `entry_debit_usd` — Net cost (buy spreads); negative = credit received (sell spreads)
-- `max_profit_usd` — Maximum risk/reward for the spread
-- `days_to_expiry` — Time to expiration; <1 day signals close opportunity
-- `rank` — Quality ranking by Callput engine
-
-**When to Use** — Call this first to discover available spread opportunities. Use ATM IV to decide: high IV (>0.6) favors selling spreads for premium collection; low IV favors buying cheap spreads. Pass the returned `long_leg_id` and `short_leg_id` directly to `callput_execute_spread`.
+**Rules**:
+- Higher ATM IV favors sell spreads; apply ETH/BTC numeric thresholds only to ETH/BTC
+- Prefer `rank 1` unless `days_to_expiry < 1`
+- Skip if `cost_pct_of_max > 40%` (overpaying)
 
 ---
 
-## 2. callput_execute_spread
+### 2. callput_execute_spread
 
-**Purpose** — Build an unsigned transaction to open a new spread position on-chain.
+**Purpose**: Build an unsigned spread transaction. Returns `unsigned_tx` (ready to sign) and USDC allowance check.
 
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| strategy | enum | Yes | `"BuyCallSpread"` | BuyCallSpread, SellCallSpread, BuyPutSpread, SellPutSpread |
-| from_address | string | Yes | `"0x742d..."` | Your wallet address (checksummed) |
-| long_leg_id | string | Yes | `"opt_long_0x456def"` | From scan_spreads result |
-| short_leg_id | string | Yes | `"opt_short_0x789ghi"` | From scan_spreads result |
-| size | number | Yes | `10` | Position size (contracts or units) |
-| min_fill_ratio | number | No | `0.95` | Acceptable slippage (0.01–1.0, default 0.9) |
-
-**Example Input**
-```json
+**Schema**:
+```javascript
 {
-  "strategy": "BuyCallSpread",
-  "from_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f9bEb",
-  "long_leg_id": "opt_long_0x456def",
-  "short_leg_id": "opt_short_0x789ghi",
-  "size": 10,
-  "min_fill_ratio": 0.95
+  strategy: enum,                  // "BuyCallSpread" | "SellCallSpread" | "BuyPutSpread" | "SellPutSpread"
+  from_address: string,            // Wallet address (checksummed)
+  long_leg_id: string,             // From scan_spreads.long_leg_id (decimal or 0x hex)
+  short_leg_id: string,            // From scan_spreads.short_leg_id (decimal or 0x hex)
+  size: number,                    // Positive, whole contracts
+  min_fill_ratio: number (optional) // 0.01–1.0, default 0.95
 }
 ```
 
-**Example Output**
-```json
+**Response**:
+```javascript
 {
-  "unsigned_tx": {
-    "to": "0xCallputRouterAddress",
-    "data": "0xa1b2c3d4...",
-    "value": "0",
-    "chain_id": 8453
+  unsigned_tx: {
+    to: string,                    // Callput contract address
+    data: string,                  // 0x-prefixed calldata
+    value: string,                 // execution fee in wei
+    chain_id: number               // 8453 (Base)
   },
-  "usdc_approval": {
-    "sufficient": false,
-    "approve_tx": {
-      "to": "0xUSDCTokenAddress",
-      "data": "0xapprovedata...",
-      "value": "0",
-      "chain_id": 8453
-    },
-    "needed_amount_usd": 455.50
+  usdc_approval: {
+    sufficient: boolean,           // Is USDC allowance >= required cost?
+    required: number,              // Required approval amount in wei
+    approve_tx: {                  // Only if sufficient == false
+      to: string,                  // USDC token contract
+      data: string,                // approve() calldata
+      value: string                // "0"
+    }
   },
-  "request_key_preview": "req_0x999..."
-}
-```
-
-**Key Output Fields**
-- `unsigned_tx` — Sign and broadcast this to open the position; contains encoded spread parameters
-- `usdc_approval.sufficient` — If false, must sign and broadcast `approve_tx` first (ERC-20 approve)
-- `approve_tx` — USDC approval transaction; send before `unsigned_tx` if `sufficient=false`
-- `needed_amount_usd` — Total USDC required (entry debit or initial credit margin)
-
-**When to Use** — After selecting a spread from `scan_spreads`. The function returns an unsigned transaction; you must sign it and broadcast to Base. If `usdc_approval.sufficient=false`, first send the USDC approval, then send the main spread transaction. After broadcasting the spread tx, extract the `request_key` using `callput_get_request_key_from_tx`.
-
----
-
-## 3. callput_get_request_key_from_tx
-
-**Purpose** — Extract and return the request_key from a spread or close transaction receipt; critical for P&L tracking.
-
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| tx_hash | string | Yes | `"0x123abc..."` | Transaction hash from broadcasted tx |
-
-**Example Input**
-```json
-{
-  "tx_hash": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f"
-}
-```
-
-**Example Output**
-```json
-{
-  "request_key": "req_0x999aaabbbcccdddeeefff",
-  "is_open": true
-}
-```
-
-**Key Output Fields**
-- `request_key` — Unique identifier for this position; **save immediately** for P&L tracking
-- `is_open` — true for open requests, false for close/settle requests; required for `check_request_status`
-
-**When to Use** — Call immediately after broadcasting `execute_spread` or `close_position` transactions. **Critical**: Losing the request_key means losing P&L tracking for that position. Store it in your session state or database right away. Pass both `request_key` and `is_open` to `callput_check_request_status` to poll execution status.
-
----
-
-## 4. callput_check_request_status
-
-**Purpose** — Poll the keeper's execution status for a pending spread or close request.
-
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| request_key | string | Yes | `"req_0x999..."` | From `get_request_key_from_tx` |
-| is_open | boolean | Yes | `true` | true for open requests, false for close/settle |
-
-**Example Input**
-```json
-{
-  "request_key": "req_0x999aaabbbcccdddeeefff",
-  "is_open": true
-}
-```
-
-**Example Output**
-```json
-{
-  "request_key": "req_0x999aaabbbcccdddeeefff",
-  "status": "executed",
-  "is_open": true,
-  "execution_details": {
-    "filled_size": 10,
-    "filled_price_usd": 45.50,
-    "timestamp": 1711270800
+  estimate: {
+    cost_usd: number,              // For buy spreads
+    collateral_usd: number,        // For sell spreads
+    max_profit: number,
+    max_loss: number
   }
 }
 ```
 
-**Key Output Fields**
-- `status` — One of: `pending`, `executed`, `cancelled`
-- `filled_size` — Actual size filled at execution
-- `filled_price_usd` — Actual entry price (execution_details present only when status=executed)
-
-**Polling Guide** — Poll every 30 seconds, max 6 attempts (3 minutes). After 3 minutes with no update, assume the request failed or was cancelled. When status changes to `executed` or `cancelled`, stop polling and proceed with portfolio updates or error handling.
-
-**When to Use** — After extracting a request_key, poll this endpoint to wait for the keeper to execute the on-chain transaction. Once status reaches `executed`, the position is live; you can then call `portfolio_summary` with the request_key to see current mark value and P&L.
+**Flow**:
+1. If `usdc_approval.sufficient == false`, sign and broadcast `approve_tx` first
+2. Wait for approval confirmation (~12 blocks on Base)
+3. Then sign and broadcast `unsigned_tx`
+4. Retrieve `request_key` from receipt with `callput_get_request_key_from_tx`
 
 ---
 
-## 5. callput_portfolio_summary
+### 3. callput_get_request_key_from_tx
 
-**Purpose** — Get current USDC balance, active positions with mark-to-market values, and optional P&L when request_keys are provided.
+**Purpose**: Extract `request_key` from a transaction receipt after broadcasting a spread execution or close.
 
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| address | string | Yes | `"0x742d..."` | Your wallet address |
-| request_keys | array[string] | No | `["req_0x999...", "req_0xaaa..."]` | Saved request_keys for cost-basis & P&L; optional |
-
-**Example Input**
-```json
+**Schema**:
+```javascript
 {
-  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f9bEb",
-  "request_keys": ["req_0x999aaabbbcccdddeeefff"]
+  tx_hash: string                  // 0x-prefixed transaction hash
 }
 ```
 
-**Example Output**
-```json
+**Response**:
+```javascript
 {
-  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f9bEb",
-  "usdc_balance": 5000.00,
-  "positions": [
+  request_key: string,             // Save this for P&L tracking
+  is_open: boolean,                // true if open-position, false if close
+  block_number: number,
+  timestamp: number
+}
+```
+
+**Responsibility**: Agent runtime must persist `request_key` to session state for P&L queries later.
+
+---
+
+### 4. callput_check_request_status
+
+**Purpose**: Poll keeper status by `request_key`. Call after broadcasting until status is executed or cancelled.
+
+**Schema**:
+```javascript
+{
+  request_key: string,
+  is_open: boolean                 // from get_request_key_from_tx
+}
+```
+
+**Response**:
+```javascript
+{
+  status: enum,                    // "pending" | "executed" | "cancelled"
+  fill_ratio: number,              // If executed: 0–1
+  total_fill_amount: number,       // If executed: filled notional
+  execution_time: number (optional),
+  keeper_message: string (optional)
+}
+```
+
+**Polling pattern**:
+- Call every 30 seconds
+- Max 6 polls (~3 minutes) before stopping
+- On `pending` > 3 min, check RPC and network status
+
+---
+
+### 5. callput_portfolio_summary
+
+**Purpose**: Returns USDC balance, all active positions with mark values, and P&L (if `request_keys` provided).
+
+**Schema**:
+```javascript
+{
+  address: string,                 // Wallet address
+  request_keys: string[] (optional) // Saved from prior execute_spread calls
+}
+```
+
+**Response**:
+```javascript
+{
+  usdc_balance: number,            // USDC balance in decimal units
+  positions: [
     {
-      "option_token_id": "opt_0xabc123",
-      "underlying_asset": "ETH",
-      "side": "long",
-      "option_type": "Call",
-      "strike": 2100,
-      "expiry_date": "2026-04-30",
-      "size": 10,
-      "days_to_expiry": 38,
-      "current_mark_usd": 52.00,
-      "entry_cost_usd": 45.50,
-      "unrealized_pnl_usd": 65.00,
-      "unrealized_pnl_pct": 14.3,
-      "close_pnl_est_pct": 14.3
+      request_key: string,
+      strategy: string,            // "BuyCallSpread" etc.
+      underlying: string,          // "ETH", "BTC", "TSLA", "NVDA", "COIN", "EWY", etc.
+      long_strike: number,
+      short_strike: number,
+      size: number,
+      days_to_expiry: number,
+
+      // Only if request_key provided:
+      entry_cost_usd: number,      // Cost basis from openPositionRequests
+      current_value_usd: number,   // Mark-based (fair value mid)
+      unrealized_pnl_usd: number,  // current - entry
+      unrealized_pnl_pct: number,  // As %
+
+      close_bid_value_usd: number, // Conservative bid-based close estimate
+      close_pnl_est_usd: number,   // Realistic exit P&L
+      close_pnl_est_pct: number    // Use for profit-taking decisions
     }
   ],
-  "urgent_count": 0
+  urgent_count: number             // Positions expiring < 24h
 }
 ```
 
-**Key Output Fields**
-- `usdc_balance` — Available USDC in your wallet
-- `current_mark_usd` — Current mid-price for the option (Greeks-based or market mid)
-- `unrealized_pnl_usd`, `unrealized_pnl_pct` — Only present if request_keys provided (enables cost-basis lookup)
-- `close_pnl_est_pct` — Estimated P&L if closed now; >50% signals strong close opportunity
-- `urgent_count` — Number of positions expiring within 24h; >0 = manage expiries first
-- `days_to_expiry` — Time remaining; <1 day means close/settle soon
-
-**When to Use** — Call frequently (every 5–10 min) to monitor positions. Without `request_keys`, you get balance + positions only. Pass saved `request_keys` to unlock cost-basis and P&L fields. If `urgent_count > 0`, prioritize closing or settling expiring positions with `callput_close_position` or `callput_settle_position`.
+**P&L Note**:
+- **Mark-based**: theoretical (mid-fair value, not tradeable)
+- **Bid-based**: realistic (what you'd actually receive closing)
+- Use `close_pnl_est_usd` for profit-taking, `unrealized_pnl_usd` for monitoring
 
 ---
 
-## 6. callput_close_position
+### 6. callput_close_position
 
-**Purpose** — Build an unsigned transaction to close an open position before expiration.
+**Purpose**: Build an unsigned close-position transaction.
 
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| underlying_asset | string | Yes | `"ETH"` | Asset of the position |
-| from_address | string | Yes | `"0x742d..."` | Your wallet address |
-| option_token_id | string | Yes | `"opt_0xabc123"` | Token ID from portfolio_summary |
-| size | number | Yes | `10` | Size to close (≤ current position size) |
-
-**Example Input**
-```json
+**Schema**:
+```javascript
 {
-  "underlying_asset": "ETH",
-  "from_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f9bEb",
-  "option_token_id": "opt_0xabc123",
-  "size": 10
+  underlying_asset: string,        // "ETH", "BTC", "TSLA", "NVDA", "COIN", "EWY", etc.
+  from_address: string,
+  option_token_id: string,         // From portfolio_summary
+  size: number                     // Positive, whole contracts
 }
 ```
 
-**Example Output**
-```json
+**Response**:
+```javascript
 {
-  "unsigned_tx": {
-    "to": "0xCallputRouterAddress",
-    "data": "0xe5f3d2c1...",
-    "value": "0",
-    "chain_id": 8453
+  unsigned_tx: {
+    to: string,
+    data: string,
+    value: string,                 // "0"
+    chain_id: number
   },
-  "realized_pnl_estimate_usd": 65.00,
-  "request_key_preview": "req_close_0x555..."
+  close_estimate: {
+    bid_value: number,
+    pnl_usd: number,
+    pnl_pct: number
+  }
 }
 ```
 
-**Key Output Fields**
-- `unsigned_tx` — Sign and broadcast to close the position
-- `realized_pnl_estimate_usd` — Estimated profit/loss at current mark
-
-**When to Use** — Close a position when: (1) `days_to_expiry < 1` (avoid expiration risk), or (2) `close_pnl_est_pct > 50%` (take profit). Sign and broadcast the tx, then call `get_request_key_from_tx` with the close tx hash to get the close request_key (pass `is_open=false` to `check_request_status`).
+**When to call**:
+- `days_to_expiry < 1`
+- `close_pnl_est_pct > 50` (profit-taking)
+- Before position expires (to avoid forced settlement)
 
 ---
 
-## 7. callput_settle_position
+### 7. callput_settle_position
 
-**Purpose** — Build an unsigned transaction to settle an expired position and collect the payout.
+**Purpose**: Build an unsigned settle transaction for an expired position.
 
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| underlying_asset | string | Yes | `"ETH"` | Asset of the position |
-| option_token_id | string | Yes | `"opt_0xabc123"` | Token ID from portfolio_summary |
-
-**Example Input**
-```json
+**Schema**:
+```javascript
 {
-  "underlying_asset": "ETH",
-  "option_token_id": "opt_0xabc123"
+  underlying_asset: string,        // "ETH", "BTC", "TSLA", "NVDA", "COIN", "EWY", etc.
+  option_token_id: string          // From portfolio_summary
 }
 ```
 
-**Example Output**
-```json
+**Response**:
+```javascript
 {
-  "unsigned_tx": {
-    "to": "0xCallputSettlerAddress",
-    "data": "0xf2e1d3c4...",
-    "value": "0",
-    "chain_id": 8453
+  unsigned_tx: {
+    to: string,
+    data: string,
+    value: string,
+    chain_id: number
   },
-  "payout_estimate_usd": 100.00,
-  "request_key_preview": "req_settle_0x666..."
+  settlement: {
+    payout_usd: number,            // Gross USDC returned
+    realized_pnl: number           // payout - entry_cost
+  }
 }
 ```
 
-**Key Output Fields**
-- `unsigned_tx` — Sign and broadcast to settle the position
-- `payout_estimate_usd` — Estimated USDC received at settlement (intrinsic value)
-
-**When to Use** — Only for expired positions (`days_to_expiry ≤ 0`). Once expiry is reached, the position must be settled to collect the final payout. Sign and broadcast the tx, then track with `get_request_key_from_tx` (is_open=false).
+**When to call**:
+- After expiry date has passed
+- To recover max profit or loss
+- Required to free up collateral for new trades
 
 ---
 
-## 8. callput_list_positions_by_wallet
+### 8. callput_list_positions_by_wallet
 
-**Purpose** — Recover all request_keys from on-chain GenerateRequestKey events; essential for session recovery and P&L restoration.
+**Purpose**: Recover all `request_keys` from on-chain `GenerateRequestKey` events. Use after session loss.
 
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| address | string | Yes | `"0x742d..."` | Your wallet address |
-| from_block | number | No | `100000` | Start block for event lookup; default ~50k blocks back (~1 day on Base) |
-
-**Example Input**
-```json
+**Schema**:
+```javascript
 {
-  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f9bEb",
-  "from_block": 15000000
+  address: string,
+  from_block: number (optional)    // default ~50k blocks back (~1 day on Base)
 }
 ```
 
-**Example Output**
-```json
+**Response**:
+```javascript
 {
-  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f9bEb",
-  "open_request_keys": [
-    "req_0x999aaabbbcccdddeeefff",
-    "req_0xaaa111bbb222ccc333ddd"
-  ],
-  "close_request_keys": [
-    "req_close_0x555eeeffggg666"
-  ],
-  "total_open": 2,
-  "total_closed": 1
+  open_request_keys: string[],     // Pass to portfolio_summary
+  close_request_keys: string[],    // Closed positions
+  lookback_blocks: number
 }
 ```
 
-**Key Output Fields**
-- `open_request_keys` — Request keys for open positions; pass to `portfolio_summary` for P&L
-- `close_request_keys` — Request keys for closed positions; can verify with `check_request_status(is_open=false)`
-- `total_open`, `total_closed` — Counts of open and closed positions
-
-**When to Use** — Use after session loss or restart to restore all request_keys. Lower `from_block` to search further back in history (useful for older positions). Pass the returned `open_request_keys` to `portfolio_summary` to restore full P&L tracking.
+**Use case**: Session crash, lost state, wallet recovery.
 
 ---
 
-## 9. callput_get_settled_pnl
+### 9. callput_get_settled_pnl
 
-**Purpose** — Query SettlePosition events to retrieve realized P&L from settled positions.
+**Purpose**: Query `SettlePosition` events to retrieve realized payout history.
 
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| address | string | Yes | `"0x742d..."` | Your wallet address |
-| from_block | number | No | `100000` | Start block for event lookup; default ~50k blocks back (~1 day on Base) |
-
-**Example Input**
-```json
+**Schema**:
+```javascript
 {
-  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f9bEb",
-  "from_block": 15000000
+  address: string,
+  from_block: number (optional)    // default ~50k blocks back
 }
 ```
 
-**Example Output**
-```json
+**Response**:
+```javascript
 {
-  "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f9bEb",
-  "settled_positions": [
+  settled_positions: [
     {
-      "option_token_id": "opt_0xabc123",
-      "underlying_asset": "ETH",
-      "option_type": "Call",
-      "strike": 2100,
-      "expiry_date": "2026-03-28",
-      "amount_out_usd": 100.00,
-      "settlement_timestamp": 1711270800
+      request_key: string,
+      position_type: string,       // "BuyCallSpread" etc.
+      payout_usd: number,          // Gross USDC at settlement
+      block_number: number,
+      timestamp: number
     }
   ]
 }
 ```
 
-**Key Output Fields**
-- `amount_out_usd` — Gross USDC received at settlement (intrinsic value)
-- `option_token_id`, `underlying_asset`, `option_type`, `strike` — Position details
-- `settlement_timestamp` — When the position settled
-
-**Realized P&L Calculation** — Realized P&L = `amount_out_usd` - `entry_cost_usd` (from portfolio_summary). For a sold spread, subtract the credit received. Track over time to monitor total realized gains/losses.
-
-**When to Use** — Call after settling positions to verify payouts and compute realized P&L. Combine with `portfolio_summary` entry_cost to calculate net profit/loss per settled position. Lower `from_block` to look further back in settlement history.
+**Note**: Subtract `entry_cost_usd` (from portfolio_summary) to compute realized P&L.
 
 ---
 
-## 10. callput_get_option_chains
+### 10. callput_get_option_chains
 
-**Purpose** — Fetch raw tradable options from the Callput market feed; use only when you need detailed chain data or IV inspection.
+**Purpose**: Fetch raw tradable options from Callput market feed. Prefer `callput_scan_spreads` for normal use; use this only for raw chain inspection or IV analysis.
 
-**Input Parameters**
-
-| Param | Type | Required | Example | Notes |
-|-------|------|----------|---------|-------|
-| underlying_asset | string | Yes | `"ETH"` | Asset symbol |
-| option_type | enum | No | `"Call"` | Call or Put; if omitted, returns both |
-| expiry_date | string | No | `"2026-04-30"` | Specific expiry (YYYY-MM-DD); if omitted, returns all |
-| max_expiries | number | No | `3` | Limit expiries returned (1–5) |
-| max_strikes | number | No | `10` | Limit strikes per expiry (2–30) |
-
-**Example Input**
-```json
+**Schema**:
+```javascript
 {
-  "underlying_asset": "ETH",
-  "option_type": "Call",
-  "expiry_date": "2026-04-30",
-  "max_strikes": 10
+  underlying_asset: string,        // "ETH", "BTC", "TSLA", "NVDA", "COIN", "EWY", etc.
+  option_type: string (optional),  // "Call" | "Put"
+  expiry_date: string (optional),  // "2026-03-28"
+  max_expiries: number (optional), // default 3, max 5
+  max_strikes: number (optional)   // default 15, max 30
 }
 ```
 
-**Example Output**
-```json
+**Response**:
+```javascript
 {
-  "underlying_asset": "ETH",
-  "spot_price_usd": 2050.00,
-  "chains": [
+  chains: [
     {
-      "expiry_date": "2026-04-30",
-      "days_to_expiry": 38,
-      "options": [
+      expiry_date: string,
+      option_type: string,
+      options: [
         {
-          "option_id": "opt_0x123abc",
-          "option_type": "Call",
-          "strike": 2000,
-          "bid_usd": 68.50,
-          "ask_usd": 70.00,
-          "mark_usd": 69.25,
-          "iv": 0.62,
-          "delta": 0.68,
-          "gamma": 0.0015,
-          "vega": 0.45,
-          "theta": -0.12
+          id: string,              // Pass to execute_spread as leg_id
+          strike: number,
+          iv: number,              // Implied volatility (0–100%)
+          bid: number,
+          ask: number,
+          mid: number,
+          delta: number,           // -1 to +1
+          gamma: number
         }
       ]
     }
@@ -495,40 +419,42 @@ Complete reference for all 10 Callput trading tools. Each tool serves a specific
 }
 ```
 
-**Key Output Fields**
-- `spot_price_usd` — Current underlying asset price
-- `iv` — Implied volatility; high IV (>0.6) favors selling, low IV favors buying
-- `delta`, `gamma`, `vega`, `theta` — Greeks for Greeks-based analysis
-- `bid_usd`, `ask_usd`, `mark_usd` — Pricing; bid-ask spread indicates liquidity
+---
 
-**When to Use** — Prefer `callput_scan_spreads` for normal trading (it returns pre-ranked spreads). Use `get_option_chains` only when you need raw IV data, delta, gamma analysis, or want to manually construct spreads outside the scan recommendations.
+## Environment Variables
+
+| Variable | Required | Default | Purpose |
+|----------|----------|---------|---------|
+| `RPC_URL` | No | `https://mainnet.base.org` | RPC endpoint for Base Mainnet |
+
+**Note**: `CALLPUT_PRIVATE_KEY` is NOT used by the MCP server. Configure signing secrets only in the external agent/runtime that signs and broadcasts `unsigned_tx`.
 
 ---
 
-## Workflow Summary
+## Error Codes & Recovery
 
-1. **Discover** → `callput_scan_spreads` (by bias and asset)
-2. **Execute** → `callput_execute_spread` (sign + broadcast tx)
-3. **Track** → `callput_get_request_key_from_tx` (extract request_key)
-4. **Poll** → `callput_check_request_status` (wait for execution)
-5. **Monitor** → `callput_portfolio_summary` (view P&L, mark values)
-6. **Close** → `callput_close_position` (before expiry or at +50% P&L)
-7. **Settle** → `callput_settle_position` (after expiry)
-8. **Recover** → `callput_list_positions_by_wallet` (after session loss)
-9. **Verify** → `callput_get_settled_pnl` (confirm realized P&L)
-10. **Debug** → `callput_get_option_chains` (raw chain data)
+| Error | Likely Cause | Fix |
+|-------|--------------|-----|
+| `execute_spread failed: insufficient USDC balance` | Not enough balance for cost + fees | Deposit more USDC |
+| `execute_spread failed: wrong leg order` | Call spread has long > short, or put spread has long < short | Check scan output and select valid rank |
+| `scan_spreads failed: No available options` | Symbol is supported but no live contracts are currently available | Try another symbol such as ETH, TSLA, NVDA, EWY, or COIN |
+| `check_request_status failed: request_key not found` | Key was never persisted or is malformed | Use `list_positions_by_wallet` to recover |
+| `close_position failed: position already closed` | Already exited before this call | Check portfolio_summary first |
+| `settle_position failed: position not expired` | Called before expiry date | Wait until expiry or check current date |
 
 ---
 
-## Error Handling & Recovery
+## Summary
 
-- **Lost request_key?** → Call `callput_list_positions_by_wallet` to recover all keys, then pass them to `portfolio_summary`.
-- **Approval failed?** → If `usdc_approval.sufficient=false`, send the `approve_tx` first, then retry `execute_spread`.
-- **Position not closed after 3 min?** → Stop polling; check transaction status on-chain (may have failed), retry manually.
-- **Expired position stranded?** → Call `settle_position` to collect final payout.
+1. **Scan** with `callput_scan_spreads` to find candidates
+2. **Build** with `callput_execute_spread` to get `unsigned_tx`
+3. **Handle USDC approval** if `usdc_approval.sufficient == false`
+4. **Sign & broadcast** with agent's own key
+5. **Extract request_key** with `callput_get_request_key_from_tx`
+6. **Persist** `request_key` in agent session state
+7. **Poll** with `callput_check_request_status` until executed
+8. **Manage** with `callput_portfolio_summary` (pass saved `request_keys`)
+9. **Close** with `callput_close_position` when profitable or expiring soon
+10. **Settle** with `callput_settle_position` after expiry
 
----
-
-**Version**: 0.2.0
-**Network**: Base (Chain ID 8453)
-**Last Updated**: March 2026
+For P&L tracking, always pass saved `request_keys` to `portfolio_summary`. Use `close_pnl_est_usd` for profit-taking decisions.

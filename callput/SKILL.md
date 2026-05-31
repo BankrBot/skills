@@ -1,6 +1,6 @@
 ---
 name: callput-lite-trader
-description: Spread-only on-chain options trading skill for Base. MCP builds unsigned transactions; agent signs via Bankr /agent/sign and broadcasts via /agent/submit.
+description: Spread-only on-chain options trading skill for Base. Supports BTC/ETH plus synthetic stock/ETF options. MCP builds unsigned transactions; agent signs via Bankr /agent/sign and broadcasts via /agent/submit.
 version: 1.0.0
 homepage: https://callput.app
 license: MIT
@@ -12,7 +12,11 @@ mcp:
 
 # Callput Lite Trader
 
-Trade Callput spreads on Base. MCP builds unsigned_tx; Bankr signs and broadcasts.
+Trade Callput crypto and synthetic stock/ETF spreads on Base. MCP builds unsigned_tx; Bankr signs and broadcasts.
+
+## Supported Underlyings
+
+Crypto: `BTC`, `ETH`. Stock/ETF feed symbols: `TSLA`, `QQQ`, `SPY`, `EWY`, `NVDA`, `COIN`, `CRCL`, `SAMSUNG`, `HYNIX`. Configured option-token contracts cover `BTC`, `ETH`, `TSLA`, `QQQ`, `SPY`, `EWY`, `NVDA`, `COIN`; live tradability is feed-driven. Stock options are synthetic on-chain options, not broker-listed options or tokenized shares.
 
 ## Integration Pattern (Bankr)
 
@@ -27,15 +31,15 @@ Trade Callput spreads on Base. MCP builds unsigned_tx; Bankr signs and broadcast
 
 1. Spread-only. No single-leg execution.
 2. Always callput_portfolio_summary before new position.
-3. MCP never holds CALLPUT_PRIVATE_KEY.
+3. MCP never holds private keys.
 4. Save every request_key from get_request_key_from_tx.
-5. High IV (>80% ETH, >70% BTC) favors sell spreads.
+5. High IV favors sell spreads; use ETH/BTC thresholds only for ETH/BTC and evaluate stock IV by symbol regime.
 
 ## Tool Reference
 
 | Tool | Purpose |
 |---|---|
-| callput_scan_spreads | Market scan — ranked candidates + ATM IV |
+| callput_scan_spreads | Crypto/stock market scan — ranked candidates + ATM IV |
 | callput_execute_spread | Build unsigned open tx + USDC check |
 | callput_get_request_key_from_tx | Parse request_key from receipt |
 | callput_check_request_status | Poll keeper |
@@ -44,4 +48,4 @@ Trade Callput spreads on Base. MCP builds unsigned_tx; Bankr signs and broadcast
 | callput_settle_position | Build unsigned settle tx |
 | callput_list_positions_by_wallet | Recover request_keys |
 | callput_get_settled_pnl | Realized payout history |
-| callput_get_option_chains | Raw chain data + IV |
+| callput_get_option_chains | Raw crypto/stock chain data + IV |
