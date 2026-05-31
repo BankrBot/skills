@@ -52,7 +52,11 @@ Xelqor is an agentic DeFi platform on Base. Users stake $XELQ to receive sXELQ v
 1. Check Bankr wallet balances on Base
 2. Swap all non-wETH, non-XELQ tokens to wETH (keep XELQ untouched)
 3. Skip swap if any token is below $5 USD value (gas not worth it)
-4. Approve full wETH balance to V6 staking contract: `0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`
+4. Approve V6 to spend your wETH by calling `approve` on the **wETH contract** (`0x4200000000000000000000000000000000000006`), NOT on V6:
+   - Function: `approve(address spender, uint256 amount)`
+   - `spender` → V6 staking contract: `0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`
+   - `amount` → the full wETH balance you intend to distribute (in wei)
+   - Wait for this tx to confirm before proceeding
 5. Call `distributeRewards(amount)` with the full wETH amount
 6. Only distribute if wETH >= 0.005 ETH (minimum threshold)
 7. Report tx hash and amount distributed
