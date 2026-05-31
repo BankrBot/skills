@@ -6,7 +6,7 @@ description: >
   Use this skill whenever you need to: check XELQ staking state,
   distribute wETH rewards to stakers, sweep protocol fee tokens to wETH,
   or query vault TVL/APY. All operations are on Base mainnet.
-version: 1.0.0
+version: 1.1.0
 author: Xelqor
 chains:
   - base
@@ -31,35 +31,61 @@ Xelqor is an agentic DeFi platform on Base. Users stake $XELQ to receive sXELQ v
 | Staking V3 (legacy) | `0xA0F09a836b10B3029eF5F632a200616B4d426470` | Old contract — read-only, do not write |
 | wETH on Base | `0x4200000000000000000000000000000000000006` | Reward token |
 
-## Key Contract Functions
+## ABIs
 
-### distributeRewards(uint256 amount)
-- Contract: V6 staking (`0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`)
-- Caller must be set as `rewardDistributor` on the contract
-- Streams `amount` wETH to all $XELQ stakers over 7 days
-- **Always approve wETH to the staking contract before calling this**
+### wETH — approve
+```json
+{
+  "name": "approve",
+  "type": "function",
+  "inputs": [
+    { "name": "spender", "type": "address" },
+    { "name": "amount",  "type": "uint256" }
+  ],
+  "outputs": [{ "type": "bool" }],
+  "stateMutability": "nonpayable"
+}
+```
 
-### Read functions useful for monitoring
-- `totalAssets()` — total XELQ staked in V6
-- `rewardPoolBalance()` — wETH currently streaming
-- `rewardRate()` — wETH per block streaming rate
-- `blocksUntilVestingEnd()` — blocks until current stream ends
-- `legacyTotalAssets()` — XELQ in the legacy V3 contract
+### V6 Staking — distributeRewards
+```json
+{
+  "name": "distributeRewards",
+  "type": "function",
+  "inputs": [
+    { "name": "amount", "type": "uint256" }
+  ],
+  "outputs": [],
+  "stateMutability": "nonpayable"
+}
+```
+
+### V6 Staking — read functions
+```json
+[
+  { "name": "totalAssets",           "type": "function", "inputs": [], "outputs": [{ "type": "uint256" }], "stateMutability": "view" },
+  { "name": "rewardPoolBalance",     "type": "function", "inputs": [], "outputs": [{ "type": "uint256" }], "stateMutability": "view" },
+  { "name": "rewardRate",            "type": "function", "inputs": [], "outputs": [{ "type": "uint256" }], "stateMutability": "view" },
+  { "name": "blocksUntilVestingEnd", "type": "function", "inputs": [], "outputs": [{ "type": "uint256" }], "stateMutability": "view" },
+  { "name": "legacyTotalAssets",     "type": "function", "inputs": [], "outputs": [{ "type": "uint256" }], "stateMutability": "view" }
+]
+```
 
 ## Standard Operations
 
 ### Fee Sweep + Reward Distribution (run every 6 hours)
+
 1. Check Bankr wallet balances on Base
 2. Swap all non-wETH, non-XELQ tokens to wETH (keep XELQ untouched)
 3. Skip swap if any token is below $5 USD value (gas not worth it)
-4. Approve V6 to spend your wETH by calling `approve` on the **wETH contract** (`0x4200000000000000000000000000000000000006`), NOT on V6:
-   - Function: `approve(address spender, uint256 amount)`
-   - `spender` → V6 staking contract: `0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`
-   - `amount` → the full wETH balance you intend to distribute (in wei)
-   - Wait for this tx to confirm before proceeding
-5. Call `distributeRewards(amount)` with the full wETH amount
-6. Only distribute if wETH >= 0.005 ETH (minimum threshold)
-7. Report tx hash and amount distributed
+4. **Check threshold**: if total wETH balance < 0.005 ETH (5000000000000000 wei), stop here — do not approve or distribute
+5. **Approve**: call `approve` on the **wETH contract** (`0x4200000000000000000000000000000000000006`)
+   - `spender` = `0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe` (V6 staking)
+   - `amount` = full wETH balance in wei
+   - **Wait for this transaction to be confirmed on-chain before continuing**
+6. **Distribute**: call `distributeRewards(amount)` on the **V6 staking contract** (`0x19ECafb17DeA9Dc13d7709f29d180C06743333Fe`)
+   - `amount` = same value used in the approve (full wETH balance in wei)
+7. Report both tx hashes and the amount distributed in ETH
 
 ### Monitor Reward Pool (run daily)
 - Read `rewardPoolBalance()` from V6 contract
@@ -72,9 +98,10 @@ Same as fee sweep but prioritize immediately — stakers are running dry.
 
 ## Rules
 - **Never swap XELQ** — it is the staked asset
-- **Minimum distribution**: 0.005 wETH
+- **Minimum distribution**: 0.005 wETH — do not approve or call distributeRewards below this
 - **Always V6 for writes** — V3 is read-only legacy
 - **All operations on Base** (chain ID 8453)
+- **Approve must confirm before distributeRewards** — never fire both in the same block or without waiting
 - **Gas is sponsored on Base** — don't skip small operations over gas fear
 
 ## Example Prompts
