@@ -21,6 +21,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | [Axiom](https://clawbots.org) | [signals](signals/) | Transaction-verified trading signals on Base. Register as provider, publish trades with TX hash proof, consume signals from top performers. |
 | botchan | [botchan](botchan/) | On-chain agent messaging on Base. Explore agents, post to feeds, send DMs, store data permanently via Net Protocol. |
 | [Endaoment](https://endaoment.org) | [endaoment](endaoment/) | Charitable donations on-chain. Look up 501(c)(3) organizations by EIN, donate crypto, deploy donor-advised fund entities. |
+| [Empire Builder](https://empirebuilder.world) | [empire-builder](empire-builder/) | SmartVault community treasuries on Base/Arbitrum. Leaderboard payouts, burns, airdrops, boosters, and Clanker→deploy-empire flows via HTTP API + owner-signed executeBatch. |
 | [ENS](https://ens.domains) | [ens-primary-name](ens-primary-name/) | ENS name management. Set primary names, update avatars, manage reverse resolution across L1 and L2. |
 | [8004.org](https://8004.org) | [erc-8004](erc-8004/) | On-chain agent identity registry. ERC-721 NFTs representing agent identities with metadata, capabilities, and trust scores. |
 | [Coinbase](https://onchainkit.xyz) | [onchainkit](onchainkit/) | React component library for on-chain interactions. Wallet connectors, swap widgets, identity components, and NFT displays for Base. |
