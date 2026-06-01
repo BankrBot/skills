@@ -1,59 +1,74 @@
 # x402 wire-level reference (buy-side)
 
-Notes the script implements. Read this if you need to debug a 402 that isn't working, or extend the script to handle a scheme/asset it doesn't recognise.
+Detail for debugging or extending the script. SKILL.md has the user-facing flow; this doc is the implementation reference.
 
-## The 402 challenge
+## v1 vs v2 — what changed
 
-A seller responds to an unpaid request with HTTP `402 Payment Required` and a JSON body:
+| | v1 | v2 |
+|---|---|---|
+| Version field | `x402Version: 1` | `x402Version: 2` |
+| Network identifier | plain string (`"ethereum"`, `"base"`) | CAIP-2 (`"eip155:1"`, `"eip155:8453"`) |
+| Amount field | `maxAmountRequired` | `amount` |
+| Resource field | string URL | `{url, description, mimeType?}` object |
+| Transfer method hint | `extra.permit: true` (informal) | `extra.assetTransferMethod: "permit2" \| "transferWithAuthorization"` |
+| Extensions | absent | top-level `extensions: {...}` object |
+| Client → server header | `X-PAYMENT` | `PAYMENT-SIGNATURE` |
+| Server → client receipt | `X-PAYMENT-RESPONSE` | `PAYMENT-RESPONSE` |
+| Envelope must echo `accepted`? | no | yes — plus `extensions` |
+
+The script handles both. On v2 retries it sends `PAYMENT-SIGNATURE` AND `X-PAYMENT` to cover sellers in transition.
+
+## Real 402 challenge (Obol Stack seller, v2)
 
 ```json
 {
-  "x402Version": 1,
+  "x402Version": 2,
+  "error": "Payment required for this resource",
+  "resource": {
+    "url": "http://example.trycloudflare.com/services/demo-hello",
+    "description": "Payment required for /services/demo-hello"
+  },
   "accepts": [
     {
       "scheme": "exact",
-      "network": "base",
-      "maxAmountRequired": "1000",
-      "resource": "https://example.trycloudflare.com/services/hello/",
-      "description": "Hello service",
-      "mimeType": "application/json",
-      "payTo": "0xSellerWallet...",
+      "network": "eip155:1",
+      "asset": "0x0B010000b7624eb9B3DfBC279673C76E9D29D5F7",
+      "amount": "1000000000000000000",
+      "payTo": "0x09f4a31c591421062A8dba9FcE24F29C5e88419A",
       "maxTimeoutSeconds": 60,
-      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      "extra": { "name": "USD Coin", "version": "2" }
+      "extra": {
+        "assetTransferMethod": "permit2",
+        "name": "Obol Network",
+        "version": "1"
+      }
     }
   ],
-  "error": "X-PAYMENT header is required"
+  "extensions": {
+    "eip2612GasSponsoring": {}
+  }
 }
 ```
 
-Fields the buyer cares about:
+Field meanings:
 
-| Field | Meaning |
-|-------|---------|
-| `scheme` | Settlement scheme. `exact` means "transfer exactly `maxAmountRequired` of `asset` to `payTo`." |
-| `network` | x402 network identifier (`base`, `ethereum`, `polygon`, `arbitrum-one`, ...). Maps to an EVM chainId. |
-| `maxAmountRequired` | Price in base units of the asset (string-encoded uint256). For USDC: 6 decimals. For OBOL: 18 decimals. |
-| `asset` | ERC-20 contract address. |
-| `payTo` | Recipient of the transfer (usually the seller's hot wallet). |
-| `maxTimeoutSeconds` | How long the signed authorisation stays valid after the buyer signs. Set `validBefore`/`deadline` to `now + maxTimeoutSeconds`. |
-| `extra.name`, `extra.version` | EIP-712 domain `name` / `version` for the asset. Crucial — wrong values break the signature. |
-| `extra.permit` | Optional. If `true`, the seller wants an EIP-2612 `Permit` instead of EIP-3009 `TransferWithAuthorization`. Used for $OBOL on mainnet via the Obol facilitator. |
-| `extra.spender` | Optional. With EIP-2612, who can pull the tokens (typically a facilitator/settler contract). Defaults to `payTo` if omitted. |
+| Field | Notes |
+|-------|-------|
+| `amount` | uint256 string, **base units of the asset**. Look up decimals before showing to a human. |
+| `asset` | ERC-20 contract address. Domain `verifyingContract` for the signature. |
+| `payTo` | Transfer recipient. EIP-3009 `to` field. For EIP-2612, the actual spender is `extra.spender ?? payTo`. |
+| `extra.name`, `extra.version` | EIP-712 domain `name`/`version`. Wrong values silently break signature recovery. Verify against the token's on-chain `name()` if signatures keep failing. |
+| `extra.assetTransferMethod` | `"permit2"` → permit-style; `"transferWithAuthorization"` → EIP-3009. |
+| `extensions.eip2612GasSponsoring` | Seller's facilitator gas-sponsors EIP-2612 permits (Obol mainnet facilitator). Triggers the permit signing path when the token supports it. |
 
-If there are multiple `accepts`, the script picks `accepts[0]`. To prefer a different network, ask the user; this skill isn't smart about routing.
-
-## EIP-3009 `TransferWithAuthorization` (default `exact` path)
-
-Used by USDC across every chain the script supports. Construct EIP-712 typed data with:
+## EIP-3009 `TransferWithAuthorization` (USDC default)
 
 ```ts
 {
   domain: {
-    name:    extra.name,      // e.g. "USD Coin"
-    version: extra.version,   // e.g. "2"
-    chainId: <network → chainId>,
-    verifyingContract: asset, // the token contract, NOT the facilitator
+    name:    extra.name,      // "USD Coin" / "USDC"
+    version: extra.version,   // "2"
+    chainId,
+    verifyingContract: asset, // token, NOT the facilitator
   },
   types: {
     TransferWithAuthorization: [
@@ -69,31 +84,26 @@ Used by USDC across every chain the script supports. Construct EIP-712 typed dat
   message: {
     from:        <buyer wallet>,
     to:          payTo,
-    value:       maxAmountRequired,
+    value:       amount,
     validAfter:  "0",
-    validBefore: String(Math.floor(Date.now()/1000) + maxTimeoutSeconds),
-    nonce:       "0x" + 32 random bytes (hex),
+    validBefore: String(now + maxTimeoutSeconds),
+    nonce:       "0x" + 32 random bytes,
   },
 }
 ```
 
-The nonce is a random `bytes32` chosen by the buyer per request. The facilitator records `(from, nonce)` to prevent replay.
+`nonce` is random per request (32 bytes). Facilitator records `(from, nonce)` against replay.
 
-## EIP-2612 `Permit` (when `extra.permit: true`)
+## EIP-2612 `Permit` (Obol facilitator path)
 
-Used by OBOL on mainnet via the Obol facilitator. The flow is:
-
-1. Buyer signs a `Permit` allowing `spender` (the facilitator's settler contract) to move `value` of the token on the buyer's behalf, up to `deadline`.
-2. At settlement, the Obol facilitator submits one transaction batching `permit()` then `transferFrom()`. Gas is paid by the facilitator.
-
-Typed data:
+Triggered when any of: `extensions.eip2612GasSponsoring` present + token supports EIP-2612, `extra.assetTransferMethod === "permit2"` + token supports EIP-2612, v1's `extra.permit: true`, or `--force-permit`.
 
 ```ts
 {
   domain: {
-    name:    extra.name,
-    version: extra.version,
-    chainId: <network → chainId>,
+    name:    extra.name,      // "Obol Network"
+    version: extra.version,   // "1"
+    chainId,
     verifyingContract: asset,
   },
   types: {
@@ -109,14 +119,18 @@ Typed data:
   message: {
     owner:    <buyer wallet>,
     spender:  extra.spender ?? payTo,
-    value:    maxAmountRequired,
-    nonce:    <on-chain nonces(owner) from the token contract>,
-    deadline: String(Math.floor(Date.now()/1000) + maxTimeoutSeconds),
+    value:    amount,
+    nonce:    <on-chain nonces(owner)>,
+    deadline: String(now + maxTimeoutSeconds),
   },
 }
 ```
 
-The EIP-2612 nonce is **per-token, per-owner** and **incremented on-chain** for every successful permit. Read it via `eth_call` to `nonces(address)` (selector `0x7ecebe00`) on the token contract. The script uses `https://ethereum-rpc.publicnode.com` by default; override with `--rpc-url`.
+The `nonce` is **per-token, per-owner, incremented on-chain on every successful permit**. Read fresh via `eth_call` to `nonces(address)` (selector `0x7ecebe00`). Never cache.
+
+### Why not Uniswap Permit2 (the contract)
+
+`extra.assetTransferMethod: "permit2"` is a generic label for "permit-style transfer." With `extensions.eip2612GasSponsoring`, the facilitator translates that into a native EIP-2612 call against the token if the token supports it. The script does NOT sign a Uniswap Permit2 message — that would require a one-time approval of the Permit2 contract, which the gasless EIP-2612 path bypasses.
 
 ## Signing via Bankr
 
@@ -124,57 +138,26 @@ The EIP-2612 nonce is **per-token, per-owner** and **incremented on-chain** for 
 curl -X POST https://api.bankr.bot/wallet/sign \
   -H "X-API-Key: $BANKR_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "signatureType": "eth_signTypedData_v4",
-    "typedData": { ... the structure above ... }
-  }'
+  -d '{ "signatureType": "eth_signTypedData_v4", "typedData": { ... } }'
 ```
 
-Response:
+Response: `{ "success": true, "signature": "0x...", "signer": "0x...", "signatureType": "eth_signTypedData_v4" }`.
+
+`signer` must match the `from`/`owner` in the typed data. If they differ, pass `--from` to the script to pin a specific address.
+
+## Payment envelopes
+
+Base64-encode the JSON and send as `PAYMENT-SIGNATURE` (v2) or `X-PAYMENT` (v1).
+
+### v2 — EIP-2612 permit (OBOL on mainnet via Obol facilitator)
 
 ```json
 {
-  "success": true,
-  "signature": "0xabc123...",
-  "signer": "0x1234...5678",
-  "signatureType": "eth_signTypedData_v4"
-}
-```
-
-The `signer` field is the address that signed. It should match the `from`/`owner` you put into the typed data — if it doesn't, the buyer's Bankr account has multiple EVM addresses and the wrong one was selected. Pass `--from` to the script to pin a specific address.
-
-## The X-PAYMENT header
-
-After signing, wrap the signature + the same authorisation/permit fields into a JSON object, base64-encode it, and send it as the `X-PAYMENT` header on the retry.
-
-### EIP-3009 form
-
-```json
-{
-  "x402Version": 1,
+  "x402Version": 2,
   "scheme": "exact",
-  "network": "base",
-  "payload": {
-    "signature": "0xabc...",
-    "authorization": {
-      "from": "0x...",
-      "to":   "0x...",
-      "value": "1000",
-      "validAfter":  "0",
-      "validBefore": "1735689600",
-      "nonce": "0xdeadbeef..."
-    }
-  }
-}
-```
-
-### EIP-2612 form
-
-```json
-{
-  "x402Version": 1,
-  "scheme": "exact",
-  "network": "ethereum",
+  "network": "eip155:1",
+  "accepted": { /* the chosen accepts[] entry, verbatim */ },
+  "extensions": { "eip2612GasSponsoring": {} },
   "payload": {
     "signature": "0xabc...",
     "permit": {
@@ -184,28 +167,35 @@ After signing, wrap the signature + the same authorisation/permit fields into a 
       "nonce":   "42",
       "deadline":"1735689600"
     },
-    "payTo": "0xSellerWallet..."
+    "payTo": "0x..."
   }
 }
 ```
 
-Then:
+### v1 — EIP-3009 (legacy)
 
-```ts
-const xPayment = Buffer.from(JSON.stringify(json)).toString("base64");
-fetch(url, { headers: { "X-PAYMENT": xPayment } });
+```json
+{
+  "x402Version": 1,
+  "scheme": "exact",
+  "network": "base",
+  "payload": {
+    "signature": "0xabc...",
+    "authorization": {
+      "from": "0x...", "to": "0x...", "value": "1000",
+      "validAfter": "0", "validBefore": "1735689600",
+      "nonce": "0xdead..."
+    }
+  }
+}
 ```
 
-## Failure modes worth knowing
+## Adding a new token
 
-- **Signature verifies but settlement reverts**: the buyer wallet doesn't actually hold enough of the asset. The facilitator can verify a signature without doing the transfer first — settlement happens at request time, and if the on-chain `transferFrom`/`transferWithAuthorization` reverts, the buyer gets a 402 (or 502 from the seller) with an error explaining.
-- **`validBefore` already elapsed**: signature is rejected. Always set `validBefore` to `now + maxTimeoutSeconds`, not a fixed timestamp.
-- **Wrong EIP-712 domain (`name`, `version`, `verifyingContract`, `chainId`)**: the facilitator's recovered signer won't match `from`/`owner`. Symptoms: "signature does not verify" or "signer mismatch". Cross-check `extra.name` / `extra.version` against the token's on-chain `name()` / `version()` if you can; some tokens use unusual values.
-- **EIP-2612 nonce stale**: if a previous permit succeeded, the on-chain nonce moved. Always read it fresh, never cache.
+Drop it in `KNOWN_TOKENS` in `scripts/obol-x402-call.ts`, keyed by `<chainId>:<address-lowercase>`:
 
-## Why the Obol facilitator matters
+```ts
+"1:0x0b010000b7624eb9b3dfbc279673c76e9d29d5f7": { symbol: "OBOL", decimals: 18, supportsEip2612: true },
+```
 
-- Default Coinbase x402 facilitator: settles on Base only.
-- Obol facilitator (`x402.gcp.obol.tech`): settles on Ethereum mainnet for USDC and OBOL. For OBOL specifically, batches `permit + transferFrom` so the buyer doesn't need to pre-approve and doesn't spend ETH.
-
-The buyer never sets the facilitator URL anywhere; the seller's Obol Stack picks it at deploy time and embeds it in their settlement logic. From the buyer's perspective, the only signal is `extra.permit: true` in the 402 challenge.
+For unknown tokens the script falls back to an on-chain `decimals()` read (selector `0x313ce567`). It can't infer EIP-2612 support from chain reads — pass `--force-permit` if you know the token supports it.

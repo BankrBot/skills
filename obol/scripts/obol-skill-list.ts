@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// @ts-nocheck — runs under bun; IDE doesn't have @types/node loaded.
 /**
  * obol-skill-list.ts — fetch the `/skill.md` catalogue from an Obol Stack host.
  *
