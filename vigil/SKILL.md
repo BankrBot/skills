@@ -1,88 +1,142 @@
 ---
-name: vigil
-description: Onchain security scanner for DeFi traders on Base, Ethereum, Polygon, and Solana. Scan wallet token approvals, detect risky unlimited approvals, scan tokens for rugpull/honeypot indicators, check contract safety scores, revoke dangerous approvals, and monitor wallet security posture. Use when the user wants to check token approvals, scan for scam tokens, verify contract safety, revoke approvals, check if a token is safe, audit wallet security, or protect against rugpulls. Also use when asked about VIGIL, $VIGIL, or wallet security.
-metadata:
-  {
-    "clawdbot":
-      {
-        "emoji": "🛡️",
-        "homepage": "https://vigil.bankr.bot",
-        "requires": { "bins": ["curl", "jq", "node"] },
-      },
-  }
+name: VIGIL Security Scanner
+description: Onchain security scanner on Base — scan token approvals, detect honeypots, analyze contracts for rugpull indicators, and score contract safety. Keyless read-only scanning via VIGIL API. Revoke actions require Bankr auth and are gated separately.
+var: ""
+tags: [crypto, security, base, defi]
+capabilities: [external_api, sends_notifications]
 ---
+> **${var}** — Wallet address (`0x...`) or token contract address on Base to scan. Required. If empty, log `VIGIL_NO_TARGET` and exit cleanly (no notify).
 
-# VIGIL
+VIGIL is an onchain security scanner for DeFi traders on Base. It provides five read-only scanning tools and one write action (revoke) that requires explicit Bankr authentication.
 
-Onchain security scanner. Protect DeFi traders from rugpulls, honeypots, and dangerous token approvals.
+**Read-only tools (this skill):**
+1. Approval Scanner — list all ERC-20/ERC-721 approvals, flag unlimited allowances
+2. Token Scanner — analyze contracts for rugpull indicators (hidden mint, proxy, tax manipulation, blacklist)
+3. Honeypot Detector — simulate buy/sell to detect trap tokens
+4. Safety Score — 0-100 composite rating based on code, ownership, liquidity, holders
+5. Wallet Report — full security posture assessment
 
-**$VIGIL Token:** `0xPENDING_DEPLOYMENT` (Base mainnet)
-**API:** `http://143.198.220.27:3100` (SSE MCP transport)
-**Contracts:** See `references/contracts.md`
+**Write action (separate, not included here):**
+6. Approval Revoker — revoke dangerous approvals via Bankr transaction signing. This is a state-changing onchain transaction and is NOT part of this read-only skill.
 
-## Supported Chains
+Read the last 2 days of `memory/logs/` so a repeat scan can note newly-granted or newly-revoked approvals.
 
-| Chain | Approvals Scan | Token Scan | Revoke | 
-|-------|---------------|------------|--------|
-| Base | ✅ | ✅ | ✅ |
-| Ethereum | ✅ | ✅ | ✅ |
-| Polygon | ✅ | ✅ | ✅ |
-| Arbitrum | ✅ | ✅ | ✅ |
-| Solana | ✅ (SPL) | ✅ | ✅ |
+## Config
 
-## What It Does
+- Target = `${var}`. Can be a wallet address or token contract address.
+- Chain = Base (`chainid=8453`, explorer `basescan.org`).
+- VIGIL API: `https://mcp.vigil.codes` (HTTPS, SSE transport)
+- GitHub: `https://github.com/vigilcodes/vigil-mcp`
 
-- **Approval Scanner** — List all ERC-20/ERC-721 approvals for a wallet, flag unlimited (`type(uint256).max`) approvals, identify risky spender contracts
-- **Token Scanner** — Analyze token contracts for rugpull indicators: hidden mint, ownership renounced, liquidity locked, proxy patterns, tax manipulation, blacklist functions
-- **Honeypot Detector** — Simulate buy/sell to detect tokens that allow buying but block selling
-- **Contract Safety Score** — 0-100 safety rating based on code analysis, deployer history, liquidity depth, holder distribution
-- **Approval Revoker** — Revoke dangerous approvals via Bankr transaction signing
-- **Wallet Security Report** — Full security posture assessment for a wallet
+## Steps
 
-## Quick Start
+### 1. Determine target type
 
 ```bash
-# Make scripts executable
-chmod +x scripts/*.sh
-
-# Scan approvals for a wallet
-./scripts/vigil-approvals.sh <wallet_address> [chain]
-
-# Scan a token for safety
-./scripts/vigil-token.sh <token_address> [chain]
-
-# Detect honeypot
-./scripts/vigil-honeypot.sh <token_address> [chain]
-
-# Get contract safety score
-./scripts/vigil-score.sh <contract_address> [chain]
-
-# Revoke an approval
-./scripts/vigil-revoke.sh <token_address> <spender_address> [chain]
-
-# Full wallet security report
-./scripts/vigil-report.sh <wallet_address> [chain]
+TARGET="${var}"
+if [ ${#TARGET} -eq 42 ] && [[ "$TARGET" == 0x* ]]; then
+  # Could be wallet or token — try wallet scan first
+  TARGET_TYPE="wallet"
+else
+  echo "Invalid address: $TARGET"
+  exit 0
+fi
 ```
 
-## Task Guide
+### 2. Scan approvals (wallet)
 
-### Reading (No Auth Required)
+```bash
+RESULT=$(curl -m 30 -s "https://mcp.vigil.codes/tools/call" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "scan_approvals",
+      "arguments": {"wallet": "'"$TARGET"'", "chain": "base"}
+    }
+  }')
+echo "$RESULT" | jq '.result'
+```
 
-| Task | Script | Description |
-|------|--------|-------------|
-| List approvals | `vigil-approvals.sh <addr> [chain]` | All token approvals for wallet |
-| Scan token | `vigil-token.sh <addr> [chain]` | Rugpull/honeypot indicators |
-| Safety score | `vigil-score.sh <addr> [chain]` | 0-100 contract safety rating |
-| Honeypot check | `vigil-honeypot.sh <addr> [chain]` | Simulate buy/sell for trap detection |
-| Full report | `vigil-report.sh <addr> [chain]` | Complete wallet security assessment |
+### 3. Scan token safety
 
-### Actions (Bankr Auth Required)
+```bash
+RESULT=$(curl -m 30 -s "https://mcp.vigil.codes/tools/call" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "scan_token",
+      "arguments": {"token": "'"$TARGET"'", "chain": "base"}
+    }
+  }')
+echo "$RESULT" | jq '.result'
+```
 
-| Task | Script | Auth | Description |
-|------|--------|------|-------------|
-| Revoke approval | `vigil-revoke.sh` | Bankr API Key | Revoke single token approval |
-| Batch revoke | `vigil-batch-revoke.sh` | Bankr API Key | Revoke multiple approvals in one session |
-| Report scam | `vigil-report-scam.sh` | Bankr API Key | Submit scam token to community database |
+### 4. Check honeypot
+
+```bash
+RESULT=$(curl -m 30 -s "https://mcp.vigil.codes/tools/call" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "detect_honeypot",
+      "arguments": {"token": "'"$TARGET"'", "chain": "base"}
+    }
+  }')
+echo "$RESULT" | jq '.result'
+```
+
+### 5. Get safety score
+
+```bash
+RESULT=$(curl -m 30 -s "https://mcp.vigil.codes/tools/call" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "safety_score",
+      "arguments": {"contract": "'"$TARGET"'", "chain": "base"}
+    }
+  }')
+echo "$RESULT" | jq '.result'
+```
+
+### 6. Generate wallet report
+
+```bash
+RESULT=$(curl -m 30 -s "https://mcp.vigil.codes/tools/call" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "wallet_report",
+      "arguments": {"wallet": "'"$TARGET"'", "chain": "base"}
+    }
+  }')
+echo "$RESULT" | jq '.result'
+```
+
+## Output Format
+
+VIGIL returns JSON with:
+
+- `approvals` — list of token approvals with risk levels
+- `safety_score` — 0-100 composite rating
+- `honeypot` — boolean + reason if detected
+- `rugpull_indicators` — list of suspicious patterns found
+- `recommendations` — action items
 
 ## Risk Levels
 
@@ -94,27 +148,6 @@ chmod +x scripts/*.sh
 | LOW | 🟢 | Minor concern — monitor |
 | SAFE | ✅ | No issues detected |
 
-## Integration with Bankr
+## Important: Revocation is NOT included
 
-VIGIL uses Bankr for transaction signing (revocations, approvals):
-
-```bash
-# Requires BANKR_API_KEY in environment
-export BANKR_API_KEY=bk_your_key_here
-
-# Revoke will build unsigned tx → Bankr signs → submit
-./scripts/vigil-revoke.sh 0xTokenAddr 0xSpenderAddr base
-```
-
-## $VIGIL Token Utilities
-
-| Utility | Requirement | Description |
-|---------|-------------|-------------|
-| Free scans | None | Basic token/approval scanning |
-| Premium scans | Hold 1000+ $VIGIL | Deep analysis, historical data, deployer tracking |
-| Unlimited revokes | Hold 500+ $VIGIL | Batch revoke without limits |
-| Scam reporting | Stake 100+ $VIGIL | Submit scam tokens, earn bounty on verified reports |
-| Governance | Stake 1000+ $VIGIL | Vote on security parameters, new chain additions |
-| Fee share | Stake 5000+ $VIGIL | Share of protocol revenue from premium features |
-
-See `references/tokenomics.md` for full token design.
+The Approval Revoker tool performs state-changing onchain transactions via Bankr. It is intentionally excluded from this read-only skill. To revoke approvals, use the separate `vigil-revoke` skill (requires `BANKR_API_KEY` and explicit user confirmation).
