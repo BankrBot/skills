@@ -17,7 +17,7 @@ metadata:
 Onchain security scanner. Protect DeFi traders from rugpulls, honeypots, and dangerous token approvals.
 
 **$VIGIL Token:** `0xPENDING_DEPLOYMENT` (Base mainnet)
-**API:** `https://api.bankr.bot/vigil`
+**API:** `http://143.198.220.27:3100` (SSE MCP transport)
 **Contracts:** See `references/contracts.md`
 
 ## Supported Chains
