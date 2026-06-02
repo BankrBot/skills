@@ -1,14 +1,14 @@
 # Predicate-Gated Tools (403 Access Control)
 
-Predicate gating restricts tool access based on onchain state (NFT ownership, subscriptions, composite logic). The caller authenticates with SIWE; the server checks the configured `IAccessPredicate` contract via the ToolRegistry.
+Predicate gating restricts tool access based on onchain state (NFT ownership, subscriptions, composite logic). The caller authenticates with an EIP-3009 zero-value authorization; the server recovers the caller's address via `ecrecover` and checks the configured `IAccessPredicate` contract via the ToolRegistry.
 
 ## How predicate gating works
 
 ```
 Agent                        Tool Server                   ToolRegistry (onchain)
   |--- POST /api ------------->|                                |
-  |    Authorization: SIWE ... |                                |
-  |                            |  (verify SIWE signature)       |
+  |    Authorization: EIP-3009 |                                |
+  |                            |  (verify EIP-3009 signature)   |
   |                            |--- staticcall tryHasAccess --->|
   |                            |    (toolId, callerAddr, data)  |
   |                            |<-- (ok=true, granted=true) ----|
@@ -17,9 +17,9 @@ Agent                        Tool Server                   ToolRegistry (onchain
   |<-- 200 + result -----------|                                |
 ```
 
-1. Agent builds a SIWE message for the tool's domain and signs it
-2. Agent sends `Authorization: SIWE <base64url(message)>.<signature>`
-3. Server verifies the SIWE signature and recovers the caller's address
+1. Agent signs a zero-value EIP-3009 `TransferWithAuthorization` (EIP-712 typed data)
+2. Agent sends `Authorization: EIP-3009 <base64url(json)>`
+3. Server recovers the caller's address via `ecrecover` on the EIP-712 typed data (no RPC call needed)
 4. Server calls `ToolRegistry.tryHasAccess(toolId, callerAddress, data)` which delegates to the tool's configured `IAccessPredicate`
 5. If access is granted: execute handler, return 200
 6. If access is denied: return 403 with predicate address for self-diagnosis
@@ -81,22 +81,22 @@ PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
   --body '{"query": "hello"}'
 ```
 
-### Via SDK: `authenticatedFetch`
+### Via SDK: `eip3009AuthenticatedFetch`
 
 ```typescript
-import { authenticatedFetch, createWalletFromEnv, walletAdapterToClient } from "@opensea/tool-sdk"
+import { eip3009AuthenticatedFetch, createWalletFromEnv, walletAdapterToClient } from "@opensea/tool-sdk"
 import { base } from "viem/chains"
 
 const adapter = createWalletFromEnv()
 const client = await walletAdapterToClient(adapter, base)
 
-const res = await authenticatedFetch("https://my-tool.example.com/api", {
+const res = await eip3009AuthenticatedFetch("https://my-tool.example.com/api", {
   account: client.account,
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ query: "hello" }),
-  // expirationMinutes: 5,   // SIWE message TTL (max 60, default 5)
-  // chainId: 8453,          // default: Base
+  // to: "0xOPERATOR_ADDRESS",  // tool operator address for domain binding
+  // chainId: 8453,              // default: Base
 })
 
 const data = await res.json()
@@ -127,7 +127,7 @@ When the predicate denies access, the server returns:
 {
   "error": "Predicate gate: access predicate denied",
   "toolId": "1",
-  "predicate": "0xd1F703D0B90BB7106fAebBfbcAdD2B07BDc4c769"
+  "predicate": "0xc8721c9A776958FfFfEb602DA1b708bf1D318379"
 }
 ```
 
@@ -141,7 +141,7 @@ import { base } from "viem/chains"
 const client = createPublicClient({ chain: base, transport: http() })
 
 const [requirements, logic] = await client.readContract({
-  address: "0xd1F703D0B90BB7106fAebBfbcAdD2B07BDc4c769",
+  address: "0xc8721c9A776958FfFfEb602DA1b708bf1D318379",
   abi: IAccessPredicateABI,
   functionName: "getRequirements",
   args: [1n],  // toolId
@@ -153,7 +153,7 @@ const [requirements, logic] = await client.readContract({
 
 ## Combined gates (predicate + x402)
 
-Tools can require both SIWE authentication and x402 payment. The server runs gates sequentially: predicate first (identity), then x402 (payment).
+Tools can require both EIP-3009 authentication and x402 payment. The server runs gates sequentially: predicate first (identity), then x402 (payment).
 
 ### Server side
 
@@ -209,7 +209,7 @@ const adapter = createWalletFromEnv()
 const client = await walletAdapterToClient(adapter, base)
 
 const res = await paidAuthenticatedFetch("https://my-tool.example.com/api", {
-  account: client.account,   // for SIWE signing
+  account: client.account,   // for EIP-3009 signing
   signer: adapter,           // for x402 payment signing (can differ from account)
   method: "POST",
   headers: { "Content-Type": "application/json" },
