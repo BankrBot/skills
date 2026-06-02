@@ -12,6 +12,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 
 | Provider | Skill | Description |
 | --- | --- | --- |
+| [Arcadia Finance](https://arcadia.finance) | [arcadia-finance](arcadia-finance/) | Concentrated liquidity management on Uniswap and Aerodrome. Deploy LP positions with automated rebalancing, compounding, leverage, and yield optimization on Base and Unichain. |
 | [Bankr](https://bankr.bot) | [bankr](bankr/) | Launch a token, earn from every trade, and fund your agent. Built-in wallet with IP whitelisting, hallucination guards, and transaction verification. |
 | [Bankr](https://bankr.bot) | [bankr-token-scam-analysis](bankr-token-scam-analysis/) | Forensic on-chain scam and rug-pull analysis for EVM tokens. Produces a risk verdict backed by on-chain facts. |
 | [Bankr](https://bankr.bot) | [bankr-twitter-agent](bankr-twitter-agent/) | Framework for creating, managing, and automating a Twitter/X agent with a persistent personality and voice. |
