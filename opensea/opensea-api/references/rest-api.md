@@ -129,6 +129,14 @@ List endpoints support cursor-based pagination:
 | `/api/v2/chain/{chain}/token/{address}/holders` | GET | Paginated holders + aggregate distribution health |
 | `/api/v2/chain/{chain}/token/{address}/liquidity-pools` | GET | Liquidity pools for a token |
 
+### Tools
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v2/tools` | GET | List registered tools (sort by newest/oldest, filter by type) |
+| `/api/v2/tools/search` | GET | Search tools by keyword, tags, creator, access type |
+| `/api/v2/tools/{registry_chain}/{registry_addr}/{tool_id}` | GET | Get a specific registered tool |
+
 ### Assets
 
 | Endpoint | Method | Description |

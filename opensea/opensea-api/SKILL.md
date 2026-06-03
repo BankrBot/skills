@@ -180,8 +180,18 @@ Search for verified registered AI agent tools (ERC-8257) by name, tags, creator,
 
 | Task | Alternative |
 |------|-------------|
+| List registered tools | `opensea-get.sh "tools" "sort_by=newest&limit=10"` |
 | Search registered tools | `opensea-get.sh "tools/search" "query=<text>"` |
 | Get a registered tool | `opensea-get.sh "tools/<chain>/<registry_address>/<tool_id>"` |
+
+**Endpoint:** `GET /api/v2/tools` ([docs](https://docs.opensea.io/reference/list_tools))
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `sort_by` | No | Sort by: `newest` (default), `oldest` |
+| `type` | No | Filter by access type: `open`, `nft_gated`, `token_gated`, `subscription`, `gated` |
+| `limit` | No | Results per page (1–100) |
+| `cursor` | No | Pagination cursor |
 
 **Endpoint:** `GET /api/v2/tools/search` ([docs](https://docs.opensea.io/reference/search_tools))
 
@@ -197,6 +207,14 @@ Search for verified registered AI agent tools (ERC-8257) by name, tags, creator,
 | `cursor.value` | No | Pagination cursor |
 
 ```bash
+# List tools sorted by newest
+curl -s "https://api.opensea.io/api/v2/tools?sort_by=newest&limit=10" \
+  -H "x-api-key: $OPENSEA_API_KEY" | jq
+
+# List tools filtered by type
+curl -s "https://api.opensea.io/api/v2/tools?type=open&sort_by=oldest" \
+  -H "x-api-key: $OPENSEA_API_KEY" | jq
+
 # Search tools by keyword
 curl -s "https://api.opensea.io/api/v2/tools/search?query=nft" \
   -H "x-api-key: $OPENSEA_API_KEY" | jq

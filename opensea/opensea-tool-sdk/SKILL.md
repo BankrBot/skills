@@ -80,6 +80,15 @@ export OPENSEA_API_KEY=$(curl -s -X POST https://api.opensea.io/api/v2/auth/keys
 
 For higher rate limits, create a full key at [Settings → Developer](https://docs.opensea.io/reference/api-keys).
 
+**List tools:** `GET /api/v2/tools` ([docs](https://docs.opensea.io/reference/list_tools))
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `sort_by` | No | Sort by: `newest` (default), `oldest` |
+| `type` | No | Filter by access type: `open`, `nft_gated`, `token_gated`, `subscription`, `gated` |
+| `limit` | No | Results per page (1–100) |
+| `cursor` | No | Pagination cursor |
+
 **Search tools:** `GET /api/v2/tools/search` ([docs](https://docs.opensea.io/reference/search_tools))
 
 | Parameter | Required | Description |
@@ -102,6 +111,14 @@ For higher rate limits, create a full key at [Settings → Developer](https://do
 | `tool_id` | Yes | Numeric tool ID |
 
 ```bash
+# List tools sorted by newest
+curl -s "https://api.opensea.io/api/v2/tools?sort_by=newest&limit=10" \
+  -H "x-api-key: $OPENSEA_API_KEY" | jq
+
+# List tools filtered by type
+curl -s "https://api.opensea.io/api/v2/tools?type=open&sort_by=oldest" \
+  -H "x-api-key: $OPENSEA_API_KEY" | jq
+
 # Search tools by keyword
 curl -s "https://api.opensea.io/api/v2/tools/search?query=nft" \
   -H "x-api-key: $OPENSEA_API_KEY" | jq
