@@ -1,128 +1,262 @@
-# Noelclaw — Autonomous Crypto Agent Platform
+# Noelclaw — Persistent AI for Crypto
 
-Noelclaw is a multi-agent crypto platform that turns plain-English instructions into on-chain actions. It combines a 35-tool MCP server, an NL-to-automation engine, a multi-agent swarm, and a persistent vault — all running on Base with USDC via x402.
+Noelclaw gives your AI persistent memory, on-chain execution on Base, and autonomous automations — all from plain-English instructions. Install once, your AI remembers everything across every session.
 
-## Core Capabilities
+**90 MCP tools · v2.4.0 · Free during beta**
 
-**Trading & DeFi (via 0x on Base)**
-- Token swaps: `swap_tokens` — execute any ERC-20↔ERC-20 swap on Base through the user's custodial MCP wallet
-- Token transfers: `send_token` — send ETH, USDC, USDT, DAI to any address
-- Wallet resolution: `get_wallet_address` — look up or create a user's encrypted on-chain wallet
+## Install
 
-**Natural Language Automations**
-- `create_automation` — parse plain English into a structured trigger + action pair, then run it on a cron
-  - **Triggers**: `schedule` (interval), `price_drop_%`, `price_rise_%`, `price_below`, `price_above`, `dominance_below`, `dominance_above`
-  - **Actions**: `swap`, `send`, `alert` (Telegram)
-  - **Limits**: `maxRuns`, `maxSpendUsd`, expiry
-  - Examples: *"Buy $50 of ETH every day, stop after $500"*, *"If ETH drops 10%, buy $100 USDC→ETH"*, *"Alert me when BTC dominance drops below 50%"*
-- `list_automations` / `pause_automation` / `delete_automation`
-
-**Agent Swarm**
-Five specialized sub-agents run autonomously when the swarm is active:
-- **Market Monitor** — tracks live prices, detects volume spikes and resistance breaks
-- **Sentiment Tracker** — scans on-chain signals and social data
-- **Workflow Executor** — fires scheduled automations and DCA strategies
-- **Memory Manager** — compresses and organises shared swarm memory
-- **Risk Verifier** — gates every action through a configurable risk score threshold
-
-Tools: `start_swarm`, `stop_swarm`, `get_swarm_status`, `get_swarm_memory`, `write_swarm_memory`, `get_execution_scores`
-
-**Agent Framework**
-- `create_task_packet` — create a named, persistent task for agents to act on across sessions
-- `list_task_packets` — list all active task packets
-- `list_playbooks` — list available pre-built automation playbooks
-- `run_playbook` — execute a named playbook by ID
-- `get_noel_ledger` — fetch the Steward Ledger: history of agent decisions and outcomes
-- `get_sentinel_rules` — fetch Sentinel risk-gate rules and configurable thresholds
-
-**Market Intelligence**
-- `get_market_data` — live prices, trending coins, top-20 market cap via Bankr LLM API
-- `get_token_data` — deep token analysis (price, volume, sentiment, on-chain activity)
-- `ask_noel` — general crypto Q&A and reasoning, powered by Bankr LLM
-
-**MiroShark Simulation**
-- `miroshark_simulate` — run a multi-agent market simulation; describe any scenario in plain English (crash, policy change, whale movement) and get a live simulation with AI agent participants
-- `miroshark_status` — poll a running simulation for progress, round counts, and agent activity
-- `miroshark_stop` — stop a running simulation by ID
-
-**Vault (Persistent Agent Memory)**
-- `vault_save` / `vault_read` / `vault_search` / `vault_list` — store and retrieve agent outputs, strategies, research notes
-- `vault_history` / `vault_diff` / `vault_export` — version history and diff between entries
-
-**Other**
-- `post_tweet` — post to X/Twitter with optional humanization
-- `humanize_text` — rewrite AI-generated text to sound natural
-- `set_telegram` — link a Telegram chat for alert delivery
-
-## Access
-
-**MCP Server**
-Install via npm and configure with your Noelclaw API key:
-
-\`\`\`bash
+```bash
 npx -y @noelclaw/mcp
-\`\`\`
+```
 
-Add to Claude Desktop / any MCP-compatible client:
-\`\`\`json
+```bash
+# Claude Code
+claude mcp add noelclaw -- npx -y @noelclaw/mcp
+```
+
+```json
 {
   "mcpServers": {
     "noelclaw": {
       "command": "npx",
       "args": ["-y", "@noelclaw/mcp"],
-      "env": { "NOELCLAW_API_KEY": "your_key_here" }
+      "env": {
+        "NOELCLAW_API_KEY": "noel_sk_...",
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
     }
   }
 }
-\`\`\`
+```
 
-Get your API key at **noelclaw.com/api-keys** (7 free keys per account).
+Get your API key at **app.noelclaw.com**
 
-**HTTP API**
-Base URL: \`https://api.noelclaw.com\`
+---
 
-| Auth Method | Header |
-|---|---|
-| Session token | \`Authorization: Bearer <token>\` |
-| x402 micropayment | Send USDC on Base → retry with \`X-Payment: {"txHash":"...","requestId":"..."}\` |
-| Wallet signature | \`X-Wallet-Address\` + \`X-Wallet-Signature\` + \`X-Wallet-Timestamp\` |
+## What It Does
 
-Free tools (market data, \`ask_noel\`) pass through with no auth.
+Three pillars: **Remember · Act · Know**
 
-## Key Endpoints
+```
+remember my Aerodrome thesis for next time
+→ ✓ saved to Vault · auto-loaded every session
 
-| Endpoint | Method | Description |
-|---|---|---|
-| \`/mcp/market\` | GET | Live market data (prices, trending, top-20) |
-| \`/mcp/chat\` | POST | Ask Noel any question |
-| \`/automations/create\` | POST | Create automation from plain English |
-| \`/automations/list\` | GET | List user's automations |
-| \`/automations/pause\` | POST | Pause or resume an automation |
-| \`/automations/delete\` | POST | Delete an automation |
-| \`/swarm/start\` | POST | Start the agent swarm |
-| \`/swarm/stop\` | POST | Stop the swarm |
-| \`/swarm/status\` | GET | Get current swarm status |
-| \`/swarm/memory/write\` | POST | Write a key to shared swarm memory |
-| \`/swarm/scores\` | GET | Get agent execution scores |
-| \`/mcp/defi/swap\` | POST | Get swap quote for signing |
-| \`/mcp/defi/send\` | POST | Get send tx data for signing |
+set up weekly $100 ETH DCA every Monday
+→ ✓ automation created · runs weekly 09:00 UTC
 
-## Integration Pattern
+swap 0.5 ETH to USDC on Base
+→ ✓ swapped → 1,842 USDC · tx confirmed in 2s
 
-Noelclaw acts as an **execution + intelligence layer**:
-- Use \`get_market_data\` or \`ask_noel\` for research (free, no auth)
-- Use \`create_automation\` to set up recurring strategies in plain English
-- Use \`swap_tokens\` / \`send_token\` for immediate on-chain execution
-- Use \`start_swarm\` to run autonomous multi-agent monitoring 24/7
-- Use \`vault_save\` to persist agent outputs across sessions
+what did I save about ETH yield last week?
+→ searches semantic memory · returns relevant entries
 
-All swap and send operations go through the user's personal encrypted MCP wallet on Base. The swarm's risk-verifier agent gates every autonomous action against a configurable threshold before execution.
+swarm research: "best DeFi plays on Base this month"
+→ multi-agent research · auto-saves findings to vault
+```
+
+---
+
+## 🧠 REMEMBER — Persistent Memory
+
+### Vault — Structured Notes (15 tools)
+
+| Name | Description |
+|------|-------------|
+| **Vault Save** `vault_save` | Save a note, research, or decision |
+| **Vault Read** `vault_read` | Read an entry by key |
+| **Vault List** `vault_list` | List recent entries |
+| **Vault Search** `vault_search` | Full-text search across your vault |
+| **Vault History** `vault_history` | Version history for an entry |
+| **Vault Diff** `vault_diff` | Compare two versions |
+| **Vault Export** `vault_export` | Export as JSON or markdown |
+| **Store Credential** `vault_store_credential` | Securely store an API key |
+| **Get Credential** `vault_get_credential` | Retrieve a stored credential |
+| **Vault Publish** `vault_publish` | Publish an entry as a public note |
+| **Vault Explore** `vault_explore` | Browse by tag or category |
+| **Vault Pin** `vault_pin` | Pin an important entry |
+| **Vault Delete** `vault_delete` | Delete an entry |
+| **Vault Link** `vault_link` | Link two entries together |
+| **Vault Tag** `vault_tag` | Add or update tags |
+
+### Memory — Semantic Search (7 tools)
+
+| Name | Description |
+|------|-------------|
+| **Memory Add** `memory_add` | Add text, notes, or auto-fetch a URL |
+| **Memory Search** `memory_search` | Search by meaning — "what did I save about X?" |
+| **Memory Context** `memory_context` | Load entries relevant to the current session |
+| **Memory Profile** `memory_profile` | Your memory profile — preferences, history |
+| **Memory List** `memory_list` | List recent memory entries |
+| **Memory Delete** `memory_delete` | Remove a memory entry |
+| **Memory Insight** `memory_insight` | AI insights from your memory patterns |
+
+### OS — Session Lifecycle (3 tools)
+
+| Name | Description |
+|------|-------------|
+| **Boot** `noel_boot` | Start a session — loads memory, market data, automations |
+| **Status** `noel_status` | Full dashboard — memory, swarm, active automations |
+| **Shutdown** `noel_shutdown` | End session — saves summary to vault |
+
+---
+
+## ⚡ ACT — Execute & Automate
+
+### Automations (6 tools)
+
+| Name | Description |
+|------|-------------|
+| **Create Automation** `create_automation` | Create a price alert, DCA, or scheduled task in plain English |
+| **List Automations** `list_automations` | View all active automations |
+| **Pause Automation** `pause_automation` | Pause or resume |
+| **Delete Automation** `delete_automation` | Delete an automation |
+| **Automation Runs** `get_automation_runs` | Execution history |
+| **Run Now** `run_automation` | Trigger manually |
+
+Triggers: `schedule`, `price_drop_%`, `price_rise_%`, `price_below`, `price_above`
+Actions: `swap`, `send`, `alert` (Telegram)
+
+### DeFi Execution (7 tools)
+
+> Transactions signed client-side — private key never leaves your machine.
+
+| Name | Description |
+|------|-------------|
+| **Portfolio** `get_portfolio` | View wallet holdings and balances |
+| **Estimate Swap** `estimate_swap` | Quote via 0x before executing |
+| **Swap Tokens** `swap_tokens` | Execute token swap on Base via 0x |
+| **Send Token** `send_token` | Send ETH or ERC-20 to any address |
+| **Scan Wallet** `scan_wallet` | Analyze own wallet — holdings, risk signals |
+| **Analyze Wallet** `analyze_wallet` | Deep analysis of any public wallet |
+| **DeFi Yields** `get_defi_yields` | Best yield opportunities on Base |
+
+### Base Chain (4 tools)
+
+| Name | Description |
+|------|-------------|
+| **Chain Stats** `base_chain_stats` | Live ETH price, gas, latest block |
+| **Query Vaults** `base_query_vaults` | Top Morpho vaults ranked by APY |
+| **List Markets** `base_list_markets` | Moonwell lending and borrowing rates |
+| **Prepare Deposit** `base_prepare_deposit` | Prepare a Morpho vault deposit |
+
+### Wallet & Notifications (2 tools)
+
+| Name | Description |
+|------|-------------|
+| **Wallet Address** `get_wallet_address` | Get or generate your MCP wallet address |
+| **Set Telegram** `set_telegram` | Connect Telegram for notifications |
+
+### Playbooks (6 tools)
+
+| Name | Description |
+|------|-------------|
+| **Create Task** `create_task_packet` | Structured task with constraints |
+| **List Tasks** `list_task_packets` | List all task packets |
+| **List Playbooks** `list_playbooks` | Browse available playbooks |
+| **Run Playbook** `run_playbook` | Execute a playbook by ID |
+| **Noel Ledger** `get_noel_ledger` | Credits and full audit trail |
+| **Sentinel Rules** `get_sentinel_rules` | View safety rules |
+
+---
+
+## 🔍 KNOW — Research & Intelligence
+
+### Market & Prices (5 tools)
+
+| Name | Description |
+|------|-------------|
+| **Market Data** `get_market_data` | Live prices — BTC, ETH, SOL, top 20 |
+| **Token Data** `get_token_data` | Price, volume, market cap for any token |
+| **Compare Tokens** `compare_tokens` | Side-by-side token comparison |
+| **Market Overview** `market_overview` | Top movers, Fear & Greed, dominance |
+| **Token History** `token_history` | Historical OHLC data |
+
+### Scanner (4 tools)
+
+| Name | Description |
+|------|-------------|
+| **Score Token** `score_token` | Risk and quality score |
+| **Check Token** `check_token` | Honeypot detection, contract audit flags |
+| **Scan Dips** `scan_dips` | Tokens dipping with recovery signals |
+| **Scan Momentum** `scan_momentum` | Tokens breaking out upward |
+
+### Research & Insight (3 tools)
+
+| Name | Description |
+|------|-------------|
+| **Ask Noel** `ask_noel` | AI crypto analyst — opinions, trade ideas |
+| **Market Thesis** `market_thesis` | Bull/bear thesis for any token or sector |
+| **Trade Plan** `trade_plan` | Entry, exit, and risk levels |
+
+### Agent Network (15 tools)
+
+> Multiple AI agents research and monitor in parallel with shared memory.
+
+| Name | Description |
+|------|-------------|
+| **Start Swarm** `start_swarm` | Start the agent network |
+| **Stop Swarm** `stop_swarm` | Stop the swarm |
+| **Swarm Status** `get_swarm_status` | Status and memory snapshot |
+| **Trigger Agent** `trigger_agent` | Run a specific agent now |
+| **Write Memory** `write_swarm_memory` | Write to shared agent memory |
+| **Read Memory** `get_swarm_memory` | Read shared agent memory |
+| **Execution Scores** `get_execution_scores` | Agent performance scores |
+| **Swarm Research** `swarm_research` | Multi-agent research — auto-saves to vault |
+| **Swarm Brief** `swarm_brief` | Summary of everything the swarm found |
+| **Broadcast** `swarm_broadcast` | Message all active agents |
+| **Swarm Pulse** `swarm_pulse` | Heartbeat — active agents and last activity |
+| **Swarm Reflect** `swarm_reflect` | Agents self-evaluate performance |
+| **Swarm Watch** `swarm_watch` | Watch a token or topic for changes |
+| **List Agents** `list_agents` | Browse specialist agents |
+| **Hire Agent** `hire_agent` | Hire an agent for a task |
+
+---
+
+## 🛠 BUILD — Developer & Content Tools
+
+### Coder (7 tools)
+
+| Name | Description |
+|------|-------------|
+| **Scaffold Project** `scaffold_project` | DeFi or Web3 project scaffold |
+| **Generate Component** `generate_component` | React component with wagmi/viem |
+| **Generate Contract** `generate_contract` | Solidity smart contract |
+| **Audit Contract** `audit_contract` | Contract vulnerability audit |
+| **Explain Code** `explain_code` | Plain-English code explanation |
+| **Generate MCP Skill** `generate_mcp_skill` | Generate a new MCP tool from plain English |
+| **Review Code** `review_code` | Code review with actionable feedback |
+
+### Content & Humanizer (3 tools)
+
+| Name | Description |
+|------|-------------|
+| **Humanize Text** `humanize_text` | Strip AI patterns — makes output sound human |
+| **Write Thread** `write_thread` | Write a Twitter/X thread |
+| **Write Post** `write_post` | Write a punchy social post |
+
+### MiroShark — Market Simulation (3 tools)
+
+| Name | Description |
+|------|-------------|
+| **Simulate** `miroshark_simulate` | Multi-agent market simulation from plain English |
+| **Simulation Status** `miroshark_status` | Poll progress and get AI brief on completion |
+| **Stop Simulation** `miroshark_stop` | Stop a running simulation |
+
+---
 
 ## Tech Stack
 
-- **Bankr LLM API** (\`llm.bankr.bot\`) — all agent reasoning and market intelligence
-- **x402 protocol** — native USDC micropayment support on Base
-- **Model Context Protocol (MCP)** — 35 tools, stdio transport, v2.1.0
-- **Convex** — real-time backend, cron automation engine, swarm coordinator
+- **Bankr LLM API** — agent reasoning and market intelligence
+- **Model Context Protocol (MCP)** — 90 tools, stdio transport, v2.4.0
+- **Convex** — real-time backend, automation engine, swarm coordinator
 - **0x Protocol v2** — on-chain swap execution on Base
-- **Base mainnet** — all token operations and payments
+- **Supermemory** — semantic vector memory
+- **Base mainnet** — all token operations
+
+## Links
+
+- App: [app.noelclaw.com](https://app.noelclaw.com)
+- npm: [@noelclaw/mcp](https://www.npmjs.com/package/@noelclaw/mcp)
+- GitHub: [github.com/noelclaw/mcp](https://github.com/noelclaw/mcp)
+- Docs: [docs.noelclaw.fun](https://docs.noelclaw.fun)
