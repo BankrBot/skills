@@ -1,22 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# vigil-honeypot.sh — Detect honeypot tokens (buy OK, sell blocked)
+# vigil-honeypot.sh — Detect honeypot tokens (buy OK, sell blocked).
 # Usage: ./vigil-honeypot.sh <token_address> [chain]
 
-TOKEN="${1:?Usage: vigil-honeypot.sh <token_address> [chain]}"
-CHAIN="${2:-base}"
-API_BASE="${VIGIL_API:-https://api.bankr.bot/vigil}"
+. "$(dirname "$0")/_vigil_lib.sh"
+
+TOKEN=$(vigil_validate_addr "${1:?Usage: vigil-honeypot.sh <token_address> [chain]}")
+CHAIN=$(vigil_validate_chain "${2:-base}")
 
 echo "🍯 Running honeypot detection on $TOKEN ($CHAIN)..."
 echo ""
 
-RESPONSE=$(curl -s -f "$API_BASE/token/honeypot?address=$TOKEN&chain=$CHAIN" \
-  -H "Accept: application/json" \
-  ${BANKR_API_KEY:+-H "Authorization: Bearer $BANKR_API_KEY"}) || {
-  echo "Error: API request failed" >&2
-  exit 1
-}
+RESPONSE=$(vigil_call vigil_detect_honeypot "{\"token\":\"$TOKEN\",\"chain\":\"$CHAIN\"}")
 
 IS_HONEYPOT=$(echo "$RESPONSE" | jq -r '.is_honeypot')
 CAN_BUY=$(echo "$RESPONSE" | jq -r '.can_buy')
@@ -28,44 +24,26 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 if [ "$IS_HONEYPOT" = "true" ]; then
   echo "  🍯 HONEYPOT CONFIRMED — DO NOT BUY"
   echo ""
-  echo "  Can Buy:  $CAN_BUY"
-  echo "  Can Sell: $CAN_SELL"
-  echo "  Buy Tax:  $BUY_TAX%"
-  echo "  Sell Tax: $SELL_TAX%"
-  
+  echo "  Can Buy:  $CAN_BUY   Can Sell: $CAN_SELL"
+  echo "  Buy Tax:  $BUY_TAX   Sell Tax: $SELL_TAX"
   BLOCK_REASON=$(echo "$RESPONSE" | jq -r '.block_reason // empty')
-  if [ -n "$BLOCK_REASON" ]; then
-    echo ""
-    echo "  Block Reason: $BLOCK_REASON"
-  fi
-  
+  [ -n "$BLOCK_REASON" ] && { echo ""; echo "  Block Reason: $BLOCK_REASON"; }
   echo ""
-  echo "  ⛔ This token will trap your funds. Avoid at all costs."
+  echo "  ⛔ This token will trap your funds. Avoid."
+elif [ "$CAN_SELL" = "true" ]; then
+  echo "  ✅ NOT a honeypot — buy and sell both work"
+  echo ""
+  echo "  Buy Tax:  $BUY_TAX   Sell Tax: $SELL_TAX"
+  HIGH_TAX=$(echo "$RESPONSE" | jq -r '.high_tax_warning // false')
+  [ "$HIGH_TAX" = "true" ] && { echo ""; echo "  ⚠️  High tax (>10%) — may still be a soft rug"; }
 else
-  if [ "$CAN_SELL" = "true" ]; then
-    echo "  ✅ NOT a honeypot — buy and sell both work"
-    echo ""
-    echo "  Buy Tax:  $BUY_TAX%"
-    echo "  Sell Tax: $SELL_TAX%"
-    
-    HIGH_TAX=$(echo "$RESPONSE" | jq -r '.high_tax_warning // false')
-    if [ "$HIGH_TAX" = "true" ]; then
-      echo ""
-      echo "  ⚠️  Warning: Sell tax > 10% — may still be a soft rug"
-    fi
-  else
-    echo "  🟠 LIKELY HONEYPOT — sell simulation failed"
-    echo ""
-    echo "  Can Buy:  $CAN_BUY"
-    echo "  Can Sell: $CAN_SELL"
-    echo ""
-    echo "  ⚠️  Token allows buying but selling may fail in practice."
-  fi
+  echo "  🟠 LIKELY HONEYPOT — sell simulation failed"
+  echo ""
+  echo "  Can Buy:  $CAN_BUY   Can Sell: $CAN_SELL"
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# Simulation details
 echo ""
 echo "🧪 Simulation Details:"
-echo "$RESPONSE" | jq -r '.simulations[] | 
-  "  \(.action): \(if .success then "✅ OK" else "❌ FAILED" end) | Gas: \(.gas_used // "N/A") | Error: \(.error // "none")"'
+echo "$RESPONSE" | jq -r '.simulations[]? |
+  "  \(.action): \(if .success then "✅ OK" else "❌ FAILED" end)\(if .error then " — \(.error)" else "" end)"'

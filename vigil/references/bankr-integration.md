@@ -9,7 +9,7 @@ VIGIL integrates with Bankr for:
 
 ## Setup
 
-### 1. Get Bankr API Key
+### 1. Get Bankr API Key (only needed for revocations)
 
 ```bash
 # If you don't have a key yet
@@ -17,13 +17,18 @@ bankr login email your@email.com
 # Follow the OTP flow, enable --read-write
 ```
 
+Read-only scans (token, honeypot, score, approvals, report, market,
+deployer, scam check) need **no key** — they hit the public VIGIL endpoint
+at `https://mcp.vigil.codes`.
+
 ### 2. Configure VIGIL
 
 ```bash
+# Required only for revoke actions (signed via Bankr)
 export BANKR_API_KEY=bk_your_key_here
 
-# Optional: custom VIGIL API endpoint
-export VIGIL_API=https://api.bankr.bot/vigil
+# Optional: override the public read-only endpoint
+export VIGIL_ENDPOINT=https://mcp.vigil.codes/tools/call
 ```
 
 ### 3. Make scripts executable
@@ -40,25 +45,32 @@ chmod +x scripts/*.sh
 Before buying a new token, always scan it first:
 
 ```bash
-# Step 1: Check if token is safe
+# Step 1: Safety score + rugpull indicators
 ./scripts/vigil-token.sh 0xTokenAddr base
 
-# Step 2: If safe, check honeypot specifically
+# Step 2: Honeypot check (buy + sell simulation)
 ./scripts/vigil-honeypot.sh 0xTokenAddr base
 
-# Step 3: If all clear, trade via Bankr
+# Step 3: Market context — thin liquidity / brand-new pool is a red flag
+./scripts/vigil-market.sh 0xTokenAddr base
+
+# Step 4: Deployer reputation + community scam reports
+./scripts/vigil-deployer.sh 0xTokenAddr base
+./scripts/vigil-check-scam.sh 0xTokenAddr base
+
+# Step 5: If all clear, trade via Bankr
 bankr agent "buy 0.01 ETH of 0xTokenAddr on base"
 ```
 
 ### Pattern 2: Regular Wallet Audit
 
-Run weekly security check on your wallet:
+Run a weekly security check on your wallet:
 
 ```bash
 # Full security report
 ./scripts/vigil-report.sh 0xYourWallet base
 
-# Fix any critical issues found
+# Revoke risky approvals (scan via VIGIL, sign via Bankr)
 ./scripts/vigil-batch-revoke.sh 0xYourWallet base --risk-level critical
 ```
 

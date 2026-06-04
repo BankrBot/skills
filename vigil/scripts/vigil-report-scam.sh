@@ -1,55 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# vigil-report-scam.sh — Submit scam token to community database
+# vigil-report-scam.sh — Submit a scam token to the VIGIL community database.
 # Usage: ./vigil-report-scam.sh <token_address> <evidence_type> <description> [chain]
-# Requires: BANKR_API_KEY environment variable + staked $VIGIL
+#   evidence_type: honeypot | rugpull | phishing | scam | fake
+#
+# Reporting is a write action. It is submitted through the MCP server's
+# report tool. Configure VIGIL_REPORT_ENDPOINT if your server exposes it on a
+# non-default path; otherwise this calls the standard tools/call route.
 
-TOKEN="${1:?Usage: vigil-report-scam.sh <token_address> <evidence_type> <description> [chain]}"
-EVIDENCE="${2:?Evidence type: honeypot|rugpull|phishing|scam|fake}"
-DESC="${3:?Provide a brief description of the scam}"
-CHAIN="${4:-base}"
-API_BASE="${VIGIL_API:-https://api.bankr.bot/vigil}"
+. "$(dirname "$0")/_vigil_lib.sh"
 
-if [ -z "${BANKR_API_KEY:-}" ]; then
-  echo "Error: BANKR_API_KEY required" >&2
-  exit 1
-fi
+TOKEN=$(vigil_validate_addr "${1:?Usage: vigil-report-scam.sh <token> <evidence_type> <description> [chain]}")
+EVIDENCE="${2:?evidence_type: honeypot|rugpull|phishing|scam|fake}"
+DESC="${3:?Provide a brief description of the scam evidence}"
+CHAIN=$(vigil_validate_chain "${4:-base}")
 
-echo "🚨 Submitting scam report..."
-echo "  Token:    $TOKEN"
-echo "  Type:     $EVIDENCE"
-echo "  Chain:    $CHAIN"
-echo "  Details:  $DESC"
+case "$EVIDENCE" in
+  honeypot|rugpull|phishing|scam|fake) ;;
+  *) echo "Error: evidence_type must be honeypot|rugpull|phishing|scam|fake" >&2; exit 1 ;;
+esac
+
+# Escape the free-text description for safe JSON embedding.
+DESC_JSON=$(printf '%s' "$DESC" | jq -Rs '.')
+
+echo "🚨 Submitting scam report for $TOKEN ($EVIDENCE) on $CHAIN..."
 echo ""
 
-RESPONSE=$(curl -s -f "$API_BASE/report/submit" \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $BANKR_API_KEY" \
-  -d "{
-    \"token\": \"$TOKEN\",
-    \"evidence_type\": \"$EVIDENCE\",
-    \"description\": \"$DESC\",
-    \"chain\": \"$CHAIN\"
-  }") || {
-  echo "Error: Submission failed" >&2
-  exit 1
-}
+ARGS="{\"token\":\"$TOKEN\",\"evidence_type\":\"$EVIDENCE\",\"description\":$DESC_JSON,\"chain\":\"$CHAIN\"}"
+RESPONSE=$(vigil_call vigil_report_scam "$ARGS")
 
-STATUS=$(echo "$RESPONSE" | jq -r '.status')
-REPORT_ID=$(echo "$RESPONSE" | jq -r '.report_id')
-
-if [ "$STATUS" = "submitted" ]; then
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "  ✅ Report Submitted"
-  echo ""
-  echo "  Report ID: $REPORT_ID"
-  echo "  Status:    Pending verification"
-  echo ""
-  echo "  Your report will be reviewed by the community."
-  echo "  If verified, you earn a $VIGIL bounty reward."
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-else
-  echo "❌ Submission rejected: $(echo "$RESPONSE" | jq -r '.error // "unknown"')"
-fi
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  ✅ $(echo "$RESPONSE" | jq -r '.status // "submitted"')"
+echo "  Report ID:  $(echo "$RESPONSE" | jq -r '.report_id // "N/A"')"
+echo "  Reports for token: $(echo "$RESPONSE" | jq -r '.total_reports_for_token // 1')"
+echo "  Bounty:     $(echo "$RESPONSE" | jq -r '.bounty // "—"')"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

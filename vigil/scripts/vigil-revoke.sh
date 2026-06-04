@@ -1,74 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# vigil-revoke.sh — Revoke a token approval via Bankr
+# vigil-revoke.sh — Revoke a token approval through Bankr (signed onchain tx).
 # Usage: ./vigil-revoke.sh <token_address> <spender_address> [chain]
-# Requires: BANKR_API_KEY environment variable
+#
+# Revocation is a STATE-CHANGING action and is intentionally NOT part of the
+# read-only VIGIL endpoint. It is executed through the Bankr agent, which holds
+# the signing key in its secure enclave. Requires the `bankr` CLI to be
+# installed and authenticated (bankr login ... --read-write).
 
-TOKEN="${1:?Usage: vigil-revoke.sh <token_address> <spender_address> [chain]}"
-SPENDER="${2:?Usage: vigil-revoke.sh <token_address> <spender_address> [chain]}"
-CHAIN="${3:-base}"
-API_BASE="${VIGIL_API:-https://api.bankr.bot/vigil}"
+. "$(dirname "$0")/_vigil_lib.sh"
 
-if [ -z "${BANKR_API_KEY:-}" ]; then
-  echo "Error: BANKR_API_KEY required for revocation" >&2
-  echo "Set it with: export BANKR_API_KEY=bk_your_key" >&2
+TOKEN=$(vigil_validate_addr "${1:?Usage: vigil-revoke.sh <token> <spender> [chain]}")
+SPENDER=$(vigil_validate_addr "${2:?Usage: vigil-revoke.sh <token> <spender> [chain]}")
+CHAIN=$(vigil_validate_chain "${3:-base}")
+
+if ! command -v bankr >/dev/null 2>&1; then
+  echo "Error: 'bankr' CLI not found. Install and authenticate Bankr first:" >&2
+  echo "  bankr login email your@email.com   # then enable --read-write" >&2
   exit 1
 fi
 
-echo "🔓 Revoking approval..."
+echo "🔓 Revoking approval via Bankr"
 echo "  Token:   $TOKEN"
 echo "  Spender: $SPENDER"
 echo "  Chain:   $CHAIN"
 echo ""
 
-# Step 1: Build unsigned revocation transaction
-echo "📝 Building revocation transaction..."
-TX_DATA=$(curl -s -f "$API_BASE/revoke/build" \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $BANKR_API_KEY" \
-  -d "{\"token\":\"$TOKEN\",\"spender\":\"$SPENDER\",\"chain\":\"$CHAIN\"}") || {
-  echo "Error: Failed to build transaction" >&2
-  exit 1
-}
-
-UNSIGNED_TX=$(echo "$TX_DATA" | jq -r '.unsigned_tx')
-GAS_EST=$(echo "$TX_DATA" | jq -r '.gas_estimate // "unknown"')
-
-echo "  Gas Estimate: $GAS_EST"
-echo ""
-
-# Step 2: Sign and submit via Bankr
-echo "✍️  Signing via Bankr..."
-SIGN_RESPONSE=$(curl -s -f "$API_BASE/revoke/submit" \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $BANKR_API_KEY" \
-  -d "{\"unsigned_tx\":\"$UNSIGNED_TX\",\"chain\":\"$CHAIN\"}") || {
-  echo "Error: Transaction submission failed" >&2
-  exit 1
-}
-
-TX_HASH=$(echo "$SIGN_RESPONSE" | jq -r '.tx_hash // .transactionHash')
-STATUS=$(echo "$SIGN_RESPONSE" | jq -r '.status')
-
-if [ "$STATUS" = "success" ] || [ -n "$TX_HASH" ]; then
-  echo ""
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "  ✅ Approval Revoked Successfully"
-  echo ""
-  echo "  TX Hash: $TX_HASH"
-  
-  case "$CHAIN" in
-    base)      echo "  Explorer: https://basescan.org/tx/$TX_HASH" ;;
-    ethereum)  echo "  Explorer: https://etherscan.io/tx/$TX_HASH" ;;
-    polygon)   echo "  Explorer: https://polygonscan.com/tx/$TX_HASH" ;;
-    arbitrum)  echo "  Explorer: https://arbiscan.io/tx/$TX_HASH" ;;
-  esac
-  
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-else
-  echo "❌ Transaction failed: $(echo "$SIGN_RESPONSE" | jq -r '.error // "unknown error"')"
-  exit 1
-fi
+# Bankr understands natural-language intents and handles building + signing
+# + submitting the revoke transaction. setApproval(spender, 0) == revoke.
+exec bankr agent "revoke the ERC-20 approval for token $TOKEN granted to spender $SPENDER on $CHAIN (set allowance to 0)"

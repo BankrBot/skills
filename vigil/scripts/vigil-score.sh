@@ -1,40 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# vigil-score.sh — Get safety score for a contract
+# vigil-score.sh — Get a 0-100 safety score for a contract.
 # Usage: ./vigil-score.sh <contract_address> [chain]
 
-CONTRACT="${1:?Usage: vigil-score.sh <contract_address> [chain]}"
-CHAIN="${2:-base}"
-API_BASE="${VIGIL_API:-https://api.bankr.bot/vigil}"
+. "$(dirname "$0")/_vigil_lib.sh"
+
+CONTRACT=$(vigil_validate_addr "${1:?Usage: vigil-score.sh <contract_address> [chain]}")
+CHAIN=$(vigil_validate_chain "${2:-base}")
 
 echo "📊 Getting safety score for $CONTRACT on $CHAIN..."
 echo ""
 
-RESPONSE=$(curl -s -f "$API_BASE/score?address=$CONTRACT&chain=$CHAIN" \
-  -H "Accept: application/json" \
-  ${BANKR_API_KEY:+-H "Authorization: Bearer $BANKR_API_KEY"}) || {
-  echo "Error: API request failed" >&2
-  exit 1
-}
+RESPONSE=$(vigil_call vigil_safety_score "{\"contract\":\"$CONTRACT\",\"chain\":\"$CHAIN\"}")
 
 SCORE=$(echo "$RESPONSE" | jq -r '.score')
 RISK=$(echo "$RESPONSE" | jq -r '.risk_level')
+ICON=$(risk_icon "$RISK")
 
-# Visual score bar
-FILLED=$(echo "scale=0; $SCORE / 5" | bc)
-EMPTY=$((20 - FILLED))
-BAR=$(printf '█%.0s' $(seq 1 $FILLED 2>/dev/null) 2>/dev/null || true)
-BAR="$BAR$(printf '░%.0s' $(seq 1 $EMPTY 2>/dev/null) 2>/dev/null || true)"
-
-case "$RISK" in
-  critical) ICON="🔴" ;;
-  high)     ICON="🟠" ;;
-  medium)   ICON="🟡" ;;
-  low)      ICON="🟢" ;;
-  safe)     ICON="✅" ;;
-  *)        ICON="❓" ;;
-esac
+# Simple 20-cell bar without bc dependency.
+FILLED=$(( SCORE / 5 ))
+[ "$FILLED" -gt 20 ] && FILLED=20
+EMPTY=$(( 20 - FILLED ))
+BAR=""
+for _ in $(seq 1 "$FILLED"); do BAR="$BAR█"; done
+for _ in $(seq 1 "$EMPTY"); do BAR="$BAR░"; done
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  $ICON Safety Score: $SCORE/100"
@@ -43,23 +33,18 @@ echo "  Risk Level: ${RISK^^}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Score breakdown
 echo "📋 Score Breakdown:"
-echo "$RESPONSE" | jq -r '.breakdown[] | 
-  "  \(if .score >= 80 then "✅" elif .score >= 60 then "🟡" elif .score >= 40 then "🟠" else "🔴" end) \(.category): \(.score)/100 — \(.note)"'
+echo "$RESPONSE" | jq -r '.breakdown[]? |
+  "  \(if .score >= 80 then "✅" elif .score >= 60 then "🟡" elif .score >= 40 then "🟠" else "🔴" end) \(.category): \(.score) — \(.note)"'
 echo ""
 
-# Risk factors
-RISK_COUNT=$(echo "$RESPONSE" | jq '.risk_factors | length')
-if [ "$RISK_COUNT" -gt 0 ]; then
+if [ "$(echo "$RESPONSE" | jq '.risk_factors | length')" -gt 0 ]; then
   echo "⚠️  Risk Factors:"
   echo "$RESPONSE" | jq -r '.risk_factors[] | "  • \(.)"'
   echo ""
 fi
 
-# Positive factors
-POS_COUNT=$(echo "$RESPONSE" | jq '.positive_factors | length')
-if [ "$POS_COUNT" -gt 0 ]; then
+if [ "$(echo "$RESPONSE" | jq '.positive_factors | length')" -gt 0 ]; then
   echo "✅ Positive Factors:"
   echo "$RESPONSE" | jq -r '.positive_factors[] | "  • \(.)"'
   echo ""
