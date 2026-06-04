@@ -53,7 +53,7 @@ Reports are cached for 60 minutes. If the same token is analyzed twice within an
 ## Endpoint
 
 ```
-POST https://x402.bankr.bot/0xD3aDb4D4B787eE631A1B2618464e21B229873075/analyze
+POST https://x402.bankr.bot/0x8901c544cfb3f1e87ae80e66154b04aee5f0448f/Lintmus
 Content-Type: application/json
 
 {
