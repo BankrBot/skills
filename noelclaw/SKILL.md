@@ -2,7 +2,7 @@
 
 Noelclaw gives your AI persistent memory, autonomous automations, and on-chain execution on Base — all from plain-English instructions. Install once, your AI remembers everything across every session.
 
-**74 MCP tools · v3.0.0 · Free during beta**
+**76 MCP tools · v3.2.1 · Free during beta**
 
 ## Install
 
@@ -22,7 +22,6 @@ claude mcp add noelclaw -- npx -y @noelclaw/mcp
       "command": "npx",
       "args": ["-y", "@noelclaw/mcp"],
       "env": {
-        "NOELCLAW_API_KEY": "noel_sk_...",
         "ANTHROPIC_API_KEY": "sk-ant-..."
       }
     }
@@ -30,7 +29,7 @@ claude mcp add noelclaw -- npx -y @noelclaw/mcp
 }
 ```
 
-Get your API key at **app.noelclaw.com**
+No account needed — a local wallet auto-generates on first run and signs every request. Optional: set `ANTHROPIC_API_KEY` to use your own Anthropic key, or `BANKR_API_KEY` for Bankr. Without either, calls route through the Noelclaw platform automatically.
 
 ---
 
@@ -76,7 +75,7 @@ swarm research: "best DeFi plays on Base this month"
 | **Vault Delete** `vault_delete` | Delete an entry |
 | **Vault Tag** `vault_tag` | Add or update tags |
 
-### Memory — Semantic Search (7 tools)
+### Memory — Semantic Search (9 tools)
 
 | Name | Description |
 |------|-------------|
@@ -87,6 +86,8 @@ swarm research: "best DeFi plays on Base this month"
 | **Memory List** `memory_list` | List recent memory entries |
 | **Memory Delete** `memory_delete` | Remove a memory entry |
 | **Memory Insight** `memory_insight` | AI insights from your memory patterns |
+| **Memory Extract** `memory_extract` | Auto-extract discrete facts from any text and save individually |
+| **Memory Consolidate** `memory_consolidate` | Merge overlapping memories on a topic into one clean summary |
 
 ### OS — Session Lifecycle (3 tools)
 
@@ -232,7 +233,7 @@ Actions: `swap`, `send`, `alert` (Telegram)
 ## Tech Stack
 
 - **Bankr LLM API** — agent reasoning and market intelligence
-- **Model Context Protocol (MCP)** — 74 tools, stdio transport, v3.0.0
+- **Model Context Protocol (MCP)** — 76 tools, stdio transport, v3.2.1
 - **Convex** — real-time backend, automation engine, swarm coordinator
 - **0x Protocol v2** — on-chain swap execution on Base
 - **Supermemory** — semantic vector memory
