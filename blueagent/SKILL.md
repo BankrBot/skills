@@ -1,7 +1,7 @@
 ---
 name: blueagent-x402
 description: >
-  53 pay-per-use AI tools for Base builders, traders, and agents — powered by Blue Agent.
+  64 pay-per-use AI tools for Base builders, traders, and agents — powered by Blue Agent.
   Use when you need to analyze tokens (honeypot, deep DD, security), audit wallets (PnL, AML, airdrop),
   get builder intelligence (market fit, pitch, GTM, investor memo), track narratives and whale flows,
   scan quantum risk, or optimize DeFi yield. All tools run on Base, pay USDC via x402. No API key needed.
@@ -18,7 +18,7 @@ metadata:
 
 # Blue Agent x402 — 53 AI Tools for Base
 
-53 pay-per-use AI services on Base — pay USDC per call via x402. No subscription, no API key.
+64 pay-per-use AI services on Base — pay USDC per call via x402. No subscription, no API key.
 
 **Base URL:** `https://blueagent.dev/api/x402`
 **Token:** `$BLUEAGENT` — `0xf895783b2931c919955e18b5e3343e7c7c456ba3` (Base)
