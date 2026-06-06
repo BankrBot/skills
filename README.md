@@ -23,6 +23,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | [Endaoment](https://endaoment.org) | [endaoment](endaoment/) | Charitable donations on-chain. Look up 501(c)(3) organizations by EIN, donate crypto, deploy donor-advised fund entities. |
 | [ENS](https://ens.domains) | [ens-primary-name](ens-primary-name/) | ENS name management. Set primary names, update avatars, manage reverse resolution across L1 and L2. |
 | [8004.org](https://8004.org) | [erc-8004](erc-8004/) | On-chain agent identity registry. ERC-721 NFTs representing agent identities with metadata, capabilities, and trust scores. |
+| [MainStreet](https://avisradar-production.up.railway.app/mainstreet) | [mainstreet](mainstreet/) | Onchain reputation oracle for AI agents on Base. SAFE / CAUTION / BLOCK + 0-100 score before any agent-to-agent payment. EIP-712 signed attestations verifiable onchain. Indexes x402 settlements, ERC-8004 feedback, Bazaar listings. |
 | [Coinbase](https://onchainkit.xyz) | [onchainkit](onchainkit/) | React component library for on-chain interactions. Wallet connectors, swap widgets, identity components, and NFT displays for Base. |
 | [qrcoin](https://qrcoin.fun) | [qrcoin](qrcoin/) | QR code auction game. Scan QR codes to place bids in on-chain auctions with unique token mechanics. |
 | [Veil Cash](https://veil.cash) | [veil](veil/) | Privacy-preserving transactions. Deposit into shielded pools, perform ZK withdrawals, manage private transfers. |
