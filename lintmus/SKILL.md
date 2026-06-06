@@ -13,13 +13,16 @@ install the lintmus skill from https://github.com/lintmus/lintmus
 Lintmus analyzes a token contract and returns:
 
 - **Safety score** (0–100) — aggregated from all data sources
-- **Honeypot detection** — via GoPlus Security API
+- **Honeypot detection** — via GoPlus Security and honeypot.is
 - **Tax analysis** — buy/sell tax percentages
 - **Ownership flags** — mintable, hidden owner, pausable, blacklist
 - **Liquidity** — USD liquidity, 24h volume, LP lock status
 - **Age** — how long the token has been trading
+- **Social signals** — website and social links presence
+- **Liquidity seeding detection** — new tokens with suspiciously high liquidity
+- **Malicious holder detection** — top holders flagged by GoPlus
 - **Contract verification** — is source code public?
-- **Deployer history** — has this wallet rugged before?
+- **Deployer history** — cross-chain rug history via Alchemy (Base, ETH, Polygon)
 
 ## Usage
 
