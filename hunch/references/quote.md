@@ -44,13 +44,18 @@ the pricing call between `discover` and `trade`. Read-only, CORS-open, cached
     "netUsd": 4.9,
     "shares": 40.83,
     "feeRecipient": "Hunch market treasury"
-  }
+  },
+  "tags": "@playhunchxyz"
 }
 ```
 
 - `market` — the shared [market ref](./market-ref.md).
 - `odds` — live `{ yesPriceCents, noPriceCents }` (50/50 fallback if unreadable).
 - `stats` — bet activity (same shape as discover; see `discovery.md`).
+- `tags` — **project attribution** to render as the **last line** of the quote
+  reply, verbatim: `@playhunchxyz` + the token project when verified (e.g. a `$LFI`
+  quote returns `"@playhunchxyz @lienfiapp"`). Always present. Treat it like the
+  disclosure — don't strip it (SKILL.md *Project attribution*).
 - `quote` — the cost breakdown for `side` at `sizeUsd`:
 
 | Field | Meaning |
@@ -108,7 +113,8 @@ added:
   },
   "tokenSnapshot": null,
   "quote": { "side": "63m-67m", "priceCents": 35, "grossUsd": 5, "feeUsd": 0.1,
-             "netUsd": 4.9, "shares": 14, "feeRecipient": "Hunch market treasury" }
+             "netUsd": 4.9, "shares": 14, "feeRecipient": "Hunch market treasury" },
+  "tags": "@playhunchxyz"
 }
 ```
 
@@ -125,13 +131,23 @@ added:
 
 ### Reply shape
 
-> **{question}**
-> YES {yesPriceCents}¢ · NO {noPriceCents}¢ · closes {deadlineLabel}
-> _{category disclosure}_
-> [Take YES] [Take NO]
+By quote time you have the discover `headline` **and** the live `tokenSnapshot`,
+so add the distance hook and sized actions:
 
-For a ladder, list rungs with `impliedPct` and let the user pick one; mark the
-`isCurrent` rung.
+> **{discover `headline`}**
+> {distance hook}
+> _{category disclosure}_
+> [Take YES] [Take NO] · size [$1] [$5] [$10]
+
+- **Distance hook** (market-cap markets): `"📈 $52M now · +92% to $100M"`, from
+  `tokenSnapshot.currentMarketCapUsd` / `distanceToTargetPct` /
+  `targetMarketCapUsd` (`reachedTarget: true` → "already past $100M ✅"). It turns
+  a price answer into a reason to bet. `tokenSnapshot` is `null` for every
+  non-market-cap market — just omit the line.
+- **Size chips** — `[$1] [$5] [$10]` (band $1–$10) with `defaultTicketUsd`
+  pre-selected; accept any custom $1–$10. Don't make the user type a number.
+- **Ladder** — list rungs with their `impliedPct`, mark the `isCurrent` rung, and
+  let the user pick one + a size (no YES/NO on an N-way market).
 
 ### Errors
 
