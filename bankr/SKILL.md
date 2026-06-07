@@ -291,6 +291,8 @@ For full API details (request/response schemas, job states, rich data, polling s
 | `bankr wallet portfolio --json` | Output raw JSON |
 | `bankr wallet transfer --to <recipient> --token <symbol> --amount <amount>` | Transfer tokens; `--to` accepts a 0x address or ENS-style name (`.eth`, `.base.eth`, `.cb.id`), `--token` resolves symbols to contracts. Social handles work via the AI agent only. |
 | `bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base` | ENS recipient with explicit chain |
+| `bankr wallet swap --from <symbol/addr> --to <symbol/addr> --amount <amount>` | Swap tokens on a single EVM chain (same-chain). Resolves symbols to contracts; `--from`/`--to`/`--amount` required; `--chain` defaults to `base`. Solana is not supported. |
+| `bankr wallet swap --from ETH --to USDC --amount 0.1 --chain base --quote-only` | Print the swap quote (you pay / you receive / min received) without executing |
 | `bankr wallet sign` | Sign messages/typed data/transactions |
 | `bankr wallet submit` | Submit raw transactions |
 
@@ -1015,6 +1017,32 @@ curl -X POST "https://api.bankr.bot/wallet/transfer" \
   -H "Content-Type: application/json" \
   -d '{"to": "vitalik.eth", "token": "USDC", "amount": "50", "chain": "base"}'
 ```
+
+### Swap (Direct)
+
+Swap tokens on a single EVM chain (same-chain) via CLI or Wallet API without AI processing. Both legs must be on the same EVM chain — Solana and cross-chain routes go through the AI agent. The CLI resolves token symbols to contracts and uses the quote's `minBuyAmount` as slippage protection when executing.
+
+```bash
+# CLI — quote only (no execution)
+bankr wallet swap --from ETH --to USDC --amount 0.1 --chain base --quote-only
+
+# CLI — quote then execute
+bankr wallet swap --from ETH --to USDC --amount 0.1 --chain base
+
+# REST API — quote (read; read-only keys allowed)
+curl -X POST "https://api.bankr.bot/wallet/swap-quote" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"fromChain": "base", "fromToken": "0x...", "toChain": "base", "toToken": "0x...", "amount": "0.1"}'
+
+# REST API — execute (write; pass the quote's minBuyAmount for slippage protection)
+curl -X POST "https://api.bankr.bot/wallet/swap" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"fromChain": "base", "fromToken": "0x...", "toChain": "base", "toToken": "0x...", "amount": "0.1", "minBuyAmount": "..."}'
+```
+
+The `/wallet/swap*` endpoints take token **contract addresses** (use the zero address for the chain's native token); the CLI resolves symbols for you. Swap output is always returned to your own wallet, so `allowedRecipients` does not apply.
 
 ### Sign API (Synchronous)
 
