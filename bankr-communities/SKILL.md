@@ -1,9 +1,12 @@
 ---
 name: bankr-communities
-version: 1.4.0
 description: >-
-  Token-gated holder communities for Bankr-launched tokens. Verify, post, pin, update profile via API.
-  Beneficiary: PATCH socials, pin-post. Read references/beneficiary-actions.md. TMP: https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3
+  Token-gated holder communities for Bankr-launched tokens. Links, briefing, posts,
+  verify, pin, and beneficiary profile updates via natural language on X or terminal.
+emoji: 🏘️
+tags: [communities, bankr, tokens, social, base, holders, verify]
+visibility: public
+version: 1.4.0
 siteUrl: https://bankr-community.vercel.app
 communitiesSiteUrl: https://bankr-community.vercel.app
 COMMUNITIES_SITE_URL: https://bankr-community.vercel.app
