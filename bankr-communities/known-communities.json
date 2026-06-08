@@ -1,0 +1,24 @@
+{
+  "siteUrl": "https://bankr-community.vercel.app",
+  "COMMUNITIES_SITE_URL": "https://bankr-community.vercel.app",
+  "urlTemplate": "https://bankr-community.vercel.app/community/{tokenContractAddress}",
+  "linkApiTemplate": "https://bankr-community.vercel.app/api/agent/link?q={TICKER}",
+  "linkApiExamples": {
+    "TMP": "https://bankr-community.vercel.app/api/agent/link?q=TMP",
+    "ARCHIVE": "https://bankr-community.vercel.app/api/agent/link?q=ARCHIVE"
+  },
+  "communities": {
+    "TMP": {
+      "symbol": "TMP",
+      "tokenAddress": "0x935e13a28849095db45e63040f109c34b757aba3",
+      "communityLink": "https://bankr-community.vercel.app/community/0x935e13a28849095db45e63040f109c34b757aba3",
+      "linkApi": "https://bankr-community.vercel.app/api/agent/link?q=TMP"
+    },
+    "ARCHIVE": {
+      "symbol": "ARCHIVE",
+      "tokenAddress": "0x76aba8089e4ba07f705fb886d17dd41793ad2ba3",
+      "communityLink": "https://bankr-community.vercel.app/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3",
+      "linkApi": "https://bankr-community.vercel.app/api/agent/link?q=ARCHIVE"
+    }
+  }
+}
