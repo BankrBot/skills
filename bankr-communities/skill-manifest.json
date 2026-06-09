@@ -1,0 +1,46 @@
+{
+  "name": "bankr-communities",
+  "displayName": "Bankr Space",
+  "skillVersion": "1.7.1",
+  "defaultSiteUrl": "https://bankr.space",
+  "COMMUNITIES_SITE_URL": "https://bankr.space",
+  "communityUrlTemplate": "https://bankr.space/community/{tokenContractAddress}",
+  "linkApiTemplate": "https://bankr.space/api/agent/link?q={TICKER}",
+  "instantLinks": {
+    "TMP": "https://bankr.space/community/0x935e13a28849095db45e63040f109c34b757aba3",
+    "ARCHIVE": "https://bankr.space/community/0x76aba8089e4ba07f705fb886d17dd41793ad2ba3"
+  },
+  "forbiddenLinkDomains": ["bankr.bot", "t.co"],
+  "installUrl": "https://github.com/anondevv69/bankr-community",
+  "installCommand": "install Bankr Space skill at https://github.com/anondevv69/bankr-community/tree/main/skills/bankr-communities",
+  "siteEnvVar": "COMMUNITIES_SITE_URL",
+  "companionSkills": [
+    {
+      "id": "tmp-site-agent",
+      "installCommand": "install TMP site agent at https://github.com/anondevv69/bankr-tmp-skill/tree/main/tmp-site-agent"
+    },
+    {
+      "id": "tmp-skills",
+      "installCommand": "install TMP skills at https://github.com/anondevv69/bankr-tmp-skill"
+    }
+  ],
+  "allReferences": [
+    "TERMINOLOGY.md",
+    "NOT-TWITTER-X-SPACES.md",
+    "BENEFICIARY-ACTIONS.md",
+    "POST-SOURCE.md",
+    "X-REPLY-POST-CONTENT.md",
+    "INSTANT-LINK-REPLIES.md",
+    "GET-LINK.md",
+    "LINK-INTENT-ONLY.md",
+    "ONE-LINE-INTENTS.md",
+    "community-autopilot.md",
+    "known-communities.json",
+    "references/COMMUNITY-LINK-RULES.md",
+    "references/AGENT-ROUTING-COMMUNITIES.md",
+    "references/BANKR-PLATFORM-TWEET-INTAKE.md",
+    "references/community-api-reference.md",
+    "references/dm-intents.md"
+  ],
+  "bankrNote": "Writes: verify, PATCH profile/socials, post, pin — same tweet routing as post-in-space. X replies: read X-REPLY-POST-CONTENT.md. Use linked wallet in x-wallet-address."
+}

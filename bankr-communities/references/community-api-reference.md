@@ -1,8 +1,8 @@
-# Communities site API reference (agent)
+# Bankr Space site API reference (agent)
 
-**Base:** `https://bankr-community.vercel.app` (default; override with `COMMUNITIES_SITE_URL`)
+**Base:** `https://bankr.space` (default; override with `COMMUNITIES_SITE_URL`)
 
-All responses JSON unless noted. Writes require header **`x-wallet-address: 0x…`** (linked Bankr wallet).
+All responses JSON. Writes require header **`x-wallet-address: 0x…`** (linked Bankr wallet).
 
 ---
 
@@ -18,9 +18,9 @@ GET /api/agent/search-communities?q=archive
 
 **link (plain text):** response body = tweet reply. Same as `curl "…/api/agent/link?q=TMP"`. No JSON parsing.
 
-**resolve-community:** search existing communities → if found `communityLink` → if token on Bankr but no community `suggestCreateCommunity: true` + ask to create → on yes POST `/api/communities/{tokenAddress}`.
+**resolve-community:** search existing spaces → if found `communityLink` → if token on Bankr but no space `suggestCreateCommunity: true` + ask to create → on yes POST `/api/communities/{tokenAddress}`.
 
-**search-communities:** list only communities already created matching query.
+**search-communities:** list only spaces already created matching query matching query.
 
 ---
 
@@ -32,13 +32,11 @@ GET /api/agent/briefing?token=0x935e13a28849095db45e63040f109c34b757aba3
 GET /api/agent/briefing?q=search term
 ```
 
-Returns: `community`, `stats`, `recentPosts`, `opportunities`, `links`, `agentActions`, `replyText`, `tweetReply`.
-
-Paste **`replyText`** verbatim in replies — URL is on the last line.
+Returns: `community`, `stats`, `recentPosts`, `opportunities`, `links`, `agentActions`.
 
 ---
 
-## Communities
+## Spaces (API)
 
 ```
 GET   /api/communities
@@ -46,7 +44,24 @@ GET   /api/communities/{tokenAddress}
 PATCH /api/communities/{tokenAddress}     body: { description?, socialLinks? }  ← fee beneficiary
 POST  /api/communities/{tokenAddress}     body: { description? }
 POST  /api/communities/{tokenAddress}/verify
-POST  /api/communities/{tokenAddress}/posts   body: { content }  → returns postId
+POST  /api/communities/{tokenAddress}/posts   body: { content, source? }  → returns postId
+```
+
+**Post `source` (optional provenance):**
+
+| Field | Values |
+|-------|--------|
+| `client` | `web`, `bankr-app`, `agent`, `api` (or header `x-client`) |
+| `trigger` | `manual`, `x-dm`, `x-mention`, `x-reply`, `terminal`, `autopilot` |
+| `viaAgent` | boolean |
+| `agentId` | e.g. `bankrbot` |
+| `externalRef` | tweet/DM id |
+
+Agents posting after an X DM should set `client: agent`, `trigger: x-dm`, `viaAgent: true`, `agentId: bankrbot`. UI shows e.g. **Posted via @bankrbot · X DM**.
+
+**Mandatory for @bankrbot:** every post write includes `source`. Read **`POST-SOURCE.md`** (skill root).
+
+```
 POST  /api/communities/{tokenAddress}/pin-post  body: { postId, action: "pin"|"unpin" }
 ```
 
@@ -101,6 +116,6 @@ Token launches also available at `https://api.bankr.bot/token-launches` — comm
 |--------|---------|
 | 401 | Wallet header missing |
 | 403 | Not holder / not owner |
-| 404 | Community not found |
-| 409 | Community already exists |
+| 404 | Space not found |
+| 409 | Space already exists |
 | 503 | KV not configured |

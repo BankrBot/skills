@@ -4,5 +4,5 @@
 set -euo pipefail
 
 TICKER="${1:?Usage: get-community-link.sh TICKER}"
-SITE="${COMMUNITIES_SITE_URL:-https://bankr-community.vercel.app}"
+SITE="${COMMUNITIES_SITE_URL:-https://bankr.space}"
 curl -sf "${SITE}/api/agent/link?q=${TICKER}"

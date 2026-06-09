@@ -109,6 +109,8 @@ Use: `canEditProfile`, `canPinPosts`, `canPost`, `isBeneficiary`.
 
 ## Post AND pin (combined)
 
+**Before building `content`:** read **`X-REPLY-POST-CONTENT.md`** — X reply “post this” → parent tweet URL; explicit text → user’s words only.
+
 **User says:**
 ```text
 @bankrbot post in TMP space: launch update — and pin it
