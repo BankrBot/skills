@@ -58,7 +58,7 @@ npm install @manifestintent/sdk
 ```ts
 const { data, total } = await client.intents.list({
   direction: 'outbound',        // optional: inbound | outbound
-  type: 'collaboration',        // optional: collaboration | investment | integration | hiring | co-marketing | grant | ecosystem-support | beta-testers
+  type: 'collaboration',        // optional: collaboration | investment | integration | hiring | co-marketing | grant | ecosystem-support | beta-testers | advisory | services
   ecosystem: 'base',            // optional: base | ethereum | solana | polygon | optimism | arbitrum | multi-chain
   sector: 'infrastructure',     // optional: defi | nft | gaming | dao-tooling | infrastructure | identity | security | social | payments
   limit: 20,
@@ -88,6 +88,8 @@ for (const intent of data) {
 | `grant` | Offering or seeking grant funding |
 | `ecosystem-support` | BD intros, ecosystem resources |
 | `beta-testers` | Early users or testers wanted |
+| `advisory` | Strategic advice, mentorship, or board help |
+| `services` | Professional services like dev, design, legal, audits |
 
 ### 2. Post an intent
 
