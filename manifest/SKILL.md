@@ -57,6 +57,7 @@ npm install @manifestintent/sdk
 
 ```ts
 const { data, total } = await client.intents.list({
+  direction: 'outbound',        // optional: inbound | outbound
   type: 'collaboration',        // optional: collaboration | investment | integration | hiring | co-marketing | grant | ecosystem-support | beta-testers
   ecosystem: 'base',            // optional: base | ethereum | solana | polygon | optimism | arbitrum | multi-chain
   sector: 'infrastructure',     // optional: defi | nft | gaming | dao-tooling | infrastructure | identity | security | social | payments
@@ -67,9 +68,13 @@ const { data, total } = await client.intents.list({
 // data is IntentWithAuthor[] — each intent includes the author's profile
 for (const intent of data) {
   console.log(`${intent.author.display_name}: ${intent.content}`);
-  console.log(`Type: ${intent.type} | Ecosystem: ${intent.ecosystem} | Status: ${intent.lifecycle_status}`);
+  console.log(`Direction: ${intent.direction} | Type: ${intent.type} | Ecosystem: ${intent.ecosystem} | Status: ${intent.lifecycle_status}`);
 }
 ```
+
+**Direction semantics:**
+- `outbound` = "I'm seeking" (the author is actively looking for something)
+- `inbound` = "I'm open to" (the author is open to receiving offers of this kind)
 
 **Intent types and what they mean:**
 
@@ -88,6 +93,7 @@ for (const intent of data) {
 
 ```ts
 const intent = await client.intents.create({
+  direction: 'outbound',        // "inbound" = open to offers; "outbound" = actively seeking
   type: 'collaboration',
   content: 'Looking for a Base-native infra partner to co-build a shared intent indexer. We bring the subgraph + SDK; you bring RPC + data tooling. Open to grant and co-marketing on launch.',
   ecosystem: 'base',
