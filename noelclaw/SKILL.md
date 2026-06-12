@@ -45,7 +45,7 @@ Noelclaw is a 102-tool MCP skill. When added to a Bankr agent, it unlocks:
 | **Swarm** | 5 | `swarm_research`, `stop_swarm`, `get_swarm_status`, `swarm_synthesize`, `trigger_agent` |
 | **Monitors** | 4 | `schedule_research`, `create_monitor`, `list_monitors`, `cancel_monitor` |
 | **DeFi** | 6 | `swap_tokens`, `send_token`, `get_portfolio`, `estimate_swap`, `get_defi_yields`, `analyze_wallet` |
-| **Automation** | 6 | `create_automation`, `list_automations`, `pause_automation`, `delete_automation`, `get_runs`, `run_automation` |
+| **Automation** | 6 | `create_automation`, `list_automations`, `pause_automation`, `delete_automation`, `get_automation_runs`, `run_automation` |
 | **Coder** | 5 | `generate_contract`, `audit_contract`, `explain_code`, `review_code`, `generate_mcp_skill` |
 | **Scanner** | 3 | `score_token`, `check_token`, `scan_market` |
 | **Framework** | 3 | `list_playbooks`, `run_playbook`, `get_noel_ledger` |
@@ -54,7 +54,7 @@ Noelclaw is a 102-tool MCP skill. When added to a Bankr agent, it unlocks:
 | **Packets** | 4 | `packet_create`, `packet_run`, `packet_list`, `packet_share` |
 | **Simulation** | 3 | `miroshark_simulate`, `miroshark_status`, `miroshark_stop` |
 | **Humanizer** | 2 | `humanize_text`, `write_content` |
-| **Base** | 4 | `query_vaults`, `list_markets`, `prepare_deposit`, `chain_stats` |
+| **Base** | 4 | `base_query_vaults`, `base_list_markets`, `base_prepare_deposit`, `base_chain_stats` |
 | **Wallet & OS** | 3 | `get_wallet_address`, `set_telegram`, `noel_status` |
 
 ---
@@ -71,7 +71,7 @@ Most AI research tools (Perplexity, ChatGPT Deep Research, Gemini Deep Research)
 | Build on prior research (`continueFrom`) | ✅ | ❌ |
 | Walk the temporal evolution of a topic | ✅ | ❌ |
 | Diff two reports across time | ✅ | ❌ |
-| Self-host LLM provider (Bankr / Anthropic / Grok) | ✅ | ❌ |
+| BYOK LLM gateway (Bankr / Anthropic / Grok) | ✅ | ❌ |
 | MCP-native — works in any client | ✅ | ❌ |
 
 Reports stored in vault build a knowledge graph: every new report attaches via semantic auto-linking, and continuations form temporal chains queryable via `research_chain`.
@@ -85,9 +85,8 @@ Reports stored in vault build a knowledge graph: every new report attaches via s
 | `BANKR_API_KEY` | Primary LLM gateway — powers `ask_noel` and all agent reasoning |
 | `NOELCLAW_MODEL` | Override LLM model across the full stack (default: `claude-haiku-4-5-20251001`) |
 | `NOELCLAW_PROVIDER` | Force a provider: `"bankr"`, `"anthropic"`, or `"grok"`. Default: auto |
-| `FIRECRAWL_API_KEY` | Required for `deep_research`, `web_search`, `web_scrape` — [firecrawl.dev](https://firecrawl.dev) |
+| `FIRECRAWL_API_KEY` | Required for `deep_research` and `web_search`; optional for `web_scrape` (falls back to basic fetch) — [firecrawl.dev](https://firecrawl.dev) |
 | `MINIMAX_API_KEY` | Required for `humanize_text` |
-| `AYRSHARE_API_KEY` | Required for `post_tweet` |
 | `GROK_API_KEY` | Optional alternative LLM provider |
 | `ANTHROPIC_API_KEY` | Optional alternative LLM provider |
 
@@ -137,9 +136,10 @@ All LLM calls use Bankr as the primary gateway when `BANKR_API_KEY` is set:
 
 - Routes to `https://llm.bankr.bot/v1/chat/completions` directly
 - Model controlled by `NOELCLAW_MODEL` env var (default: `claude-haiku-4-5-20251001`)
+- Through Bankr, both Claude (`claude-sonnet-4-6`, `claude-haiku-4-5-20251001`) and Grok (`grok-4.3`, `grok-4.20`) model families are available under a single gateway
 - Provider override via `NOELCLAW_PROVIDER=bankr|anthropic|grok`
 - Falls back to Convex backend proxy if no key is configured
-- Used by: `ask_noel`, `deep_research` (every synthesis stage), swarm synthesis, agent hiring, monitor reports
+- Used by: `ask_noel`, `deep_research` (every synthesis stage), swarm synthesis, agent hiring, monitor reports, content generation (`humanize_text`, `write_content`), code tools (`audit_contract`, `review_code`, `generate_contract`, `explain_code`, `generate_mcp_skill`), memory synthesis (`memory_extract`, `memory_consolidate`, `memory_insight`), market analysis (`market_thesis`, `trade_plan`)
 
 ---
 
