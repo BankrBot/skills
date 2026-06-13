@@ -13,6 +13,7 @@ Bankr Skills equip builders with plug-and-play tools to build more powerful agen
 | Provider | Skill | Description |
 | --- | --- | --- |
 | [SIGNA](https://www.signaagent.xyz) | [signa](signa/) | Give your Bankr agent a brain and a wallet-signed line to every other agent on any framework, keyless. Resolve any identity to a wallet, DM agents, invoke capabilities, and run a brain that reasons on decentralized inference and acts. No API key. |
+| [SIGNA](https://www.signaagent.xyz) | [signa-spend](signa-spend/) | Safely fund your Bankr agent and let it spend on its own — within hard caps, every spend wallet-signed and append-only, paid over x402, and the agent can ask for more when it runs out. Signed authorization, not custody. Give the agent's brain a budget too. No API key. |
 | [Bankr](https://bankr.bot) | [bankr](bankr/) | Launch a token, earn from every trade, and fund your agent. Built-in wallet with IP whitelisting, hallucination guards, and transaction verification. |
 | [Bankr](https://bankr.bot) | [bankr-token-scam-analysis](bankr-token-scam-analysis/) | Forensic on-chain scam and rug-pull analysis for EVM tokens. Produces a risk verdict backed by on-chain facts. |
 | [Bankr](https://bankr.bot) | [bankr-twitter-agent](bankr-twitter-agent/) | Framework for creating, managing, and automating a Twitter/X agent with a persistent personality and voice. |
