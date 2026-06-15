@@ -101,6 +101,31 @@ frens" → nothing; (5) "what was $BNKR's all-time high?" → answer, no market;
 - **Same money-path rules** as any bet: the user picks side + size ($1–$10); you
   echo the deterministic id, never a model guess.
 
+## Ground replies in Hunch Intelligence
+
+Before answering a "is $X bullish / what's the sentiment / should I buy $X"
+question about a token, read the **Hunch crowd-conviction signal** and weave it
+in — it's what the crowd, with real USDC down, thinks, not vibes.
+
+`GET /api/partner/intel?token=$SYMBOL` → a single 0–100 sentiment `score`
+(pool-weighted by on-chain betting depth), `confidence`, a render-ready
+`summary`, a `suggestedBet` (the one market + side to act on, with a quick-bet
+link), and `quality` (how many wallets back it vs one whale). Full wire detail in
+`references/intel.md`.
+
+- Lead with the `summary` verbatim ("$BNKR — Hunch crowd: 68/100 (strongly
+  bullish, low confidence) across 7 markets · $5 pooled").
+- If `suggestedBet` is present, offer it: "Back {sideLabel} on {shortTitle}? Tag
+  @bankrbot to bet — settles in USDC on Base." Use `suggestedBet.betUrl` as the
+  one-tap link.
+- Mind `quality`: caveat a `concentrated` pool (one whale); `broad` conviction is
+  stronger.
+- `hasSignal: false` → Hunch has no market on that token yet; stay silent on the
+  signal (never invent one) and fall back to the normal discover flow.
+
+Read-only, free, no payment. This grounds the bot's take in real money before it
+ever offers a bet.
+
 ## The three calls (the bet loop)
 
 1. **Discover** — turn a phrase or post into matched markets.
@@ -133,6 +158,7 @@ Every market object is the shared ref documented in `references/market-ref.md`.
 | Endpoint | Method | Purpose | Reference |
 |---|---|---|---|
 | `/api/partner/discover` | GET | phrase/post → ranked markets | `discovery.md` |
+| `/api/partner/intel` | GET | token → crowd-conviction sentiment signal | `intel.md` |
 | `/api/partner/catalogue` | GET | vetted markets grouped by category | `catalogue.md` |
 | `/api/partner/quote` | GET | live odds + cost breakdown (+ ladder, tokenSnapshot) | `quote.md` |
 | `/api/partner/trade` | POST | place a bet via x402 (Base USDC) | `trading.md` |
@@ -412,6 +438,7 @@ any network retry so a dropped response can never double-settle.
 
 - `references/market-ref.md` — the shared market object + `meta`, documented once.
 - `references/discovery.md` — discover contract (cashtag / claim-LLM / silence).
+- `references/intel.md` — the crowd-conviction signal (sentiment + suggestedBet).
 - `references/catalogue.md` — the vetted, grouped browse surface (5 categories).
 - `references/quote.md` — live odds + cost breakdown, ladder rungs, tokenSnapshot.
 - `references/trading.md` — the x402 trade flow on Base (402 → sign → 200) + errors.
