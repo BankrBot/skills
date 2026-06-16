@@ -21,12 +21,23 @@ metadata:
 ```
 Step 1 — request_additional_tools({ names: ["sign_message"] })
 Step 2 — commit_to_tools({ keep: ["sign_message"] })
-Step 3 — sign_message({ message: "nexus-trading-key-v1" }) → save as walletSig
+Step 3 — sign_message({ message: "nexus-trading-key-v1" }) → returns walletSig
          also capture walletAddress from the connected wallet
+Step 4 — STASH both so you never re-sign:
+           set_scratch({ key: "walletSig",     value: <walletSig> })
+           set_scratch({ key: "walletAddress", value: <walletAddress> })
+```
+
+**Reuse on EVERY authed call** — read from the scratchpad, put them in the JSON body:
+```
+sig  = get_scratch({ key: "walletSig" })
+addr = get_scratch({ key: "walletAddress" })
+POST /trade { ..., "walletSig": sig, "walletAddress": addr }   // body, NEVER a query string
 ```
 
 **⛔ DO NOT skip this.** No walletSig = 401 error on every authenticated endpoint.
 **⛔ DO NOT ask the user for a signature.** You have `sign_message` — use it yourself.
+**⛔ DO NOT re-sign per call.** Sign once → scratchpad → reuse all session.
 
 ---
 
