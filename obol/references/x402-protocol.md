@@ -1,201 +1,142 @@
 # x402 wire-level reference (buy-side)
 
-Detail for debugging or extending the script. SKILL.md has the user-facing flow; this doc is the implementation reference.
+Implementation detail for debugging or extending the scripts. SKILL.md has the user-facing flow; this is verified against the Obol Stack reference buyer (`obol-stack` `buy.py`). Logic lives in `scripts/x402.ts`.
 
-## v1 vs v2 — what changed
+## Addresses & facilitator
 
-| | v1 | v2 |
-|---|---|---|
-| Version field | `x402Version: 1` | `x402Version: 2` |
-| Network identifier | plain string (`"ethereum"`, `"base"`) | CAIP-2 (`"eip155:1"`, `"eip155:8453"`) |
-| Amount field | `maxAmountRequired` | `amount` |
-| Resource field | string URL | `{url, description, mimeType?}` object |
-| Transfer method hint | `extra.permit: true` (informal) | `extra.assetTransferMethod: "permit2" \| "transferWithAuthorization"` |
-| Extensions | absent | top-level `extensions: {...}` object |
-| Client → server header | `X-PAYMENT` | `PAYMENT-SIGNATURE` |
-| Server → client receipt | `X-PAYMENT-RESPONSE` | `PAYMENT-RESPONSE` |
-| Envelope must echo `accepted`? | no | yes — plus `extensions` |
+| | Value |
+|---|---|
+| Canonical Permit2 | `0x000000000022D473030F116dDEE9F6B43aC78BA3` |
+| x402 exact-Permit2 proxy (witness spender) | `0x402085c248EeA27D92E8b30b2C58ed07f9E20001` |
+| OBOL (mainnet) | `0x0B010000b7624eb9B3DfBC279673C76E9D29D5F7` (18 dec, `permit2`) |
+| Obol mainnet facilitator | `https://x402.gcp.obol.tech` |
 
-The script handles both. On v2 retries it sends `PAYMENT-SIGNATURE` AND `X-PAYMENT` to cover sellers in transition.
+## 402 challenge
 
-## Real 402 challenge (Obol Stack seller, v2)
+The seller returns `402` with a JSON body. Networks are CAIP-2 (`eip155:<id>`); `amount` is in **base units** of the asset.
 
 ```json
 {
   "x402Version": 2,
-  "error": "Payment required for this resource",
-  "resource": {
-    "url": "http://example.trycloudflare.com/services/demo-hello",
-    "description": "Payment required for /services/demo-hello"
-  },
-  "accepts": [
-    {
-      "scheme": "exact",
-      "network": "eip155:1",
-      "asset": "0x0B010000b7624eb9B3DfBC279673C76E9D29D5F7",
-      "amount": "1000000000000000000",
-      "payTo": "0x09f4a31c591421062A8dba9FcE24F29C5e88419A",
-      "maxTimeoutSeconds": 60,
-      "extra": {
-        "assetTransferMethod": "permit2",
-        "name": "Obol Network",
-        "version": "1"
-      }
-    }
-  ],
-  "extensions": {
-    "eip2612GasSponsoring": {}
+  "accepts": [{
+    "scheme": "exact",
+    "network": "eip155:1",
+    "asset": "0x0B010000b7624eb9B3DfBC279673C76E9D29D5F7",
+    "amount": "1000000000000000000",
+    "payTo": "0x09f4a31c591421062A8dba9FcE24F29C5e88419A",
+    "maxTimeoutSeconds": 60,
+    "extra": { "assetTransferMethod": "permit2", "name": "Obol Network", "version": "1" }
+  }],
+  "extensions": { "eip2612GasSponsoring": { "info": { "...": "..." } } }
+}
+```
+
+| Field | Notes |
+|-------|-------|
+| `amount` | uint256 string, base units. Look up decimals before showing a human. |
+| `asset` | ERC-20 contract; the EIP-712 `verifyingContract` for token signatures. |
+| `payTo` | Transfer recipient. EIP-3009 `to`; Permit2 witness `to`. |
+| `extra.assetTransferMethod` | `"eip3009"` → EIP-3009; `"permit2"` → Permit2 witness transfer. |
+| `extra.name` / `extra.version` | EIP-712 domain for the **permit2/EIP-2612** path. For **USDC** they mirror `name()` and are NOT reliably the signing domain — see below. |
+| `extra.eip712Domain` | Optional Obol convention: authoritative `{name, version}` for EIP-3009. |
+| `extensions.eip2612GasSponsoring` | Seller's facilitator gas-sponsors an EIP-2612 permit. Triggers the extra permit signature on the permit2 path. |
+
+## Path 1 — EIP-3009 `TransferWithAuthorization` (USDC)
+
+```ts
+domain: { name, version, chainId, verifyingContract: asset }
+types.TransferWithAuthorization: [from, to, value, validAfter, validBefore, nonce]  // address,address,uint256,uint256,uint256,bytes32
+message: { from: buyer, to: payTo, value: amount, validAfter: "0", validBefore: deadline, nonce: 0x+32 random bytes }
+```
+
+`nonce` is random per request (facilitator records `(from, nonce)` vs replay). **Domain resolution** (`x402.ts`): `extra.eip712Domain` if present, else the per-chain USDC table (`CHAINS[id].usdcDomain` — mainnet/base = `["USD Coin","2"]`, base-sepolia = `["USDC","2"]`), else `["USDC","2"]`. Do **not** trust `extra.name` for USDC: base-sepolia's `name()` is "USD Coin" but its EIP-712 domain is "USDC", and the wrong domain yields a valid-looking signature the facilitator silently rejects.
+
+## Path 2 — Permit2 + EIP-2612 (OBOL)
+
+Two signatures. First, a Permit2 `PermitWitnessTransferFrom` (the transfer authorization):
+
+```ts
+domain: { name: "Permit2", chainId, verifyingContract: PERMIT2 }   // no version field
+types: {
+  TokenPermissions: [token, amount],
+  Witness: [to, validAfter],
+  PermitWitnessTransferFrom: [permitted: TokenPermissions, spender: address, nonce: uint256, deadline: uint256, witness: Witness]
+}
+message: {
+  permitted: { token: asset, amount },
+  spender: X402_PROXY,                 // the exact-Permit2 proxy, NOT payTo
+  nonce: <random uint256>,
+  deadline,
+  witness: { to: payTo, validAfter: "0" }
+}
+```
+
+Then, when `extensions.eip2612GasSponsoring` is advertised, an EIP-2612 permit approving **canonical Permit2** to pull the tokens — the facilitator submits this on-chain gaslessly:
+
+```ts
+domain: { name: extra.name, version: extra.version, chainId, verifyingContract: asset }  // OBOL: "Obol Network","1"
+types.Permit: [owner, spender, value, nonce, deadline]
+message: { owner: buyer, spender: PERMIT2, value: amount, nonce: <on-chain nonces(owner)>, deadline }
+```
+
+`nonces(owner)` is read fresh via `eth_call` to `nonces(address)` (selector `0x7ecebe00`) — per-token, per-owner, increments on chain. Never cache. Without gas sponsoring, Permit2 needs a prior `approve(Permit2, …)` from the wallet, which this client does not perform (it warns instead).
+
+## Payment envelopes (`X-PAYMENT`)
+
+Base64-encode the JSON, send as the **`X-PAYMENT`** request header (not `PAYMENT-SIGNATURE`). The settlement receipt comes back base64 in **`X-PAYMENT-RESPONSE`** (`{success, transaction, network, payer}`).
+
+### EIP-3009 (USDC)
+
+```json
+{
+  "x402Version": 2,
+  "accepted": { "scheme": "exact", "network": "eip155:8453", "amount": "10000", "asset": "0x...", "payTo": "0x...", "maxTimeoutSeconds": 60, "extra": { "...": "..." } },
+  "payload": {
+    "signature": "0x...",
+    "authorization": { "from": "0x...", "to": "0x...", "value": "10000", "validAfter": "0", "validBefore": "1735689600", "nonce": "0x..." }
   }
 }
 ```
 
-Field meanings:
+### Permit2 + EIP-2612 sponsoring (OBOL)
 
-| Field | Notes |
-|-------|-------|
-| `amount` | uint256 string, **base units of the asset**. Look up decimals before showing to a human. |
-| `asset` | ERC-20 contract address. Domain `verifyingContract` for the signature. |
-| `payTo` | Transfer recipient. EIP-3009 `to` field. For EIP-2612, the actual spender is `extra.spender ?? payTo`. |
-| `extra.name`, `extra.version` | EIP-712 domain `name`/`version`. Wrong values silently break signature recovery. Verify against the token's on-chain `name()` if signatures keep failing. |
-| `extra.assetTransferMethod` | `"permit2"` → permit-style; `"transferWithAuthorization"` → EIP-3009. |
-| `extensions.eip2612GasSponsoring` | Seller's facilitator gas-sponsors EIP-2612 permits (Obol mainnet facilitator). Triggers the permit signing path when the token supports it. |
-
-## EIP-3009 `TransferWithAuthorization` (USDC default)
-
-```ts
+```json
 {
-  domain: {
-    name:    extra.name,      // "USD Coin" / "USDC"
-    version: extra.version,   // "2"
-    chainId,
-    verifyingContract: asset, // token, NOT the facilitator
+  "x402Version": 2,
+  "accepted": { "scheme": "exact", "network": "eip155:1", "amount": "1000000000000000000", "asset": "0x0B01...", "payTo": "0x...", "maxTimeoutSeconds": 60, "extra": { "assetTransferMethod": "permit2", "name": "Obol Network", "version": "1" } },
+  "payload": {
+    "signature": "0x...",
+    "permit2Authorization": {
+      "permitted": { "token": "0x0B01...", "amount": "1000000000000000000" },
+      "spender": "0x402085c248EeA27D92E8b30b2C58ed07f9E20001",
+      "nonce": "<random uint256>",
+      "deadline": "1735689600",
+      "witness": { "to": "0x...", "validAfter": "0" },
+      "from": "0x..."
+    }
   },
-  types: {
-    TransferWithAuthorization: [
-      { name: "from",        type: "address" },
-      { name: "to",          type: "address" },
-      { name: "value",       type: "uint256" },
-      { name: "validAfter",  type: "uint256" },
-      { name: "validBefore", type: "uint256" },
-      { name: "nonce",       type: "bytes32" },
-    ],
-  },
-  primaryType: "TransferWithAuthorization",
-  message: {
-    from:        <buyer wallet>,
-    to:          payTo,
-    value:       amount,
-    validAfter:  "0",
-    validBefore: String(now + maxTimeoutSeconds),
-    nonce:       "0x" + 32 random bytes,
-  },
+  "extensions": {
+    "eip2612GasSponsoring": {
+      "info": { "from": "0x...", "asset": "0x0B01...", "spender": "0x0000...A3", "amount": "1000000000000000000", "nonce": "42", "deadline": "1735689600", "signature": "0x...", "version": "1" }
+    }
+  }
 }
 ```
 
-`nonce` is random per request (32 bytes). Facilitator records `(from, nonce)` against replay.
-
-## EIP-2612 `Permit` (Obol facilitator path)
-
-Triggered when any of: `extensions.eip2612GasSponsoring` present + token supports EIP-2612, `extra.assetTransferMethod === "permit2"` + token supports EIP-2612, v1's `extra.permit: true`, or `--force-permit`.
-
-```ts
-{
-  domain: {
-    name:    extra.name,      // "Obol Network"
-    version: extra.version,   // "1"
-    chainId,
-    verifyingContract: asset,
-  },
-  types: {
-    Permit: [
-      { name: "owner",    type: "address" },
-      { name: "spender",  type: "address" },
-      { name: "value",    type: "uint256" },
-      { name: "nonce",    type: "uint256" },
-      { name: "deadline", type: "uint256" },
-    ],
-  },
-  primaryType: "Permit",
-  message: {
-    owner:    <buyer wallet>,
-    spender:  extra.spender ?? payTo,
-    value:    amount,
-    nonce:    <on-chain nonces(owner)>,
-    deadline: String(now + maxTimeoutSeconds),
-  },
-}
-```
-
-The `nonce` is **per-token, per-owner, incremented on-chain on every successful permit**. Read fresh via `eth_call` to `nonces(address)` (selector `0x7ecebe00`). Never cache.
-
-### Why not Uniswap Permit2 (the contract)
-
-`extra.assetTransferMethod: "permit2"` is a generic label for "permit-style transfer." With `extensions.eip2612GasSponsoring`, the facilitator translates that into a native EIP-2612 call against the token if the token supports it. The script does NOT sign a Uniswap Permit2 message — that would require a one-time approval of the Permit2 contract, which the gasless EIP-2612 path bypasses.
+x402 v2 requires the client to echo each server extension's `info`; the script copies them, then overlays the signed `eip2612GasSponsoring.info`.
 
 ## Signing via Bankr
 
 ```bash
 curl -X POST https://api.bankr.bot/wallet/sign \
-  -H "X-API-Key: $BANKR_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{ "signatureType": "eth_signTypedData_v4", "typedData": { ... } }'
+  -H "X-API-Key: $BANKR_KEY" -H "Content-Type: application/json" \
+  -d '{ "signatureType": "eth_signTypedData_v4", "typedData": { "types": {...}, "primaryType": "...", "domain": {...}, "message": {...} } }'
 ```
 
-Response: `{ "success": true, "signature": "0x...", "signer": "0x...", "signatureType": "eth_signTypedData_v4" }`.
+Response: `{ "success": true, "signature": "0x...", "signer": "0x..." }`. `signer` must equal the `from`/`owner` in the typed data — pass `--from` to pin an address if they differ. Each `typedData` includes its `EIP712Domain` type (with or without `version`); `x402.ts` builds it.
 
-`signer` must match the `from`/`owner` in the typed data. If they differ, pass `--from` to the script to pin a specific address.
+## Adding a token or chain
 
-## Payment envelopes
-
-Base64-encode the JSON and send as `PAYMENT-SIGNATURE` (v2) or `X-PAYMENT` (v1).
-
-### v2 — EIP-2612 permit (OBOL on mainnet via Obol facilitator)
-
-```json
-{
-  "x402Version": 2,
-  "scheme": "exact",
-  "network": "eip155:1",
-  "accepted": { /* the chosen accepts[] entry, verbatim */ },
-  "extensions": { "eip2612GasSponsoring": {} },
-  "payload": {
-    "signature": "0xabc...",
-    "permit": {
-      "owner":   "0x...",
-      "spender": "0x...",
-      "value":   "1000000000000000000",
-      "nonce":   "42",
-      "deadline":"1735689600"
-    },
-    "payTo": "0x..."
-  }
-}
-```
-
-### v1 — EIP-3009 (legacy)
-
-```json
-{
-  "x402Version": 1,
-  "scheme": "exact",
-  "network": "base",
-  "payload": {
-    "signature": "0xabc...",
-    "authorization": {
-      "from": "0x...", "to": "0x...", "value": "1000",
-      "validAfter": "0", "validBefore": "1735689600",
-      "nonce": "0xdead..."
-    }
-  }
-}
-```
-
-## Adding a new token
-
-Drop it in `KNOWN_TOKENS` in `scripts/obol-x402-call.ts`, keyed by `<chainId>:<address-lowercase>`:
-
-```ts
-"1:0x0b010000b7624eb9b3dfbc279673c76e9d29d5f7": { symbol: "OBOL", decimals: 18, supportsEip2612: true },
-```
-
-For unknown tokens the script falls back to an on-chain `decimals()` read (selector `0x313ce567`). It can't infer EIP-2612 support from chain reads — pass `--force-permit` if you know the token supports it.
+Edit `scripts/x402.ts`:
+- **Chain**: add to `CHAINS` (`{ name, rpc, usdc, usdcDomain }`) and, if it needs a short alias, `NET_ALIAS`.
+- **Token decimals/symbol** (display): USDC is derived from `CHAINS[id].usdc`; for others add to the `tokenMeta` registry (only OBOL is special-cased today). Unknown tokens fall back to on-chain `decimals()` (selector `0x313ce567`).
