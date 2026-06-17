@@ -198,13 +198,22 @@ research_chain startKey="research/..."                    # walk the evolution t
 web_search query="..."                                    # raw results, no synthesis
 ```
 
-### Agents (5 tools)
+### Agents (12 tools)
 ```
 agent_spawn name="..." goal="..."
 agent_recall name="..."
-agent_update name="..." progress="..." status="active|paused|done"
+agent_update name="..." progress="..." status="active|blocked|complete"
+agent_ledger name="..."            # full activity audit log
+agent_identity agentId="..."       # on-chain Base address for agent
 list_agents
-hire_agent                         # browse pre-built agents
+hire_agent agentId="..." task="..."
+
+# Autonomous schedule (runs without prompting):
+agent_schedule name="..." cron="daily" workflow="deep_research"
+agent_unschedule name="..."
+agent_pause name="..."
+agent_resume name="..."
+agent_runs name="..."              # verify autonomous loop is healthy
 ```
 
 ### Monitors (3 tools)
@@ -296,7 +305,7 @@ NOELCLAW_PROVIDER=anthropic|grok  # override provider
 Bankr Agent
     │ MCP stdio
     ▼
-@noelclaw/mcp v3.28.0  (Node.js, 102 tools)
+@noelclaw/mcp v3.29.0  (Node.js, 102 tools)
     │
     ├── reasoning ───► Bankr LLM (llm.bankr.bot)
     ├── deep_research ► Firecrawl + LLM synthesis + Vault
