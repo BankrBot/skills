@@ -257,9 +257,9 @@ generate_mcp_skill description="..."
 
 - **`deep_research` depends on source availability.** Returns "insufficient signal" rather than fabricating output when sources are thin.
 - **Monitors run server-side.** The MCP process doesn't need to stay alive. Results appear in vault.
-- **Swarm tools are experimental.** For production-critical work, prefer single-agent `deep_research`.
+- **`deep_research depth="deep"` runs 5 angles + adversarial critic.** Slower (~180s) but thorough. Use `depth="standard"` for most cases.
 - **DeFi is Base mainnet only.** No testnet, no other chains.
-- **Duplicate monitors rejected.** `create_monitor` deduplicates on topic + schedule. Cancel the existing one first.
+- **Duplicate monitors rejected.** `schedule_research` deduplicates on topic + schedule. Cancel the existing one first.
 
 ---
 
