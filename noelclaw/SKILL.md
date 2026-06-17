@@ -53,7 +53,7 @@ Use this flywheel when you need intelligence that accumulates rather than resets
 | Situation | First tool |
 |---|---|
 | Start a session — restore prior context | `memory_context topic="..."` |
-| Research a topic and keep it across sessions | `deep_research topic="..."` |
+| Research a topic and keep it across sessions | `deep_research query="..."` |
 | What changed since last time I researched this | `research_compare` / `vault_diff` |
 | Named agent that remembers its own history | `agent_spawn` → `agent_recall` |
 | Watch X, GitHub, or a website automatically | `schedule_research` |
@@ -73,7 +73,7 @@ Build knowledge that grows instead of resets. Each session extends the prior one
 
 **Session 1:**
 ```
-deep_research topic="AI agent infrastructure on Base" depth="deep"
+deep_research query="AI agent infrastructure on Base" depth="deep"
 → synthesizes from multiple sources, saves to vault as v1
 
 memory_add content="Key finding: agent infra shifting from wallet wrappers to runtime layers. Watch Noelclaw, AEON, Bankr."
@@ -84,7 +84,7 @@ memory_add content="Key finding: agent infra shifting from wallet wrappers to ru
 memory_context topic="AI agent infrastructure"
 → loads prior findings into context automatically
 
-deep_research topic="AI agent infrastructure on Base" depth="deep"
+deep_research query="AI agent infrastructure on Base" depth="deep"
 → diffs against v1, surfaces what changed, saves as v2
 
 vault_list type="research"
@@ -114,7 +114,7 @@ agent_spawn name="base-tracker" goal="monitor new Base DeFi protocol launches we
 agent_recall name="base-tracker"
 
 # Do the work:
-deep_research topic="new Base DeFi protocols this week"
+deep_research query="new Base DeFi protocols this week"
 vault_save type="note" title="Base week 24 — Morpho v2 launch" content="..."
 
 # Update agent state:
@@ -192,7 +192,7 @@ vault_store_credential / vault_get_credential
 
 ### Deep Research (4 tools)
 ```
-deep_research topic="..." depth="quick|standard|deep"   # deep = 5 angles + adversarial critic
+deep_research query="..." depth="fast|standard|deep"   # deep = 5 angles + adversarial critic
 research_compare keyA="research/..." keyB="research/..." # structured diff of two vault reports
 research_chain startKey="research/..."                    # walk the evolution timeline
 web_search query="..."                                    # raw results, no synthesis
