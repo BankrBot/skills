@@ -5,7 +5,7 @@ description: |
   into a knowledge graph, autonomous monitors, multi-agent swarm coordination, Base DeFi execution,
   and versioned vault storage. Use when the task requires memory across sessions, ongoing research
   that builds on itself, persistent named agents, autonomous monitoring of X/GitHub/websites,
-  or DeFi execution on Base. 103 tools across 21 categories.
+  or DeFi execution on Base. 102 tools across 21 categories.
   Triggers: "remember this", "search my memory", "save to vault", "monitor X account",
   "run deep research on", "spawn an agent", "what did I research about", "swap on Base",
   "track this ecosystem", "launch a swarm", "what's in my vault", "recall what we discussed".
@@ -201,7 +201,7 @@ Override provider: `NOELCLAW_PROVIDER=anthropic|grok`
 Bankr Agent
     │ MCP stdio
     ▼
-@noelclaw/mcp v3.26.2  (Node.js, 103 tools)
+@noelclaw/mcp v3.27.0  (Node.js, 102 tools)
     │
     ├── reasoning ───► Bankr LLM (llm.bankr.bot)
     ├── deep_research ► Firecrawl + LLM synthesis + Vault
