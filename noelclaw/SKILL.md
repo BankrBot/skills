@@ -12,7 +12,8 @@ description: |
   "search my memory", "save to vault", "what's in my vault", "run deep research on",
   "build on our last research", "compare research from last month", "spawn an agent",
   "monitor this X account", "track this ecosystem weekly", "launch a swarm",
-  "swap on Base", "what are the DeFi yields".
+  "swap on Base", "what are the DeFi yields",
+  "list my GitHub repos", "search my code", "get that PR".
 ---
 
 # Noelclaw
@@ -55,12 +56,12 @@ Use this flywheel when you need intelligence that accumulates rather than resets
 | Research a topic and keep it across sessions | `deep_research topic="..."` |
 | What changed since last time I researched this | `research_compare` / `vault_diff` |
 | Named agent that remembers its own history | `agent_spawn` → `agent_recall` |
-| Watch X, GitHub, or a website automatically | `create_monitor` |
-| Broad research across multiple angles at once | `swarm_research` |
+| Watch X, GitHub, or a website automatically | `schedule_research` |
+| Broad research across multiple angles at once | `deep_research depth="deep"` |
 | Store a credential, artifact, or note durably | `vault_save` |
 | Find something I saved weeks ago | `vault_search` / `memory_search` |
-| Current Base wallet holdings | `get_portfolio` |
-| Swap or send tokens on Base | `estimate_swap` → `swap_tokens` |
+| Current Base wallet holdings | `base_mcp_balance` |
+| Swap or send tokens on Base | `base_mcp_estimate` → `base_mcp_swap` |
 
 ---
 
@@ -86,14 +87,17 @@ memory_context topic="AI agent infrastructure"
 deep_research topic="AI agent infrastructure on Base" depth="deep"
 → diffs against v1, surfaces what changed, saves as v2
 
-research_compare topic="AI agent infrastructure on Base" fromDate="2026-06-01" toDate="2026-06-14"
-→ side-by-side view of how the narrative shifted
+vault_list type="research"
+→ find your saved report keys
+
+research_compare keyA="research/ai-agent-infrastructure-on-base" keyB="research/ai-agent-infrastructure-on-base-2"
+→ structured diff: new findings, updated positions, weakened claims
 ```
 
 **Session N:**
 ```
-research_chain topic="AI agent infrastructure on Base" steps=5
-→ walks the full timeline as a compound narrative
+research_chain startKey="research/ai-agent-infrastructure-on-base"
+→ walks the full timeline as a compound narrative (follows vault `continues` links)
 ```
 
 ---
@@ -127,9 +131,9 @@ Register once. Runs server-side on schedule. Check results anytime.
 
 ```
 # Register monitors (server-side, survives MCP process restart):
-create_monitor topic="@noelclawfun on X" schedule="daily"
-schedule_research topic="Base chain TVL" schedule="weekly" action="save_to_vault"
-create_monitor topic="github.com/noelclaw/mcp new PRs" schedule="daily"
+schedule_research topic="@noelclawfun on X" schedule="daily"
+schedule_research topic="Base chain TVL" schedule="weekly"
+schedule_research topic="github.com/noelclaw/mcp new PRs" schedule="daily"
 
 # Check what's in your vault after a week:
 vault_search query="Base TVL weekly"
@@ -145,19 +149,19 @@ cancel_monitor id="..."
 ### 4. DeFi: analyze then act
 
 ```
-get_portfolio
+base_mcp_balance
 → current Base wallet holdings with USD values
 
 get_defi_yields
 → ranked yield opportunities on Base (Aerodrome, Morpho, Lido)
 
-estimate_swap from="ETH" to="USDC" amount=0.5
+base_mcp_estimate fromToken="ETH" toToken="USDC" amount="0.5"
 → preview route, fees, and expected output
 
-swap_tokens from="ETH" to="USDC" amount=0.5
+base_mcp_swap fromToken="ETH" toToken="USDC" amount="0.5"
 → execute via 0x Permit2 on Base mainnet
 
-send_token token="USDC" to="0x..." amount=100
+base_mcp_send token="USDC" to="0x..." amount="100"
 → send from managed wallet
 ```
 
@@ -188,10 +192,10 @@ vault_store_credential / vault_get_credential
 
 ### Deep Research (4 tools)
 ```
-deep_research topic="..." depth="quick|deep"
-research_compare topic="..." fromDate="..." toDate="..."
-research_chain topic="..." steps=5
-web_search query="..."             # raw results, no synthesis
+deep_research topic="..." depth="quick|standard|deep"   # deep = 5 angles + adversarial critic
+research_compare keyA="research/..." keyB="research/..." # structured diff of two vault reports
+research_chain startKey="research/..."                    # walk the evolution timeline
+web_search query="..."                                    # raw results, no synthesis
 ```
 
 ### Agents (5 tools)
@@ -203,28 +207,33 @@ list_agents
 hire_agent                         # browse pre-built agents
 ```
 
-### Monitors (4 tools)
+### Monitors (3 tools)
 ```
-create_monitor topic="..." schedule="daily|weekly|hourly"
-schedule_research topic="..." schedule="..." action="save_to_vault"
+schedule_research topic="..." schedule="daily|weekly|hourly"   # register recurring monitor
 list_monitors
 cancel_monitor id="..."
 ```
 
-### Swarm (parallel research)
-```
-swarm_research topic="..." synthesize=true    # launches parallel agents + synth from vault
-swarm_synthesize                               # collect results (call ~60s after swarm_research)
-```
-
 ### DeFi — Base mainnet only
 ```
-get_portfolio
-get_defi_yields
-estimate_swap from="..." to="..." amount=...
-swap_tokens from="..." to="..." amount=...
-send_token token="..." to="0x..." amount=...
-analyze_wallet address="0x..."
+base_mcp_balance                                       # ETH, USDC, USDT, DAI, WETH holdings
+get_defi_yields                                        # ranked yield opportunities
+base_mcp_estimate fromToken="..." toToken="..." amount="..."
+base_mcp_swap fromToken="..." toToken="..." amount="..."
+base_mcp_send token="..." to="0x..." amount="..."
+base_mcp_lend                                          # lending opportunities on Base
+```
+
+### GitHub (8 tools)
+```
+github_list_repos username="..."              # repos for a user or org
+github_list_prs owner="..." repo="..."        # open PRs
+github_get_pr owner="..." repo="..." number=N # PR details + diff
+github_list_issues owner="..." repo="..."
+github_get_issue owner="..." repo="..." number=N
+github_get_file owner="..." repo="..." path="..."
+github_get_commits owner="..." repo="..."
+github_search_code query="..." repo="..."
 ```
 
 ### AI Reasoning
@@ -287,7 +296,7 @@ NOELCLAW_PROVIDER=anthropic|grok  # override provider
 Bankr Agent
     │ MCP stdio
     ▼
-@noelclaw/mcp v3.27.0  (Node.js, 102 tools)
+@noelclaw/mcp v3.28.0  (Node.js, 102 tools)
     │
     ├── reasoning ───► Bankr LLM (llm.bankr.bot)
     ├── deep_research ► Firecrawl + LLM synthesis + Vault
