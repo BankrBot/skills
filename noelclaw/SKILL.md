@@ -1,185 +1,271 @@
 ---
 name: noelclaw
 description: |
-  Persistent AI OS for agents — memory that survives across sessions, deep research that compounds
-  into a knowledge graph, autonomous monitors, multi-agent swarm coordination, Base DeFi execution,
-  and versioned vault storage. Use when the task requires memory across sessions, ongoing research
-  that builds on itself, persistent named agents, autonomous monitoring of X/GitHub/websites,
-  or DeFi execution on Base. 102 tools across 21 categories.
-  Triggers: "remember this", "search my memory", "save to vault", "monitor X account",
-  "run deep research on", "spawn an agent", "what did I research about", "swap on Base",
-  "track this ecosystem", "launch a swarm", "what's in my vault", "recall what we discussed".
+  AI OS runtime for agents — memory that survives across sessions, research that compounds
+  into a versioned knowledge graph, autonomous monitors that run without babysitting, and
+  DeFi execution on Base. The core pattern: research saves to vault, vault feeds agents,
+  agents update memory, monitors trigger the next research cycle. Nothing resets between sessions.
+  Use when the task requires context from prior sessions, research that builds on itself over weeks,
+  a named agent with persistent goals, automated tracking of X/GitHub/ecosystems, or Base swaps.
+  102 tools across 21 categories.
+  Triggers: "remember this", "what did we research about", "recall what we discussed",
+  "search my memory", "save to vault", "what's in my vault", "run deep research on",
+  "build on our last research", "compare research from last month", "spawn an agent",
+  "monitor this X account", "track this ecosystem weekly", "launch a swarm",
+  "swap on Base", "what are the DeFi yields".
 ---
 
 # Noelclaw
 
-Persistent AI OS for agents. Not a wrapper — a runtime layer that gives agents memory, research that compounds, autonomous monitoring, and DeFi execution on Base. Everything connects: research flows into vault, vault feeds agents, agents update memory, memory informs the next research cycle.
-
-Works in Claude Code, Cursor, Windsurf, Codex, Aeon, Antigravity, Zed — anywhere MCP runs.
+AI OS runtime for agents. Not a one-shot tool — a persistence layer. Memory survives sessions, research compounds into a knowledge graph, monitors run server-side without keeping a process alive, agents remember their own history.
 
 ```bash
 npx -y @noelclaw/mcp
 ```
 
-With `BANKR_API_KEY` set, all LLM reasoning routes through Bankr (`llm.bankr.bot`). Override model via `NOELCLAW_MODEL` (default: `claude-haiku-4-5-20251001`).
+With `BANKR_API_KEY` set, all LLM reasoning routes through Bankr (`llm.bankr.bot`). Default model: `claude-haiku-4-5-20251001`. Override via `NOELCLAW_MODEL`.
 
 ---
 
-## When to use Noelclaw
+## The Knowledge Flywheel
 
-| Situation | Tool to reach for |
+This is the core pattern. Every layer feeds the next:
+
+```
+Research ──► Vault (versioned) ──► Agent (persistent) ──► Monitor (autonomous)
+   ▲                                      │
+   └──────────── Memory ◄─────────────────┘
+```
+
+- `deep_research` auto-saves to vault and diffs against prior versions
+- `vault_link` connects related entries into a knowledge graph
+- `agent_recall` loads an agent's entire history — goals, past findings, vault entries — into context
+- Monitors run on Trigger.dev server-side; no local process needed
+- `memory_context` at session start restores everything relevant automatically
+
+Use this flywheel when you need intelligence that accumulates rather than resets.
+
+---
+
+## When to use
+
+| Situation | First tool |
 |---|---|
-| Need to recall something from a past session | `memory_context`, `memory_search` |
-| Research a topic and store the result durably | `deep_research` → auto-saves to vault |
-| Build on past research over multiple sessions | `vault_read`, `vault_diff`, `research_compare` |
-| Monitor X, GitHub, websites, or ecosystems continuously | `create_monitor`, `schedule_research` |
-| Coordinate parallel research across multiple agents | `swarm_research`, `swarm_synthesize` |
-| Execute a swap or send tokens on Base | `swap_tokens`, `send_token` |
-| Build a named agent that persists and accumulates context | `agent_spawn`, `agent_recall`, `agent_update` |
-| Store and retrieve credentials, research, or code artifacts | `vault_save`, `vault_read`, `vault_search` |
+| Start a session — restore prior context | `memory_context topic="..."` |
+| Research a topic and keep it across sessions | `deep_research topic="..."` |
+| What changed since last time I researched this | `research_compare` / `vault_diff` |
+| Named agent that remembers its own history | `agent_spawn` → `agent_recall` |
+| Watch X, GitHub, or a website automatically | `create_monitor` |
+| Broad research across multiple angles at once | `swarm_research` |
+| Store a credential, artifact, or note durably | `vault_save` |
+| Find something I saved weeks ago | `vault_search` / `memory_search` |
+| Current Base wallet holdings | `get_portfolio` |
+| Swap or send tokens on Base | `estimate_swap` → `swap_tokens` |
 
 ---
 
-## Core capabilities
+## End-to-end flows
 
-### Memory — semantic recall across sessions
+### 1. Compound research over weeks
 
-```
-memory_add content="User prefers conservative DeFi on Base. Lido for ETH, Aerodrome for LP."
-memory_search query="user DeFi preferences"
-memory_context topic="Base chain investments"    # inject relevant memory into context
-memory_extract                                   # pull facts from current conversation
-memory_consolidate                               # merge and deduplicate accumulated memory
-```
+Build knowledge that grows instead of resets. Each session extends the prior one.
 
-Memory persists across sessions. `memory_context` is the primary tool — call it at the start of a session to load relevant context automatically.
-
----
-
-### Vault — versioned artifact store with knowledge graph
-
-```
-vault_save type="research" title="Base DeFi Q2 2026" content="..."
-vault_read key="research/base-defi-q2-2026"
-vault_search query="aerodrome yields"
-vault_history key="research/base-defi-q2-2026"     # git-style version log
-vault_diff key="..." fromVersion=1 toVersion=3      # what changed between versions
-vault_link fromKey="research/btc" toKey="research/eth" relation="related"
-vault_related key="research/btc"                    # navigate the knowledge graph
-```
-
-Relations: `references | derived_from | supersedes | related | continues`
-
-Everything saved to vault is versioned. Research compounds — each new session diffs against the prior version rather than starting from scratch.
-
----
-
-### Deep Research — multi-stage, vault-native
-
+**Session 1:**
 ```
 deep_research topic="AI agent infrastructure on Base" depth="deep"
+→ synthesizes from multiple sources, saves to vault as v1
+
+memory_add content="Key finding: agent infra shifting from wallet wrappers to runtime layers. Watch Noelclaw, AEON, Bankr."
 ```
 
-Each run:
-1. Pulls and synthesizes from multiple sources
-2. Saves result to vault automatically
-3. Diffs against prior research on the same topic
-4. Links to related vault entries
-
-Follow-up runs extend the prior version rather than overwriting it.
-
-Comparison and timeline tools:
+**Session 2, one week later:**
 ```
-research_compare topic="Base TVL" fromDate="2026-01-01" toDate="2026-06-01"
-research_chain topic="Aerodrome" steps=5    # walk the research history as a timeline
+memory_context topic="AI agent infrastructure"
+→ loads prior findings into context automatically
+
+deep_research topic="AI agent infrastructure on Base" depth="deep"
+→ diffs against v1, surfaces what changed, saves as v2
+
+research_compare topic="AI agent infrastructure on Base" fromDate="2026-06-01" toDate="2026-06-14"
+→ side-by-side view of how the narrative shifted
+```
+
+**Session N:**
+```
+research_chain topic="AI agent infrastructure on Base" steps=5
+→ walks the full timeline as a compound narrative
 ```
 
 ---
 
-### Monitors — autonomous, scheduled
+### 2. Persistent research agent
+
+Deploy a named agent that accumulates context across every session it runs.
 
 ```
+# One-time setup:
+agent_spawn name="base-tracker" goal="monitor new Base DeFi protocol launches weekly"
+
+# Every session — loads full history, goals, and vault entries:
+agent_recall name="base-tracker"
+
+# Do the work:
+deep_research topic="new Base DeFi protocols this week"
+vault_save type="note" title="Base week 24 — Morpho v2 launch" content="..."
+
+# Update agent state:
+agent_update name="base-tracker" progress="found Morpho v2, Aerodrome CLMM" status="active"
+```
+
+The agent's execution history, vault entries, and goal are restored automatically on the next `agent_recall`. Nothing is lost between sessions.
+
+---
+
+### 3. Set-and-forget ecosystem monitoring
+
+Register once. Runs server-side on schedule. Check results anytime.
+
+```
+# Register monitors (server-side, survives MCP process restart):
 create_monitor topic="@noelclawfun on X" schedule="daily"
 schedule_research topic="Base chain TVL" schedule="weekly" action="save_to_vault"
+create_monitor topic="github.com/noelclaw/mcp new PRs" schedule="daily"
+
+# Check what's in your vault after a week:
+vault_search query="Base TVL weekly"
+vault_search query="noelclawfun X digest"
+
+# List or cancel:
 list_monitors
 cancel_monitor id="..."
 ```
 
-Monitors run on schedule, detect changes, summarize them, and store results to vault. No manual checking required.
-
 ---
 
-### Swarm — parallel multi-agent research
+### 4. DeFi: analyze then act
 
 ```
-swarm_research topic="AI agent infrastructure Q2 2026" synthesize=true
-# → launches parallel agents + synthesizes existing vault knowledge immediately
+get_portfolio
+→ current Base wallet holdings with USD values
 
-# 60 seconds later:
-swarm_synthesize    # collect full results from all agents
-```
+get_defi_yields
+→ ranked yield opportunities on Base (Aerodrome, Morpho, Lido)
 
-Use swarm for broad research where multiple angles are needed simultaneously. Results merge into vault automatically.
+estimate_swap from="ETH" to="USDC" amount=0.5
+→ preview route, fees, and expected output
 
----
+swap_tokens from="ETH" to="USDC" amount=0.5
+→ execute via 0x Permit2 on Base mainnet
 
-### Agents — persistent named agents
-
-```
-agent_spawn name="base-researcher" goal="track Base chain protocol developments weekly"
-agent_recall name="base-researcher"      # load state + memory into context
-agent_update name="base-researcher" progress="found 3 new protocols" status="active"
-```
-
-Agents survive across sessions. Each has an identity, goal, execution history, and accumulated vault entries.
-
----
-
-### DeFi — Base chain execution
-
-```
-get_portfolio                                           # current holdings
-get_defi_yields                                         # available yield opportunities
-estimate_swap from="ETH" to="USDC" amount=0.1          # preview
-swap_tokens from="ETH" to="USDC" amount=0.1            # execute via 0x Permit2
 send_token token="USDC" to="0x..." amount=100
+→ send from managed wallet
+```
+
+---
+
+## Tool reference
+
+### Memory (9 tools)
+```
+memory_context topic="..."         # primary — call at session start
+memory_add content="..."           # store a fact
+memory_search query="..."          # semantic recall
+memory_extract                     # pull facts from current conversation
+memory_consolidate                 # deduplicate and compress
+```
+
+### Vault (14 tools)
+```
+vault_save type="research|note|code|credential" title="..." content="..."
+vault_read key="research/..."
+vault_search query="..."
+vault_history key="..."            # git-style version log
+vault_diff key="..." fromVersion=1 toVersion=3
+vault_link fromKey="..." toKey="..." relation="related|references|derived_from|supersedes|continues"
+vault_related key="..."            # navigate the knowledge graph
+vault_store_credential / vault_get_credential
+```
+
+### Deep Research (4 tools)
+```
+deep_research topic="..." depth="quick|deep"
+research_compare topic="..." fromDate="..." toDate="..."
+research_chain topic="..." steps=5
+web_search query="..."             # raw results, no synthesis
+```
+
+### Agents (5 tools)
+```
+agent_spawn name="..." goal="..."
+agent_recall name="..."
+agent_update name="..." progress="..." status="active|paused|done"
+list_agents
+hire_agent                         # browse pre-built agents
+```
+
+### Monitors (4 tools)
+```
+create_monitor topic="..." schedule="daily|weekly|hourly"
+schedule_research topic="..." schedule="..." action="save_to_vault"
+list_monitors
+cancel_monitor id="..."
+```
+
+### Swarm (parallel research)
+```
+swarm_research topic="..." synthesize=true    # launches parallel agents + synth from vault
+swarm_synthesize                               # collect results (call ~60s after swarm_research)
+```
+
+### DeFi — Base mainnet only
+```
+get_portfolio
+get_defi_yields
+estimate_swap from="..." to="..." amount=...
+swap_tokens from="..." to="..." amount=...
+send_token token="..." to="0x..." amount=...
 analyze_wallet address="0x..."
 ```
 
-Execution wallet is the user's Noelclaw-managed Base wallet. Privy/OKX wallets are identity only.
-
----
-
-### AI reasoning — `ask_noel`
-
+### AI Reasoning
 ```
-ask_noel question="What are the top emerging protocols on Base?" messages=[{...}]
+ask_noel question="..."            # memory + vault injected into context automatically
+market_thesis token="..."
+trade_plan
 ```
 
-Routes through Bankr LLM with user's memory and recent vault entries injected into context. Supports multi-turn via `messages` array. Specialized variants: `market_thesis`, `trade_plan`.
+### Coder
+```
+audit_contract address="0x..."
+review_code code="..."
+generate_contract description="..."
+generate_mcp_skill description="..."
+```
 
 ---
 
 ## Honest limits
 
-- **`deep_research` quality depends on source availability.** Returns "insufficient signal" rather than fabricating a report when sources are thin.
-- **Scheduled monitors require Noelclaw backend connectivity.** The monitor runs server-side — local MCP process doesn't need to stay alive.
-- **Swarm tools are experimental.** Use single-agent flows for production-critical work.
-- **DeFi execution is Base mainnet only.** No testnet, no other chains.
-- **Duplicate monitors are rejected.** `create_monitor` deduplicates on topic + schedule. Cancel the existing one first via `cancel_monitor`.
+- **`deep_research` depends on source availability.** Returns "insufficient signal" rather than fabricating output when sources are thin.
+- **Monitors run server-side.** The MCP process doesn't need to stay alive. Results appear in vault.
+- **Swarm tools are experimental.** For production-critical work, prefer single-agent `deep_research`.
+- **DeFi is Base mainnet only.** No testnet, no other chains.
+- **Duplicate monitors rejected.** `create_monitor` deduplicates on topic + schedule. Cancel the existing one first.
 
 ---
 
 ## Bankr LLM integration
 
-When `BANKR_API_KEY` is set, every reasoning step routes through `llm.bankr.bot`. Through Bankr, the skill accesses Claude (`claude-sonnet-4-6`, `claude-haiku-4-5-20251001`) and Grok (`grok-4.3`, `grok-4.20`) under a single API.
+With `BANKR_API_KEY` set, all reasoning routes through `llm.bankr.bot`. Gives access to Claude and Grok under one API.
 
-Verified live: production deployment reports `activeProvider: "bankr"`, default model `claude-haiku-4-5-20251001`.
+**Verified live:** production deployment reports `activeProvider: "bankr"`, default model `claude-haiku-4-5-20251001`.
 
-Tools that route through the LLM gateway: `ask_noel`, `deep_research` (every synthesis stage), agent reasoning, `humanize_text`, `audit_contract`, `review_code`, `memory_extract`, `memory_consolidate`, `market_thesis`, `trade_plan`.
+Tools that use the LLM gateway: `ask_noel`, `deep_research` (every synthesis stage), `market_thesis`, `trade_plan`, `memory_extract`, `memory_consolidate`, `audit_contract`, `review_code`, `humanize_text`, all agent reasoning.
 
-Override model: `NOELCLAW_MODEL=grok-4.3`
-Override provider: `NOELCLAW_PROVIDER=anthropic|grok`
+```
+NOELCLAW_MODEL=grok-4.3           # override model
+NOELCLAW_PROVIDER=anthropic|grok  # override provider
+```
 
 ---
 
@@ -187,11 +273,11 @@ Override provider: `NOELCLAW_PROVIDER=anthropic|grok`
 
 | Variable | Purpose |
 |---|---|
-| `BANKR_API_KEY` | Primary LLM gateway. Required for production reasoning. |
-| `NOELCLAW_MODEL` | Override model (e.g. `grok-4.3`, `claude-sonnet-4-6`). |
-| `ANTHROPIC_API_KEY` | Direct fallback if Bankr unavailable. |
-| `GROK_API_KEY` | Direct fallback if Bankr unavailable. |
-| `FIRECRAWL_API_KEY` | Optional. Bypasses backend proxy for `deep_research` + `web_search`. |
+| `BANKR_API_KEY` | Primary LLM gateway — required for production reasoning |
+| `NOELCLAW_MODEL` | Override model (`grok-4.3`, `claude-sonnet-4-6`, etc.) |
+| `ANTHROPIC_API_KEY` | Direct fallback if Bankr unavailable |
+| `GROK_API_KEY` | Direct fallback if Bankr unavailable |
+| `FIRECRAWL_API_KEY` | Optional — bypasses backend proxy for `deep_research` and `web_search` |
 
 ---
 
@@ -206,7 +292,7 @@ Bankr Agent
     ├── reasoning ───► Bankr LLM (llm.bankr.bot)
     ├── deep_research ► Firecrawl + LLM synthesis + Vault
     ├── memory + vault ► Convex (versioned, encrypted at rest)
-    ├── monitors ─────► server-side scheduled jobs (Trigger.dev)
+    ├── monitors ─────► Trigger.dev (server-side, always-on)
     ├── market data ──► CoinGecko
     └── DeFi ─────────► 0x Permit2 → Base mainnet
 ```
