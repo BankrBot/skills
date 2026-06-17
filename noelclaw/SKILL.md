@@ -1,6 +1,8 @@
 # Noelclaw
 
-A 102-tool MCP server that gives an agent persistent memory, a versioned vault, deep research with continuation, DeFi execution on Base, and workflow automation.
+A 103-tool MCP server that gives an agent persistent memory, a versioned vault, deep research with continuation, DeFi execution on Base, and workflow automation.
+
+Works in Claude Code, Cursor, Windsurf, Codex, Aeon, Antigravity, Zed — anywhere MCP runs.
 
 Install:
 ```
@@ -23,7 +25,7 @@ npx -y @noelclaw/mcp
 | **GitHub** | Read repos, PRs, issues, commits, code search |
 | **Reasoning** | `ask_noel` — Q&A with the user's memory and recent vault entries injected into context |
 
-102 tools across 21 categories. Full list: [docs.noelclaw.fun](https://docs.noelclaw.fun).
+103 tools across 21 categories. Full list: [docs.noelclaw.fun](https://docs.noelclaw.fun).
 
 ---
 
@@ -66,7 +68,7 @@ Override the gateway with `NOELCLAW_PROVIDER=anthropic|grok` for direct fallback
 Bankr Agent
     │ MCP stdio
     ▼
-@noelclaw/mcp v3.16.1  (Node.js)
+@noelclaw/mcp v3.26.2  (Node.js)
     │
     ├── reasoning ───► Bankr LLM (llm.bankr.bot)
     ├── deep_research ► Firecrawl + LLM + Vault
