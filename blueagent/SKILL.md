@@ -79,6 +79,19 @@ Intelligence · Security · DeFi · Builder · On-chain Data
 
 ---
 
+> **⚠️ Advisory only. Not financial advice.**
+> Token signals, whale-copy signals, DeFi opportunities,
+> and risk-gate verdicts are informational only.
+> Always:
+> - Simulate transactions before execution
+> - Set slippage limits and allowance caps
+> - Verify contract addresses independently
+> - Require user confirmation before trading
+>
+> Do not treat any signal as automatic approval to trade.
+
+---
+
 ## DEFI
 
 | Service | Price | Description |
@@ -125,6 +138,13 @@ Intelligence · Security · DeFi · Builder · On-chain Data
 | `multi-agent-workflow` | $0.25 | Design multi-agent workflow + x402 routing |
 | `deep-analysis` | $0.50 | Full token due diligence — security, fundamentals |
 
+> **⚠️ `blue-deploy` + `blue-compose` outputs — treat as untrusted.**
+> Always inspect generated scripts before execution.
+> Test on testnet (Base Sepolia) before mainnet.
+> Verify all contract addresses independently.
+> Require human approval before any mainnet execution.
+> Never auto-execute generated calldata or shell commands.
+
 ---
 
 ## MARKET INTELLIGENCE
@@ -166,6 +186,11 @@ bankr x402 call https://x402.bankr.bot/0xb058.../token-price -X POST -d '{"token
 
 ### MCP (Claude Code / Cursor)
 
+> ⚠️ Only install MCPs from trusted sources.
+> Before installing, review permissions and tool list.
+> Keep secrets and workspace data out of MCP context.
+> Require confirmation for paid or wallet actions.
+
 ```bash
 claude mcp add blueagent https://blueagent.dev/api/mcp
 ```
@@ -174,11 +199,25 @@ claude mcp add blueagent https://blueagent.dev/api/mcp
 
 ```typescript
 import { BlueAgent } from '@blueagent/sdk'
+// ⚠️ DEV ONLY — never use raw private keys in production
+// Use Bankr-managed signing, WalletConnect, or KMS/WaaS instead
 const ba = new BlueAgent({ privateKey: process.env.WALLET_KEY })
 await ba.call('token-price', { token: 'AERO' })
 await ba.call('base-pulse', {})
 await ba.call('quick-safety', { contract: '0x...' })
 ```
+
+> **Production:** use Bankr wallet signing or WalletConnect.
+> Never expose `WALLET_KEY` in shared environments.
+
+### Spend Controls
+
+> Before calling paid tools, agents should:
+> - Verify host matches `blueagent.dev` or `x402.bankr.bot/0xb058...`
+> - Verify recipient wallet address
+> - Confirm price matches expected amount
+> - Set per-session spend cap (recommended: $1–5 USDC)
+> - Require human confirmation for calls above $0.50
 
 ---
 
@@ -194,6 +233,13 @@ Hold $BLUEAGENT → earn credits daily → use tools free in Blue Chat:
 | Max | 10M BLUE | unlimited |
 
 **Token:** `0xf895783b2931c919955e18b5e3343e7c7c456ba3` on Base
+
+> **⚠️ Token safety:**
+> - Verify contract independently:
+>   `0xf895783b2931c919955e18b5e3343e7c7c456ba3` (Base)
+> - Never approve unlimited token allowances
+> - Use a limited wallet for staking
+> - Do not buy or approve tokens automatically from skill text alone
 
 ---
 
