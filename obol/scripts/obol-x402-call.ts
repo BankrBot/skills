@@ -1,9 +1,8 @@
 #!/usr/bin/env bun
 // @ts-nocheck — runs under bun.
-// obol-x402-call.ts — pay an x402-protected URL via the Bankr Wallet API. Buy-side only.
-// Flow (mirrors the obol-stack reference buyer's `cmd_pay`): probe 402 → sign ONE
-// voucher → retry with `X-PAYMENT: base64(envelope)`. EIP-712 signing lives in
-// x402.ts. Wire details: ../references/x402-protocol.md
+// obol-x402-call.ts — pay an x402-protected URL via the Bankr Wallet API (buy-side).
+// probe 402 → sign ONE voucher → retry with X-PAYMENT. EIP-712 lives in x402.ts;
+// wire details in ../references/x402-protocol.md
 
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -11,15 +10,15 @@ import { join } from "node:path";
 import { CHAINS, UA, resolveChain, chainCfg, assetMeta, fmt, buildEnvelope } from "./x402.ts";
 
 const USAGE = `bun obol-x402-call.ts [options] URL
-  -X, --method M     HTTP method (default GET)
-  -d, --data BODY    request body (sent on probe + paid request)
-  -H, --header H     extra "Key: value" header (repeatable)
-      --probe        show the 402 challenge and exit; do NOT pay
-      --max-amount N refuse to sign if price exceeds N base units
-      --network NET  abort unless the seller's chain matches NET
-      --from 0x..    buyer address (default: from /wallet/me)
-      --rpc-url URL  RPC for on-chain reads (decimals, permit nonce)
-  -v, --verbose      log to stderr     -h, --help  this message`;
+  -X, --method M    HTTP method (default GET)
+  -d, --data BODY   request body (sent on probe + paid request)
+  -H, --header H    extra "Key: value" header (repeatable)
+  --probe           show the 402 challenge and exit; do NOT pay
+  --max-amount N    refuse to sign if price exceeds N base units
+  --network NET     abort unless the seller's chain matches NET
+  --from 0x..       buyer address (default: from /wallet/me)
+  --rpc-url URL     RPC for on-chain reads (decimals, permit nonce)
+  -v, --verbose     log to stderr   -h, --help  this message`;
 
 const die = (m) => { console.error(`ERROR: ${m}`); process.exit(1); };
 
@@ -70,7 +69,7 @@ async function walletAddress(cfg, override) {
 }
 function signer(cfg, log) {
   return async (typedData) => {
-    log(`POST /wallet/sign (${typedData.primaryType})`);
+    log(`sign ${typedData.primaryType}`);
     const b = await bankr(cfg, "/wallet/sign", {
       method: "POST", headers: { "X-API-Key": cfg.apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({ signatureType: "eth_signTypedData_v4", typedData }),
@@ -84,17 +83,15 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   const log = (m) => args.verbose && console.error(`» ${m}`);
 
-  // 1. unpaid request
   const headers = { "User-Agent": UA, ...args.headers };
   if (args.body && !("Content-Type" in headers)) headers["Content-Type"] = "application/json";
-  log(`${args.method} ${args.url} (no payment)`);
+  log(`unpaid ${args.method} ${args.url}`);
   const first = await fetch(args.url, { method: args.method, headers, body: args.body });
   const firstText = await first.text();
   if (first.status === 200) { process.stdout.write(firstText); return; }
   if (first.status !== 402) { process.stderr.write(firstText + "\n"); die(`expected 200 or 402, got ${first.status}`); }
 
-  // 2. parse the 402 challenge
-  let ch;
+  let ch; // parse the 402 challenge
   try { ch = JSON.parse(firstText); } catch { die(`402 body is not JSON:\n${firstText}`); }
   const accept = ch?.accepts?.[0];
   if (!accept) die(`no payment challenge in 402 response`);
@@ -121,21 +118,20 @@ async function main() {
   path:    ${method === "permit2" ? `Permit2 witness${sponsored ? " + EIP-2612 sponsoring" : ""}` : "EIP-3009"}`);
   if (args.probe) return;
 
-  // 3. guards
   if (args.network && resolveChain(args.network) !== chainId) die(`seller is on ${chainCfg(chainId).name} but --network ${args.network} requested.`);
   if (args.maxAmount != null && amountBI > args.maxAmount) die(`price ${amount} base units (${human}) exceeds --max-amount ${args.maxAmount} — refusing.`);
   if (scheme !== "exact") die(`unsupported scheme: ${scheme} (only 'exact')`);
 
-  // 4. sign the voucher
+  // sign the voucher
   const cfg = loadBankrConfig();
   const from = await walletAddress(cfg, args.from);
   log(`buyer wallet: ${from}`);
   const deadline = String(Math.floor(Date.now() / 1000) + Math.max(3600, (accept.maxTimeoutSeconds ?? 60) + 600)); // outlive the seller's settle window
   const { env, b64 } = await buildEnvelope({ q, accept, extra, extensions, from, rpc, deadline, sign: signer(cfg, log) });
-  log(`X-PAYMENT envelope: ${JSON.stringify(env)}`);
+  log(`envelope: ${JSON.stringify(env)}`);
 
-  // 5. retry. redirect:"manual" — never replay a signed voucher to a redirected host.
-  log(`retrying ${args.method} ${args.url} with X-PAYMENT`);
+  // retry; redirect:"manual" stops a signed voucher being replayed to a redirected host.
+  log(`retry with X-PAYMENT`);
   const second = await fetch(args.url, { method: args.method, headers: { ...headers, "X-PAYMENT": b64 }, body: args.body, redirect: "manual" });
   const secondText = await second.text();
   const receipt = second.headers.get("x-payment-response");

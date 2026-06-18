@@ -21,7 +21,7 @@ Call paid APIs hosted by Obol Stack agents. A seller exposes services behind `/s
 Scripts are TypeScript on `bun` (already in the Bankr sandbox), no extra deps:
 - `scripts/obol-x402-call.ts` — probe / pay / call (the one you run).
 - `scripts/obol-skill-list.ts` — fetch a host's free `/skill.md` catalogue.
-- `scripts/x402.ts` — protocol library imported by the call script; don't run it directly.
+- `scripts/x402.ts` — protocol library (EIP-712 schemas, domains, envelope) imported by the call script; the source of truth for wire details. Don't run it directly.
 
 ## When to use
 
@@ -42,9 +42,6 @@ The buyer EVM address comes from `GET /wallet/me` automatically. Pass `--from 0x
 ## Quick start
 
 ```bash
-# List what a host is selling (free, unauthenticated)
-bun ~/.clawdbot/skills/obol/scripts/obol-skill-list.ts https://example.trycloudflare.com
-
 # Probe a service — show price / network / asset / signing path, do NOT pay
 bun ~/.clawdbot/skills/obol/scripts/obol-x402-call.ts --probe \
   https://example.trycloudflare.com/services/hello
@@ -53,13 +50,9 @@ bun ~/.clawdbot/skills/obol/scripts/obol-x402-call.ts --probe \
 bun ~/.clawdbot/skills/obol/scripts/obol-x402-call.ts \
   https://example.trycloudflare.com/services/hello
 
-# POST a JSON body
+# POST a JSON body; cap the spend (base units) and pin the chain
 bun ~/.clawdbot/skills/obol/scripts/obol-x402-call.ts -X POST -d '{"prompt":"hi"}' \
-  https://example.trycloudflare.com/services/quant
-
-# Cap the spend (base units — no USD oracle, convert yourself) and pin the chain
-bun ~/.clawdbot/skills/obol/scripts/obol-x402-call.ts --max-amount 1000000 --network base \
-  https://example.trycloudflare.com/services/quant
+  --max-amount 1000000 --network base https://example.trycloudflare.com/services/quant
 ```
 
 The script prints the parsed challenge (price + network + asset + signing path) on stderr before signing; the paid response body goes to stdout. `-v` prints intermediate state.
@@ -69,17 +62,15 @@ The script prints the parsed challenge (price + network + asset + signing path) 
 ## How the flow works
 
 1. Unpaid request → `402` with `accepts[]` (scheme, network, asset, `amount`, `payTo`, `extra`) and optional top-level `extensions`.
-2. The script takes `accepts[0]`, resolves the asset's decimals (built-in registry for USDC/OBOL, else on-chain `decimals()`), and prints a human-readable price.
-3. It signs the path the seller asked for in `extra.assetTransferMethod`:
+2. The script takes `accepts[0]`, resolves decimals (built-in registry for USDC/OBOL, else on-chain `decimals()`), and prints a human-readable price.
+3. It signs the path from `extra.assetTransferMethod`:
    - **`eip3009`** → EIP-3009 `TransferWithAuthorization` (USDC).
-   - **`permit2`** → Permit2 `PermitWitnessTransferFrom`; if the seller advertises `extensions.eip2612GasSponsoring` (OBOL on mainnet) it *also* signs an EIP-2612 permit that the Obol facilitator submits gaslessly.
-4. `POST /wallet/sign` (Bankr) with `signatureType: "eth_signTypedData_v4"` for each signature.
+   - **`permit2`** → Permit2 `PermitWitnessTransferFrom`; if the seller advertises `extensions.eip2612GasSponsoring` (OBOL on mainnet) it *also* signs an EIP-2612 permit the Obol facilitator submits gaslessly.
+4. `POST /wallet/sign` (Bankr, `eth_signTypedData_v4`) for each signature.
 5. Base64-encodes the `{x402Version, accepted, payload, extensions?}` envelope and retries with the `X-PAYMENT` header (`redirect: "manual"` — a signed voucher is never replayed to a redirected host).
 6. `200` → prints body + decodes the `X-PAYMENT-RESPONSE` settlement receipt.
 
-**Critical**: the `amount` is in the asset's base units, not USD. OBOL = 18 decimals; USDC = 6. Misreading OBOL as USDC overshoots by 10^12 — the script reads decimals and shows the formatted price so this can't happen.
-
-See [`references/x402-protocol.md`](references/x402-protocol.md) for the EIP-712 schemas and envelope examples.
+**Critical**: `amount` is in base units, not USD. OBOL = 18 decimals; USDC = 6. Misreading OBOL as USDC overshoots by 10^12 — the script reads decimals and shows the formatted price so this can't happen.
 
 ## Payment rails
 
@@ -88,11 +79,11 @@ See [`references/x402-protocol.md`](references/x402-protocol.md) for the EIP-712
 | USDC | base, base-sepolia, mainnet | `eip3009` | No — facilitator settles |
 | **$OBOL** | mainnet | `permit2` + `eip2612GasSponsoring` | **No** — Obol facilitator submits the permit |
 
-The seller picks the network and method; the script picks the signing path from the challenge. Known chains (signing domains + USDC addresses): mainnet, base, base-sepolia. Other `eip155:<id>` chains work for `eip3009` if the seller advertises `extra.eip712Domain` and you pass `--rpc-url`.
+The seller picks the network and method; the script picks the signing path. Known chains (signing domains + USDC addresses): mainnet, base, base-sepolia. Other `eip155:<id>` chains work for `eip3009` if the seller advertises `extra.eip712Domain` and you pass `--rpc-url`.
 
 ## Discovery: the seller's `/skill.md`
 
-Every Obol Stack tunnel publishes a free markdown catalogue at `<host>/skill.md` listing service names, prices, and URLs (also `<host>/api/services.json`). Only the `/services/<name>/*` URLs cost money.
+Every Obol Stack tunnel publishes a free catalogue at `<host>/skill.md` (also `<host>/api/services.json`) listing service names, prices, and URLs. Only the `/services/<name>/*` URLs cost money.
 
 ```bash
 bun ~/.clawdbot/skills/obol/scripts/obol-skill-list.ts https://example.trycloudflare.com
@@ -100,25 +91,20 @@ bun ~/.clawdbot/skills/obol/scripts/obol-skill-list.ts https://example.trycloudf
 
 ## Troubleshooting
 
-- **Wildly wrong price quoted (trillions)**: that's raw base units without decimals. Route through `--probe`, which formats with the right decimals.
-- **Paid request returned 402 again**: envelope rejected. Re-run `--probe`; if `payTo`/`asset`/`extra` changed the seller rotated — just re-run. Otherwise the signature didn't verify (wrong domain `name`/`version`, chainId, or an expired deadline). Re-running signs fresh.
+- **Wildly wrong price (trillions)**: raw base units without decimals — route through `--probe`, which formats correctly.
+- **Paid request 402'd again**: envelope rejected. Re-run `--probe`; if `payTo`/`asset`/`extra` changed the seller rotated, just re-run. Otherwise the signature didn't verify (wrong domain `name`/`version`, chainId, or expired deadline) — re-running signs fresh. For USDC the EIP-712 domain isn't always `extra.name` (e.g. base-sepolia is "USDC"); `x402.ts` resolves it per chain.
 - **`403` from `/wallet/sign`**: Bankr key is read-only or lacks Wallet API access. New key at [bankr.bot/api](https://bankr.bot/api).
-- **`unknown x402 network`**: handles CAIP-2 (`eip155:<id>`) and a few v1 names. Add to `NET_ALIAS` in `scripts/x402.ts` if needed.
+- **`unknown x402 network`** or **new token shows wrong decimals**: extend `NET_ALIAS`/`CHAINS`/`tokenMeta` in `scripts/x402.ts` (unknown tokens fall back to on-chain `decimals()`).
+- **permit2 without gas sponsoring**: needs a one-time `approve(Permit2, …)` on the token, which this client doesn't do — the script warns. Use a sponsored (OBOL) seller or approve Permit2 separately.
 - **`scheme` is not `exact`**: out of scope — show the user the full 402 body.
-- **permit2 without gas sponsoring**: the script warns; that path needs a one-time `approve(Permit2, …)` on the token from your wallet, which this client doesn't do. Use a sponsored (OBOL) seller or approve Permit2 separately.
-- **New token shows wrong symbol/decimals**: add it to `TOKENS`/`CHAINS` in `scripts/x402.ts`. The on-chain `decimals()` fallback handles unknown tokens for display.
 
 ## Security
 
-- The `X-PAYMENT` value is a signed authorisation for a specific amount, recipient, and expiry. Facilitators record nonces; replay is rejected.
-- The voucher deadline is short and used immediately; stale vouchers are rejected — re-run for a fresh signature.
-- The retry uses `redirect: "manual"` so a redirecting seller can't replay your voucher to another host.
-- Never log the `X-PAYMENT` header anywhere persistent.
+- The `X-PAYMENT` value authorises a specific amount, recipient, and expiry; facilitators record nonces so replay is rejected. The voucher deadline is short and used immediately.
+- The retry uses `redirect: "manual"` so a redirecting seller can't replay your voucher to another host. Never log the `X-PAYMENT` header persistently.
 - The Bankr API key is the sensitive bit — it lives in `~/.clawdbot/skills/bankr/config.json` (gitignored by Bankr). Never echo it.
 
 ## Resources
 
-- Obol Stack docs: <https://docs.obol.org/obol-stack/>
-- Obol mainnet x402 facilitator: <https://x402.gcp.obol.tech>
-- x402 protocol: <https://www.x402.org/>
-- Bankr Wallet API signing: <https://docs.bankr.bot/wallet-api/sign>
+- Obol Stack docs: <https://docs.obol.org/obol-stack/> · facilitator: <https://x402.gcp.obol.tech>
+- x402 protocol: <https://www.x402.org/> · Bankr signing: <https://docs.bankr.bot/wallet-api/sign>
