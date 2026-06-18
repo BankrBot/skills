@@ -70,3 +70,8 @@ Free (no payment):
 - All endpoints return English fields (`event_en`, `board_en`, `signals_en`, …) alongside the originals; stocks are identified by language-neutral `symbol` (ticker).
 - Derived structured output only — no third-party article text (copyright-safe).
 - Informational data, NOT investment advice. Terms: `https://stockwaves.net/terms`.
+
+## References
+- API reference (all endpoints, params, response fields): `/skill/references/api-reference.md`
+- x402 payment flow (Bankr signing + verified vanilla recipe): `/skill/references/x402-flow.md`
+- Error handling (402 / 429 / 4xx / 5xx, retry rules): `/skill/references/error-handling.md`
