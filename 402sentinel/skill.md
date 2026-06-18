@@ -59,3 +59,8 @@ Free (no payment):
 ## Notes
 
 - Scores are probabilistic estimates from limited public on-chain data + heuristics — informational, NOT advice, NOT an endorsement or accusation. Do your own due diligence. Terms: `https://402sentinel.com/terms`.
+
+## References
+- API reference (all endpoints, params, response fields): `/skill/references/api-reference.md`
+- x402 payment flow (Bankr signing + verified vanilla recipe): `/skill/references/x402-flow.md`
+- Error handling (402 / 429 / 4xx / 5xx, retry rules): `/skill/references/error-handling.md`
