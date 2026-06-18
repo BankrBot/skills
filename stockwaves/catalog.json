@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "stockwaves",
+  "provider": "StockWaves",
+  "providerUrl": "https://stockwaves.net",
+  "logo": null,
+  "demo": {
+    "title": "stockwaves-x402.ts",
+    "language": "typescript",
+    "code": "import { x402Client, wrapFetchWithPayment } from \"@x402/fetch\";\nimport { ExactEvmScheme } from \"@x402/evm/exact/client\";\nimport { privateKeyToAccount } from \"viem/accounts\";\n\nconst BASE_URL = \"https://stockwaves.net\";\nconst signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);\n\n// No API key, no signup — every endpoint is x402 pay-per-call (USDC on Base or Solana).\nconst client = new x402Client();\nclient.register(\"eip155:*\", new ExactEvmScheme(signer));\nconst pay = wrapFetchWithPayment(fetch, client);\n\n// China social pulse — Weibo + Baidu + Douyin hot-search, structured (~$0.03)\nconst pulse = await (await pay(`${BASE_URL}/api/cn/trending?platform=all&limit=20`)).json();\n\n// Pre-trade safety on a tokenized US stock: is this the REAL issuer token vs a copycat? (~$0.03)\nconst gate = await (await pay(`${BASE_URL}/api/xstock/health?symbol=AAPLx`)).json();\n\n// FREE — no payment: proof-before-you-buy backtest, and a free safety preview\nconst track = await (await fetch(`${BASE_URL}/api/track-record`)).json();\nconst preview = await (await fetch(`${BASE_URL}/api/xstock/health/preview?symbol=NVDAx`)).json();"
+  },
+  "setup": [
+    "No signup and no API key — every paid endpoint speaks x402 directly.",
+    "Pay with any standard x402 client: the 402 challenge offers Base (eip155:8453) AND Solana — pick either, asset is USDC.",
+    "Prefer Bankr wallet signing (`/agent/sign`) when available — set `BANKR_API_KEY` (Agent API + signing enabled).",
+    "Otherwise set `EVM_PRIVATE_KEY` (a USDC-funded Base wallet) and install `@x402/fetch` + `@x402/evm`.",
+    "Discover everything zero-config: GET https://stockwaves.net/.well-known/x402 , /openapi.json , /llms.txt"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "stockwaves",
+    "command": "install the stockwaves skill from https://github.com/BankrBot/skills/tree/main/stockwaves"
+  }
+}
