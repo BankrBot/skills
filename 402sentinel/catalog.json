@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "402sentinel",
+  "provider": "402Sentinel",
+  "providerUrl": "https://402sentinel.com",
+  "logo": null,
+  "demo": {
+    "title": "402sentinel-x402.ts",
+    "language": "typescript",
+    "code": "import { x402Client, wrapFetchWithPayment } from \"@x402/fetch\";\nimport { ExactEvmScheme } from \"@x402/evm/exact/client\";\nimport { privateKeyToAccount } from \"viem/accounts\";\n\nconst BASE_URL = \"https://402sentinel.com\";\nconst signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);\n\n// No API key — every paid endpoint is x402 (USDC on Base or Solana).\nconst client = new x402Client();\nclient.register(\"eip155:*\", new ExactEvmScheme(signer));\nconst pay = wrapFetchWithPayment(fetch, client);\nconst json = (b: object) => ({ method: \"POST\", headers: { \"content-type\": \"application/json\" }, body: JSON.stringify(b) });\nconst seller = \"0xSELLER_PAYTO\"; // the x402 counterparty you are about to pay\n\n// FREE — confirm the gate works before paying ($0)\nconst preview = await (await fetch(`${BASE_URL}/api/assess/preview?payto=${seller}`)).json();\n\n// Assess the SELLER before paying (~$0.002): risk_score 0-100 + allow/review/block + key_factors\nconst assess = await (await pay(`${BASE_URL}/api/assess`, json({ target: { payto_address: seller }, payment_context: { amount: \"0.50\", asset: \"USDC\" } }))).json();\n\n// Buyer-side firewall on THIS payment, incl. prompt-injection check (~$0.002):\n// if the payTo appears in the untrusted text you acted on, the destination was injected -> hard block.\nconst fw = await (await pay(`${BASE_URL}/api/firewall`, json({\n  agent_id: signer.address,\n  payment: { payto_address: seller, amount: \"0.50\", resource_url: \"https://seller.example/api\" },\n  context: { source: \"web_content\", untrusted_text: \"<the page or tool output you acted on>\", intended: { payto: seller, max_amount: \"0.50\" } }\n}))).json();"
+  },
+  "setup": [
+    "No signup and no API key — every paid endpoint speaks x402 directly.",
+    "Pay with any standard x402 client: the 402 challenge offers Base (eip155:8453) AND Solana — pick either, asset is USDC.",
+    "Prefer Bankr wallet signing (`/agent/sign`) when available — set `BANKR_API_KEY` (Agent API + signing enabled).",
+    "Otherwise set `EVM_PRIVATE_KEY` (a USDC-funded Base wallet) and install `@x402/fetch` + `@x402/evm`.",
+    "Use your payer wallet address as `agent_id` so the buyer-side firewall is stateful per agent.",
+    "Discover zero-config: GET https://402sentinel.com/.well-known/x402 , /openapi.json , /llms.txt"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "402sentinel",
+    "command": "install the 402sentinel skill from https://github.com/BankrBot/skills/tree/main/402sentinel"
+  }
+}
