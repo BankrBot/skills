@@ -171,6 +171,19 @@ confirmation). This skill never signs, sends, or moves funds.
 
 ---
 
+## 🔗 Pairs with
+
+VIGIL slots in as the security layer for any skill that surfaces or acts on a token. Natural pairings already in the catalog:
+
+- **`aeon-token-pick`** — call VIGIL before publishing a pick. If `vigil_consensus` returns high/critical or `vigil_detect_honeypot` flags, escalate to NO_PICK with VIGIL evidence. Stops bad picks at the source.
+- **`aeon-monitor-runners`** — already drops honeypots from the top-runners list; VIGIL adds 6-source consensus + liquidity-lock checks for the same set, much deeper signal.
+- **`aeon-on-chain-monitor`** — when a watched wallet grants a new approval, run VIGIL's `vigil_scan_approvals` to classify the spender risk before the alert fires.
+- **`aeon-defi-monitor`** — before recommending a pool, run `vigil_liquidity_lock` on the LP to confirm liquidity isn't withdrawable by the deployer.
+
+The pattern is the same in every case: **scan before you sign**, and never let a missing data source get reported as "safe".
+
+---
+
 ## 📞 Resources
 
 - **Endpoint:** https://mcp.vigil.codes
