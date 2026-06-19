@@ -26,7 +26,7 @@ The simplest way to create a campaign.
 async function createBasicCampaign() {
   try {
     const response = await fetch(
-      "https://app.productclank.com/api/v1/agents/campaigns",
+      "https://api.productclank.com/api/v1/agents/campaigns",
       {
         method: "POST",
         headers: {
@@ -83,7 +83,7 @@ async function createCampaignAndGeneratePosts() {
   // Step 1: Create campaign (10 credits)
   console.log("📋 Step 1: Creating campaign...");
   const campaignResponse = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     {
       method: "POST",
       headers,
@@ -115,7 +115,7 @@ async function createCampaignAndGeneratePosts() {
   // Step 2: Generate posts (12 credits/post)
   console.log("\n📝 Step 2: Generating posts...");
   const postsResponse = await fetch(
-    `https://app.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
+    `https://api.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
     {
       method: "POST",
       headers,
@@ -146,7 +146,7 @@ Highly customized campaign with specific filters and reply instructions.
 ```typescript
 async function createAdvancedCampaign() {
   const response = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     {
       method: "POST",
       headers: {
@@ -243,7 +243,7 @@ Target conversations mentioning competitors.
 ```typescript
 async function createCompetitorInterceptCampaign() {
   const response = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     {
       method: "POST",
       headers: {
@@ -307,7 +307,7 @@ Coordinated campaign for product launch week.
 async function createLaunchWeekCampaign() {
   // Step 1: Create campaign
   const response = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     {
       method: "POST",
       headers: {
@@ -363,7 +363,7 @@ Be genuinely enthusiastic but not pushy. Share real value.
   if (result.success) {
     // Step 2: Generate posts
     const postsResult = await fetch(
-      `https://app.productclank.com/api/v1/agents/campaigns/${result.campaign.id}/generate-posts`,
+      `https://api.productclank.com/api/v1/agents/campaigns/${result.campaign.id}/generate-posts`,
       {
         method: "POST",
         headers: {
@@ -408,7 +408,7 @@ Add a user as a delegator so they can manage the campaign in the webapp.
 ```typescript
 async function addDelegator(campaignId: string, userId: string) {
   const response = await fetch(
-    `https://app.productclank.com/api/v1/agents/campaigns/${campaignId}/delegates`,
+    `https://api.productclank.com/api/v1/agents/campaigns/${campaignId}/delegates`,
     {
       method: "POST",
       headers: {
@@ -451,7 +451,7 @@ Trusted agents can bill a human user's credits and auto-add them as a delegator.
 async function createCampaignForUser(userId: string) {
   // Step 1: Create campaign, billing the user's credits
   const response = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     {
       method: "POST",
       headers: {
@@ -485,7 +485,7 @@ async function createCampaignForUser(userId: string) {
 
   // Step 2: Generate posts, also billing the user
   const postsResult = await fetch(
-    `https://app.productclank.com/api/v1/agents/campaigns/${result.campaign.id}/generate-posts`,
+    `https://api.productclank.com/api/v1/agents/campaigns/${result.campaign.id}/generate-posts`,
     {
       method: "POST",
       headers: {
@@ -518,7 +518,7 @@ async function createCampaignWithRetry(
       console.log(`Attempt ${attempt}/${maxRetries}...`);
 
       const response = await fetch(
-        "https://app.productclank.com/api/v1/agents/campaigns",
+        "https://api.productclank.com/api/v1/agents/campaigns",
         {
           method: "POST",
           headers: {
@@ -700,7 +700,7 @@ async function createCampaign(
   data: CampaignRequest
 ): Promise<CampaignSuccessResponse["campaign"]> {
   const response = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     {
       method: "POST",
       headers: {
@@ -797,7 +797,7 @@ async function main() {
   // 3. Create campaign (10 credits)
   console.log("Creating campaign...");
   const campaignResult = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     { method: "POST", headers, body: JSON.stringify(campaignData) }
   ).then(r => r.json());
 
@@ -808,7 +808,7 @@ async function main() {
   // 4. Generate posts (12 credits/post)
   console.log("Generating posts...");
   const postsResult = await fetch(
-    `https://app.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
+    `https://api.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
     { method: "POST", headers, body: JSON.stringify({}) }
   ).then(r => r.json());
 
@@ -867,7 +867,7 @@ async function createGrowthRewardsCampaign() {
 
   // Step 1: Create a growth campaign targeting launch conversations
   const campaignResult = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     {
       method: "POST",
       headers,
@@ -908,7 +908,7 @@ Include @yourproduct when relevant.
   // Step 2: Generate posts — community members will claim these
   // and earn crypto rewards for posting verified replies
   const postsResult = await fetch(
-    `https://app.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
+    `https://api.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
     { method: "POST", headers, body: JSON.stringify({}) }
   ).then(r => r.json());
 
@@ -949,7 +949,7 @@ async function weeklyGrowthCampaign() {
 
   // 1. Check credit balance before proceeding
   const balanceRes = await fetch(
-    "https://app.productclank.com/api/v1/agents/credits/balance",
+    "https://api.productclank.com/api/v1/agents/credits/balance",
     { headers }
   ).then(r => r.json());
 
@@ -966,7 +966,7 @@ async function weeklyGrowthCampaign() {
   );
 
   const campaignResult = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns",
+    "https://api.productclank.com/api/v1/agents/campaigns",
     {
       method: "POST",
       headers,
@@ -992,7 +992,7 @@ async function weeklyGrowthCampaign() {
 
   // 3. Generate posts
   await fetch(
-    `https://app.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
+    `https://api.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
     { method: "POST", headers, body: JSON.stringify({}) }
   );
 
@@ -1015,7 +1015,7 @@ async function boostTweet(
   const creditCost = actionType === "replies" ? 200 : 300;
 
   const result = await fetch(
-    "https://app.productclank.com/api/v1/agents/campaigns/boost",
+    "https://api.productclank.com/api/v1/agents/campaigns/boost",
     {
       method: "POST",
       headers: {
@@ -1115,7 +1115,7 @@ async function createCampaignsForPortfolio(clients: ClientProduct[]) {
   for (const client of clients) {
     // Create campaign for each client product
     const campaignResult = await fetch(
-      "https://app.productclank.com/api/v1/agents/campaigns",
+      "https://api.productclank.com/api/v1/agents/campaigns",
       {
         method: "POST",
         headers,
@@ -1139,14 +1139,14 @@ async function createCampaignsForPortfolio(clients: ClientProduct[]) {
 
     // Generate posts
     await fetch(
-      `https://app.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
+      `https://api.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/generate-posts`,
       { method: "POST", headers, body: JSON.stringify({}) }
     );
 
     // Add client's team as delegator so they can manage it
     if (client.teamUserId) {
       await fetch(
-        `https://app.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/delegates`,
+        `https://api.productclank.com/api/v1/agents/campaigns/${campaignResult.campaign.id}/delegates`,
         {
           method: "POST",
           headers,

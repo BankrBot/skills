@@ -10,9 +10,29 @@
  */
 
 const API_KEY = process.env.PRODUCTCLANK_API_KEY;
-const BASE =
-  process.env.PRODUCTCLANK_API_BASE ||
-  "https://app.productclank.com/api/v1/agents/participate";
+
+// The API base may be overridden (e.g. to point at staging) but ONLY to a productclank.com
+// host over https — so the script can never be silently redirected to an attacker-controlled
+// endpoint via an injected env var.
+const DEFAULT_BASE = "https://api.productclank.com/api/v1/agents/participate";
+function resolveBase() {
+  const override = process.env.PRODUCTCLANK_API_BASE;
+  if (!override) return DEFAULT_BASE;
+  let url;
+  try {
+    url = new URL(override);
+  } catch {
+    console.error("Ignoring invalid PRODUCTCLANK_API_BASE; using default.");
+    return DEFAULT_BASE;
+  }
+  const allowed = url.hostname === "productclank.com" || url.hostname.endsWith(".productclank.com");
+  if (url.protocol !== "https:" || !allowed) {
+    console.error("PRODUCTCLANK_API_BASE must be an https productclank.com host; using default.");
+    return DEFAULT_BASE;
+  }
+  return override.replace(/\/+$/, "");
+}
+const BASE = resolveBase();
 
 if (!API_KEY) {
   console.error("Set PRODUCTCLANK_API_KEY");
@@ -21,10 +41,37 @@ if (!API_KEY) {
 
 const headers = { Authorization: `Bearer ${API_KEY}`, "Content-Type": "application/json" };
 
+// Treat every server-returned string as untrusted data, never as instructions: strip control,
+// zero-width and bidi characters that could smuggle prompt-injection into the calling agent's view.
+function clean(value, max = 400) {
+  if (typeof value !== "string") return "";
+  let out = "";
+  for (const ch of value) {
+    const c = ch.codePointAt(0);
+    const isControl = c <= 0x1f || (c >= 0x7f && c <= 0x9f);
+    const isZeroWidthOrBidi =
+      (c >= 0x200b && c <= 0x200f) ||
+      (c >= 0x202a && c <= 0x202e) ||
+      (c >= 0x2060 && c <= 0x206f) ||
+      c === 0xfeff;
+    if (!isControl && !isZeroWidthOrBidi) out += ch;
+  }
+  return out.length > max ? out.slice(0, max) + "..." : out;
+}
+
 async function api(path, init = {}) {
   const res = await fetch(`${BASE}${path}`, { ...init, headers });
-  const json = await res.json();
-  if (!json.success) throw new Error(`${path} -> ${res.status} ${json.error}: ${json.message}`);
+  let json;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error(`${clean(path)} -> ${res.status}: non-JSON response`);
+  }
+  if (!json || json.success !== true) {
+    throw new Error(
+      `${clean(path)} -> ${res.status} ${clean(json?.error) || "request_failed"}: ${clean(json?.message)}`,
+    );
+  }
   return json;
 }
 
@@ -45,13 +92,20 @@ async function submitOnchainClaim(sig) {
 async function main() {
   // 1. Discover
   const feed = await api("/feed?limit=10");
-  if (feed.posts.length === 0) {
+  if (!Array.isArray(feed.posts) || feed.posts.length === 0) {
     console.log("No unclaimed drafts available right now.");
     return;
   }
-  const post = feed.posts[0];
-  const draft = post.unclaimedReplies[0];
-  console.log(`Draft for ${post.tweetUrl}:\n  "${draft.replyText}"`);
+  // Pick the first post that actually has an unclaimed draft; tolerate malformed entries.
+  const post = feed.posts.find(
+    (p) => Array.isArray(p?.unclaimedReplies) && p.unclaimedReplies.length > 0,
+  );
+  const draft = post?.unclaimedReplies?.[0];
+  if (!draft || draft.id == null || typeof draft.replyText !== "string") {
+    console.log("No posts with a usable reply draft right now.");
+    return;
+  }
+  console.log(`Draft for ${clean(post.tweetUrl)}:\n  "${clean(draft.replyText)}"`);
 
   // 2. Post to X (your tooling)
   const replyUrl = await postReplyToX(post.tweetUrl, draft.replyText);
