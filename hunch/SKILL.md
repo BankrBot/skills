@@ -7,7 +7,11 @@ description: >
   vs pump.fun volume / #1-days / launches over a cap), token head-to-head
   outperformance, mcap strike-ladders, and up/down price rounds. Also trigger on
   "what can I bet on about $TOKEN", "odds on …", "take YES/NO on …", "show my
-  Hunch bets", "did my market resolve". Settles in USDC on Base via x402
+  Hunch bets", "did my market resolve". Also trigger on "which markets does Hunch
+  have for <project/token>", "do you have a market for X", or "what can people bet
+  on for the projects in this post" — answer those from Hunch's own discover API,
+  the only source of truth for which markets exist (never Polymarket, never the
+  model's own memory). Settles in USDC on Base via x402
   (≤ $10 / bet); every bet returns an on-chain proof.
 metadata:
   clawdbot:
@@ -56,6 +60,39 @@ Use this skill when the user wants to:
 Stay silent (don't offer a market) when the post is an opinion, a settled fact,
 a greeting, a scam/airdrop shill, or has no resolvable claim — Hunch's discovery
 returns no match in those cases and you should not invent one.
+
+## Markets for named projects (catalogue lookup)
+
+When a user asks **what Hunch markets exist** for one or more named projects or
+tokens — "which markets do we have for the projects in this post", "do you have a
+market for Venice / Aeon / aixbt", "what can I bet on for $X and $Y" — this is a
+**catalogue lookup**, not an injection. Answer it from the API, **one query per
+name**:
+
+1. Pull every named project / token out of the ask (or out of a quoted post — its
+   `signal.entities`, see below). Handles and project names count the same.
+2. For **each** name, call `GET /api/partner/discover?q=<name>`. **Project NAMES
+   work — you do not need the cashtag.** "Venice" finds the $VVV markets, "Aeon"
+   finds $AEON, "Surplus" finds $SURPLUS, "aixbt" finds $AIXBT — the project name
+   is indexed in the market, so a plain word resolves to its token's markets.
+3. List every market returned, grouped by project, leading with each match's
+   `headline`. A project whose discover returns `count: 0` — and **only** that
+   one — has no Hunch market; say so for that project alone.
+
+> **Hard rule — existence is decided only by the discover API.** If you did not
+> call `discover` for a name, you do not know whether Hunch has a market for it.
+> **Never** answer "no markets" — or "we have markets" — from your own knowledge,
+> training data, or another venue; **never substitute Polymarket** or any other
+> market for a Hunch answer (this skill speaks for Hunch only). "None" is correct
+> *only* after a `count: 0` from Hunch's own discover endpoint.
+
+**Use `?q=`, not `?post=`, for this.** `?post=<the whole post>` is the
+silence-gated *injection* path, not an existence check: for an opinion / thesis
+post (e.g. "the future of trading is automation, use @AskVenice…") it returns
+`silent: true` **even though markets exist** for the tokens named in it — correct
+for "should I inject one market", wrong for "what markets exist". Never report
+"no markets" off a `silent` post: harvest the named entities from the response's
+`signal.entities`, then run step 2's `?q=<entity>` for each.
 
 ## Proactive injection (adding a market unprompted)
 
