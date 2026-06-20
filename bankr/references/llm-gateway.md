@@ -16,7 +16,7 @@ The gateway uses your **LLM key** for authentication. The key resolution order:
 
 Most users only need a single key for both the agent API and the LLM gateway. Set a separate LLM key only if your keys have different permissions or rate limits.
 
-**Dashboard:** Manage usage, credits, and auto top-up at [bankr.bot/llm](https://bankr.bot/llm). Top up credits at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits). Generate and configure API keys at [bankr.bot/api](https://bankr.bot/api).
+**Dashboard:** Manage usage, credits, and auto top-up at [bankr.bot/llm](https://bankr.bot/llm). Top up credits at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits). Generate and configure API keys at [bankr.bot/api-keys](https://bankr.bot/api-keys).
 
 ### Setting the LLM Key
 
@@ -40,25 +40,47 @@ bankr config get llmKey
 
 | Model | Provider | Best For |
 |-------|----------|----------|
-| `claude-opus-4.7` | Anthropic | Latest, most capable reasoning |
-| `claude-opus-4.6` | Anthropic | Advanced reasoning |
-| `claude-opus-4.5` | Anthropic | Complex reasoning, architecture |
-| `claude-sonnet-4.6` | Anthropic | Balanced speed and quality |
-| `claude-sonnet-4.5` | Anthropic | Previous generation Sonnet |
-| `claude-haiku-4.5` | Anthropic | Fast, cost-effective |
-| `gemini-3-pro` | Google | Long context (2M tokens) |
-| `gemini-3-flash` | Google | High throughput |
+| `claude-fable-5` | Anthropic | Latest generation, agentic + multimodal (1M context, image input) |
+| `claude-opus-4.8` | Anthropic | Latest, most capable reasoning (1M context) |
+| `claude-opus-4.7` | Anthropic | Advanced reasoning (1M context) |
+| `claude-opus-4.6` | Anthropic | Advanced reasoning (1M context) |
+| `claude-opus-4.5` | Anthropic | Complex reasoning (200K context) |
+| `claude-sonnet-4.6` | Anthropic | Balanced speed and quality (1M context) |
+| `claude-sonnet-4.5` | Anthropic | Previous generation Sonnet (1M context) |
+| `claude-haiku-4.5` | Anthropic | Fast, cost-effective (200K context) |
+| `gemini-3.5-flash` | Google | Latest Flash, 1M context |
+| `gemini-3.1-pro` | Google | Long context, reasoning (1M) |
+| `gemini-3.1-flash-lite` | Google | Ultra-fast, lowest cost (1M) |
+| `gemini-3-flash` | Google | High throughput (1M) |
 | `gemini-2.5-pro` | Google | Long context, multimodal |
 | `gemini-2.5-flash` | Google | Speed, high throughput |
-| `gpt-5.2` | OpenAI | Advanced reasoning |
-| `gpt-5.2-codex` | OpenAI | Code generation |
+| `gemma-4-31b-it` | Google | Multimodal, cost-effective (262K) |
+| `gemma-4-26b-a4b-it` | Google | MoE, cost-effective (262K) |
+| `gpt-5.5` | OpenAI | Latest, most capable (1M context, image input) |
+| `gpt-5.4` | OpenAI | Advanced reasoning (1M context, image input) |
 | `gpt-5.4-mini` | OpenAI | Fast, economical (400K context, image input) |
 | `gpt-5.4-nano` | OpenAI | Ultra-fast, lowest cost (400K context, image input) |
-| `minimax-m2.7` | MiniMax | Balanced performance (204.8K context) |
-| `kimi-k2.5` | Moonshot AI | Long-context reasoning |
-| `qwen3-coder` | Alibaba | Code generation, debugging |
-| `glm-5` | Z.ai | General purpose reasoning |
-| `glm-5-turbo` | Z.ai | Fast, cost-effective |
+| `gpt-5.2` | OpenAI | Advanced reasoning (400K context) |
+| `gpt-5.2-codex` | OpenAI | Code generation (400K context) |
+| `gpt-5-mini` | OpenAI | Previous gen, economical (400K) |
+| `gpt-5-nano` | OpenAI | Previous gen, ultra-fast (400K) |
+| `grok-4.20` | xAI | Latest, deep reasoning (2M context) |
+| `grok-4.3` | xAI | Balanced performance (1M context) |
+| `deepseek-v4-pro` | DeepSeek | Long context reasoning (1M, 384K output) |
+| `deepseek-v4-flash` | DeepSeek | High throughput, cost-effective (1M) |
+| `deepseek-v3.2` | DeepSeek | Cost-effective (164K context) |
+| `qwen3.5-plus` | Alibaba | Long-context reasoning (1M) |
+| `qwen3.5-flash` | Alibaba | Fast, economical (1M) |
+| `qwen3-coder` | Alibaba | Code generation, debugging (262K) |
+| `kimi-k2.6` | Moonshot AI | Latest, long-context (262K) |
+| `kimi-k2.5` | Moonshot AI | Long-context reasoning (262K) |
+| `minimax-m3` | MiniMax | Flagship multimodal reasoning (512K context) |
+| `minimax-m2.7` | MiniMax | Balanced performance (204.8K) |
+| `minimax-m2.7-highspeed` | MiniMax | Faster variant, double throughput (204.8K) |
+| `minimax-m2.5` | MiniMax | Cost-effective (204.8K) |
+| `glm-5.1` | Z.ai | Advanced reasoning (202K) |
+| `glm-5` | Z.ai | General purpose reasoning (202K) |
+| `glm-5-turbo` | Z.ai | Fast, cost-effective (202K) |
 
 ```bash
 # Fetch live model list from the gateway
@@ -79,23 +101,39 @@ Check your LLM gateway credit balance:
 bankr llm credits
 ```
 
-Top up credits from your wallet:
+Top up credits from your wallet. Pay on any supported EVM chain — **Base, Polygon, Ethereum, Arbitrum, or BNB Chain** — and the CLI picks the chain holding the highest USD balance of your chosen token.
 
 ```bash
-bankr llm credits add 25                   # Add $25 credits (USDC default)
-bankr llm credits add 50 --token 0x...     # Add $50 from a specific token
+bankr llm credits add 25                   # Defaults to Base USDC
+bankr llm credits add 25 --token USDC      # USDC on the chain with the largest balance
+bankr llm credits add 25 --token USDT      # USDT (Polygon / Ethereum / Arbitrum / BNB)
+bankr llm credits add 50 --token ETH       # Native ETH (Base / Ethereum / Arbitrum)
+bankr llm credits add 50 --token 0x...     # By contract address
 bankr llm credits add 25 -y                # Skip confirmation prompt
 ```
 
-Configure automatic top-up so credits never run out:
+USDC and USDT are sent directly when they're an accepted stablecoin on the resolved chain. Any other token is auto-swapped to the chain's preferred stablecoin (USDC on most chains, USDT on BNB) with ≤5% slippage protection.
+
+Configure automatic top-up so credits never run out (tokens are resolved across every supported chain — the worker tries them in priority order on their saved chains):
 
 ```bash
 bankr llm credits auto                     # View current auto top-up config
-bankr llm credits auto --enable --amount 25 --threshold 5 --tokens USDC
+bankr llm credits auto --enable --amount 25 --threshold 5 --tokens USDC,USDT
 bankr llm credits auto --disable
 ```
 
 When credits are exhausted, gateway requests will fail with HTTP 402.
+
+### Expiring Credit Grants
+
+Beyond purchased credits, your account may receive **time-limited grant credits** (for example promotional or developer grants). Your spendable balance is your permanent pool (purchases and regular top-ups) plus the remaining amount of any unexpired grants:
+
+```
+spendable = permanent pool + Σ (remaining of each grant where expiry > now)
+spend order = expiring grants first (soonest-expiring), then the permanent pool
+```
+
+Expired grants drop off automatically — there is no manual cleanup. The Credits page and `/llm/usage` show a breakdown of your permanent pool vs. each grant and its expiry, and your credit history labels grant rows.
 
 ### Agent Credit Top-Up
 
@@ -106,7 +144,7 @@ bankr agent prompt "Top up my LLM credits with $25"
 bankr agent prompt "Add $10 of LLM credits using my ETH"
 ```
 
-1 credit = $1 USD. Paid in USDC on Base by default; any other Base ERC-20 token you hold is auto-swapped to USDC at checkout. Maximum $1,000 per top-up.
+1 credit = $1 USD. Multi-chain: pay with USDC or USDT directly on Base, Polygon, Ethereum, Arbitrum, or BNB Chain, or with any other ERC-20 (auto-swapped to the chain's preferred stablecoin — USDC on most chains, USDT on BNB). Maximum $1,000 per top-up.
 
 > **LLM credits vs trading wallet:** These are completely separate balances on the same account and API key. Your trading wallet (ETH, SOL, USDC) is for on-chain transactions. LLM credits (USD) are for gateway API calls. Having crypto does NOT give you LLM credits.
 
@@ -117,7 +155,7 @@ If the user already has a Bankr account, they just need to configure the gateway
 ### Have Bankr Account
 
 1. Get an API key with **LLM Gateway** enabled:
-   - **Have a key?** Enable LLM Gateway at [bankr.bot/api](https://bankr.bot/api)
+   - **Have a key?** Enable LLM Gateway at [bankr.bot/api-keys](https://bankr.bot/api-keys)
    - **Need a key?** Generate via CLI: `bankr login email user@example.com` → `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
 2. Run: `bankr llm setup openclaw --install`
 3. Set default model in `~/.openclaw/openclaw.json`:
@@ -131,7 +169,7 @@ If the user already has a Bankr account, they just need to configure the gateway
 
 1. Send OTP: `bankr login email user@example.com`
 2. Complete setup: `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
-   - Can also create/configure keys at [bankr.bot/api](https://bankr.bot/api)
+   - Can also create/configure keys at [bankr.bot/api-keys](https://bankr.bot/api-keys)
 3. **Top up credits:** `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) — new wallets start with $0
 4. Verify: `bankr llm credits` (must show > $0)
 5. Run: `bankr llm setup openclaw --install`
@@ -155,7 +193,7 @@ Key resolution: `BANKR_LLM_KEY` env var → `llmKey` in config → falls back to
 
 ### Key Permissions
 
-Manage at [bankr.bot/api](https://bankr.bot/api):
+Manage at [bankr.bot/api-keys](https://bankr.bot/api-keys):
 
 | Toggle | Controls |
 |--------|----------|
@@ -188,10 +226,12 @@ This writes the following provider config (with your key and all available model
         "apiKey": "your_key_here",
         "api": "openai-completions",
         "models": [
+          { "id": "claude-opus-4.8", "name": "Claude Opus 4.8", "api": "anthropic-messages" },
           { "id": "claude-sonnet-4.6", "name": "Claude Sonnet 4.6", "api": "anthropic-messages" },
           { "id": "claude-haiku-4.5", "name": "Claude Haiku 4.5", "api": "anthropic-messages" },
-          { "id": "gemini-3-flash", "name": "Gemini 3 Flash" },
-          { "id": "gpt-5.2", "name": "GPT 5.2" }
+          { "id": "gemini-3.5-flash", "name": "Gemini 3.5 Flash" },
+          { "id": "gpt-5.5", "name": "GPT 5.5" },
+          { "id": "deepseek-v4-pro", "name": "DeepSeek V4 Pro" }
         ]
       }
     }
