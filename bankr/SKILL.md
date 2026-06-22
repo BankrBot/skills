@@ -1,6 +1,6 @@
 ---
 name: bankr
-description: AI-powered crypto trading agent, wallet API, and LLM gateway via natural language. Use when the user wants to trade crypto, check portfolio balances (with PnL and NFTs), view token prices, search tokens, transfer crypto, manage NFTs, use leverage (Hyperliquid or Avantis), bet on Polymarket, deploy tokens, set up a Glidepath gradual exit for a token you launched, set up automated trading, sign and submit raw transactions, call or deploy x402 paid API endpoints, browse the web, or access LLM models through the Bankr LLM gateway funded by your Bankr wallet. Supports Base, Ethereum, Polygon, Solana, Unichain, World Chain, Arbitrum, and BNB Chain.
+description: AI-powered crypto trading agent, wallet API, and LLM gateway via natural language. Use when the user wants to trade crypto, check portfolio balances (with PnL and NFTs), view token prices, search tokens, transfer crypto, manage NFTs, use leverage (Hyperliquid or Avantis), bet on Polymarket, deploy tokens, set up automated trading, sign and submit raw transactions, call or deploy x402 paid API endpoints, browse the web, or access LLM models through the Bankr LLM gateway funded by your Bankr wallet. Supports Base, Ethereum, Polygon, Solana, Unichain, World Chain, Arbitrum, and BNB Chain.
 metadata:
   {
     "clawdbot":
@@ -626,18 +626,7 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 **Reference**: [references/token-deployment.md](references/token-deployment.md)
 
-### Glidepath (Gradual Builder Exit)
-
-Glidepath is an AI-paced way for token builders to take profit **gradually** instead of dumping. You commit a slice of your own creator-fee tokens and the AI sells them back into the pool in tiny, liquidity-sized increments over time, so the chart absorbs ordinary sell pressure instead of taking a cliff.
-
-- **Never pulls liquidity** — only the tokens you explicitly commit are sold; your LP position is untouched
-- **~48h heads-up window** before selling starts, then AI-sized slices each capped to a fraction of live pool depth
-- Selling begins from the **current** market cap; committed / sold / remaining shown as a public exit envelope on your token page
-- **Cancel anytime** — instant undo within ~30 min of committing; after selling starts, unsold tokens return after a 7-day cooldown
-- Managed from your token page at [bankr.bot](https://bankr.bot)
-- Selling your own fee token through Bankr's ordinary swap/limit/stop/DCA/TWAP tools is restricted — use a Glidepath for builder exits
-
-**Reference**: [references/glidepath.md](references/glidepath.md)
+> **Selling your own creator-fee token:** Bankr blocks selling a token you earn fees on through the ordinary swap/limit/stop/DCA/TWAP tools (buying and transferring are unaffected). Builders take profit gradually instead via **Glidepath** — an AI-paced gradual exit managed from the token page at [bankr.bot](https://bankr.bot). Glidepath is a web feature; it isn't a CLI/API action. Details: https://docs.bankr.bot/token-launching/glidepath
 
 ### Automation
 

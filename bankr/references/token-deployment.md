@@ -9,7 +9,7 @@ Deploy and manage tokens on Base (via Doppler / Uniswap V4) and Solana (via Rayd
 | **Base** (default) | Doppler (Uniswap V4) | ERC20 | Memecoins, social/agent tokens |
 | **Solana** | Raydium LaunchLab | SPL | High-speed trading, bonding curves |
 
-> **Builder exits:** to take profit on a token you earn creator fees on, use a **Glidepath** (a capped, AI-paced gradual sell). Selling your own fee token through Bankr's ordinary swap/limit/stop/DCA/TWAP tools is intentionally restricted. See [glidepath.md](glidepath.md).
+> **Builder exits:** selling a token you earn creator fees on through Bankr's ordinary swap/limit/stop/DCA/TWAP tools is intentionally restricted (buying and transferring still work). To take profit, builders use a **Glidepath** — a capped, AI-paced gradual sell managed from the token page at [bankr.bot](https://bankr.bot). Glidepath is a web feature, not a CLI/API action. Details: https://docs.bankr.bot/token-launching/glidepath
 
 ---
 
@@ -254,9 +254,9 @@ High-volume or bot-like deploy patterns can trigger automated spam protections a
 2. **Contract Deployment**: Doppler deploys the ERC20 and creates the Uniswap V4 pool with automatic liquidity
 3. **Verification**: Get the token address and pool metadata, view on a block explorer
 
-### Glidepath — Gradual Builder Exit
+### Taking Profit (Glidepath)
 
-Once your token is live and earning fees, you can take profit gradually with a **Glidepath** instead of dumping your stack. You commit a slice of your tokens and the AI sells it back into the pool in tiny, liquidity-sized increments over time. Managed from your token page at [bankr.bot](https://bankr.bot). See [glidepath.md](glidepath.md) for the full flow.
+Selling a token you earn creator fees on through Bankr's swap/limit/stop/DCA/TWAP tools is restricted (buying and transferring are unaffected). To take profit, builders use a **Glidepath** — a capped, AI-paced gradual sell that feeds a committed slice of your tokens back into the pool over time instead of dumping. Glidepath is managed from the token page at [bankr.bot](https://bankr.bot) (a web feature, not a CLI/API action). Details: https://docs.bankr.bot/token-launching/glidepath
 
 ---
 
