@@ -502,7 +502,6 @@ The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unifie
 - In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`)
 - **Per-model discounts** available for Bankr Club members and partners — applied automatically at billing time
 - **Expiring credit grants**: promotional or developer grants may carry an expiry date. Your spendable balance is your permanent (purchased) credits plus any unexpired grants — grants are spent first (soonest-expiring first) and drop off automatically at expiry
-- **Private (confidential) inference**: append `:private` to a model ID (e.g. `glm-5.2:private`) to force the request onto a confidential / TEE-backed provider. Only models that expose a private slot support it (`bankr llm models` flags them); others reject the `:private` request rather than silently falling back
 
 ### Quick Commands
 

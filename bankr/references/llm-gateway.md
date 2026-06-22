@@ -104,8 +104,15 @@ curl -X POST "https://llm.bankr.bot/v1/chat/completions" \
   -d '{"model": "glm-5.2:private", "messages": [{"role": "user", "content": "Hello"}]}'
 ```
 
+List which models currently support private (TEE) compute:
+
+```bash
+bankr llm models --private        # only models that support :private
+bankr llm models                  # full list; private-capable models are flagged
+```
+
 - Confidentiality is a hard routing constraint — a `:private` request is only served by a private-capable provider, never silently downgraded to a standard one.
-- Only models that expose a private slot support it. `bankr llm models` flags which models are private-capable; sending `:private` to a model without one is rejected rather than falling back.
+- Only models that expose a private slot support it. `bankr llm models` flags which models are private-capable, and `bankr llm models --private` lists only those (driven live by the gateway's `private` flag on `GET /v1/models`). Sending `:private` to a model without one is rejected rather than falling back.
 - Only a trailing, lowercase `:private` is treated as the opt-in. Anything else in the model string is left untouched.
 
 ### Per-Model Discounts
