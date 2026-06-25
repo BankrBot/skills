@@ -53,7 +53,7 @@ Use `opensea-api` for **read-only** operations:
 export OPENSEA_API_KEY=$(scripts/auth/opensea-resolve-key.sh)
 
 # Install the CLI globally (or use npx)
-npm install -g @opensea/cli
+npm install -g @opensea/cli@1.10.0
 
 # Get collection info
 opensea collections get boredapeyachtclub
@@ -142,7 +142,7 @@ you use those, you must save the key yourself per step 4 above.
 
 ## Task guide
 
-> **Recommended:** Use the `opensea` CLI (`@opensea/cli`) as your primary tool. Install with `npm install -g @opensea/cli` or use `npx @opensea/cli`. The shell scripts in `scripts/` remain available as alternatives.
+> **Recommended:** Use the `opensea` CLI (`@opensea/cli`) as your primary tool. Install with `npm install -g @opensea/cli@1.10.0` or use `npx @opensea/cli@1.10.0`. The shell scripts in `scripts/` remain available as alternatives.
 
 ### Reading NFT data
 
@@ -173,6 +173,13 @@ you use those, you must save the key yourself per step 4 above.
 | Check token balances | `get_token_balances` (MCP) | |
 | Resolve API key (reuse env/cache, else fetch + save) — preferred | `auth/opensea-resolve-key.sh` | see [API key resolution](#api-key-resolution-read-this-before-your-first-request) |
 | Request instant API key (raw JSON, no persistence) | `opensea auth request-key` | `auth/opensea-auth-request-key.sh` |
+| Authenticate with SIWE | `opensea auth login --private-key $KEY [--scopes <scopes>]` | See `references/authentication.md` |
+| Check auth status | `opensea auth status` | |
+| Refresh auth token | `opensea auth refresh` | |
+| Revoke auth token | `opensea auth revoke [--address <addr>]` | |
+| List stored tokens | `opensea auth tokens` | |
+| List available scopes | `opensea auth scopes` | |
+| Clear all tokens | `opensea auth clear` | |
 
 ### Marketplace queries (read-only)
 
@@ -314,9 +321,9 @@ The [OpenSea CLI](https://github.com/ProjectOpenSea/opensea-cli) is the recommen
 ### Installation
 
 ```bash
-npm install -g @opensea/cli
+npm install -g @opensea/cli@1.10.0
 # Or use without installing
-npx @opensea/cli collections get mfers
+npx @opensea/cli@1.10.0 collections get mfers
 ```
 
 ### Authentication

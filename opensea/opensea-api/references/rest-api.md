@@ -5,8 +5,11 @@
 ```
 Base URL: https://api.opensea.io
 OpenAPI spec: https://api.opensea.io/api/v2/openapi.json
-Auth header: x-api-key: $OPENSEA_API_KEY
+API key header: x-api-key: $OPENSEA_API_KEY
+Bearer token header: Authorization: Bearer <token>  (wallet-authenticated endpoints only)
 ```
+
+See [authentication.md](authentication.md) for the full auth flow and scope reference.
 
 ## Pagination
 
@@ -84,7 +87,7 @@ List endpoints support cursor-based pagination:
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v2/orders/chain/{chain}/protocol/{protocol}/{hash}` | GET | Get order by hash |
-| `/api/v2/orders/chain/{chain}/protocol/{protocol}/{hash}/cancel` | POST | Cancel order |
+| `/api/v2/orders/chain/{chain}/protocol/{protocol}/{hash}/cancel` | POST | Cancel order (requires `write:orders` scope + Bearer token for authenticated cancel) |
 
 ### Events
 
@@ -101,6 +104,7 @@ List endpoints support cursor-based pagination:
 | `/api/v2/drops` | GET | List drops (featured, upcoming, recently_minted) |
 | `/api/v2/drops/{slug}` | GET | Detailed drop info with stages and supply |
 | `/api/v2/drops/{slug}/mint` | POST | Build mint transaction data |
+| `/api/v2/drops/eligibility/{slug}` | GET | Check drop eligibility (requires `read:eligibility` scope + Bearer token) |
 | `/api/v2/drops/deploy` | POST | Build deploy-contract transaction for a new drop |
 | `/api/v2/drops/deploy/{chain}/{tx_hash}/receipt` | GET | Receipt for a previously submitted deploy transaction |
 
@@ -115,7 +119,7 @@ List endpoints support cursor-based pagination:
 | `/api/v2/account/{address}/offers` | GET | Active offers made by an account |
 | `/api/v2/account/{address}/offers_received` | GET | Offers received by an account |
 | `/api/v2/account/{address}/listings` | GET | Active listings for an account |
-| `/api/v2/account/{address}/favorites` | GET | Items favorited by an account |
+| `/api/v2/account/{address}/favorites` | GET | Items favorited by an account (requires `read:favorites` scope + Bearer token) |
 | `/api/v2/account/{address}/collections` | GET | Collections owned by an account |
 
 ### Tokens
@@ -193,7 +197,8 @@ A `429` response includes these headers:
 | Code | Meaning |
 |------|---------|
 | 400 | Bad request - check parameters |
-| 401 | Unauthorized - missing/invalid API key |
+| 401 | Unauthorized - missing/invalid API key or Bearer token |
+| 403 | Forbidden - valid auth but insufficient scopes |
 | 404 | Resource not found |
 | 429 | Rate limited |
 | 500 | Server error |
