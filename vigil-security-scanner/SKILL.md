@@ -1,6 +1,6 @@
 ---
 name: vigil-security-scanner
-description: Onchain security scanner for Base tokens and wallets. Scan token approvals, detect honeypots, find rugpull indicators, check liquidity locks, score contract safety 0-100, and get a multi-source consensus verdict. Use when a user asks an agent to evaluate, scan, or check a Base token or wallet before trading, swapping, signing an approval, or investing. 13 read-only tools, keyless and free. Read-only intelligence — not financial advice.
+description: Onchain security scanner for Base tokens and wallets. Scan token approvals, detect honeypots, find rugpull indicators, check liquidity locks, owner-modifiable tax, dangerous owner permissions, copy-paste scam clones, simulate approvals, score contract safety 0-100, and get a multi-source consensus verdict. Use when a user asks an agent to evaluate, scan, or check a Base token or wallet before trading, swapping, signing an approval, or investing. 17 read-only tools, keyless and free. Read-only intelligence — not financial advice.
 tags: [security, defi, base, rugpull, honeypot, onchain]
 version: 1
 visibility: public
@@ -16,7 +16,7 @@ metadata:
 # VIGIL Security Scanner
 
 Onchain security scanner for DeFi traders and autonomous agents on Base. Paste a
-token or wallet address, get a verdict before you sign. VIGIL exposes 13
+token or wallet address, get a verdict before you sign. VIGIL exposes 17
 read-only tools over a keyless JSON-RPC endpoint — no API key, no signup, no
 account.
 
@@ -58,7 +58,7 @@ All scans go through a single JSON-RPC 2.0 endpoint. No auth for read-only tools
 ```bash
 # Health check — confirms the server is live and how many tools are available
 curl -s https://mcp.vigil.codes/health
-# -> {"status":"ok","service":"vigil-mcp","tools":13}
+# -> {"status":"ok","service":"vigil-mcp","tools":17}
 
 # Safety score for USDC on Base
 curl -s -X POST https://mcp.vigil.codes/tools/call \
@@ -73,12 +73,16 @@ curl -s -X POST https://mcp.vigil.codes/tools/call \
 
 ---
 
-## 🛠 The 13 Tools
+## 🛠 The 17 Tools
 
 | Tool | What it does |
 |---|---|
 | `vigil_safety_score` | 0-100 composite rating (code, ownership, registry, reputation) |
 | `vigil_detect_honeypot` | Simulate buy/sell to detect tokens that block selling |
+| `vigil_check_tax` | Flag punishing or owner-modifiable buy/sell/transfer tax ("0% now, 99% later") |
+| `vigil_check_ownership` | Owner powers: mint, pause, blacklist, reclaim ownership, modify balances, selfdestruct |
+| `vigil_detect_clone` | Flag copy-paste scam clones by bytecode fingerprint, cross-checked vs scam DB |
+| `vigil_simulate_approval` | Risk-assess a spender BEFORE you approve it — "what could it do if I sign?" |
 | `vigil_liquidity_lock` | Detect if LP is locked / burned / unlocked / unknown (rug vector) |
 | `vigil_consensus` | Multi-source verdict — 6 independent signals vote, risk escalates only on agreement |
 | `vigil_scan_token` | Rugpull indicators: hidden mint, proxy, tax manipulation, blacklist |
@@ -92,8 +96,10 @@ curl -s -X POST https://mcp.vigil.codes/tools/call \
 | `vigil_sentinel_status` | Autonomous Sentinel watchlist + loop config |
 
 Free core safety checks: `vigil_safety_score`, `vigil_detect_honeypot`,
-`vigil_liquidity_lock`. These stay barrier-free so agents always have a
-pre-trade guard.
+`vigil_check_tax`, `vigil_check_ownership`, `vigil_detect_clone`,
+`vigil_simulate_approval`, `vigil_liquidity_lock`. These stay barrier-free so
+agents always have a pre-trade guard. Premium tools (deeper aggregations) are
+optionally pay-per-call in USDC via x402 — no account needed.
 
 ---
 
@@ -106,6 +112,10 @@ When a user asks about a Base token, the agent should:
 3. **Run the right tool** for the question:
    - "Is this safe to buy?" → `vigil_consensus` (full verdict) or `vigil_safety_score` (quick)
    - "Can I sell it?" → `vigil_detect_honeypot`
+   - "Will it tax me / can the tax change?" → `vigil_check_tax`
+   - "Who controls this contract?" → `vigil_check_ownership`
+   - "Is this a copy-paste scam?" → `vigil_detect_clone`
+   - "Should I sign this approval?" → `vigil_simulate_approval` (spender + token)
    - "Can the dev rug the liquidity?" → `vigil_liquidity_lock`
    - "Check my wallet's approvals" → `vigil_scan_approvals` (wallet address)
 4. **Relay the verdict** including risk level, key reasons, and any critical flags

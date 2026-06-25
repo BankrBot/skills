@@ -22,8 +22,9 @@ The result is returned under `.result`. Errors come back as `.error`. A few
 premium tools (scan_token, deployer_check, token_market, batch_scan,
 wallet_report, consensus) may respond with an x402 payment-required body
 (`x402Version` + `accepts`) when paid mode is enabled; core safety checks
-(safety_score, detect_honeypot, liquidity_lock, check_scam, scan_approvals,
-monitor_wallet, sentinel_status) are always free.
+(safety_score, detect_honeypot, check_tax, check_ownership, detect_clone,
+simulate_approval, liquidity_lock, check_scam, scan_approvals, monitor_wallet,
+sentinel_status) are always free.
 
 ---
 
@@ -38,6 +39,35 @@ Returns: `score` (0-100), `risk_level`, `breakdown[]`, `risk_factors[]`,
 Args: `token`, `chain`.
 Returns: `is_honeypot`, `can_buy`, `can_sell`, `buy_tax`, `sell_tax`,
 `block_reason`, `simulations[]`.
+
+### vigil_check_tax
+Args: `token`, `chain`.
+Returns: `risk` (safe|caution|high|dangerous|unknown), `buy_tax`, `sell_tax`,
+`transfer_tax` (fractions; 0.05 == 5%), `tax_modifiable`,
+`personal_tax_modifiable`, `trading_cooldown`, `cannot_buy`, `notes[]`.
+Owner-modifiable tax ("0% now, 99% later") is treated as dangerous. Missing
+data returns `unknown`, never `safe`.
+
+### vigil_check_ownership
+Args: `token`, `chain`.
+Returns: `risk` (safe|caution|high|dangerous|unknown), `owner_address`,
+`ownership_renounced`, `owner_percent`, `powers[]` (mint, pause_transfers,
+blacklist, reclaim_ownership, hidden_owner, modify_balances, selfdestruct, ...),
+`notes[]`. A renounced owner (null address) neutralizes powers; reclaimable or
+hidden ownership is dangerous. Missing data returns `unknown`.
+
+### vigil_detect_clone
+Args: `token`, `chain`.
+Returns: `risk` (safe|suspicious|dangerous|unknown), `fingerprint`,
+`clone_count`, `clones[]`, `scam_siblings[]`, `notes[]`. Fingerprints bytecode
+and flags copy-paste clones; escalates to dangerous only when a sibling is a
+reported scam. Missing data returns `unknown`.
+
+### vigil_simulate_approval
+Args: `spender` (0x), `token` (0x), `amount` (`unlimited` or numeric), `chain`.
+Returns: `risk` (safe|suspicious|dangerous), `spender_profile`, `reasons[]`,
+`recommendation`. Answers "if I approve this spender right now, what could it
+do?" before you sign.
 
 ### vigil_liquidity_lock
 Args: `token`, `chain`.
