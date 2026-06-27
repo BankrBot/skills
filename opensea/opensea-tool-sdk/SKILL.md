@@ -48,13 +48,24 @@ This SDK is for tool *providers and consumers*. To query OpenSea marketplace dat
 
 | Term | Meaning |
 |------|---------|
-| **Tool** | An HTTPS endpoint with a JSON Schema interface, discoverable via `/.well-known/ai-tool/<slug>.json` |
+| **Tool** | A single REST API endpoint with a JSON Schema interface, discoverable via `/.well-known/ai-tool/<slug>.json`. Each tool should perform one focused operation. |
 | **Manifest** | JCS-canonicalized JSON describing the tool's name, endpoint, inputs, outputs, pricing, and access policy |
 | **ToolRegistry** | Onchain contract (Base) where tools are registered with a manifest hash and optional access predicate |
 | **Access Predicate** | An `IAccessPredicate` contract that gates who can invoke a tool (NFT ownership, subscriptions, trait gating, ERC-20 balance, composites) |
 | **x402** | HTTP 402-based pay-per-call protocol (caller signs a USDC `TransferWithAuthorization`; server settles after execution) |
 | **EIP-3009 auth** | Zero-value USDC `TransferWithAuthorization` signature used to authenticate callers for predicate-gated tools |
 | **Facilitator** | Third-party service that verifies and settles x402 payments (PayAI or Coinbase CDP) |
+
+## Important Constraints
+
+**One tool = one endpoint.** Each tool registration represents a single REST API endpoint with a singular focus and intention. The endpoint URL in your manifest should point to a specific API route that performs one well-defined operation (e.g., `POST /api/price-check` or `POST /api/translate`), not a generic HTML page, documentation site, or multi-purpose URL. Think of each registered tool the same way you think of an individual REST API endpoint. It should accept a specific input, perform a specific action, and return a specific output.
+
+**Origin binding: manifest and endpoint must share the exact same origin.** Your `.well-known/ai-tool/<slug>.json` manifest and your tool's invocation endpoint must be served from the exact same origin (identical scheme, host, and port per [RFC 6454](https://datatracker.ietf.org/doc/html/rfc6454)). **Subdomains do not count as the same origin.** `example.com` and `api.example.com` are different origins. This is enforced at registration time. If the manifest origin and endpoint origin don't match exactly, the tool will be rejected and marked as deregistered.
+
+- Valid: manifest at `https://my-tool.example.com/.well-known/ai-tool/my-tool.json`, endpoint at `https://my-tool.example.com/api/my-tool`
+- Invalid: manifest at `https://example.com/.well-known/ai-tool/my-tool.json`, endpoint at `https://api.example.com/api/my-tool`
+
+If you need your API on a subdomain, serve the manifest from that same subdomain (e.g., both on `api.example.com`).
 
 ## Deployed Contracts (Ethereum mainnet, Base, Shape, Abstract)
 
@@ -152,7 +163,7 @@ curl -s "https://api.opensea.io/api/v2/tools/search?access_type=open&limit=10" \
 ### 1a. Scaffold a project
 
 ```bash
-npx @opensea/tool-sdk@0.24.0 init --runtime vercel   # or: cloudflare, express
+npx @opensea/tool-sdk@0.25.0 init --runtime vercel   # or: cloudflare, express
 ```
 
 This generates:
@@ -245,18 +256,18 @@ export PRIVATE_KEY=0x...
 export RPC_URL=https://mainnet.base.org
 
 # Register (open access — no predicate)
-npx @opensea/tool-sdk@0.24.0 register \
+npx @opensea/tool-sdk@0.25.0 register \
   --metadata https://my-tool.example.com/.well-known/ai-tool/my-tool.json \
   --network base
 
 # Register with an access predicate
-npx @opensea/tool-sdk@0.24.0 register \
+npx @opensea/tool-sdk@0.25.0 register \
   --metadata https://my-tool.example.com/.well-known/ai-tool/my-tool.json \
   --network base \
   --access-predicate 0xPREDICATE_ADDRESS
 
 # Dry run (no transaction)
-npx @opensea/tool-sdk@0.24.0 register --metadata ... --network base --dry-run
+npx @opensea/tool-sdk@0.25.0 register --metadata ... --network base --dry-run
 ```
 
 The CLI:
@@ -443,12 +454,12 @@ export const toolHandler = createToolHandler({
 
 ```bash
 # 1. Scaffold
-npx @opensea/tool-sdk@0.24.0 init --runtime vercel
+npx @opensea/tool-sdk@0.25.0 init --runtime vercel
 # 2. Edit src/manifest.ts and src/handler.ts with your logic
 # 3. Deploy
-npx @opensea/tool-sdk@0.24.0 deploy
+npx @opensea/tool-sdk@0.25.0 deploy
 # 4. Register (open access)
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.24.0 register \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.25.0 register \
   --metadata https://my-tool.vercel.app/.well-known/ai-tool/my-tool.json \
   --network base
 # 5. Call
@@ -462,7 +473,7 @@ curl -X POST https://my-tool.vercel.app/api \
 ```bash
 # Server: add paywall gate (see references/x402.md)
 # Call via CLI:
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.24.0 pay \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.25.0 pay \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
@@ -471,20 +482,20 @@ PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.24.0 pay \
 
 ```bash
 # Register with ERC721OwnerPredicate
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.24.0 register \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.25.0 register \
   --metadata https://my-tool.vercel.app/.well-known/ai-tool/my-tool.json \
   --network base \
   --nft-gate 0xYOUR_COLLECTION_ADDRESS
 
 # Configure which collection(s) gate the tool (if not using --nft-gate):
-npx @opensea/tool-sdk@0.24.0 set-collections <TOOL_ID> 0xYOUR_COLLECTION_ADDRESS \
+npx @opensea/tool-sdk@0.25.0 set-collections <TOOL_ID> 0xYOUR_COLLECTION_ADDRESS \
   --network base
 
 # Server: add predicateGate (see references/predicate-gating.md)
 
 # Call via CLI:
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.24.0 auth \
+  npx @opensea/tool-sdk@0.25.0 auth \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
@@ -493,19 +504,19 @@ PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
 
 ```bash
 # Register with SubscriptionPredicate and configure in one shot:
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.24.0 register \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.25.0 register \
   --metadata https://my-tool.vercel.app/.well-known/ai-tool/my-tool.json \
   --access-predicate 0xCBe0cd9B1d99d95Baa9c58f2767246C52e461f25 \
   --predicate-config '{"collection":"0xYOUR_SUBSCRIPTION_NFT","minTier":0}' \
   --network base
 
 # Or configure after registration:
-npx @opensea/tool-sdk@0.24.0 configure-subscription <TOOL_ID> 0xYOUR_SUBSCRIPTION_NFT \
+npx @opensea/tool-sdk@0.25.0 configure-subscription <TOOL_ID> 0xYOUR_SUBSCRIPTION_NFT \
   --min-tier 0 --network base
 
 # Call via CLI:
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.24.0 auth \
+  npx @opensea/tool-sdk@0.25.0 auth \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
@@ -514,18 +525,18 @@ PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
 
 ```bash
 # Register with ERC20BalancePredicate and configure in one shot:
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.24.0 register \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.25.0 register \
   --metadata https://my-tool.vercel.app/.well-known/ai-tool/my-tool.json \
   --network base \
   --erc20-gate 0xTOKEN_ADDRESS --erc20-min-balance 1000000000000000000
 
 # Or configure after registration:
-npx @opensea/tool-sdk@0.24.0 configure-erc20-gate <TOOL_ID> 0xTOKEN_ADDRESS 1000000000000000000 \
+npx @opensea/tool-sdk@0.25.0 configure-erc20-gate <TOOL_ID> 0xTOKEN_ADDRESS 1000000000000000000 \
   --network base
 
 # Call via CLI:
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.24.0 auth \
+  npx @opensea/tool-sdk@0.25.0 auth \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
@@ -536,7 +547,7 @@ PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
 # Server: use paidPredicateGate (see references/predicate-gating.md)
 # Single 402: identity proof + payment in one X-Payment signature
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.24.0 pay \
+  npx @opensea/tool-sdk@0.25.0 pay \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
