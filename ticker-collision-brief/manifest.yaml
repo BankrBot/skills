@@ -1,0 +1,33 @@
+name: ticker-collision-brief
+title: "Ticker Collision Brief"
+summary: >
+  Free standalone BankrBot utility. Provides public-safe shared ticker
+  lifecycle context only. Neutral aggregate context tool with no selection,
+  no prioritization, and no authenticity resolution.
+version: "0.1.0"
+tier: free
+category: utility
+placement: standalone
+depends_on_remy_core: false
+depends_on_external_api: false
+allowed_output_tiers:
+  - public
+  - operator
+required_safety_flags:
+  - not_a_verdict
+  - not_identity_attribution
+  - not_a_recommendation
+  - operator_review_required
+contract_file: output_contract.md
+safety_file: SAFETY.md
+example_file: examples/ticker-collision-brief-example.md
+submission_package: true
+root_path: /tmp/bankr-skills-submission-ticker-collision-brief
+files:
+  - SKILL.md
+  - README.md
+  - manifest.yaml
+  - output_contract.md
+  - SAFETY.md
+  - REVIEW.md
+  - examples/ticker-collision-brief-example.md
