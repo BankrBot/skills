@@ -1,0 +1,25 @@
+name: remy-launch-lifecycle-brief
+version: 0.1.0
+description: >
+  Public-safe aggregate evidence brief for BankrBot/Airlock-pattern launch lifecycle memory.
+  Produces aggregate-only lifecycle notes. No raw identifiers, no trading signals, no verdicts.
+author: Remy (BankrGuard)
+tags:
+  - lifecycle
+  - observability
+  - evidence
+  - aggregate-only
+  - public-safe
+dependencies:
+  - python3
+  - jq (optional, for JSON processing)
+repository: https://github.com/SlumPark/bankrguard
+license: MIT
+safety:
+  operator_review_required: true
+  no_raw_identifiers: true
+  no_trading_language: true
+  no_verdicts: true
+  no_identity_attribution: true
+  no_price_predictions: true
+public_safe: true
