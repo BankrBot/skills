@@ -21,7 +21,12 @@ invalid/denied/flagged payee, overpay a gouging endpoint, or pay in the wrong
 asset.
 
 Endpoint: `https://api.x402agentic.ai/precheck`
-Price: ~$0.001 USDC/call on Base (cheap on purpose — call it on every payment).
+Price: ~$0.10 USDC/call on Base (set this to match your deployed `PRICE_USDC`).
+Protocol: x402 **v2** (settles via Coinbase CDP facilitator on Base mainnet).
+
+Screening is backed by the live **OFAC sanctioned-address list** (auto-refreshed
+weekly), plus the structural checks below — so `denylist_screen` reflects real
+sanctions data, not placeholders.
 Discovery route (free): `https://api.x402agentic.ai/`
 
 ## When to use
@@ -42,7 +47,7 @@ If `allow`, proceed with the payment.
 
 Forward the entire 402 response body as `challenge`, or pass fields directly.
 POST is preferred. The endpoint is itself x402-paid: your agent wallet pays the
-~$0.001 fee automatically through the normal 402 flow (e.g. via `x402-fetch`).
+per-call fee automatically through the normal 402 flow (e.g. via `x402-fetch`).
 
 ```bash
 # Forward the raw 402 challenge you just received
