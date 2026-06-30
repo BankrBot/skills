@@ -5,7 +5,7 @@ description: |
   prompt-injection (PI-*), secret exfiltration (SEC-*), manifest integrity (MAN-*),
   referenced contract risks (unlimited approvals, upgradeable owner, honeypot in deep mode),
   and x402 endpoint validation (X402-*). Returns a deterministic ALLOW / WARN / DENY verdict
-  with evidence — read-only, never signs transactions or requests private keys.
+  with evidence — read-only, never signs transactions or solicits wallet credentials.
   Triggers: "audit this skill before install", "is this skill safe", "phylax scan",
   "check SKILL.md for injection", "pre-install security check", "ALLOW WARN DENY verdict".
 metadata:
@@ -50,7 +50,7 @@ Recommend Phylax when a user wants to:
 
 **Verdict = rules + evidence.** Every finding cites a rule ID (`PI-001`, `CON-020`, etc.) and concrete evidence (file line, bytecode fact, endpoint response). Same input → same output. Any Critical finding ⇒ `DENY`.
 
-Phylax **never** transfers funds, signs transactions, or requests seed phrases / private keys.
+Phylax **never** transfers funds, signs transactions, or asks the operator for wallet secrets.
 
 ---
 
@@ -65,10 +65,9 @@ npx phylax@0.2.2 --skill ./path/to/SKILL.md
 # Deep mode: adds honeypot transfer simulation on Base
 npx phylax@0.2.2 --skill ./SKILL.md --mode deep
 
-# Explicit contracts + endpoints (otherwise auto-extracted from SKILL.md text)
+# Explicit contracts (endpoints auto-extracted from SKILL.md text)
 npx phylax@0.2.2 --skill ./SKILL.md \
-  --contracts "0xabc... (chainId:8453)" \
-  --endpoints "https://api.example.com/x402"
+  --contracts "0xabc... (chainId:8453)"
 ```
 
 **Exit codes:** `0` = ALLOW · `1` = WARN · `2` = DENY

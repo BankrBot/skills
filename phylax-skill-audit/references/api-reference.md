@@ -29,7 +29,7 @@ Content-Type: application/json
     { "id": "PI-001", "severity": "Critical", "message": "...", "evidence": "..." }
   ],
   "summary": "One-paragraph human summary.",
-  "ttl": 3600
+  "ttl": "24h"
 }
 ```
 
