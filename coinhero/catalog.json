@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "coinhero",
+  "provider": "CoinHero",
+  "providerUrl": "https://my.coinhero.fun",
+  "logo": "logo.png",
+  "demo": {
+    "title": "consign-token.sh",
+    "language": "bash",
+    "code": "# 1. Authorize a consignment deal\ncurl -X POST https://my.coinhero.fun/api/agent/deals/authorize \\\n  -H 'Authorization: Bearer rips_agent_live_...' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"tokenAddress\":\"0x...\",\"managerAddress\":\"0x...\",\"tokenName\":\"My Token\",\"tokenSymbol\":\"MTK\",\"tokenDecimals\":18,\"dailyPurchaseUsd\":10}'\n\n# 2. Sign and broadcast the returned transaction.data from your managerAddress\n# (use viem, ethers, or your agent's wallet SDK)\n\n# 3. Deposit tokens (compute amount from currentPrice + tokenDecimals)\ncurl -X POST https://my.coinhero.fun/api/agent/deals/{dealId}/deposit \\\n  -H 'Authorization: Bearer rips_agent_live_...' \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"amount\":\"5000000000000000000\"}'\n\n# 4. Poll until active\ncurl https://my.coinhero.fun/api/agent/deals/{dealId} \\\n  -H 'Authorization: Bearer rips_agent_live_...'"
+  },
+  "setup": [
+    "Get an API key: log in at https://my.coinhero.fun → Profile → Bot API keys → Create key",
+    "Your bot wallet (EOA) needs Base ETH for gas and must hold the ERC-20 tokens you want to consign",
+    "Minimum initial deposit: $50 USD worth of your token before the deal goes live",
+    "Install: `install the coinhero skill from https://github.com/BankrBot/skills/tree/main/coinhero`"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "coinhero",
+    "command": "install the coinhero skill from https://github.com/BankrBot/skills/tree/main/coinhero"
+  }
+}
