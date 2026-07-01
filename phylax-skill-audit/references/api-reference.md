@@ -1,6 +1,6 @@
 # Phylax API Reference
 
-## Hosted audit endpoint
+## Hosted audit endpoint (fast — free)
 
 ```
 POST https://usephylax.com/api/audit
@@ -16,7 +16,7 @@ Content-Type: application/json
 | `contracts` | string[] | no | `0x... (chainId:8453)` — auto-extracted if omitted |
 | `endpoints` | string[] | no | HTTPS URLs — auto-extracted if omitted |
 | `chain_id` | number | no | Default `8453` (Base) |
-| `mode` | string | no | `fast` (default) or `deep` |
+| `mode` | string | no | `fast` only on free tier |
 
 ### Response
 
@@ -37,6 +37,23 @@ Rate limit: 20 requests/min per IP.
 
 `GET https://usephylax.com/api/audit` returns self-describing usage docs.
 
+### Deep mode → HTTP 402
+
+Requesting `mode=deep` on the free API returns **402** with the Bankr x402 endpoint URL and pricing.
+
+## Deep audit (x402 — $0.05 USDC)
+
+Deploy via Bankr x402 Cloud from the main repo (`bankr x402 deploy`). See `x402/README.md`.
+
+```
+POST https://x402.bankr.bot/0xYourWallet/audit-deep
+```
+
+Same request fields except `mode` (always deep). Payment via x402 protocol on Base.
+
+- Terminal: https://bankr.bot/terminal/x402
+- Docs: https://docs.bankr.bot/x402-cloud/overview/
+
 ## Verdict badge
 
 ```
@@ -56,7 +73,11 @@ Returns SVG: `phylax | ALLOW 97`
 
 ```bash
 npx phylax@0.2.2 --skill ./SKILL.md
-npx phylax@0.2.2 --skill ./SKILL.md --mode deep
+npx phylax@0.2.2 --skill ./SKILL.md --mode deep   # local deep (free)
 ```
 
 Exit codes: `0` = ALLOW, `1` = WARN, `2` = DENY
+
+## Bankr positioning
+
+Phylax is a **security layer** for skills and x402 endpoints on Bankr — complements x402 Cloud, does not compete.

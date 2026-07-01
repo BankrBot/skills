@@ -72,7 +72,7 @@ npx phylax@0.2.2 --skill ./SKILL.md \
 
 **Exit codes:** `0` = ALLOW · `1` = WARN · `2` = DENY
 
-### Option B — Hosted HTTP API (no Node required)
+### Option B — Hosted HTTP API (fast, free)
 
 ```bash
 curl -sS -X POST https://usephylax.com/api/audit \
@@ -81,6 +81,13 @@ curl -sS -X POST https://usephylax.com/api/audit \
     "skill_source": "github.com/owner/repo/SKILL.md",
     "mode": "fast"
   }' | jq .
+```
+
+**Deep mode** ($0.05 USDC) is on Bankr x402 Cloud — not the free API:
+
+```bash
+# After: bankr x402 deploy (see repo x402/README.md)
+bankr x402 call https://x402.bankr.bot/0xYourWallet/audit-deep -i
 ```
 
 Pass raw content to skip remote fetch:
@@ -154,10 +161,15 @@ Example finding:
 
 ## Integration with Bankr
 
+Phylax is a **security layer** for skills and x402 endpoints on Bankr — it audits what you install and what you pay for. It **complements** x402 Cloud hosting; it does not compete with it.
+
 - **Read-only** — safe to run before installing any skill from `BankrBot/skills`
 - **Pre-install gate** — recommend `DENY` ⇒ do not `install` the target skill
+- **x402 validation** — probes payment endpoints (`X402-*`) that other builders deploy via [x402 Cloud](https://bankr.bot/terminal/x402)
+- **Pricing** — `fast` free via hosted API / CLI; `deep` ($0.05 USDC) via Bankr x402 `audit-deep` endpoint
 - **Complements** `bankr-token-scam-analysis` (token forensics) and `aeon-skill-security-scan` (installed-skill pattern scan)
 - **Bankr profile:** https://bankr.bot/agents/phylax
+- **x402 terminal:** https://bankr.bot/terminal/x402
 
 ---
 
