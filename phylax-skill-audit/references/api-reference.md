@@ -43,13 +43,13 @@ Requesting `mode=deep` on the free API returns **402** with the Bankr x402 endpo
 
 ## Deep audit (x402 — $0.05 USDC)
 
-Deploy via Bankr x402 Cloud from the main repo (`bankr x402 deploy`). See `x402/README.md`.
+Bankr x402 collects payment; the handler proxies to Vercel with a shared internal key (rules + Base RPC run on `usephylax.com`, not in the x402 sandbox). See `x402/README.md`.
 
 ```
-POST https://x402.bankr.bot/0xYourWallet/audit-deep
+POST https://x402.bankr.bot/0x7fc2987df6e0fb7567d64838696a5bac4d220b91/audit-deep
 ```
 
-Same request fields except `mode` (always deep). Payment via x402 protocol on Base.
+Same request fields (`skill_source`, optional `skill_md`, `contracts`, `endpoints`, `chain_id`). Always deep mode. Payment via x402 on Base.
 
 - Terminal: https://bankr.bot/terminal/x402
 - Docs: https://docs.bankr.bot/x402-cloud/overview/
