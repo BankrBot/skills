@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "sleuth-ai",
+  "provider": "Sleuth AI",
+  "providerUrl": "https://sleuthagent.ai/",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "sleuth.sh",
+    "language": "bash",
+    "code": "# 1. Discover the live endpoints (free, no key)\ncurl https://app.sleuthagent.ai/x402/openai-bnkr.json\n\n# 2. Call any endpoint with an x402 client (pays per call; chain/token in the 402 response)\n#    e.g. run any on-chain investigation from a plain-language question:\nx402curl -X POST https://x402.bankr.bot/0x08e82839e1513023d115451babc0ff18eda8f925/run-investigation \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"conversation_id\":\"<uuid>\",\"query\":\"Who are the insiders of $VIRTUAL?\"}'"
+  },
+  "setup": [
+    "No install required — every endpoint is plain HTTP behind x402 (no account; chain/token advertised in the 402 response)",
+    "Python: `pip install x402` — TypeScript: `npm install x402-axios`",
+    "Fund a wallet on the endpoint's payment chain (today Base/USDC; read the 402 response to confirm)",
+    "Discover live endpoints: GET https://app.sleuthagent.ai/x402/openai-bnkr.json (free, no key)"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "sleuth-ai",
+    "command": "install the sleuth-ai skill from https://github.com/BankrBot/skills/tree/main/sleuth-ai"
+  }
+}
