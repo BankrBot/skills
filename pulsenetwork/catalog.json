@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "pulsenetwork",
+  "provider": "PulseNetwork",
+  "providerUrl": "https://mcp-pulsenetwork.vercel.app",
+  "demo": {
+    "title": "demo.sh",
+    "language": "bash",
+    "code": "# Scan a Solana memecoin for honeypot / rug risk (x402, $0.015 USDC on Base or Solana)\ncurl -sS \"https://onchainpulse-nine.vercel.app/api/memecoin?mint=DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263\"\n# -> HTTP 402 with accepts[]; pay from your Bankr wallet and retry to get:\n# { \"verdict\": \"CLEAR|CAUTION|AVOID\", \"risk_score\": 7, \"evidence\": [...] }"
+  },
+  "setup": [
+    "No API key or signup — pay per call in USDC.",
+    "Fund your Bankr wallet with USDC on Base (Solana also accepted).",
+    "Call any endpoint; on HTTP 402, pay the advertised amount and retry. Browse all 67 verticals at https://mcp-pulsenetwork.vercel.app"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "pulsenetwork",
+    "command": "install the pulsenetwork skill from https://github.com/BankrBot/skills/tree/main/pulsenetwork"
+  }
+}
