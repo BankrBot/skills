@@ -17,6 +17,18 @@ Choose pre-token projects, auto-buy their tokens the instant they launch
    project launches._
 8. **Withdraw** — `POST /wallet/withdrawals` to pull USDC or tokens out.
 
+## Custody and confirmations
+
+- **The AutoBoy wallet is third-party custody.** The smart wallet is managed
+  by Privy, with signer authority delegated to The Firm — The Firm can spend
+  any USDC sent to it until the user withdraws. Make sure the user
+  understands this before they fund it.
+- **Fund a bounded amount.** Recommend sending only what the user is willing
+  to commit to pre-launch buys, never their full balance.
+- **Confirm before acting.** Get the user's explicit confirmation before
+  funding the wallet, creating or updating orders, or enabling any auto-buy
+  behavior. Never do these unprompted.
+
 ## Relevant endpoints
 
 ### Base URL
