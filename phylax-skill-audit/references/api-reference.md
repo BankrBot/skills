@@ -62,18 +62,20 @@ GET https://usephylax.com/api/badge?skill=owner/repo&mode=fast
 
 Returns SVG: `phylax | ALLOW 97`
 
-## Security (v0.2.2+)
+## Security (v0.2.3+)
 
 - Blocks SSRF targets (localhost, private IPs, cloud metadata)
 - Requires HTTPS for remote fetches in production
 - Rejects local file paths as `skill_source` on hosted API
 - Validates redirect chains on endpoint probes
+- **PI-006:** flags GitHub Actions script injection (`github.event` interpolated into shell)
+- Live playground: https://usephylax.com/#playground
 
 ## npm / CLI
 
 ```bash
-npx phylax@0.2.2 --skill ./SKILL.md
-npx phylax@0.2.2 --skill ./SKILL.md --mode deep   # local deep (free)
+npx phylax@0.2.3 --skill ./SKILL.md
+npx phylax@0.2.3 --skill ./SKILL.md --mode deep   # local deep (free)
 ```
 
 Exit codes: `0` = ALLOW, `1` = WARN, `2` = DENY

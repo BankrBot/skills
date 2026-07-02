@@ -20,7 +20,7 @@ metadata:
 Pre-install security verdicts for agent skills on Base. Scan a skill **before** it touches your wallet or runs with your API keys. Output is a deterministic `ALLOW` / `WARN` / `DENY` with cited evidence — not opinion.
 
 **Site:** https://usephylax.com  
-**npm:** `phylax-skill-audit@0.2.2`  
+**npm:** `phylax-skill-audit@0.2.3`  
 **Open source:** https://github.com/usephylax/phylax-skill-audit  
 **Aeon native:** `./add-skill aaronjmars/aeon phylax-audit`
 
@@ -60,13 +60,13 @@ Phylax **never** transfers funds, signs transactions, or asks the operator for w
 
 ```bash
 # No global install required
-npx phylax@0.2.2 --skill ./path/to/SKILL.md
+npx phylax@0.2.3 --skill ./path/to/SKILL.md
 
 # Deep mode: adds honeypot transfer simulation on Base
-npx phylax@0.2.2 --skill ./SKILL.md --mode deep
+npx phylax@0.2.3 --skill ./SKILL.md --mode deep
 
 # Explicit contracts (endpoints auto-extracted from SKILL.md text)
-npx phylax@0.2.2 --skill ./SKILL.md \
+npx phylax@0.2.3 --skill ./SKILL.md \
   --contracts "0xabc... (chainId:8453)"
 ```
 
@@ -95,6 +95,8 @@ Pass raw content to skip remote fetch:
 ```json
 { "skill_source": "local-draft", "skill_md": "---\nname: ...\n---\n...", "mode": "fast" }
 ```
+
+**Browser playground:** https://usephylax.com/#playground — paste `SKILL.md` or `owner/repo`, get verdict + cited findings instantly.
 
 See `references/api-reference.md` for full request/response schema.
 
@@ -180,7 +182,7 @@ Phylax is a **security layer** for skills and x402 endpoints on Bankr — it aud
 - Never auto-install a skill that scores `DENY`
 - Prefer `fast` unless the skill references specific token contracts
 - Always show rule IDs so the user can inspect `rules/*.yaml` in the repo
-- On hosted API errors, fall back to local `npx phylax@0.2.2` if Node is available
+- On hosted API errors, fall back to local `npx phylax@0.2.3` if Node is available
 
 ---
 
