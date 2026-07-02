@@ -1,6 +1,6 @@
 # Known Predicates
 
-These predicates are deployed on Ethereum mainnet, Base, Shape, and Abstract and available for any tool to use. They are multi-tenant: one deployment serves all tools, configured per `toolId`.
+These predicates are deployed on Ethereum mainnet, Base, Shape, Abstract, and Monad and available for any tool to use. They are multi-tenant: one deployment serves all tools, configured per `toolId`.
 
 ## ERC721OwnerPredicate
 
@@ -18,7 +18,7 @@ Grants access to holders of any configured ERC-721 collection (`balanceOf > 0`).
 
 ```bash
 # Registers the tool with ERC721OwnerPredicate and configures the collection in one flow
-npx @opensea/tool-sdk@0.26.1 register \
+npx @opensea/tool-sdk@0.27.0 register \
   --metadata https://my-tool.example.com/.well-known/ai-tool/my-tool.json \
   --network base \
   --nft-gate 0xCOLLECTION_ADDRESS
@@ -249,7 +249,7 @@ const access = predicate.toManifestAccess(
 **Configure via CLI:**
 
 ```bash
-npx @opensea/tool-sdk@0.26.1 configure-trait-gating <TOOL_ID> \
+npx @opensea/tool-sdk@0.27.0 configure-trait-gating <TOOL_ID> \
   0xNFT_COLLECTION tier Rare Legendary \
   --traits-contract 0xTRAITS_CONTRACT \
   --network base
@@ -257,14 +257,14 @@ npx @opensea/tool-sdk@0.26.1 configure-trait-gating <TOOL_ID> \
 
 If the NFT itself implements ERC-7496, omit `--traits-contract` (defaults to collection):
 ```bash
-npx @opensea/tool-sdk@0.26.1 configure-trait-gating <TOOL_ID> \
+npx @opensea/tool-sdk@0.27.0 configure-trait-gating <TOOL_ID> \
   0xNFT_COLLECTION tier Rare Legendary --network base
 ```
 
 **Read trait config via CLI:**
 
 ```bash
-npx @opensea/tool-sdk@0.26.1 get-trait-config <TOOL_ID> --network base
+npx @opensea/tool-sdk@0.27.0 get-trait-config <TOOL_ID> --network base
 ```
 
 **Decode requirements via SDK:**
@@ -283,7 +283,7 @@ if (decoded.type === "erc7496Trait") {
 
 ## ERC20BalancePredicate
 
-Gates access based on holding a configurable minimum balance of an ERC-20 token. Multi-tenant: one deployment per chain, configured per `toolId`. Canonical deployment: `0x1a834FC48B5f6e119c62C12a98b32137bCFA77cD` (Ethereum mainnet, Base, Shape, Abstract). The CLI commands default to this address; pass `--predicate-address` only to override it.
+Gates access based on holding a configurable minimum balance of an ERC-20 token. Multi-tenant: one deployment per chain, configured per `toolId`. Canonical deployment: `0x1a834FC48B5f6e119c62C12a98b32137bCFA77cD` (Ethereum mainnet, Base, Shape, Abstract, Monad). The CLI commands default to this address; pass `--predicate-address` only to override it.
 
 | Field | Value |
 |-------|-------|
@@ -340,7 +340,7 @@ const access = predicate.toManifestAccess(
 **Register and configure via CLI (one shot):**
 
 ```bash
-npx @opensea/tool-sdk@0.26.1 register \
+npx @opensea/tool-sdk@0.27.0 register \
   --metadata https://my-tool.example.com/.well-known/ai-tool/my-tool.json \
   --network base \
   --erc20-gate 0xTOKEN_ADDRESS --erc20-min-balance 1000000000000000000
@@ -349,7 +349,7 @@ npx @opensea/tool-sdk@0.26.1 register \
 **Configure via CLI (after registration):**
 
 ```bash
-npx @opensea/tool-sdk@0.26.1 configure-erc20-gate <TOOL_ID> \
+npx @opensea/tool-sdk@0.27.0 configure-erc20-gate <TOOL_ID> \
   0xTOKEN_ADDRESS 1000000000000000000 \
   --network base
 ```
@@ -357,7 +357,7 @@ npx @opensea/tool-sdk@0.26.1 configure-erc20-gate <TOOL_ID> \
 **Read ERC-20 config via CLI:**
 
 ```bash
-npx @opensea/tool-sdk@0.26.1 get-erc20-config <TOOL_ID> \
+npx @opensea/tool-sdk@0.27.0 get-erc20-config <TOOL_ID> \
   --network base
 ```
 

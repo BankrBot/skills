@@ -67,7 +67,7 @@ This SDK is for tool *providers and consumers*. To query OpenSea marketplace dat
 
 If you need your API on a subdomain, serve the manifest from that same subdomain (e.g., both on `api.example.com`).
 
-## Deployed Contracts (Ethereum mainnet, Base, Shape, Abstract)
+## Deployed Contracts (Ethereum mainnet, Base, Shape, Abstract, Monad)
 
 Canonical v0.2 deployments — identical CREATE2 address on every supported chain.
 
@@ -163,7 +163,7 @@ curl -s "https://api.opensea.io/api/v2/tools/search?access_type=open&limit=10" \
 ### 1a. Scaffold a project
 
 ```bash
-npx @opensea/tool-sdk@0.26.1 init --runtime vercel   # or: cloudflare, express
+npx @opensea/tool-sdk@0.27.0 init --runtime vercel   # or: cloudflare, express
 ```
 
 This generates:
@@ -256,18 +256,18 @@ export PRIVATE_KEY=0x...
 export RPC_URL=https://mainnet.base.org
 
 # Register (open access — no predicate)
-npx @opensea/tool-sdk@0.26.1 register \
+npx @opensea/tool-sdk@0.27.0 register \
   --metadata https://my-tool.example.com/.well-known/ai-tool/my-tool.json \
   --network base
 
 # Register with an access predicate
-npx @opensea/tool-sdk@0.26.1 register \
+npx @opensea/tool-sdk@0.27.0 register \
   --metadata https://my-tool.example.com/.well-known/ai-tool/my-tool.json \
   --network base \
   --access-predicate 0xPREDICATE_ADDRESS
 
 # Dry run (no transaction)
-npx @opensea/tool-sdk@0.26.1 register --metadata ... --network base --dry-run
+npx @opensea/tool-sdk@0.27.0 register --metadata ... --network base --dry-run
 ```
 
 The CLI:
@@ -454,12 +454,12 @@ export const toolHandler = createToolHandler({
 
 ```bash
 # 1. Scaffold
-npx @opensea/tool-sdk@0.26.1 init --runtime vercel
+npx @opensea/tool-sdk@0.27.0 init --runtime vercel
 # 2. Edit src/manifest.ts and src/handler.ts with your logic
 # 3. Deploy
-npx @opensea/tool-sdk@0.26.1 deploy
+npx @opensea/tool-sdk@0.27.0 deploy
 # 4. Register (open access)
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.26.1 register \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.27.0 register \
   --metadata https://my-tool.vercel.app/.well-known/ai-tool/my-tool.json \
   --network base
 # 5. Call
@@ -473,7 +473,7 @@ curl -X POST https://my-tool.vercel.app/api \
 ```bash
 # Server: add paywall gate (see references/x402.md)
 # Call via CLI:
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.26.1 pay \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.27.0 pay \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
@@ -482,20 +482,20 @@ PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.26.1 pay \
 
 ```bash
 # Register with ERC721OwnerPredicate
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.26.1 register \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.27.0 register \
   --metadata https://my-tool.vercel.app/.well-known/ai-tool/my-tool.json \
   --network base \
   --nft-gate 0xYOUR_COLLECTION_ADDRESS
 
 # Configure which collection(s) gate the tool (if not using --nft-gate):
-npx @opensea/tool-sdk@0.26.1 set-collections <TOOL_ID> 0xYOUR_COLLECTION_ADDRESS \
+npx @opensea/tool-sdk@0.27.0 set-collections <TOOL_ID> 0xYOUR_COLLECTION_ADDRESS \
   --network base
 
 # Server: add predicateGate (see references/predicate-gating.md)
 
 # Call via CLI:
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.26.1 auth \
+  npx @opensea/tool-sdk@0.27.0 auth \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
@@ -504,19 +504,19 @@ PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
 
 ```bash
 # Register with SubscriptionPredicate and configure in one shot:
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.26.1 register \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.27.0 register \
   --metadata https://my-tool.vercel.app/.well-known/ai-tool/my-tool.json \
   --access-predicate 0xCBe0cd9B1d99d95Baa9c58f2767246C52e461f25 \
   --predicate-config '{"collection":"0xYOUR_SUBSCRIPTION_NFT","minTier":0}' \
   --network base
 
 # Or configure after registration:
-npx @opensea/tool-sdk@0.26.1 configure-subscription <TOOL_ID> 0xYOUR_SUBSCRIPTION_NFT \
+npx @opensea/tool-sdk@0.27.0 configure-subscription <TOOL_ID> 0xYOUR_SUBSCRIPTION_NFT \
   --min-tier 0 --network base
 
 # Call via CLI:
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.26.1 auth \
+  npx @opensea/tool-sdk@0.27.0 auth \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
@@ -525,18 +525,18 @@ PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
 
 ```bash
 # Register with ERC20BalancePredicate and configure in one shot:
-PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.26.1 register \
+PRIVATE_KEY=0x... npx @opensea/tool-sdk@0.27.0 register \
   --metadata https://my-tool.vercel.app/.well-known/ai-tool/my-tool.json \
   --network base \
   --erc20-gate 0xTOKEN_ADDRESS --erc20-min-balance 1000000000000000000
 
 # Or configure after registration:
-npx @opensea/tool-sdk@0.26.1 configure-erc20-gate <TOOL_ID> 0xTOKEN_ADDRESS 1000000000000000000 \
+npx @opensea/tool-sdk@0.27.0 configure-erc20-gate <TOOL_ID> 0xTOKEN_ADDRESS 1000000000000000000 \
   --network base
 
 # Call via CLI:
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.26.1 auth \
+  npx @opensea/tool-sdk@0.27.0 auth \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```
@@ -547,7 +547,7 @@ PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
 # Server: use paidPredicateGate (see references/predicate-gating.md)
 # Single 402: identity proof + payment in one X-Payment signature
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.26.1 pay \
+  npx @opensea/tool-sdk@0.27.0 pay \
   https://my-tool.vercel.app/api \
   --body '{"query": "hello"}'
 ```

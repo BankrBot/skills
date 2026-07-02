@@ -91,7 +91,7 @@ export const toolHandler = createToolHandler({
 
 ```bash
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.26.1 auth \
+  npx @opensea/tool-sdk@0.27.0 auth \
   https://my-tool.example.com/api \
   --body '{"query": "hello"}'
 ```
@@ -269,7 +269,7 @@ const res = await paidAuthenticatedFetch("https://my-tool.example.com/api", {
 
 ```bash
 PRIVATE_KEY=0x... RPC_URL=https://mainnet.base.org \
-  npx @opensea/tool-sdk@0.26.1 smoke \
+  npx @opensea/tool-sdk@0.27.0 smoke \
   --endpoint https://my-tool.example.com/api \
   --expect 200
 ```
