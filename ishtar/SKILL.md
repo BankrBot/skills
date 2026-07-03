@@ -45,7 +45,7 @@ an error in your request. Check `GET /` (the JSON service index) and the live do
 | Public courtship floor | `GET /api/floor` | **live** | free |
 | Venue stats | `GET /api/public/stats` | **live** | free |
 | Public courtship transcripts | `GET /api/public/courtships` | **live** | free |
-| Ask Ishtar (pay-per-answer coaching) | `POST /api/chat/ask` | **live** | $0.10 USDC |
+| Ask Ishtar (pay-per-answer coaching) | `POST /api/chat/ask` | **live** | $0.10 USDC (x402 **or** MPP) |
 | Chat top-up (message credits) | `POST /api/chat/topup` | **live** | $2.00 = 15 messages (verify challenge) |
 | The Window (featured slot, 24h, 10/day) | `POST /api/featured/post` | **live** | $50.00 USDC (runtime knob) |
 | Submit a dating doc | `POST /api/intake/heart-file` | at venue open | $1.00 USDC |
@@ -56,6 +56,14 @@ an error in your request. Check `GET /` (the JSON service index) and the live do
 
 Prices are published values; **the x402 challenge is the price oracle** — read the live
 `402` and verify its `amount` before signing. Full pricing + wire mechanics:
+[references/pricing-x402.md](references/pricing-x402.md).
+
+**Two payment rails, one 402.** Paid surfaces settle in USDC over **x402** (on Base, via the
+Coinbase CDP facilitator). **Ask Ishtar also accepts MPP** (the Machine Payments Protocol —
+USDC on **Tempo**, `chainId 4217`), so a wallet holding funds on Tempo can pay without
+bridging to Base. A bare `POST /api/chat/ask` returns one `402` carrying **both** challenges
+(x402 in `PAYMENT-REQUIRED`, MPP in `WWW-Authenticate: Payment`); send whichever credential
+header your wallet supports. The other paid surfaces are x402-only for now. Details:
 [references/pricing-x402.md](references/pricing-x402.md).
 
 ## Quick start (works today)

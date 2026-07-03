@@ -1,8 +1,18 @@
-# Pricing + x402 wire mechanics
+# Pricing + payment rails (x402 and MPP)
 
-All payments settle in **USDC on Base mainnet** (`eip155:8453`, canonical USDC
-`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`) via **x402** with the Coinbase CDP
-facilitator. Published prices below are the venue's documented values; **the live `402`
+Payments settle in **USDC** over one of two rails, and **one `402` carries both** (pick either):
+
+- **x402** — USDC on **Base mainnet** (`eip155:8453`, canonical USDC
+  `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`) via the Coinbase CDP facilitator. Challenge in
+  the `PAYMENT-REQUIRED` header; pay in `payment-signature`. Every paid surface supports it.
+- **MPP** (Machine Payments Protocol — Tempo Labs + Stripe) — USDC on **Tempo**
+  (`chainId 4217`, TIP-20 token `0x20c000000000000000000000b9537d11c60e8b50`), no facilitator: you
+  broadcast the transfer and the venue verifies the on-chain log (push mode). Challenge in the
+  `WWW-Authenticate: Payment` header; pay in `Authorization: Payment <credential>`; success carries
+  a `Payment-Receipt` header. **Live on Ask Ishtar (`POST /api/chat/ask`) only** in v1 — the other
+  SKUs are x402-only. Docs: `mpp.dev`. See [pricing-x402.md#mpp](#the-mpp-rail-tempo) below.
+
+Published prices below are the venue's documented values; **the live `402`
 challenge is the price oracle** — always verify before signing. The venue's own docs:
 `https://api.ishtar.numetal.xyz/llms-full.txt` (pricing-and-limits section). This skill is
 published by the venue's operator; mechanics not yet in the venue's public docs are
@@ -69,11 +79,29 @@ that SKU at venue open.
 
 ## Per-endpoint mechanics
 
-### `POST /api/chat/ask` — $0.10
-- Bare POST → 402. With payment: body `{"message":"…"}` (1–2000 chars, optional `"mode"`).
+### `POST /api/chat/ask` — $0.10 (x402 **or** MPP)
+- Bare POST → 402 carrying **both** rails. With payment: body `{"message":"…"}` (1–2000 chars,
+  optional `"mode"`).
 - One payment buys **one answer** — no account, no quota, no session.
-- Anti-replay: a reused payment authorization returns `409` and is **never re-charged**.
-  Sign a fresh authorization only for a genuinely new question.
+- Anti-replay: a reused x402 authorization returns `409`; a reused MPP challenge or settled tx
+  returns `402 invalid-challenge`. Never re-charged either way — sign/pay fresh for a new question.
+- This is the only surface with the MPP rail today; if your wallet holds USDC on Tempo, pay via
+  MPP and skip the bridge to Base.
+
+## The MPP rail (Tempo)
+
+If you pay via **MPP** instead of x402, on the same `POST /api/chat/ask`:
+1. Bare POST → `402` with `WWW-Authenticate: Payment id="…", realm="api.ishtar.numetal.xyz",
+   method="tempo", intent="charge", request="<b64url {amount,currency,recipient,methodDetails}>"`.
+2. Verify the decoded `request`: `currency` = `0x20c000000000000000000000b9537d11c60e8b50` (USDC on
+   Tempo), `recipient` = `0x36de990133D36d7E3DF9a820aA3eDE5a2320De71`, `amount` = `"100000"` ($0.10,
+   6-dec), `methodDetails.chainId` = `4217`, `supportedModes` = `["push"]`.
+3. **Push mode:** broadcast the TIP-20 transfer yourself, then retry with
+   `Authorization: Payment <b64url {challenge, payload:{type:"hash",hash:"0x…"}, source}>`.
+4. On success: `200` + the answer + a `Payment-Receipt` header. Failures are RFC 9457 problems
+   (`https://paymentauth.org/problems/*`); a reused challenge/tx → `402 invalid-challenge`.
+
+Most MPP clients (AgentCash `paymentProtocol:"mpp"`, `mppx`) handle steps 1–4 for you.
 
 ### `POST /api/chat/topup`
 - Body must validate **before** the challenge is served: `{"ref":"<8–100 char idempotency
