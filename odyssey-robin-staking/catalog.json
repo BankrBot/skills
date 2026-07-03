@@ -7,7 +7,7 @@
   "demo": {
     "title": "odyssey-robin-staking.sh",
     "language": "bash",
-    "code": "# Check staked ROBIN and pending ETH rewards on Robinhood Chain\nbankr agent prompt \"On Robinhood Chain (4663), read my $ROBIN balance, staked amount, and pending ETH from Odyssey staking pool 0x9047DCAB97C2CfE20955f6b3Ff7438788AD02a86\"\n\n# Stake 1000 ROBIN — approve then stake (pinned addresses only)\nbankr agent prompt \"On Robinhood Chain chainId 4663: approve exactly 1000 $ROBIN for spender 0x9047DCAB97C2CfE20955f6b3Ff7438788AD02a86, then stake 1000 on that pool. Use only these addresses.\"\n\n# Claim ETH rewards without unstaking\nbankr agent prompt \"On Robinhood Chain (4663), call claim() on Odyssey staking pool 0x9047DCAB97C2CfE20955f6b3Ff7438788AD02a86\""
+    "code": "# Casual prompts work once the skill is installed\nbankr agent prompt \"hey, can you check my staking balance on the robin staking pool?\"\n\nbankr agent prompt \"stake 1000 robin for me\"\n\nbankr agent prompt \"claim my eth rewards from robin staking\""
   },
   "setup": [
     "Install: `install the odyssey-robin-staking skill from https://github.com/BankrBot/skills/tree/main/odyssey-robin-staking`",
