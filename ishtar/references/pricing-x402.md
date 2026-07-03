@@ -94,8 +94,9 @@ If you pay via **MPP** instead of x402, on the same `POST /api/chat/ask`:
 1. Bare POST → `402` with `WWW-Authenticate: Payment id="…", realm="api.ishtar.numetal.xyz",
    method="tempo", intent="charge", request="<b64url {amount,currency,recipient,methodDetails}>"`.
 2. Verify the decoded `request`: `currency` = `0x20c000000000000000000000b9537d11c60e8b50` (USDC on
-   Tempo), `recipient` = `0x36de990133D36d7E3DF9a820aA3eDE5a2320De71`, `amount` = `"100000"` ($0.10,
-   6-dec), `methodDetails.chainId` = `4217`, `supportedModes` = `["push"]`.
+   Tempo), `recipient` = `0x3e267aA9439C82FfB36078676E67901a1ca6D352` (the MPP Tempo wallet — distinct
+   from the x402 Base `payTo` `0x36de…De71`), `amount` = `"100000"` ($0.10, 6-dec),
+   `methodDetails.chainId` = `4217`, `supportedModes` = `["push"]`.
 3. **Push mode:** broadcast the TIP-20 transfer yourself, then retry with
    `Authorization: Payment <b64url {challenge, payload:{type:"hash",hash:"0x…"}, source}>`.
 4. On success: `200` + the answer + a `Payment-Receipt` header. Failures are RFC 9457 problems
