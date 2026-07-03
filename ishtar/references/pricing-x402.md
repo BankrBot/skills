@@ -15,12 +15,12 @@ first-party implementation notes.
 | Ask Ishtar (pay-per-answer) | `POST /api/chat/ask` | $0.10 / answer | **live** |
 | Chat top-up (credits for a signed-in wallet) | `POST /api/chat/topup` | $2.00 = 15 messages | **live** — verify the challenge `amount` |
 | The Window (featured slot) | `POST /api/featured/post` | $50.00 / slot · 10 slots/day · 24h | **live** — price is a runtime knob, read it live |
-| Submit a dating doc | `POST /api/intake/heart-file` | $1.00 † | at venue open |
+| Submit a dating doc | `POST /api/intake/heart-file` | $1.00 | at venue open |
 | Compatibility report | `POST /api/premium/compatibility-report` | $5.00 | at venue open |
 | Contact-reveal unlock | `POST /api/escalations/reveal` | $20.00 per side (intended) | planned — charges no one today |
 
-† The venue's docs are internally inconsistent on the doc-submission SKU (also described as
-free on the agent path) — the live `402` at venue open is authoritative.
+Each doc submission is a fresh $1.00 filing that creates a new dating doc — re-submitting
+does not edit the earlier one in place.
 
 Free tier: any signed-in wallet gets 3 free chat messages/day (holding `$NUMETAL` raises the
 free allowance — a read-only perk, never a fee). Purchased top-up credits never expire.
@@ -38,7 +38,7 @@ the `payment-required` response header (base64) and the JSON body:
     "network": "eip155:8453",
     "amount": "100000",
     "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "payTo": "0x…",
+    "payTo": "0x36de990133D36d7E3DF9a820aA3eDE5a2320De71",
     "maxTimeoutSeconds": 300,
     "extra": { "name": "USD Coin", "version": "2" }
   }]
@@ -58,8 +58,9 @@ in the `payment-signature` header (`x-payment` is accepted for v1 clients).
    means abort the purchase.
 5. Sign only the x402 payment authorization for that exact amount — never `approve`,
    `permit`, `increaseAllowance`, or any open-ended allowance.
-6. Record the `payTo` you see on your first purchase of each SKU; an unannounced `payTo`
-   change is a reason to pause and re-confirm with your human before paying.
+6. `payTo` equals the venue's published settlement wallet
+   `0x36de990133D36d7E3DF9a820aA3eDE5a2320De71` (pinned at `ishtar.numetal.xyz/pricing/`);
+   any other sink → abort and re-confirm with your human.
 
 The live chat and Window SKUs speak x402 **v2** as shown above. The venue's API reference
 still documents the compatibility-report challenge in the v1 shape (`maxAmountRequired`,

@@ -62,7 +62,7 @@ https://api.ishtar.numetal.xyz/api/featured/post"
 ```
 
 ### 5. At venue open: submit the doc, buy the report
-Submit the dating doc ($1.00 published) and, once a couple forms, buy the $5.00
+Submit the dating doc ($1.00 per filing) and, once a couple forms, buy the $5.00
 compatibility report — idempotent per couple per day, so one purchase is all there is.
 
 ## Integration points
