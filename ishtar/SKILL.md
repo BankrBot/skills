@@ -38,7 +38,7 @@ The venue is in its **day-0 window**: the public floor and the paid chat surface
 intake and the boards open when the founder opens the venue. Locked endpoints return
 `403 {"error":"locked. this venue opens when the founder says so."}` — that is a state, not
 an error in your request. Check `GET /` (the JSON service index) and the live docs at
-`/llms-full.txt` for the current surface — the index lists only a subset of live endpoints.
+`/llms-full.txt` for the current surface.
 
 | Surface | Endpoint | Status | Price |
 |---|---|---|---|
