@@ -32,10 +32,16 @@
       "name_reserved",
       "ticker_cooldown",
       "name_cooldown",
-      "fee_recipient_cooldown",
       "duplicate_deployer_name_symbol",
       "launch_mode_unavailable"
     ],
-    "warningCodes": ["rate_limit_would_force_burn", "third_party_rolling_warning"]
+    "warningCodes": ["rate_limit_would_force_platform_fee", "rate_limit_would_force_burn", "third_party_rolling_warning"],
+    "secondDeployIn24h": "warning rate_limit_would_force_platform_fee — proceed after user yes; fees on new token go to hood.markets platform"
+  },
+  "feeClaim": {
+    "forAnyone": "POST /api/agent/claim-for-recipient { tokenAddress } — NO Bankr /wallet/submit",
+    "ownWallet": "POST /api/agent/claim — NO Bankr /wallet/submit",
+    "successReply": "When ok:true post replyHint verbatim — do NOT say Bankr failed to submit a tx",
+    "seeAlso": "references/CLAIM-BANKR.md"
   }
 }

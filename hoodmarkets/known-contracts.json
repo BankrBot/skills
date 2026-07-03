@@ -6,19 +6,30 @@
   "webBase": "https://hood.markets",
   "explorer": "https://robinhoodchain.blockscout.com",
   "contracts": {
+    "hoodmarketsV3Factory": "0xcFE4D69Ac8e5F79a95d99e991162902f68029f09",
+    "hoodmarketsV3Vault": "0xe250a07229Bcf29a2cC02d6070beE82252F71C36",
+    "hoodmarketsV3LpLocker": "0x209eFAA86568f0Ea0E25d1F0E62f92e81c51a72a",
+    "hoodmarketsV3Owner": "0xFA45A3b8d1662E3432D1B5bE3F37e4923D1b796C",
+    "platformFeeRecipientV3": "0xbfD1be7a12A9FeF04D281C2D8D0D9EE15b576d98",
+    "hoodmarketsV3FactoryDeprecated": "0xa77911C301b30283ca3dBc32812839AdF443b39f",
+    "uniswapV3Factory": "0x1f7d7550B1b028f7571E69A784071F0205FD2EfA",
+    "uniswapV3PositionManager": "0x73991a25C818Bf1f1128dEAaB1492D45638DE0D3",
+    "uniswapV3SwapRouter": "0xCaf681a66D020601342297493863E78C959E5cb2",
     "hoodmarketsV4Factory": "0xdeBc9bC5c3Ca697493a01e8ac503B590D209d8bD",
     "feeLocker": "0xD588F6F8819Fc0B34fF72300Bb87b8c69C4cD454",
     "swapHelper": "0x6373285F77ad0a3f5a441439B3D23d16B79aA585",
     "hookStatic": "0xCD9DD3fa11c53cf6aE3d4e4D3fdf7C1f790468cc",
     "universalRouter": "0x53BF6B0684Ec7eF91e1387Da3D1a1769bC5A6F77",
-    "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
-    "hoodmarketsV3Factory": "0xa77911C301b30283ca3dBc32812839AdF443b39f",
-    "hoodmarketsV3LpLocker": "0x8eB68121E5c7a5aAf440a5C66c0C66b828B96fA8",
-    "platformFeeRecipientV3": "0xA558E3058050448f07Df73a2509f23B7912395Da"
+    "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3"
+  },
+  "feeSplitSimple": {
+    "platformBps": 500,
+    "creatorBps": 9500,
+    "note": "5% platform / 95% creator — embedded in HoodMarketsV3LpLocker for simple launches"
   },
   "swapHelperSelectors": {
     "buy": "0x49168929",
     "sell": "0x006215e5"
   },
-  "_agentNote": "prepare-buy/sell only works for Pro (V4) catalog tokens. Simple V3 poolId prefix v3: → use Uniswap."
+  "_agentNote": "Default launch mode is simple (V3). prepare-buy/sell only works for Pro (V4) catalog tokens. Simple V3 poolId prefix v3: → use Uniswap. New launches after 2026-07-02 use hoodmarketsV3Factory above."
 }

@@ -28,7 +28,7 @@ Reject any other `to` for swap flows.
 ## Deploy / claim
 
 - **Deploy:** no Bankr submit — server-side only
-- **Claim:** no Bankr submit — `POST /api/agent/claim` only
+- **Claim:** no Bankr submit — `POST /api/agent/claim` or `claim-for-recipient`; on `ok: true` post `replyHint` (see `CLAIM-BANKR.md`)
 
 ## Abort if
 
