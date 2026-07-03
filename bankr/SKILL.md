@@ -243,7 +243,7 @@ Omit `threadId` to start a new conversation. CLI equivalent: `bankr agent prompt
 | `/addresses/resolve?value=<recipient>&type=<address\|ens\|twitter\|farcaster>` | GET | Resolve a recipient (0x address, ENS-style name `.eth`/`.base.eth`/`.cb.id`, or social handle) to a 0x address. Used by `bankr wallet transfer --to` to support ENS input. |
 | `/users/search?...` | GET | Search Bankr users by Twitter or Farcaster username. |
 
-The legacy aliases `/public/resolve-recipient` and `/public/search-users` still respond but are deprecated (they return `Deprecation`/`Sunset` headers) and slated for removal — migrate callers to the structured `/addresses/*` and `/users/*` namespaces.
+The legacy aliases `/public/resolve-recipient` and `/public/search-users` have been **removed** — use the structured `/addresses/resolve` and `/users/search` endpoints instead.
 
 #### Agent API (`/agent/*`) — AI-powered endpoints (async)
 
@@ -330,6 +330,8 @@ Manage Bankr Club subscription from the CLI (status, signup, cancel). Pay with U
 | `bankr club cancel` | Cancel subscription (access continues until period ends) |
 
 Pricing is $20/mo or $198/yr USD-equivalent. Actual on-chain amount depends on the chosen token's price at quote time. The `--token` flag was added in CLI 0.3.4; older versions only support USDC.
+
+**Monthly → yearly upgrade**: active monthly members can upgrade to yearly by asking the agent (e.g. "upgrade me to yearly"). The full yearly price is charged and the new 365-day term stacks on top of any remaining monthly time, so no paid time is lost. Yearly → monthly downgrades and yearly resubscribes are not supported.
 
 ### Auth & Config Commands
 
@@ -499,7 +501,7 @@ The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unifie
 - Check credits: `bankr llm credits` | Top up: `bankr llm credits add <amount>` | Auto top-up: `bankr llm credits auto --enable --amount 25 --tokens USDC`
 - In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`)
 - **Per-model discounts** available for Bankr Club members and partners — applied automatically at billing time
-- **BNB Chain promo**: top up $5+ via BNB Chain and receive a $5 bonus credit (one-time per wallet)
+- **Expiring credit grants**: promotional or developer grants may carry an expiry date. Your spendable balance is your permanent (purchased) credits plus any unexpired grants — grants are spent first (soonest-expiring first) and drop off automatically at expiry
 
 ### Quick Commands
 
@@ -522,7 +524,10 @@ The AI agent can top up your LLM credits directly in conversation — no CLI or 
 ```bash
 bankr agent prompt "Top up my LLM credits with $25"
 bankr agent prompt "Add $10 of LLM credits using my ETH"
+bankr agent prompt "How many LLM credits do I have left?"
 ```
+
+The agent can also report your current LLM credit balance in conversation — including any expiring grants and when they lapse — without needing the `bankr llm credits` command.
 
 1 credit = $1 USD. Multi-chain: pay with USDC or USDT directly on Base, Polygon, Ethereum, Arbitrum, or BNB Chain, or with any other ERC-20 (auto-swapped to the chain's preferred stablecoin — USDC on most chains, USDT on BNB). When using `--token`, the CLI picks the chain with the highest USD balance of that token. Maximum $1,000 per top-up.
 
@@ -575,6 +580,7 @@ For full details — setup paths, model list, provider config, SDK examples, key
 - Send to 0x addresses, ENS-style names (`.eth`, `.base.eth`, `.cb.id`), or social handles
 - CLI direct (`bankr wallet transfer`) accepts 0x addresses + ENS only — social handles go through the AI agent
 - Multi-chain support
+- **Bulk / multi-recipient** sends via the agent — same-chain ERC-20 transfers to many recipients batch into a single on-chain transaction (one set of gas)
 - Flexible amount formats
 - Social handle resolution (Twitter, Farcaster, Telegram) via the agent
 
@@ -611,17 +617,19 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 ### Token Deployment
 
-- **EVM (Base)**: Deploy ERC20 tokens via Clanker with customizable metadata and social links
+- **EVM (Base, default)**: Launch ERC20 tokens via Doppler on a Uniswap V4 pool with customizable metadata and social links. Fixed **100 billion** supply, **0.7%** swap fee split **95% creator / 5% protocol**. Tokens deploy to Base by default. Legacy Clanker tokens remain claimable (claims auto-detect Doppler vs Clanker).
 - **Solana**: Launch SPL tokens via Raydium LaunchLab with bonding curve and auto-migration to CPMM
 - Creator fee claiming on both chains
 - Fee Key NFTs for Solana (50% LP trading fees post-migration)
 - Optional fee recipient designation with 99.9%/0.1% split (Solana)
 - Both creator AND fee recipient can claim bonding curve fees (gas sponsored)
 - Optional vesting parameters (Solana)
-- Rate limits: 1/day standard, 10/day Bankr Club (gas sponsored within limits)
+- Base launch limits: 50/day standard, 100/day Bankr Club (gas sponsored within limits)
 - Tokens deployed through Bankr are always visible in your portfolio, even without market price data
 
 **Reference**: [references/token-deployment.md](references/token-deployment.md)
+
+> **Selling your own creator-fee token:** Bankr blocks selling a token you earn fees on through the ordinary swap/limit/stop/DCA/TWAP tools (buying and transferring are unaffected). Builders take profit gradually instead via **Glidepath** — an AI-paced gradual exit managed from the token page at [bankr.bot](https://bankr.bot). Glidepath is a web feature; it isn't a CLI/API action. Details: https://docs.bankr.bot/token-launching/glidepath
 
 ### Automation
 
@@ -635,12 +643,13 @@ For full details — setup paths, model list, provider config, SDK examples, key
 
 ### x402 Paid API Calls
 
-The agent can discover, call, and deploy x402-protected API endpoints, automatically handling USDC payments on Base:
+The agent can discover, call, and deploy x402-protected API endpoints, automatically handling token payments on Base:
 
 - **Discover** endpoints in the Bankr registry or via web search
 - **Inspect** endpoint pricing, methods, and input/output schemas
-- **Call** endpoints with automatic payment signing (max $10/request)
+- **Call** endpoints with automatic payment signing in the endpoint's required token — USDC or any supported ERC-20 (max $10/request)
 - **Deploy** new x402 endpoints directly through the agent (write handler code, set pricing, deploy)
+- **Price** your own endpoints in USDC or any supported ERC-20; revenue settles on-chain and is accounted in USD at settlement time
 - Works with any x402-compatible endpoint (Bankr-hosted or external)
 
 **Reference**: [references/x402-cloud.md](references/x402-cloud.md)
@@ -656,6 +665,10 @@ The agent has a built-in headless browser for web interactions:
 - Useful for research, data extraction, and interacting with web apps that don't have APIs
 
 **Reference**: [references/x402-cloud.md](references/x402-cloud.md)
+
+### Ask About Bankr
+
+The agent can answer questions about Bankr itself — how features work, official domains and links, the official Telegram bot, and support channels — grounded in Bankr's own documentation. When it doesn't have a confident answer it abstains rather than guessing, so you won't get fabricated links or facts. Useful for onboarding questions and for verifying that a link or channel is genuinely official.
 
 ### Arbitrary Transactions
 
@@ -696,6 +709,10 @@ User-controlled settings that apply to every surface — chat, agent, API, CLI. 
 | Disable arbitrary contract calls | Off | Blocks `write_contract`, raw `/wallet/submit`, and arbitrary transaction tools (named operations like swaps still work) |
 
 If USD pricing is unavailable and a limit is enabled, the transaction is **rejected** (fail-closed) rather than waved through. Your own wallet addresses are always implicitly allowed as recipients.
+
+### Protected-Token Swap Guard
+
+Bankr blocks **swaps** of a small set of protected tokens where swapping is almost always a costly mistake — for example staked positions that should be unwound through their own redeem flow. The block is swap-only: the token stays visible in your portfolio, transferable, and usable with the relevant staking/redeem tools. When a swap is blocked, the agent returns a clear reason pointing you to the correct exit path. This guard applies across the swap/limit/stop/DCA/TWAP tools on the EVM swap paths.
 
 ### API-Key Level Controls (bankr.bot/api-keys)
 
@@ -926,6 +943,7 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 - "Send 0.1 ETH to vitalik.eth"
 - "Transfer $20 USDC to @friend"
 - "Send 50 USDC to 0x123..."
+- "Send 5 USDC to each of these addresses: 0x..., 0x..., 0x..." (bulk — batched into one transaction)
 
 ### NFTs
 
@@ -945,6 +963,8 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 - "Short ETH with 5x on hyperliquid"
 - "Open 5x long on ETH with $100"
 - "Short BTC 10x with stop loss at $45k"
+- "Long TSLA with 5x on hyperliquid" (stocks via HIP-3)
+- "Long spacex on hyperliquid" (company names resolve to their HIP-3 ticker, e.g. SPCX)
 - "Show my hyperliquid positions"
 - "Show my Avantis positions"
 
@@ -977,6 +997,7 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 
 - "Top up my LLM credits with $25"
 - "Add $50 of LLM credits"
+- "How many LLM credits do I have left?"
 - "Top up LLM credits using my ETH"
 - "Top up my LLM credits with $25 using USDT on Polygon"
 - "Add $10 of LLM credits paid in USDT on BNB"

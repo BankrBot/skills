@@ -4,6 +4,16 @@
 
 All collateral lives in the Orderly Network vault on Arbitrum — non-custodial, withdraw anytime.
 
+**⚠️ State the destination clearly when depositing.** A deposit goes into the user's **Nexus
+trading balance** (perpetual collateral — spendable immediately, withdrawable on demand, NO lockup).
+This is NOT a yield or managed vault. Always confirm it back, e.g.:
+
+> "Depositing 14.58 USDC into your **Nexus trading balance** (perp collateral on Arbitrum —
+> withdraw anytime, no lockup). This is not a yield/managed vault."
+
+This preempts confusion with OmniVault (a separate managed-fund product with a redemption window —
+see the OmniVault section below). The skill can ONLY deposit to the trading balance.
+
 ### Automated path (recommended)
 
 ```
@@ -21,7 +31,7 @@ Returns `{ ok: true, amount, accountId, approveTxHash, depositTxHash }`. Funds l
 
 **Requirements:** Wallet & Agent API enabled on bankrApiKey, wallet has USDC on Arbitrum, wallet has ~0.00001 ETH for LayerZero fee.
 
-**allowedRecipients blocker:** If the key has `allowedRecipients` set, server returns 403. Fix: go to bankr.bot/api-keys, clear the allowedRecipients list, retry.
+**allowedRecipients blocker:** If the key has `allowedRecipients` set, server returns 403 (the restriction blocks raw tx submission). ⚠️ **Do NOT tell the user to permanently clear `allowedRecipients` on their main key** — that removes a real safety boundary. Instead recommend a **dedicated, temporary Bankr key** (Wallet & Agent API enabled, no `allowedRecipients`) created just for the deposit/withdraw, then **revoked right after** at bankr.bot/api-keys. Use it transiently per call, never persist it.
 
 **When to ask for Bankr API key:** "I need your Bankr API key to submit the deposit. Find it at bankr.bot/api-keys — same key used for trading."
 
@@ -83,6 +93,8 @@ POST https://og.nexustradinglabs.com/proxy/bankr-withdraw
 
 Server: derives ed25519 key → fetches withdrawal nonce → builds EIP-712 Withdraw message → signs via Bankr eth_signTypedData_v4 → submits to Orderly /v1/withdraw_request. Funds arrive on Arbitrum, no user signature required.
 
+> 🔒 **Withdrawal destination — receiver binding.** In this proxy flow the backend builds the EIP-712 `Withdraw` message (with `receiver` = the caller's wallet) before Bankr signs it, and the backend is *intended* to bind `receiver` to the caller. Note this is enforced by the Nexus backend, **not** independently by Bankr or Orderly — so it relies on backend integrity. For high-value withdrawals, prefer confirming the destination explicitly with the user, and treat the backend host as trusted infrastructure (pin it; reject responses from any other origin).
+
 Returns `{ ok: true, amount, withdrawNonce }`.
 
 ### Withdrawal blocked by code 78 (unsettled PnL)
@@ -112,7 +124,16 @@ Returns `{ ok: true, hint: "Wait ~5s then retry withdrawal with free_collateral 
 
 ---
 
-## OmniVault
+## OmniVault — different product, NOT reachable via the skill
 
-Not currently supported via the skill. Direct users to https://app.orderly.network/vaults to deposit directly.
+OmniVault is Orderly's **managed-fund** product, distinct from the trading balance:
+
+- **Trading balance** (what this skill deposits to): perp collateral, withdraw on demand, no lockup.
+- **OmniVault**: a managed fund with a **redemption/withdrawal window** (funds are not instantly
+  liquid — the manager unwinds positions first).
+
+External brokers cannot deposit into OmniVault, so the skill **cannot** route funds there — every
+skill deposit goes to the trading balance. If a user specifically wants OmniVault or a community
+vault, direct them to the web app: https://app.orderly.network/vaults (or the Vaults page at
+https://trade.nexustradinglabs.com). Do NOT imply the skill can manage vault deposits/redemptions.
 
