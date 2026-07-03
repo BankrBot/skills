@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "odyssey-robin-staking",
+  "provider": "The Odyssey",
+  "providerUrl": "https://www.theodyssey.fun",
+  "logo": null,
+  "demo": {
+    "title": "odyssey-robin-staking.sh",
+    "language": "bash",
+    "code": "# Check staked ROBIN and pending ETH rewards on Robinhood Chain\nbankr agent prompt \"On Robinhood Chain (4663), read my $ROBIN balance, staked amount, and pending ETH from Odyssey staking pool 0x9047DCAB97C2CfE20955f6b3Ff7438788AD02a86\"\n\n# Stake 1000 ROBIN — approve then stake (pinned addresses only)\nbankr agent prompt \"On Robinhood Chain chainId 4663: approve exactly 1000 $ROBIN for spender 0x9047DCAB97C2CfE20955f6b3Ff7438788AD02a86, then stake 1000 on that pool. Use only these addresses.\"\n\n# Claim ETH rewards without unstaking\nbankr agent prompt \"On Robinhood Chain (4663), call claim() on Odyssey staking pool 0x9047DCAB97C2CfE20955f6b3Ff7438788AD02a86\""
+  },
+  "setup": [
+    "Install: `install the odyssey-robin-staking skill from https://github.com/BankrBot/skills/tree/main/odyssey-robin-staking`",
+    "Robinhood Chain mainnet only — chainId `4663`",
+    "`$ROBIN` token: `0xfB4729659eeF22Bfc1c2B680F6F873f8147aaaab` (6 decimals)",
+    "`OFunStaking` pool: `0x9047DCAB97C2CfE20955f6b3Ff7438788AD02a86`",
+    "Requires Bankr API key with Wallet API + write access; wallet must hold $ROBIN and ETH on RH4663",
+    "Docs: https://www.theodyssey.fun/docs#robinhood-chain"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "odyssey-robin-staking",
+    "command": "install the odyssey-robin-staking skill from https://github.com/BankrBot/skills/tree/main/odyssey-robin-staking"
+  }
+}
