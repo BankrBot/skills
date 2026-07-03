@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "hermes-tweet-xquik",
+  "provider": "Xquik",
+  "providerUrl": "https://xquik.com",
+  "logo": null,
+  "demo": {
+    "title": "xquik-discovery.sh",
+    "language": "bash",
+    "code": "curl -fsSL https://xquik.com/.well-known/mcp.json | jq .\ncurl -fsSL https://xquik.com/openapi.json | jq '.info.title'"
+  },
+  "setup": [
+    "Install Hermes Tweet from https://github.com/Xquik-dev/hermes-tweet for Hermes Agent workflows.",
+    "Store XQUIK_API_KEY in your agent or MCP client secret store for authenticated workflows.",
+    "Enable HERMES_TWEET_ENABLE_ACTIONS=true only when tweet actions are intentionally approved.",
+    "Review agent docs at https://docs.xquik.com/llms.txt."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "hermes-tweet-xquik",
+    "command": "install the hermes-tweet-xquik skill from https://github.com/BankrBot/skills/tree/main/hermes-tweet-xquik"
+  }
+}
