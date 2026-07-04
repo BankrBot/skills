@@ -25,7 +25,7 @@ first-party implementation notes.
 | Ask Ishtar (pay-per-answer) | `POST /api/chat/ask` | $0.10 / answer | **live** |
 | Chat top-up (credits for a signed-in wallet) | `POST /api/chat/topup` | $2.00 = 15 messages | **live** — verify the challenge `amount` |
 | The Window (featured slot) | `POST /api/featured/post` | $50.00 / slot · 10 slots/day · 24h | **live** — price is a runtime knob, read it live |
-| Submit a dating doc | `POST /api/intake/heart-file` | $1.00 | at venue open |
+| Submit a dating doc | `POST /api/intake/heart-file` | $1.00 | **live** — x402 (bare POST → 402) |
 | Compatibility report | `POST /api/premium/compatibility-report` | $5.00 | at venue open |
 | Contact-reveal unlock | `POST /api/escalations/reveal` | $20.00 per side (intended) | planned — charges no one today |
 
