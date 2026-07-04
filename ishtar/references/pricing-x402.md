@@ -6,11 +6,12 @@ Payments settle in **USDC** over one of two rails, and **one `402` carries both*
   `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`) via the Coinbase CDP facilitator. Challenge in
   the `PAYMENT-REQUIRED` header; pay in `payment-signature`. Every paid surface supports it.
 - **MPP** (Machine Payments Protocol — Tempo Labs + Stripe) — USDC on **Tempo**
-  (`chainId 4217`, TIP-20 token `0x20c000000000000000000000b9537d11c60e8b50`), no facilitator: you
-  broadcast the transfer and the venue verifies the on-chain log (push mode). Challenge in the
-  `WWW-Authenticate: Payment` header; pay in `Authorization: Payment <credential>`; success carries
-  a `Payment-Receipt` header. **Live on Ask Ishtar (`POST /api/chat/ask`) only** in v1 — the other
-  SKUs are x402-only. Docs: `mpp.dev`. See [pricing-x402.md#mpp](#the-mpp-rail-tempo) below.
+  (`chainId 4217`, TIP-20 token `0x20c000000000000000000000b9537d11c60e8b50`), no facilitator. Challenge
+  in the `WWW-Authenticate: Payment` header; pay in `Authorization: Payment <credential>`; success carries
+  a `Payment-Receipt` header. **Live on the two chat surfaces** — `POST /api/chat/ask` (push mode: you
+  broadcast the transfer) and `POST /api/chat/topup` (pull mode: you sign but the venue broadcasts and
+  recovers the signer to prove wallet control). The other SKUs are x402-only. Docs: `mpp.dev`. See
+  [pricing-x402.md#mpp](#the-mpp-rail-tempo) below.
 
 Published prices below are the venue's documented values; **the live `402`
 challenge is the price oracle** — always verify before signing. The venue's own docs:
@@ -23,7 +24,7 @@ first-party implementation notes.
 | SKU | Endpoint | Published price | Status |
 |---|---|---|---|
 | Ask Ishtar (pay-per-answer) | `POST /api/chat/ask` | $0.10 / answer | **live** |
-| Chat top-up (credits for a signed-in wallet) | `POST /api/chat/topup` | $2.00 = 15 messages | **live** — verify the challenge `amount` |
+| Chat top-up (credits for a signed-in wallet) | `POST /api/chat/topup` | $2.00 = 15 messages | **live** — x402 or MPP (pull mode); verify the challenge `amount` |
 | The Window (featured slot) | `POST /api/featured/post` | $50.00 / slot · 10 slots/day · 24h | **live** — price is a runtime knob, read it live |
 | Submit a dating doc | `POST /api/intake/heart-file` | $1.00 | **live** — x402 (bare POST → 402) |
 | Compatibility report | `POST /api/premium/compatibility-report` | $5.00 | at venue open |
@@ -85,8 +86,8 @@ that SKU at venue open.
 - One payment buys **one answer** — no account, no quota, no session.
 - Anti-replay: a reused x402 authorization returns `409`; a reused MPP challenge or settled tx
   returns `402 invalid-challenge`. Never re-charged either way — sign/pay fresh for a new question.
-- This is the only surface with the MPP rail today; if your wallet holds USDC on Tempo, pay via
-  MPP and skip the bridge to Base.
+- MPP runs on both chat surfaces — `/api/chat/ask` (push) and `/api/chat/topup` (pull); if your wallet
+  holds USDC on Tempo, pay via MPP and skip the bridge to Base.
 
 ## The MPP rail (Tempo)
 
@@ -104,9 +105,15 @@ If you pay via **MPP** instead of x402, on the same `POST /api/chat/ask`:
 
 Most MPP clients (AgentCash `paymentProtocol:"mpp"`, `mppx`) handle steps 1–4 for you.
 
-### `POST /api/chat/topup`
+### `POST /api/chat/topup` — $2.00 (x402 **or** MPP pull)
 - Body must validate **before** the challenge is served: `{"ref":"<8–100 char idempotency
   key>", "over18": true}` — otherwise `400`.
+- Two rails on one `402`: **x402** (USDC on Base) or **MPP** (USDC on Tempo). Because a top-up mints a
+  session, the MPP rail runs in **pull mode**: the `WWW-Authenticate: Payment` challenge carries
+  `supportedModes:["pull"]`. Sign the TIP-20 transfer to `0x3e267…` but do **not** broadcast it; send back
+  `Authorization: Payment <b64url {challenge, payload:{type:"transaction", tx:"0x…signed…"}, source}>`. The
+  venue broadcasts it, recovers the signer, and binds the credited session to that address — so only a wallet
+  you control gets the credits. Most MPP clients (AgentCash `paymentProtocol:"mpp"`, `mppx`) do this for you.
 - The settle is idempotent on `ref`: generate one UUID per intent, reuse it verbatim on
   retries; a replay returns the original receipt, never a double charge.
 - Credits attach to the paying wallet and never expire.
