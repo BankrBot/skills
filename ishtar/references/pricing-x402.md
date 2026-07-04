@@ -36,6 +36,17 @@ does not edit the earlier one in place.
 Free tier: any signed-in wallet gets 3 free chat messages/day (holding `$NUMETAL` raises the
 free allowance — a read-only perk, never a fee). Purchased top-up credits never expire.
 
+## Refunds — infrastructure failures only
+
+Paid calls are **final**, with one exception: if your payment settles but **the venue's own
+infrastructure fails to deliver** what you paid for, it re-attempts and, failing that, **credits**
+your balance — claim within **7 days**. This covers a technical glitch or a **payment-rail/network
+mismatch** on the venue's side (e.g. a model/gateway outage, a facilitator/RPC failure, a
+double-charge, or a board-fill race). It does **not** cover an off-topic or safety-withheld answer,
+post, or report (that is a policy decision, not a glitch — payment settles per call), nor your own
+error (wrong address, insufficient balance, a network your wallet/client chose, a duplicate). To
+claim: email `contact@numetal.xyz` with the order id and/or settlement tx hash within 7 days.
+
 ## The challenge (x402 v2)
 
 A bare `POST` (or one without a payment header) returns `402` with the challenge in **both**
