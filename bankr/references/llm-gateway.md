@@ -16,6 +16,8 @@ The gateway uses your **LLM key** for authentication. The key resolution order:
 
 Most users only need a single key for both the agent API and the LLM gateway. Set a separate LLM key only if your keys have different permissions or rate limits.
 
+**Dashboard:** Manage usage, credits, and auto top-up at [bankr.bot/llm](https://bankr.bot/llm). Top up credits at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits). Generate and configure API keys at [bankr.bot/api-keys](https://bankr.bot/api-keys).
+
 ### Setting the LLM Key
 
 **Via CLI:**
@@ -38,27 +40,88 @@ bankr config get llmKey
 
 | Model | Provider | Best For |
 |-------|----------|----------|
-| `claude-opus-4.6` | Anthropic | Most capable, advanced reasoning |
-| `claude-opus-4.5` | Anthropic | Complex reasoning, architecture |
-| `claude-sonnet-4.5` | Anthropic | Balanced speed and quality |
-| `claude-haiku-4.5` | Anthropic | Fast, cost-effective |
-| `gemini-3-pro` | Google | Long context (2M tokens) |
-| `gemini-3-flash` | Google | High throughput |
+| `claude-fable-5` | Anthropic | Latest generation, agentic + multimodal (1M context, image input) |
+| `claude-opus-4.8` | Anthropic | Latest, most capable reasoning (1M context) |
+| `claude-opus-4.7` | Anthropic | Advanced reasoning (1M context) |
+| `claude-opus-4.6` | Anthropic | Advanced reasoning (1M context) |
+| `claude-opus-4.5` | Anthropic | Complex reasoning (200K context) |
+| `claude-sonnet-4.6` | Anthropic | Balanced speed and quality (1M context) |
+| `claude-sonnet-4.5` | Anthropic | Previous generation Sonnet (1M context) |
+| `claude-haiku-4.5` | Anthropic | Fast, cost-effective (200K context) |
+| `gemini-3.5-flash` | Google | Latest Flash, 1M context |
+| `gemini-3.1-pro` | Google | Long context, reasoning (1M) |
+| `gemini-3.1-flash-lite` | Google | Ultra-fast, lowest cost (1M) |
+| `gemini-3-flash` | Google | High throughput (1M) |
 | `gemini-2.5-pro` | Google | Long context, multimodal |
 | `gemini-2.5-flash` | Google | Speed, high throughput |
-| `gpt-5.2` | OpenAI | Advanced reasoning |
-| `gpt-5.2-codex` | OpenAI | Code generation |
-| `gpt-5-mini` | OpenAI | Fast, economical |
-| `gpt-5-nano` | OpenAI | Ultra-fast, lowest cost |
-| `kimi-k2.5` | Moonshot AI | Long-context reasoning |
-| `qwen3-coder` | Alibaba | Code generation, debugging |
+| `gemma-4-31b-it` | Google | Multimodal, cost-effective (262K) |
+| `gemma-4-26b-a4b-it` | Google | MoE, cost-effective (262K) |
+| `gpt-5.5` | OpenAI | Latest, most capable (1M context, image input) |
+| `gpt-5.4` | OpenAI | Advanced reasoning (1M context, image input) |
+| `gpt-5.4-mini` | OpenAI | Fast, economical (400K context, image input) |
+| `gpt-5.4-nano` | OpenAI | Ultra-fast, lowest cost (400K context, image input) |
+| `gpt-5.2` | OpenAI | Advanced reasoning (400K context) |
+| `gpt-5.2-codex` | OpenAI | Code generation (400K context) |
+| `gpt-5-mini` | OpenAI | Previous gen, economical (400K) |
+| `gpt-5-nano` | OpenAI | Previous gen, ultra-fast (400K) |
+| `grok-4.20` | xAI | Latest, deep reasoning (2M context) |
+| `grok-4.3` | xAI | Balanced performance (1M context) |
+| `deepseek-v4-pro` | DeepSeek | Long context reasoning (1M, 384K output) |
+| `deepseek-v4-flash` | DeepSeek | High throughput, cost-effective (1M) |
+| `deepseek-v3.2` | DeepSeek | Cost-effective (164K context) |
+| `qwen3.7-plus` | Alibaba | Latest, long-context reasoning (1M) |
+| `qwen3.6-flash` | Alibaba | Latest fast, economical (1M) |
+| `qwen3.5-plus` | Alibaba | Long-context reasoning (1M) |
+| `qwen3.5-flash` | Alibaba | Fast, economical (1M) |
+| `qwen3-coder` | Alibaba | Code generation, debugging (262K) |
+| `kimi-k2.7-code` | Moonshot AI | Latest, code-focused long-context (262K) |
+| `kimi-k2.6` | Moonshot AI | Long-context (262K) |
+| `kimi-k2.5` | Moonshot AI | Long-context reasoning (262K) |
+| `minimax-m3` | MiniMax | Flagship multimodal reasoning (512K context) |
+| `minimax-m2.7` | MiniMax | Balanced performance (204.8K) |
+| `minimax-m2.7-highspeed` | MiniMax | Faster variant, double throughput (204.8K) |
+| `minimax-m2.5` | MiniMax | Cost-effective (204.8K) |
+| `glm-5.2` | Z.ai | Latest, long-context reasoning (1M) |
+| `glm-5.1` | Z.ai | Advanced reasoning (202K) |
+| `glm-5` | Z.ai | General purpose reasoning (202K) |
+| `glm-5-turbo` | Z.ai | Fast, cost-effective (202K) |
 
 ```bash
 # Fetch live model list from the gateway
 bankr llm models
 ```
 
+The table above is a curated snapshot; the gateway adds and retires models over time. Run `bankr llm models` (or `GET /v1/models`) for the authoritative live list, current pricing, and per-model capability flags.
+
+### Private (Confidential) Inference
+
+Some models can be routed to a confidential, TEE-backed provider for private inference. Opt in per request by appending `:private` to the model ID:
+
+```bash
+curl -X POST "https://llm.bankr.bot/v1/chat/completions" \
+  -H "Authorization: Bearer $BANKR_LLM_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "glm-5.2:private", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+List which models currently support private (TEE) compute:
+
+```bash
+bankr llm models --private        # only models that support :private
+bankr llm models                  # full list; private-capable models are flagged
+```
+
+- Confidentiality is a hard routing constraint — a `:private` request is only served by a private-capable provider, never silently downgraded to a standard one.
+- Only models that expose a private slot support it. `bankr llm models` flags which models are private-capable, and `bankr llm models --private` lists only those (driven live by the gateway's `private` flag on `GET /v1/models`). Sending `:private` to a model without one is rejected rather than falling back.
+- Only a trailing, lowercase `:private` is treated as the opt-in. Anything else in the model string is left untouched.
+
+### Per-Model Discounts
+
+The gateway supports per-model discounts based on account tier. Bankr Club members and partner-provisioned wallets receive automatic discounts on eligible models — applied at billing time with no configuration needed. Check `bankr llm models` for current pricing and active promotions.
+
 ## Credits
+
+> **New wallets start with $0 LLM credits.** Top up via CLI (`bankr llm credits add 25`) or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) before your first LLM call. Without credits, all gateway requests return HTTP 402.
 
 Check your LLM gateway credit balance:
 
@@ -66,7 +129,105 @@ Check your LLM gateway credit balance:
 bankr llm credits
 ```
 
-Returns your remaining USD credit balance. When credits are exhausted, gateway requests will fail with HTTP 402.
+Top up credits from your wallet. Pay on any supported EVM chain — **Base, Polygon, Ethereum, Arbitrum, or BNB Chain** — and the CLI picks the chain holding the highest USD balance of your chosen token.
+
+```bash
+bankr llm credits add 25                   # Defaults to Base USDC
+bankr llm credits add 25 --token USDC      # USDC on the chain with the largest balance
+bankr llm credits add 25 --token USDT      # USDT (Polygon / Ethereum / Arbitrum / BNB)
+bankr llm credits add 50 --token ETH       # Native ETH (Base / Ethereum / Arbitrum)
+bankr llm credits add 50 --token 0x...     # By contract address
+bankr llm credits add 25 -y                # Skip confirmation prompt
+```
+
+USDC and USDT are sent directly when they're an accepted stablecoin on the resolved chain. Any other token is auto-swapped to the chain's preferred stablecoin (USDC on most chains, USDT on BNB) with ≤5% slippage protection.
+
+Configure automatic top-up so credits never run out (tokens are resolved across every supported chain — the worker tries them in priority order on their saved chains):
+
+```bash
+bankr llm credits auto                     # View current auto top-up config
+bankr llm credits auto --enable --amount 25 --threshold 5 --tokens USDC,USDT
+bankr llm credits auto --disable
+```
+
+When credits are exhausted, gateway requests will fail with HTTP 402.
+
+### Expiring Credit Grants
+
+Beyond purchased credits, your account may receive **time-limited grant credits** (for example promotional or developer grants). Your spendable balance is your permanent pool (purchases and regular top-ups) plus the remaining amount of any unexpired grants:
+
+```
+spendable = permanent pool + Σ (remaining of each grant where expiry > now)
+spend order = expiring grants first (soonest-expiring), then the permanent pool
+```
+
+Expired grants drop off automatically — there is no manual cleanup. The Credits page and `/llm/usage` show a breakdown of your permanent pool vs. each grant and its expiry, and your credit history labels grant rows.
+
+### Agent Credit Top-Up
+
+The AI agent can also top up credits directly in conversation:
+
+```bash
+bankr agent prompt "Top up my LLM credits with $25"
+bankr agent prompt "Add $10 of LLM credits using my ETH"
+```
+
+1 credit = $1 USD. Multi-chain: pay with USDC or USDT directly on Base, Polygon, Ethereum, Arbitrum, or BNB Chain, or with any other ERC-20 (auto-swapped to the chain's preferred stablecoin — USDC on most chains, USDT on BNB). Maximum $1,000 per top-up.
+
+> **LLM credits vs trading wallet:** These are completely separate balances on the same account and API key. Your trading wallet (ETH, SOL, USDC) is for on-chain transactions. LLM credits (USD) are for gateway API calls. Having crypto does NOT give you LLM credits.
+
+## LLM Gateway Setup
+
+If the user already has a Bankr account, they just need to configure the gateway. If not, they need to create one first.
+
+### Have Bankr Account
+
+1. Get an API key with **LLM Gateway** enabled:
+   - **Have a key?** Enable LLM Gateway at [bankr.bot/api-keys](https://bankr.bot/api-keys)
+   - **Need a key?** Generate via CLI: `bankr login email user@example.com` → `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
+2. Run: `bankr llm setup openclaw --install`
+3. Set default model in `~/.openclaw/openclaw.json`:
+   ```json
+   { "agents": { "defaults": { "model": { "primary": "bankr/claude-sonnet-4.6" } } } }
+   ```
+4. Verify credits: `bankr llm credits` (must show > $0 — top up via `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits))
+5. Restart OpenClaw or run: `openclaw gateway restart`
+
+### Need Bankr Account
+
+1. Send OTP: `bankr login email user@example.com`
+2. Complete setup: `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
+   - Can also create/configure keys at [bankr.bot/api-keys](https://bankr.bot/api-keys)
+3. **Top up credits:** `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) — new wallets start with $0
+4. Verify: `bankr llm credits` (must show > $0)
+5. Run: `bankr llm setup openclaw --install`
+6. Set default model in `~/.openclaw/openclaw.json` (see above)
+7. Restart OpenClaw or run: `openclaw gateway restart`
+
+> **Model names:** In OpenClaw, prefix with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`).
+
+For the full 4-path setup guide (including users who don't have OpenClaw yet), see https://docs.bankr.bot/llm-gateway/openclaw
+
+### Separate LLM and Agent API Keys
+
+By default, one key is used for both. To use separate keys:
+
+```bash
+bankr config set llmKey YOUR_LLM_KEY           # after login
+bankr login email user@example.com --llm-key YOUR_LLM_KEY  # during login
+```
+
+Key resolution: `BANKR_LLM_KEY` env var → `llmKey` in config → falls back to API key.
+
+### Key Permissions
+
+Manage at [bankr.bot/api-keys](https://bankr.bot/api-keys):
+
+| Toggle | Controls |
+|--------|----------|
+| **LLM Gateway** | Access to `llm.bankr.bot` for model requests |
+| **Agent API** | Access to wallet actions, prompts, and transactions |
+| **Read Only** | Agent API only — restricts to read operations |
 
 ## Tool Integrations
 
@@ -93,10 +254,12 @@ This writes the following provider config (with your key and all available model
         "apiKey": "your_key_here",
         "api": "openai-completions",
         "models": [
-          { "id": "claude-sonnet-4.5", "name": "Claude Sonnet 4.5", "api": "anthropic-messages" },
+          { "id": "claude-opus-4.8", "name": "Claude Opus 4.8", "api": "anthropic-messages" },
+          { "id": "claude-sonnet-4.6", "name": "Claude Sonnet 4.6", "api": "anthropic-messages" },
           { "id": "claude-haiku-4.5", "name": "Claude Haiku 4.5", "api": "anthropic-messages" },
-          { "id": "gemini-3-flash", "name": "Gemini 3 Flash" },
-          { "id": "gpt-5.2", "name": "GPT 5.2" }
+          { "id": "gemini-3.5-flash", "name": "Gemini 3.5 Flash" },
+          { "id": "gpt-5.5", "name": "GPT 5.5" },
+          { "id": "deepseek-v4-pro", "name": "DeepSeek V4 Pro" }
         ]
       }
     }
@@ -113,7 +276,7 @@ To use a Bankr model as your default in OpenClaw, add to `openclaw.json`:
   "agents": {
     "defaults": {
       "model": {
-        "primary": "bankr/claude-sonnet-4.5"
+        "primary": "bankr/claude-sonnet-4.6"
       }
     }
   }
@@ -131,7 +294,7 @@ Two ways to use Claude Code with the gateway:
 bankr llm claude
 
 # Pass any Claude Code flags through
-bankr llm claude --model claude-sonnet-4.5
+bankr llm claude --model claude-sonnet-4.6
 bankr llm claude --allowedTools Edit,Write,Bash
 bankr llm claude --resume
 ```
@@ -183,7 +346,7 @@ curl -X POST "https://llm.bankr.bot/v1/chat/completions" \
   -H "Authorization: Bearer $BANKR_LLM_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "claude-sonnet-4.5",
+    "model": "claude-sonnet-4.6",
     "messages": [{"role": "user", "content": "Hello"}]
   }'
 ```
@@ -193,10 +356,9 @@ curl -X POST "https://llm.bankr.bot/v1/chat/completions" \
 ```bash
 curl -X POST "https://llm.bankr.bot/v1/messages" \
   -H "x-api-key: $BANKR_LLM_KEY" \
-  -H "anthropic-version: 2023-06-01" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "claude-sonnet-4.5",
+    "model": "claude-sonnet-4.6",
     "max_tokens": 1024,
     "messages": [{"role": "user", "content": "Hello"}]
   }'
@@ -213,7 +375,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="claude-sonnet-4.5",
+    model="claude-sonnet-4.6",
     messages=[{"role": "user", "content": "Hello"}],
 )
 ```
@@ -245,11 +407,20 @@ client = Anthropic(
 )
 
 message = client.messages.create(
-    model="claude-sonnet-4.5",
+    model="claude-sonnet-4.6",
     max_tokens=1024,
     messages=[{"role": "user", "content": "Hello"}],
 )
 ```
+
+## Model Deprecation
+
+The gateway supports model deprecation with automatic redirect to replacement models:
+
+- **Soft-deprecated models** still work but return `X-Model-Deprecated: true` and `X-Model-Replacement: <new-model-id>` response headers. Migrate to the replacement model at your earliest convenience.
+- **Hard-deprecated models** return HTTP 410 (Gone) with the replacement model in the `X-Model-Replacement` header. Update your model ID to continue.
+
+Check `bankr llm models` for current model status and replacement mappings.
 
 ## Troubleshooting
 
@@ -260,10 +431,13 @@ message = client.messages.create(
 
 ### 402 Payment Required
 - Credits exhausted: `bankr llm credits` shows $0.00
-- Top up credits at [bankr.bot/api](https://bankr.bot/api)
+- Top up via CLI: `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) — this is the most common error for new users
+- Set up auto top-up to prevent this: `bankr llm credits auto --enable --amount 25 --threshold 5 --tokens USDC`
+- New wallets start with $0 — you must add credits before first use
+- LLM credits are separate from your trading wallet balance
 
 ### Model not found
-- Use exact model IDs (e.g., `claude-sonnet-4.5`, not `claude-3-sonnet`)
+- Use exact model IDs (e.g., `claude-sonnet-4.6`, not `claude-3-sonnet`)
 - Check available models: `bankr llm models`
 
 ### Claude Code not found

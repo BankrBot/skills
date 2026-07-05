@@ -21,7 +21,7 @@ bun install -g @bankr/cli
 bankr login
 ```
 
-Or if you already have an API key from https://bankr.bot/api:
+Or if you already have an API key from https://bankr.bot/api-keys:
 ```bash
 bankr config set apiKey bk_your_actual_key_here
 ```
@@ -29,7 +29,7 @@ bankr config set apiKey bk_your_actual_key_here
 **3. Verify Setup**
 ```bash
 bankr whoami
-bankr prompt "What is my balance?"
+bankr agent "What is my balance?"
 ```
 
 ### Common API Key Issues
@@ -98,8 +98,8 @@ bankr prompt "What is my balance?"
 |------|---------|--------|
 | **400** | Bad request | Check prompt format, validate parameters |
 | **401** | Unauthorized | Fix API key (see Authentication section) |
-| **402** | Payment required | Ensure wallet has BNKR on Base for fees |
-| **403** | Forbidden | Agent API access not enabled — enable at https://bankr.bot/api |
+| **402** | Payment required | For LLM Gateway: top up via `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) (`bankr llm credits` to check). For Agent API: ensure wallet has funds for fees |
+| **403** | Forbidden | Agent API access not enabled — enable at https://bankr.bot/api-keys |
 | **429** | Rate limited | Wait and retry with exponential backoff |
 | **500** | Server error | Retry after delay |
 | **502** | Bad gateway | Temporary issue, retry after delay |
@@ -212,7 +212,7 @@ To fix this:
 2. [Step 2]
 3. [Step 3]
 
-Need help? Visit https://bankr.bot/api
+Need help? Visit https://bankr.bot/api-keys
 ```
 
 ### Examples
@@ -267,7 +267,7 @@ Before reporting an issue, check:
 bankr whoami
 
 # Test with a simple query
-bankr prompt "What is my balance?"
+bankr agent "What is my balance?"
 ```
 
 ### Gather Information
@@ -281,7 +281,7 @@ When reporting issues, include:
 
 ### Resources
 - **Agent API Reference**: https://www.notion.so/Agent-API-2e18e0f9661f80cb83ccfc046f8872e3
-- **API Key Management**: https://bankr.bot/api
+- **API Key Management**: https://bankr.bot/api-keys
 - **Twitter**: @bankr_bot
 - **Telegram**: @bankr_ai_bot
 
