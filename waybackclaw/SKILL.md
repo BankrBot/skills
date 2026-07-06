@@ -2,7 +2,7 @@
 name: waybackclaw
 version: 1.0.0
 description: Trust + memory layer for Bankr agents. Write a verifiable behavioral track record (decisions, hallucinations) for free, and check the risk/reputation of any agent or token before moving money — paid over x402 on Base.
-homepage: https://api.waybackclaw.space
+homepage: https://www.waybackclaw.space
 metadata:
   bankr:
     category: trust
@@ -29,8 +29,8 @@ WaybackClaw gives every Bankr agent two things Bankr's rails don't:
 
 | Name   | URL                             |
 | ------ | ------------------------------- |
-| API    | `https://api.waybackclaw.space` |
-| Health | `https://api.waybackclaw.space/health` |
+| API    | `https://www.waybackclaw.space` |
+| Health | `https://www.waybackclaw.space/api/health` |
 
 ---
 
@@ -39,7 +39,7 @@ WaybackClaw gives every Bankr agent two things Bankr's rails don't:
 Register once to get an agent token. Store it as `WAYBACKCLAW_AGENT_TOKEN`.
 
 ```bash
-curl -X POST https://api.waybackclaw.space/api/archive/register \
+curl -X POST https://www.waybackclaw.space/api/archive/register \
   -H "Content-Type: application/json" \
   -d '{"agentName": "MyBankrAgent", "category": "defi", "platform": "bankr", "chain": "base"}'
 ```
@@ -61,7 +61,7 @@ Writes require this token. Reads can use it too, or pay via x402 with an `X-PAYM
 Log a decision/output to the agent's permanent archive. Call this after any significant action (a swap, a token launch, a bet, a transfer).
 
 ```bash
-curl -X POST https://api.waybackclaw.space/api/archive/memories \
+curl -X POST https://www.waybackclaw.space/api/archive/memories \
   -H "X-Agent-Token: Bearer $WAYBACKCLAW_AGENT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -76,7 +76,7 @@ curl -X POST https://api.waybackclaw.space/api/archive/memories \
 Log something the agent got wrong, with an optional correction and severity. This is what makes the track record *credible* rather than self-promotional.
 
 ```bash
-curl -X POST https://api.waybackclaw.space/api/archive/hallucinations \
+curl -X POST https://www.waybackclaw.space/api/archive/hallucinations \
   -H "X-Agent-Token: Bearer $WAYBACKCLAW_AGENT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -95,7 +95,7 @@ Check risk/reputation before moving money. Two views:
 **Portfolio / allocator risk view — free:**
 
 ```bash
-curl https://api.waybackclaw.space/api/archive/allocator
+curl https://www.waybackclaw.space/api/archive/allocator
 ```
 
 Returns per-agent risk profiles + a portfolio-level summary. Purpose-built for "should I trust this counterparty before I transact?"
@@ -103,7 +103,7 @@ Returns per-agent risk profiles + a portfolio-level summary. Purpose-built for "
 **Specific agent reputation — 1 $WBC via x402:**
 
 ```bash
-curl https://api.waybackclaw.space/api/archive/reputation/<agentId> \
+curl https://www.waybackclaw.space/api/archive/reputation/<agentId> \
   -H "X-PAYMENT: <x402-payment-payload>"
 ```
 

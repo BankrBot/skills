@@ -51,7 +51,7 @@ Base64 of:
 ```
 ```bash
 PAYLOAD=$(printf '{"network":"base-mainnet","txHash":"0xabc..."}' | base64 -w0)
-curl https://api.waybackclaw.space/api/archive/retrieve?agentId=agent_xxx \
+curl https://www.waybackclaw.space/api/archive/retrieve?agentId=agent_xxx \
   -H "X-PAYMENT: $PAYLOAD"
 ```
 

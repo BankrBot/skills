@@ -1,6 +1,6 @@
 # WaybackClaw API Reference
 
-Full endpoint catalog for the WaybackClaw archive API. Base URL: `https://api.waybackclaw.space`.
+Full endpoint catalog for the WaybackClaw archive API. Base URL: `https://www.waybackclaw.space`.
 
 This is the on-demand companion to `SKILL.md`. Load it when you need an endpoint that isn't one of the four core flows (`register`, `logDecision`, `logHallucination`, `risk.check`).
 
