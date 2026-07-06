@@ -1,20 +1,10 @@
 # Claude Code configuration: settings.json applies to anyone who opens this
 # repo with Claude Code, so changes here require maintainer review.
-/.claude/ @sidrisov @igoryuzo @saltoriousSIG
+/.claude/ @igoryuzo @saltoriousSIG @sidrisov
 
-# Protect repo automation and this file itself.
-/.github/ @sidrisov @igoryuzo @saltoriousSIG
+# Bankr-official skill: agent-facing instructions maintained by the team.
+/bankr/ @igoryuzo @saltoriousSIG
 
-# Bankr-official skills: agent-facing instructions maintained by the team.
-# An unreviewed edit here reaches every agent using the official skills.
-# (bankr-communities is community-owned and intentionally not listed.)
-/bankr/ @sidrisov @igoryuzo @saltoriousSIG
-/signals/ @sidrisov @igoryuzo @saltoriousSIG
-/bankr-shopify/ @sidrisov @igoryuzo @saltoriousSIG
-/bankr-token-scam-analysis/ @sidrisov @igoryuzo @saltoriousSIG
-/bankr-twitter-agent/ @sidrisov @igoryuzo @saltoriousSIG
-
-# Root marketplace files. Community skill PRs add their README row, so once
-# code-owner review is enforced those PRs need an owner approval to merge.
-/README.md @sidrisov @igoryuzo @saltoriousSIG
-/.gitignore @sidrisov @igoryuzo @saltoriousSIG
+# Root marketplace files.
+/README.md @igoryuzo @saltoriousSIG
+/.gitignore @igoryuzo @saltoriousSIG @sidrisov
