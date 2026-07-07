@@ -13,24 +13,23 @@
     "Dev hub: https://hood.markets/Dev · sdk.md · agent.md",
     "API: https://api.hood.markets",
     "Site: https://hood.markets",
-    "Chain: Robinhood (4663) — Bankr wallet must support Robinhood",
+    "Chain: Robinhood (4663) — abort if Bankr wallet does not support 4663 (references/CHAIN-4663.md)",
     "V3 factory: 0x9BDdC8ddf28f5629C989A36Eb5bb6C73cBA60Df5 (v0.11.0 — two fees only: swap + marketplace sales)",
     "Legacy V3 factories still valid in catalog — see known-contracts.json legacyHoodmarketsV3Factories",
-    "Holder NFTs: 1000 shares to fee recipient; airdropShares one tx (v0.10+); buyer rewards post-launch on token page — references/HOLDER-NFTS.md",
-    "Web launch: Someone else fee recipient = 0x wallet only (not @handle). Buyer rewards not at deploy — fundBuyerRewardPool on token page",
+    "Holder NFTs: claim via API only — no agent airdrop/list/buyShares (references/HOLDER-NFTS.md)",
+    "Web launch: Someone else fee recipient = 0x wallet only (not @handle)",
     "Platform fees only: (1) swap trading fees 5% platform / 95% holders, (2) share listings 5% of sale price on buyShares",
-    "Platform fee 5%: 0xbfD1be7a12A9FeF04D281C2D8D0D9EE15b576d98",
-    "Deploy on X: extract media_url_https from tweet → tweetId + tweetImageUrl → resolve-deploy-image → prepare-deploy → confirm",
-    "Deploy via API agent: preflight-deploy → prepare-deploy → haiku captcha → POST /api/deploy",
-    "Buy/sell: token-info (V3 vs Pro) → Pro: prepare-buy|prepare-sell → Bankr submit chainId 4663",
-    "Simple (V3) tokens: trade on Uniswap — see streaming-hints.json and token-info",
-    "Claim for someone: POST /api/agent/claim-for-recipient { tokenAddress } — ok:true → post replyHint (NOT Bankr submit)",
-    "Claim own fees: POST /api/agent/claim — ok:true → post replyHint",
-    "Validate swap txs per references/TX-VALIDATION.md and known-contracts.json"
+    "Deploy on X: IMAGE-RESOLUTION.md → resolve-deploy-image → prepare-deploy → confirm → deploy (PROMPT-INJECTION.md)",
+    "Deploy via API agent: preflight-deploy → haiku captcha → POST /api/deploy (AUTH-BOUNDARY.md)",
+    "Buy/sell: token-info (V3 vs Pro) → Pro: prepare-buy|prepare-sell → TX-VALIDATION.md → Bankr submit chainId 4663",
+    "Simple (V3) tokens: Uniswap link from token-info — not Bankr submit",
+    "Claim for someone: token-info verify → POST /api/agent/claim-for-recipient (CLAIM-BANKR.md)",
+    "Claim own fees: POST /api/agent/claim — ok:true → replyHint per RESPONSE-SAFETY.md",
+    "Bankr untrusted_address: stop — no Uniswap/web bypass (BANKR-SUBMIT.md)"
   ],
   "install": {
     "type": "bankr",
     "repoPath": "hoodmarkets",
-    "command": "install the hoodmarkets skill from https://github.com/anondevv69/hoodmarkets/tree/main/skills/hoodmarkets"
+    "command": "install the hoodmarkets skill from https://github.com/BankrBot/skills/tree/main/hoodmarkets"
   }
 }

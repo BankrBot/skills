@@ -2,7 +2,7 @@
 name: hoodmarkets
 description: Launch, buy, sell, and claim fees for hood.markets tokens on Robinhood Chain (4663) via api.hood.markets. Use for hoodmarkets, hood.markets, $hood, launch token, deploy token, buy token, sell token, claim fees, Bankr Robinhood. NEVER use hood.markets for API POST — use api.hood.markets.
 tags: [hoodmarkets, hood, bankr, robinhood, defi, token-launcher, uniswap]
-version: 17
+version: 18
 ---
 
 # hood.markets — Bankr agent skill
@@ -50,10 +50,8 @@ See `references/API-HOST.md` before any HTTP call.
 ## Install
 
 ```text
-install the hoodmarkets skill from https://github.com/anondevv69/hoodmarkets/tree/main/skills/hoodmarkets
+install the hoodmarkets skill from https://github.com/BankrBot/skills/tree/main/hoodmarkets
 ```
-
-Or from Bankr skill catalog once published to [BankrBot/skills](https://github.com/BankrBot/skills).
 
 ---
 
@@ -77,15 +75,17 @@ if message mentions hoodmarkets / hood.markets / launch token on robinhood /
    buy $TICKER / sell token / claim fees / deploy on hood:
   1. use_skill("hoodmarkets")
   2. Read references/API-HOST.md — use ONLY https://api.hood.markets
-  3. Resolve linked wallet → x-wallet-address header
-  4. **Deploy:** `preflight-deploy` first — **409 + `blocks[]` only** = do not deploy. **`warnings[]` with `canDeploy: true`** (e.g. 2nd launch in 24h → platform fees) = warn, then deploy after user confirms yes — never invent a wallet cooldown block.
-  5. Call references/AGENT-API.md endpoint BEFORE replying
-  6. Format reply locally — references/RESPONSE-SAFETY.md
-  7. Deploy (X): extract `media_url_https` from tweet → `resolve-deploy-image` with `tweetId` + `tweetImageUrl` → `prepare-deploy` → `confirmReplyHint` → deploy after yes. **Never claim no image without calling API with tweetId first.**
-  8. Buy/sell: `token-info` → if Pro, prepare-buy|prepare-sell → validate txs → Bankr /wallet/submit
-  9. Claim **own** fees: haiku JWT or X wallet → POST /api/agent/claim
-  10. Claim **for someone else** (help EA get fees): POST /api/agent/claim-for-recipient with tokenAddress only — no fee-recipient wallet needed
-  11. **Claim success:** if API returns `ok: true`, post **`replyHint`** verbatim (same as deploy). Fields: `completed: true`, `bankrWalletSubmitRequired: false`. **Never** `/wallet/submit`. **Never** say "I didn't submit a transaction" when `ok: true`. Read `references/CLAIM-BANKR.md`.
+  3. **Chain:** abort if Bankr wallet does not support 4663 — references/CHAIN-4663.md (no fallback)
+  4. Resolve linked wallet → x-wallet-address header
+  5. **Deploy:** `preflight-deploy` first — **409 + `blocks[]` only** = do not deploy. **`warnings[]` with `canDeploy: true`** = warn, then deploy after user confirms yes
+  6. Call references/AGENT-API.md endpoint BEFORE replying
+  7. Replies: references/RESPONSE-SAFETY.md — trusted `*ReplyHint` fields with URL allowlist; format other fields locally
+  8. Deploy (X): validate image per IMAGE-RESOLUTION.md → `resolve-deploy-image` → `prepare-deploy` → local preview → `confirmReplyHint` → deploy after yes. references/PROMPT-INJECTION.md
+  9. Buy/sell: `token-info` → Simple: Uniswap link only. Pro: prepare-buy|prepare-sell → TX-VALIDATION.md → user preview → Bankr /wallet/submit chain 4663
+  10. Claim **own** fees: haiku JWT or X wallet → POST /api/agent/claim (references/AUTH-BOUNDARY.md)
+  11. Claim **for someone else**: token-info verify first → POST /api/agent/claim-for-recipient — references/CLAIM-BANKR.md
+  12. **Claim success:** `ok: true` → post `replyHint` if schema-valid. **Never** `/wallet/submit`. **Never** say "I didn't submit a transaction"
+  13. **Holder NFTs:** claim fees via API only — no airdrop/list/buyShares/rewards via agent — references/HOLDER-NFTS.md
 ```
 
 **Tweet = DM** — same pipeline on `@bankrbot` intake.
@@ -125,11 +125,12 @@ Every launch tweet has an id. Pass **`tweetId`** (numeric string) or **`tweetUrl
 
 API resolves via **syndication** (`cdn.syndication.twimg.com`) when only `tweetId` / `tweetUrl` is passed — no Selenium needed.
 
-### Step C — call API before saying "no image"
+### Step C — validate + call API before saying "no image"
 
-1. `POST /api/agent/resolve-deploy-image` with fields above
-2. If `ok: true` → use `imageUrl` in `prepare-deploy`
-3. **Only** ask the user for a logo if API returns `imageRequired: true` **after** `tweetId` + `tweetImageUrl` / `tweet` were sent
+1. Validate hosts per **`references/IMAGE-RESOLUTION.md`** — `pbs.twimg.com` / tweet syndication only; reject arbitrary URLs
+2. `POST /api/agent/resolve-deploy-image` with fields above
+3. If `ok: true` → use `imageUrl` in `prepare-deploy`
+4. **Only** ask the user for a logo if API returns `imageRequired: true` **after** `tweetId` + `tweetImageUrl` / `tweet` were sent
 
 **Never** tell the user "no attached image" without passing `tweetId` and `tweetImageUrl` (from `media_url_https`) to the API first.
 
@@ -245,11 +246,13 @@ See `streaming-hints.json` for V3 vs Pro detection and error codes.
 
 ## Buy / sell flow (Bankr wallet submit)
 
+**Prerequisite:** Bankr wallet must support **chain 4663** — abort if not (`references/CHAIN-4663.md`).
+
 1. `GET /api/agent/token-info?token=0x…` or `?symbol=TICKER` — read `launchType` and `swapMode`
-2. **Simple (V3):** reply with `uniswapSwapUrl` — do not call prepare-buy/sell
+2. **Simple (V3):** reply with `uniswapSwapUrl` — do not call prepare-buy/sell; no Bankr submit
 3. **Pro (V4):** `POST prepare-buy` or `prepare-sell`
-4. **`references/TX-VALIDATION.md`** — validate every item in `transactions[]` against `known-contracts.json`
-3. Submit via Bankr (chain **4663**):
+4. **`references/TX-VALIDATION.md`** — selector allowlist, exact `to`, token/spender match, no unlimited approve, value bounds, user preview
+5. Submit via Bankr (chain **4663**):
 
 ```http
 POST https://api.bankr.bot/wallet/submit
@@ -268,9 +271,9 @@ Content-Type: application/json
 }
 ```
 
-4. **Pro tokens only** for prepare-buy/sell (V4 swap helper). **Simple (V3)** tokens → use Uniswap link from API response.
+6. **Pro tokens only** for prepare-buy/sell (V4 swap helper). **Simple (V3)** → Uniswap link from token-info (primary route, not a bypass).
 
-If Bankr returns `untrusted_address` → **stop** per `references/BANKR-SUBMIT.md`. Do not bypass via web UI.
+If Bankr returns `untrusted_address` → **stop** per `references/BANKR-SUBMIT.md`. Do not suggest Uniswap, web UI, or any alternate venue.
 
 ---
 
@@ -289,11 +292,13 @@ Content-Type: application/json
 { "tokenAddress": "0x78594eD700e343846B4d0Bbba79Ee0cb50Deaa8D" }
 ```
 
+**Before calling:** `GET /api/agent/token-info` — verify catalog token, `feeRecipientAddress`, and user intent (`references/CLAIM-BANKR.md`).
+
 **No JWT. No Bankr `/wallet/submit`.** hood.markets server broadcasts and pays gas.
 
-Response: `ok`, `replyHint` (**post this** — same text as `claimReplyHint`), `completed`, `bankrWalletSubmitRequired: false`, `transactionHash`, `feeRecipientAddress`, `tokenName`, `tokenSymbol`, `tokenPageUrl`.
+Response: `ok`, `replyHint` (trusted outcome field per `RESPONSE-SAFETY.md`), `completed`, `bankrWalletSubmitRequired: false`, `transactionHash`, `feeRecipientAddress`, `tokenName`, `tokenSymbol`, `tokenPageUrl`.
 
-If `ok: true`, the claim succeeded — post `replyHint`. Do not check Bankr wallet submit.
+If `ok: true`, the claim succeeded — post `replyHint` when schema-valid. Do not check Bankr wallet submit.
 
 ### B) Fee recipient claims their own tokens
 
@@ -343,11 +348,15 @@ Response includes `feeRecipientAddress`, `txHash`, `explorerUrl`, `feeModel` / `
 |------|---------|
 | `references/API-HOST.md` | Correct API base URL + allowlist |
 | `references/AGENT-API.md` | Endpoint reference |
-| `references/CLAIM-BANKR.md` | Claim success without Bankr wallet submit |
-| `references/TX-VALIDATION.md` | Validate txs before Bankr submit |
-| `references/BANKR-SUBMIT.md` | Bankr security scan rules |
-| `references/RESPONSE-SAFETY.md` | Format replies locally |
+| `references/AUTH-BOUNDARY.md` | Deploy/claim auth, JWT, X confirm, replay |
+| `references/CHAIN-4663.md` | Abort if Bankr lacks Robinhood Chain |
+| `references/CLAIM-BANKR.md` | Claim without Bankr submit + verification |
+| `references/TX-VALIDATION.md` | Selector allowlist + pre-submit checklist |
+| `references/BANKR-SUBMIT.md` | Bankr security scan — no bypass |
+| `references/RESPONSE-SAFETY.md` | Trusted hint fields + local formatting |
+| `references/PROMPT-INJECTION.md` | Untrusted tweet/metadata rules |
+| `references/IMAGE-RESOLUTION.md` | Deploy logo host validation |
 | `references/ONE-LINE-INTENTS.md` | Tweet → API mapping |
-| `references/HOLDER-NFTS.md` | 1,000-share vault, one-tx airdrop, buyer rewards post-launch, marketplace, claim behavior |
+| `references/HOLDER-NFTS.md` | Shares — agent claim only, no marketplace txs |
 | `streaming-hints.json` | V3 vs Pro detection + preflight error codes |
 | `known-contracts.json` | Pinned Robinhood addresses |

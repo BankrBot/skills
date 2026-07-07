@@ -118,7 +118,9 @@ See `streaming-hints.json` for detection rules.
 
 ## POST /api/agent/resolve-deploy-image
 
-Resolve token logo before deploy. **On X, pass `tweetId` and/or `tweetImageUrl` from `extended_entities.media[0].media_url_https`.**
+Resolve token logo before deploy. **Agents must validate hosts per `references/IMAGE-RESOLUTION.md` before calling.**
+
+**On X:** pass `tweetId` and/or `tweetImageUrl` from `extended_entities.media[0].media_url_https` (`pbs.twimg.com` only).
 
 ```http
 POST https://api.hood.markets/api/agent/resolve-deploy-image
@@ -256,7 +258,9 @@ May include `approve` step then `sell`. Amount in token units (`1M`, `1000000`).
 
 ## POST /api/agent/claim-for-recipient
 
-**Third-party / helper claim** — anyone (including Bankr on X) can trigger. Funds go to the **catalog fee recipient**, not the caller.
+**Third-party / helper claim** — permissionless server broadcast. Funds go to the **catalog fee recipient**, not the caller.
+
+**Before calling:** `GET /api/agent/token-info?token=0x…` — verify catalog membership, `feeRecipientAddress`, `tokenName`, `tokenSymbol`. See `references/CLAIM-BANKR.md`.
 
 ```http
 POST https://api.hood.markets/api/agent/claim-for-recipient
@@ -267,9 +271,9 @@ Content-Type: application/json
 
 No JWT. **Do not call Bankr `/wallet/submit`** — hood.markets broadcasts the claim.
 
-Response: `ok`, `replyHint` (**post verbatim**), `claimReplyHint` (same text), `completed`, `bankrWalletSubmitRequired: false`, `transactionHash`, `txHash`, `feeRecipientAddress`, `tokenName`, `tokenSymbol`, `feeModel`, `launchType`, `tokenPageUrl`, optional `feeAmountEth`.
+Response: `ok`, `replyHint` (trusted outcome field — `RESPONSE-SAFETY.md`), `claimReplyHint`, `completed`, `bankrWalletSubmitRequired: false`, `transactionHash`, `txHash`, `feeRecipientAddress`, `tokenName`, `tokenSymbol`, `feeModel`, `launchType`, `tokenPageUrl`, optional `feeAmountEth`.
 
-**If `ok: true`, claim succeeded** — post `replyHint`. Do not use Bankr `/wallet/submit`. Do not say Bankr failed to submit.
+**If `ok: true`, claim succeeded** — post `replyHint` when schema-valid. Do not use Bankr `/wallet/submit`.
 
 ---
 
@@ -306,7 +310,7 @@ GET  https://api.hood.markets/api/agent-captcha/challenge
 POST https://api.hood.markets/api/agent-captcha/verify
 ```
 
-Haiku: exactly 3 lines, must mention topic word. JWT valid **8 hours**.
+Haiku: exactly 3 lines, must mention topic word. Challenge **5-minute** expiry, **one-time use**. JWT valid **8 hours**. Auth boundary: `references/AUTH-BOUNDARY.md`.
 
 ---
 
@@ -339,4 +343,4 @@ After `prepare-buy` / `prepare-sell`, for each validated tx:
 POST https://api.bankr.bot/wallet/submit
 ```
 
-`chainId` must be **4663**. See `references/BANKR-SUBMIT.md` and `references/TX-VALIDATION.md`.
+`chainId` must be **4663**. See `references/BANKR-SUBMIT.md`, `references/TX-VALIDATION.md`, `references/CHAIN-4663.md`.

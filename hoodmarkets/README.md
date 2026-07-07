@@ -1,11 +1,11 @@
-# hood.markets Bankr skill (v17)
+# hood.markets Bankr skill (v18)
 
 Bankr-compatible agent skill for [hood.markets](https://hood.markets) on Robinhood Chain **4663**.
 
 ## Install
 
 ```text
-install the hoodmarkets skill from https://github.com/anondevv69/hoodmarkets/tree/main/skills/hoodmarkets
+install the hoodmarkets skill from https://github.com/BankrBot/skills/tree/main/hoodmarkets
 ```
 
 ## Platform fees (only two)
@@ -33,11 +33,13 @@ No fee on sends, batch airdrops (`airdropShares`), or list/cancel escrow (v0.11 
 
 | Flow | Bankr `/wallet/submit`? |
 |------|-------------------------|
-| Deploy token | No — API deploy after auth |
+| Deploy token | No — API deploy after auth (`AUTH-BOUNDARY.md`) |
 | Buy/sell Simple (V3) | No — Uniswap link from token-info |
-| Buy/sell Pro (V4) | Yes — prepare-buy/sell → submit chain 4663 |
+| Buy/sell Pro (V4) | Yes — prepare-buy/sell → TX-VALIDATION → submit chain 4663 |
 | Claim swap fees | No — POST /api/agent/claim or claim-for-recipient |
-| Holder NFTs | On-chain on token page — send, one-tx airdrop, list, claim; buyer rewards post-launch (see HOLDER-NFTS.md) |
+| Holder NFT marketplace / airdrop | **No** — token page only (`HOLDER-NFTS.md`) |
+
+**Chain 4663 required** — abort if Bankr wallet does not support Robinhood Chain (`CHAIN-4663.md`).
 
 ## Skill files
 
@@ -45,15 +47,22 @@ No fee on sends, batch airdrops (`airdropShares`), or list/cancel escrow (v0.11 
 |------|---------|
 | `SKILL.md` | Main routing + workflows |
 | `references/AGENT-API.md` | All API endpoints |
-| `references/HOLDER-NFTS.md` | Shares, fees, factory versions |
+| `references/AUTH-BOUNDARY.md` | Deploy/claim auth + replay |
+| `references/CHAIN-4663.md` | Mandatory chain support check |
+| `references/HOLDER-NFTS.md` | Shares, fees — agent restrictions |
 | `references/CLAIM-BANKR.md` | Claim without Bankr submit |
+| `references/TX-VALIDATION.md` | Selector allowlist before submit |
+| `references/BANKR-SUBMIT.md` | No scanner bypass |
+| `references/RESPONSE-SAFETY.md` | Trusted hint fields |
+| `references/PROMPT-INJECTION.md` | Untrusted metadata |
+| `references/IMAGE-RESOLUTION.md` | Deploy logo validation |
 | `references/ONE-LINE-INTENTS.md` | User phrase → API mapping |
 | `known-contracts.json` | Pinned addresses |
 | `streaming-hints.json` | V3 vs Pro detection |
 
 ## Publish to BankrBot/skills
 
-PR this folder to [BankrBot/skills](https://github.com/BankrBot/skills) → `skills/hoodmarkets/`
+PR this folder to [BankrBot/skills](https://github.com/BankrBot/skills) → `hoodmarkets/`
 
 ## Human docs
 

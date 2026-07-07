@@ -56,3 +56,21 @@ No Bankr `/wallet/submit` for claims.
 
 - Only two platform fees: **swap trading fees (5%/95%)** and **share sale price (5%/95%)**
 - Do not promise “fund the LP” — direct users to buy the token or buy shares on listings
+
+## Agent restrictions (CRITICAL)
+
+Holder NFT / share actions are **on-chain on the hood.markets token page only**. Bankr agents **must NOT**:
+
+| Action | On-chain call | Agent may? |
+|--------|---------------|------------|
+| Claim trading fees | `claimTradingFees()` via API | **Yes** — `POST /api/agent/claim` or `claim-for-recipient` only |
+| Batch airdrop | `airdropShares` | **No** — token page + user wallet |
+| List / buy shares | `listShares`, `buyShares`, `cancelListing` | **No** |
+| Buyer rewards | `fundBuyerRewardPool`, `cancelBuyerRewardPool` | **No** |
+| Transfer shares | ERC-1155 `safeTransferFrom` | **No** |
+
+**Do not** call `prepare-buy`/`prepare-sell`, Bankr `/wallet/submit`, or invent calldata for these flows.
+
+If a user asks to airdrop shares, list shares, or fund buyer rewards → direct them to **https://hood.markets/?token=0x…** and their connected wallet. No agent API exists for these actions today.
+
+See `references/PROMPT-INJECTION.md`.
