@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "onair-shoutout",
+  "provider": "GM Farcaster",
+  "providerUrl": "https://gmfarcaster.com/shoutout",
+  "logo": "logo.png",
+  "demo": {
+    "title": "onair-shoutout.sh",
+    "language": "bash",
+    "code": "# One-time: deps + a wallet holding USDC on Base (no ETH needed)\npip install -r scripts/requirements.txt\nexport GMFARCASTER_PRIVATE_KEY=0x...\n\n# Buy a sponsor read on the GM Farcaster livestream — $5 USDC via x402\n# Returns a RECEIPT (pending_review), not a confirmed read; declines are refunded\npython scripts/request.py \\\n  --sponsor \"Acme Frames\" \\\n  --read \"Today's GM is brought to you by Acme Frames — ship a Farcaster mini app fast.\" \\\n  --url \"https://acmeframes.xyz\"\n\n# Check status later (free) — pending_review -> approved -> aired\npython scripts/request.py --status sho_8f3c2a1b9d4e"
+  },
+  "setup": [
+    "No signup, no API key — payment via x402 is the authorization ($5 USDC per submission on Base)",
+    "Install deps: `pip install -r scripts/requirements.txt`",
+    "Set `GMFARCASTER_PRIVATE_KEY` to a dedicated low-balance wallet holding USDC on Base (gasless for the signer — no ETH needed)",
+    "Submit with `python scripts/request.py --sponsor ... --read ...` — you get a receipt; GM Farcaster reviews every read and refunds declines",
+    "Poll `python scripts/request.py --status <request_id>` (free) — never re-submit to check progress"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "onair-shoutout",
+    "command": "install the onair-shoutout skill from https://github.com/BankrBot/skills/tree/main/onair-shoutout"
+  }
+}

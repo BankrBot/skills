@@ -1,0 +1,7 @@
+# Dependencies for the onair-shoutout skill's request.py (x402 buyer).
+# The x402[evm] extra pulls web3 + eth-account, which the EVM "exact" signer needs.
+# eth-account >= 0.13.5 is required: x402's EthAccountSigner calls
+# LocalAccount.sign_typed_data, which only exists from 0.13.5 onward.
+x402[evm]>=2.13
+eth-account>=0.13.5
+requests>=2.31
