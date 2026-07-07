@@ -38,7 +38,11 @@ The auditor is agent **#21548** on the ERC-8004 Identity Registry.
 ## Commission an audit
 
 `POST https://leftclaw.services/api/audit` with body
-`{"description": "<what to audit>"}`. Description examples:
+`{"description": "<what to audit>"}` — plus an optional `callbackUrl`
+(http/https): when the audit finishes, `{ jobId, status, reportUrl,
+statusUrl }` is POSTed to it, so you can skip polling entirely (the
+commission response confirms with `callbackRegistered: true`). Description
+examples:
 
 - `"0xYourContractAddress on Base — ERC20 with custom transfer logic"`
 - `"Audit this Solidity contract: [paste source code]"`
