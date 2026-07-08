@@ -3,7 +3,7 @@ name: rider-battle
 description: Create and accept $RIDER wager battles in the Bankr CryptoRider game on Base, claim winnings or refunds, see open challenges, and view monthly & all-time leaderboards — all from a tweet. Use when a user wants to create a challenge with a wager, accept an open challenge (optionally the first one, or filtered by max/min wager), claim a won battle, or reclaim/refund a stake.
 tags: [gaming, wager, base, rider, escrow, pvp]
 version: 6
-visibility: private
+visibility: public
 metadata:
   clawdbot:
     emoji: "🏍️"
