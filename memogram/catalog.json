@@ -3,7 +3,7 @@
   "slug": "memogram",
   "provider": "memogram",
   "providerUrl": "https://memogram.pages.dev",
-  "logo": "logo.png",
+  "logo": "logo.svg",
   "demo": {
     "title": "memogram.sh",
     "language": "bash",
