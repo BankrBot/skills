@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "slug": "rh-wallet",
+  "provider": "RH Wallet",
+  "providerUrl": "https://github.com/anondevv69/RH-Wallet",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "account.sh",
+    "language": "bash",
+    "code": "curl -sS https://rh-wallet-production.up.railway.app/v1/account \\\n  -H 'Authorization: Bearer uniqueissomethingimtesting' \\\n  -H 'X-RH-API-Key: rh-api-...' \\\n  -H 'X-RH-Private-Key-Base64: ...' | jq"
+  },
+  "setup": [
+    "US Robinhood Crypto customers only — Robinhood Crypto Trading API",
+    "User sets RH_API_KEY + RH_PRIVATE_KEY_BASE64 in Bankr → Agent tool environment (never in chat)",
+    "Hosted gateway: https://rh-wallet-production.up.railway.app (see known-gateway.json)",
+    "Gateway secret is public invite code — defaults in skill rh() helper",
+    "Max $50/order host ceiling; optional RH_MAX_ORDER_USD personal cap",
+    "Market orders only on pairs like BTC-USD — NOT contract addresses (0x…)",
+    "NOT Robinhood Chain / hoodmarkets — see references/WALLET-ROUTING.md",
+    "NOT Robinhood stocks — use Robinhood Agentic MCP for equities",
+    "Never post account_number or RH keys on X — references/RESPONSE-SAFETY.md",
+    "Keygen: https://github.com/anondevv69/RH-Wallet/blob/main/scripts/generate_rh_keypair.py"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "rh-wallet",
+    "command": "install the rh-wallet skill from https://github.com/BankrBot/skills/tree/main/rh-wallet"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "gatewayUrl": "https://rh-wallet-production.up.railway.app",
+  "gatewaySecret": "uniqueissomethingimtesting",
+  "allowedUrlHosts": ["rh-wallet-production.up.railway.app"],
+  "healthPath": "/health",
+  "apiPrefix": "/v1",
+  "maxOrderUsdDefault": 50,
+  "requireConfirmationDefault": true,
+  "sourceRepo": "https://github.com/anondevv69/RH-Wallet",
+  "robinhoodApiBase": "https://trading.robinhood.com",
+  "supportedOrderTypes": ["market"],
+  "supportedSymbolPattern": "^[A-Z0-9]+-USD$",
+  "notes": "Gateway signs Robinhood Crypto v2 requests. Keys stay in Bankr env — not stored on gateway."
+}
