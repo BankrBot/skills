@@ -1,0 +1,45 @@
+{
+  "name": "bankr-vesting",
+  "displayName": "Proof of Dev",
+  "skillVersion": "3.0.0",
+  "defaultSiteUrl": "https://www.proofofdev.xyz",
+  "VESTING_SITE_URL": "https://www.proofofdev.xyz",
+  "apiBaseUrl": "https://api.proofofdev.xyz",
+  "installUrl": "https://github.com/anondevv69/github-vesting",
+  "installCommand": "install the github-vesting skill from https://github.com/BankrBot/skills/tree/main/github-vesting",
+  "siteEnvVar": "VESTING_SITE_URL",
+  "apiEnvVar": "VESTING_API_URL",
+  "routingKeywords": [
+    "github vesting",
+    "proofofdev",
+    "vesting",
+    "lock tokens",
+    "vest my",
+    "link github",
+    "vesting progress",
+    "verified pushes",
+    "milestone",
+    "release tokens",
+    "github-vesting",
+    "robinhood",
+    "rhagent",
+    "4663"
+  ],
+  "forbiddenApiHosts": [
+    "github-vesting.vercel.app"
+  ],
+  "allReferences": [
+    "SKILL.md",
+    "references/API-HOST.md",
+    "references/TX-VALIDATION.md",
+    "references/RESPONSE-SAFETY.md",
+    "references/TRUST-ONCHAIN.md",
+    "references/BANKR-SUBMIT.md",
+    "references/ONE-LINE-INTENTS.md",
+    "references/AGENT-API.md",
+    "references/CLAIM-SCHEMA.json",
+    "streaming-hints.json",
+    "known-escrow.json"
+  ],
+  "bankrNote": "ANY ERC-20 on Base (8453) or Robinhood (4663). Lock: POST /api/agent/lock with chain → TX-VALIDATION.md → /wallet/submit on matching chainId → confirm-lock. Never paste replyText verbatim. Stop on untrusted_address — no web bypass. known-escrow.json = pinned escrow + streaming hints only."
+}

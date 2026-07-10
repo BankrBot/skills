@@ -1,0 +1,23 @@
+{
+  "_agentNote": "NOT AN ALLOWLIST. Any 0x ERC-20 on Base or Robinhood works. This file only hints which tokens use lockAllowance (streaming) vs standard escrow lock. Always call POST /api/agent/lock — never refuse a token based on this file.",
+  "chains": {
+    "8453": {
+      "escrowAddress": "0x76dd4C6ea986684CDf822eC0832e142A2D5C8165",
+      "chainId": 8453,
+      "oracleAddress": "0x252b98b9fA80D3644Ebcea6CceAB6293430e64a0",
+      "explorerUrl": "https://basescan.org/address/0x76dd4C6ea986684CDf822eC0832e142A2D5C8165",
+      "streamingTokens": {
+        "Space": {
+          "address": "0xef703b860a6d422fa00cc67bbbb2662297cb6ba3"
+        }
+      }
+    },
+    "4663": {
+      "escrowAddress": "0x706038b47ba6d0CC69479bB286d064137B50f6Ae",
+      "chainId": 4663,
+      "oracleAddress": "0x252b98b9fA80D3644Ebcea6CceAB6293430e64a0",
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x706038b47ba6d0CC69479bB286d064137B50f6Ae",
+      "streamingTokens": {}
+    }
+  }
+}
