@@ -1,42 +1,30 @@
 # RH Wallet Gateway API reference
 
-Base URL: `known-gateway.json` → `gatewayUrl`
+Base URL: `$RH_WALLET_API_URL`
 
-See [API-HOST.md](API-HOST.md) for auth headers and allowlist.
+## Authentication (stateless — default)
+
+Every `/v1/*` request sends Robinhood credentials via headers (from Bankr env):
+
+| Header | Bankr env var |
+|--------|----------------|
+| `X-RH-API-Key` | `RH_API_KEY` |
+| `X-RH-Private-Key-Base64` | `RH_PRIVATE_KEY_BASE64` |
+
+Hosted gateway also requires a public shared secret (see [hosted-config.md](hosted-config.md)):
+
+| Header | Bankr env var |
+|--------|----------------|
+| `Authorization: Bearer ...` | `RH_GATEWAY_SECRET` (default in skill) |
+
+The gateway signs and proxies to Robinhood. **Keys are not stored.**
 
 ## Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Liveness (no RH auth) |
-| GET | `/v1/account` | Buying power, status (no account_number in response) |
-| GET | `/v1/holdings` | Crypto holdings |
-| GET | `/v1/prices?symbol=BTC-USD` | Bid/ask |
-| GET | `/v1/estimate?symbol=…&side=…&quantity=…` | Pre-trade estimate |
-| GET | `/v1/orders` | Order list |
-| POST | `/v1/orders` | Market order (`confirm: true` when required) |
-| POST | `/v1/orders/{id}/cancel` | Cancel |
+Same as before: `/v1/account`, `/v1/holdings`, `/v1/prices`, `/v1/estimate`, `/v1/orders`, etc.
 
-## Place order body
+See gateway README for full table.
 
-```json
-{
-  "side": "buy",
-  "symbol": "BTC-USD",
-  "quote_amount": "10.00",
-  "confirm": true
-}
-```
+## `/connect` (disabled by default)
 
-Exactly one of `quote_amount` (buys) or `asset_quantity` (sells).
-
-## Errors
-
-| Code | Meaning |
-|------|---------|
-| 401 | Bad gateway secret or RH credentials |
-| 400 `confirmation_required` | Retry with `confirm: true` after user OK |
-| 400 `order_too_large` | Over effective max USD |
-| 410 `/connect` | Key storage disabled (expected) |
-
-Full gateway docs: https://github.com/anondevv69/RH-Wallet
+Returns `410 Gone` unless host sets `ENABLE_CONNECT_STORAGE=true`. Do not use for normal setup.

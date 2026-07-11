@@ -5,14 +5,16 @@
   "providerUrl": "https://github.com/anondevv69/RH-Wallet",
   "logo": "logo.svg",
   "demo": {
-    "title": "account.sh",
+    "title": "x402-prices.sh",
     "language": "bash",
-    "code": "curl -sS https://rh-wallet-production.up.railway.app/v1/account \\\n  -H 'Authorization: Bearer uniqueissomethingimtesting' \\\n  -H 'X-RH-API-Key: rh-api-...' \\\n  -H 'X-RH-Private-Key-Base64: ...' | jq"
+    "code": "bankr x402 call \"https://x402.bankr.bot/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/rh-prices\" \\\n  -X POST \\\n  -d '{\"rh_api_key\":\"'\"$RH_API_KEY\"'\",\"rh_private_key_b64\":\"'\"$RH_PRIVATE_KEY_BASE64\"'\",\"symbol\":\"BTC-USD\"}' \\\n  --yes"
   },
   "setup": [
     "US Robinhood Crypto customers only — Robinhood Crypto Trading API",
     "User sets RH_API_KEY + RH_PRIVATE_KEY_BASE64 in Bankr → Agent tool environment (never in chat)",
-    "Hosted gateway: https://rh-wallet-production.up.railway.app (see known-gateway.json)",
+    "Hosted gateway (free): https://rh-wallet-production.up.railway.app — see known-gateway.json",
+    "Paid x402 API (USDC on Base): rh-prices/rh-account/rh-order $0.25, rh-buy bundle $0.50 — references/x402.md",
+    "x402 pay-to wallet: 0x374d91a5674fa7cf86e725093b5848b97e1e13b4",
     "Gateway secret is public invite code — defaults in skill rh() helper",
     "Max $50/order host ceiling; optional RH_MAX_ORDER_USD personal cap",
     "Market orders only on pairs like BTC-USD — NOT contract addresses (0x…)",
