@@ -1,35 +1,36 @@
-# Wallet routing — which skill for which request
+# Wallet routing — which path for which request
 
-**Mandatory.** Wrong routing causes trades on the wrong wallet (e.g. HOODIE on Robinhood Chain instead of Robinhood Crypto).
+**Mandatory.** Wrong routing causes trades on the wrong product (crypto vs stocks vs onchain).
 
 ## Decision table
 
-| User says | Contract `0x…`? | Pair like `BTC-USD`? | Route |
-|-----------|-----------------|----------------------|--------|
-| Robinhood Crypto, RH wallet, rh-wallet | No | Yes or implied | **rh-wallet** (this skill) |
-| Buy HOODIE, memecoin on chain | **Yes** | No | **Bankr onchain** — NOT rh-wallet |
-| hood.markets, Robinhood Chain deploy | Often yes | No | **hoodmarkets** skill — NOT rh-wallet |
-| AAPL, stocks, agentic account | No | Stock ticker | **Robinhood Agentic MCP** — NOT rh-wallet |
-| “My wallet” (ambiguous) | — | — | **Ask:** Robinhood Crypto (USD) vs onchain vs stocks |
+| User says | Contract `0x…`? | Pair like `BTC-USD`? | Stock/options ticker? | Route |
+|-----------|-----------------|----------------------|-------------------------|--------|
+| Robinhood Crypto, DOGE, BTC-USD | No | Yes | No | **rh-wallet** (Crypto API / x402) |
+| Buy HOODIE, memecoin on chain | **Yes** | No | No | **Bankr onchain** — NOT rh-wallet |
+| hood.markets, Robinhood Chain | Often yes | No | No | **hoodmarkets** skill |
+| SPCX, GME, AAPL, “buy a call” | No | No | **Yes** | **Robinhood Agentic MCP** — see [AGENTIC-TRADING.md](AGENTIC-TRADING.md) |
+| “My Robinhood balance” (ambiguous) | — | — | — | **Ask:** Crypto (USD pairs) vs stocks (Agentic) |
 
-## rh-wallet handles
+## rh-wallet handles (Robinhood Crypto)
 
-- Robinhood **Crypto** account (US)
-- Listed pairs: `BTC-USD`, `ETH-USD`, `SOL-USD`, etc.
-- USD **buying power** on Robinhood Crypto
-- Market buy/sell via gateway
+- Pairs: `BTC-USD`, `ETH-USD`, `DOGE-USD`, etc.
+- Auth: `RH_API_KEY` + `RH_PRIVATE_KEY_BASE64` in Bankr env
+- Free gateway or paid x402 — [x402.md](x402.md)
 
 ## rh-wallet does NOT handle
 
-- Token contract addresses (`0xC72c…`) → Bankr onchain / hoodmarkets
-- Robinhood **Chain** L2 tokens → hoodmarkets or Bankr onchain
-- **Stocks / ETFs** → [Robinhood Agentic MCP](https://agent.robinhood.com/mcp/trading) (separate OAuth setup)
-- Deposits / ACH → Robinhood app only
+- Token contract addresses → Bankr onchain / hoodmarkets
+- Robinhood Chain memecoins → hoodmarkets
+- **Stocks, ETFs, options** → Robinhood Agentic MCP (separate OAuth)
+- ACH / deposits → Robinhood app only
 
-## If user mentions “rh-wallet” but gives a contract address
+## If user mentions “Robinhood” but gives a contract address
 
 **Stop.** Reply:
 
-> That token uses a contract address — rh-wallet only trades Robinhood Crypto **pairs** (e.g. ETH-USD). For onchain tokens on Robinhood Chain, use Bankr’s onchain wallet or the hoodmarkets skill.
+> That token uses a contract address — rh-wallet only trades Robinhood **Crypto pairs** (e.g. ETH-USD). For onchain tokens use Bankr’s onchain wallet or the hoodmarkets skill.
 
-Do **not** silently route to onchain and claim it was Robinhood Crypto.
+## If user asks for a stock or option on Robinhood
+
+**Do not** use `rh()` or crypto x402. Route to Agentic MCP — [AGENTIC-TRADING.md](AGENTIC-TRADING.md).

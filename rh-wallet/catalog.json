@@ -10,17 +10,13 @@
     "code": "bankr x402 call \"https://x402.bankr.bot/0x374d91a5674fa7cf86e725093b5848b97e1e13b4/rh-prices\" \\\n  -X POST \\\n  -d '{\"rh_api_key\":\"'\"$RH_API_KEY\"'\",\"rh_private_key_b64\":\"'\"$RH_PRIVATE_KEY_BASE64\"'\",\"symbol\":\"BTC-USD\"}' \\\n  --yes"
   },
   "setup": [
-    "US Robinhood Crypto customers only — Robinhood Crypto Trading API",
-    "User sets RH_API_KEY + RH_PRIVATE_KEY_BASE64 in Bankr → Agent tool environment (never in chat)",
-    "Hosted gateway (free): https://rh-wallet-production.up.railway.app — see known-gateway.json",
-    "Paid x402 API (USDC on Base): rh-prices/rh-account/rh-order $0.25, rh-buy bundle $0.50 — references/x402.md",
-    "x402 pay-to wallet: 0x374d91a5674fa7cf86e725093b5848b97e1e13b4",
-    "Gateway secret is public invite code — defaults in skill rh() helper",
-    "Max $50/order host ceiling; optional RH_MAX_ORDER_USD personal cap",
-    "Market orders only on pairs like BTC-USD — NOT contract addresses (0x…)",
-    "NOT Robinhood Chain / hoodmarkets — see references/WALLET-ROUTING.md",
-    "NOT Robinhood stocks — use Robinhood Agentic MCP for equities",
-    "Never post account_number or RH keys on X — references/RESPONSE-SAFETY.md",
+    "US Robinhood customers — Crypto API + optional Agentic MCP",
+    "CRYPTO: RH_API_KEY + RH_PRIVATE_KEY_BASE64 in Bankr Agent tool environment (never in chat)",
+    "CRYPTO: free gateway or x402 USDC on Base — references/x402.md",
+    "STOCKS/OPTIONS: connect MCP https://agent.robinhood.com/mcp/trading (OAuth, desktop) — references/AGENTIC-TRADING.md",
+    "STOCKS/OPTIONS: no API keys in env — OAuth only; open Robinhood Agentic account",
+    "Never post account numbers on X — references/RESPONSE-SAFETY.md",
+    "Crypto pairs BTC-USD only on rh-wallet — NOT 0x contract addresses (see WALLET-ROUTING.md)",
     "Keygen: https://github.com/anondevv69/RH-Wallet/blob/main/scripts/generate_rh_keypair.py"
   ],
   "install": {
