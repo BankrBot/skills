@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "kupo-perps",
+  "provider": "Kupo",
+  "providerUrl": "https://kupo.gg",
+  "logo": "kupo.svg",
+  "demo": {
+    "title": "kupo-perps.sh",
+    "language": "bash",
+    "code": "# Markets — crypto, US stocks, indices, FX, commodities (up to 50x)\ncurl https://api.kupo.gg/v1/perps/markets \\\n  -H \"Authorization: Bearer $KUPO_API_KEY\"\n\n# Long NVDA 5x with $200\ncurl -X POST https://api.kupo.gg/v1/perps/order \\\n  -H \"Authorization: Bearer $KUPO_API_KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"coin\":\"xyz:NVDA\",\"side\":\"buy\",\"type\":\"market\",\"sizeUsd\":200,\"leverage\":5}'\n\n# Positions + PnL\ncurl https://api.kupo.gg/v1/perps/account \\\n  -H \"Authorization: Bearer $KUPO_API_KEY\"\n\n# Set TP/SL on a live position\ncurl -X POST https://api.kupo.gg/v1/perps/tpsl \\\n  -H \"Authorization: Bearer $KUPO_API_KEY\" -H \"Content-Type: application/json\" \\\n  -d '{\"coin\":\"xyz:NVDA\",\"tpPx\":220.5,\"slPx\":180}'"
+  },
+  "setup": [
+    "Sign in with Telegram at kupo.gg — creates your Kupo account (perps account is created on first use)",
+    "Create an API key with the `trade` scope at kupo.gg/developer",
+    "Store it as the `KUPO_API_KEY` secret",
+    "Deposit into perps on kupo.gg (Portfolio → Perpetuals) — the API trades the funded balance, it can never move funds out"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "kupo-perps",
+    "command": "install the kupo-perps skill from https://github.com/BankrBot/skills/tree/main/kupo-perps"
+  }
+}
