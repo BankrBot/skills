@@ -1,0 +1,7 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="#e85a25" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kupo">
+  <path d="M3 3 H10 V6 H6 V10 H3 Z"/>
+  <path d="M14 3 H21 V10 H18 V6 H14 Z"/>
+  <path d="M3 14 H6 V18 H10 V21 H3 Z"/>
+  <path d="M18 14 H21 V21 H14 V18 H18 Z"/>
+  <rect x="10" y="10" width="4" height="4"/>
+</svg>
