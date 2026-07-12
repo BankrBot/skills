@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "slug": "shieldhood",
+  "provider": "0xPoyraz",
+  "providerUrl": "https://x.com/0xPoyraz",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "Shieldhood Security Scanner",
+    "language": "python",
+    "code": "from shieldhood import Shieldhood\nshield = Shieldhood()\nprint(shield.scan('test prompt'))"
+  },
+  "install": {
+    "type": "external",
+    "provider": "PyPI",
+    "command": "pip install shieldhood"
+  }
+}
