@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "memogram",
+  "provider": "memogram",
+  "providerUrl": "https://memogram.pages.dev",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "memogram.sh",
+    "language": "bash",
+    "code": "# Read every memo in a transaction, joined to its payment\nbankr prompt \"Using the memogram skill, read the memos in tx 0xf726…1c4f\"\n\n# Read an address's recent memos\nbankr prompt \"Using the memogram skill, show the last 10 memos from 0xYourAddr\"\n\n# Send a payment with an on-chain memo attached\nbankr prompt \"Using the memogram skill, send 1 MEMO to 0xFriend with the memo 'gm from bankr'\""
+  },
+  "setup": [
+    "Install: `install the memogram skill from https://github.com/BankrBot/skills/tree/main/memogram`",
+    "Set up the memo-mcp server (read-only needs no key): https://github.com/GeObts/memo-mcp",
+    "For sends: configure MEMO_PRIVATE_KEY on a dedicated wallet, plus spend caps MEMO_MAX_PER_SEND / MEMO_MAX_TOTAL",
+    "Source: https://github.com/BankrBot/skills/tree/main/memogram"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "memogram",
+    "command": "install the memogram skill from https://github.com/BankrBot/skills/tree/main/memogram"
+  }
+}
