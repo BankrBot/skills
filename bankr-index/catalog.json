@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "bankr-index",
+  "provider": "0xdeployer",
+  "providerUrl": "https://github.com/0xdeployer",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "bankr-index",
+    "command": "install the bankr-index skill from https://github.com/BankrBot/skills/tree/main/bankr-index"
+  }
+}
