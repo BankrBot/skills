@@ -29,9 +29,6 @@ from decimal import Decimal
 sys.path.insert(0, __import__("os").path.dirname(__file__))
 import ophis_common as oc  # noqa: E402
 
-# Bankr wallet chain slug for the /agent/balances address lookup (the EVM address
-# is the same across chains; this just needs a slug Bankr recognizes).
-BANKR_SLUG = {1: "ethereum", 8453: "base", 137: "polygon", 130: "unichain", 42161: "arbitrum", 56: "bnb"}
 ZERO = "0x0000000000000000000000000000000000000000"
 
 
@@ -59,7 +56,7 @@ def main() -> None:
 
     sell_wei = oc.to_wei(amount, sell_dec)
     key = oc.bankr_api_key()
-    wallet = oc.bankr_wallet_address(key, BANKR_SLUG.get(chain_id, "base"))
+    wallet = oc.bankr_wallet_address(key)
     print(f"Bankr wallet: {wallet}")
 
     # Enroll so the rebate indexer tracks this wallet's trades (idempotent).
@@ -68,14 +65,20 @@ def main() -> None:
     # 1-2. appData (partner fee) + quote (post-fee price).
     full_app_data, app_hash = oc.build_app_data(referral_code=referral)
     quote = oc.get_quote(chain_id, sell_token, buy_token, sell_wei, wallet, full_app_data, app_hash)
-    quote_buy = int(quote.get("buyAmount", "0"))
-    # Echo the quote's amounts into the order (mirrors the SDK reference): sign the
-    # sellAmount/feeAmount the orderbook quoted, not the raw input, so the signed order
-    # matches what was priced. On modern CoW deployments feeAmount is 0 and sellAmount
-    # equals the input.
-    quote_sell = int(quote.get("sellAmount") or sell_wei)
-    quote_fee = int(quote.get("feeAmount", "0"))
-    valid_to = int(quote.get("validTo") or (int(time.time()) + 1200))
+    # Require the binding fields present (no silent default), then bind the GROSS to the request.
+    # The order sells the gross amount with feeAmount 0: Ophis/CoW take the fee from surplus + the
+    # appData partner fee, and the orderbook rejects a non-zero signed feeAmount. A sell quote splits
+    # sellAmountBeforeFee into (sellAmount NET, feeAmount); their sum is the gross the caller asked for.
+    for _f in ("sellAmount", "buyAmount", "feeAmount"):
+        if _f not in quote:
+            sys.exit(f"orderbook quote is missing required field {_f!r}: {quote}")
+    quote_buy = int(quote["buyAmount"])
+    quote_sell = int(quote["sellAmount"])
+    quote_fee = int(quote["feeAmount"])
+    gross = quote_sell + quote_fee
+    if gross != sell_wei:
+        sys.exit(f"quote gross (sellAmount+feeAmount = {gross}) != requested ({sell_wei}); refusing to sign a different amount.")
+    valid_to = int(time.time()) + 1200  # self-set; do not trust the quote's expiry
     if quote_buy <= 0:
         sys.exit(f"quote returned no buyAmount: {quote}")
 
@@ -93,7 +96,7 @@ def main() -> None:
     # The transaction target is the ERC-20 sell token; the approve() spender is the
     # relayer. (Sending approve() to the relayer itself would revert / grant nothing.)
     relayer = oc.vault_relayer(chain_id)
-    approve_amt = quote_sell + quote_fee
+    approve_amt = gross  # settlement pulls the gross (signed sellAmount + feeAmount 0)
     print("Approving sell token -> VaultRelayer via Bankr Submit ...")
     oc.bankr_submit(key, chain_id, sell_token, oc.encode_approve(relayer, approve_amt),
                     "Approve sell token to CoW VaultRelayer for Ophis swap")
@@ -103,10 +106,10 @@ def main() -> None:
         "sellToken": sell_token,
         "buyToken": buy_token,
         "receiver": wallet,
-        "sellAmount": str(quote_sell),
+        "sellAmount": str(gross),
         "buyAmount": str(min_buy),
         "validTo": valid_to,
-        "feeAmount": str(quote_fee),   # echo the quote (0 on modern CoW; fee is in appData + surplus)
+        "feeAmount": "0",              # Ophis/CoW take the fee from surplus + the appData partner fee
         "kind": "sell",
         "partiallyFillable": False,
         "sellTokenBalance": "erc20",

@@ -33,7 +33,7 @@ A CoW swap is an **off-chain signed order**, not a normal swap transaction. This
 
 1. **Quote** — ask the Ophis/CoW quote endpoint how much `buyToken` the user gets for their `sellToken` amount (or vice-versa). The quote also returns the fee and a `validTo`.
 2. **Build the order** — construct the CoW order with Ophis `appData` attached (this carries the Ophis integrator/partner fee + optional referral code; it is what routes the order through Ophis and credits the integrator).
-3. **Approve** — submit an `approve(VaultRelayer, amount)` transaction, sent to the ERC-20 **sell token** (spender = the CoW **VaultRelayer**), **via the Bankr Submit API** (`POST /agent/submit`).
+3. **Approve** — submit an `approve(VaultRelayer, amount)` transaction, sent to the ERC-20 **sell token** (spender = the CoW **VaultRelayer**), **via the Bankr Submit API** (`POST /wallet/submit`).
 4. **Post the order** — `POST` the order (with `signingScheme: "presign"`, empty signature) to the CoW/Ophis orderbook, which returns the order **UID**.
 5. **Authorize the order on-chain** — submit a `setPreSignature(orderUid, true)` transaction to the CoW **Settlement** contract **via the Bankr Submit API**. This "presign" scheme authorizes the order with an on-chain transaction instead of an EIP-712 signature — a clean fit for Bankr's transaction-submission model (no raw message-signing needed). Once mined, solvers settle it in the next batch.
 6. **Track** — poll the order status / link the user to `explorer.cow.fi` for the fill.
@@ -81,7 +81,7 @@ python3 scripts/ophis-swap.py <chain_id> <sell_token> <sell_decimals> <amount> <
 ```
 - `slippage_bps` — optional, basis points (default 50 = 0.5%). Sets the minimum `buyAmount` (`buyAmount * (1 - slippage)`).
 - Reads the Bankr API key from `BANKR_API_KEY` (or `~/.bankr/config.json`).
-- Auto-resolves the Bankr wallet address (`GET /agent/balances`) as the order owner/receiver.
+- Auto-resolves the Bankr wallet address (`GET /wallet/me`) as the order owner/receiver.
 - Prints the order UID and an `explorer.cow.fi` tracking link.
 
 ## Supported Chains

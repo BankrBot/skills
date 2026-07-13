@@ -19,7 +19,7 @@ All facts below are from `@ophis/sdk` (`packages/sdk/src/{orderbook,domain,partn
 A CoW order is normally authorized with an **EIP-712 signature**. Bankr's Submit API is transaction-centric, so this skill uses the **`presign`** scheme instead:
 
 1. `POST /api/v1/orders` with `signingScheme: "presign"`, `signature: "0x"` → the order is created **presignature-pending** and returns its **UID**.
-2. Send an on-chain **`setPreSignature(orderUid, true)`** transaction to the **Settlement** contract (via `POST api.bankr.bot/agent/submit`). Once mined, solvers may fill the order.
+2. Send an on-chain **`setPreSignature(orderUid, true)`** transaction to the **Settlement** contract (via `POST api.bankr.bot/wallet/submit`). Once mined, solvers may fill the order.
 
 `presign` is a first-class `OphisSigningScheme` value in the SDK, but there is **no SDK helper that calls `setPreSignature`** — this skill encodes that call directly (`ophis_common.encode_set_presignature`). The alternative (EIP-712) would require Bankr's raw typed-data signing endpoint; presign avoids that dependency.
 
@@ -38,11 +38,11 @@ Built by `ophis_common.build_app_data`:
 
 ## Bankr Submit API
 
-`POST https://api.bankr.bot/agent/submit` — header `X-API-Key: bk_...`, body:
+`POST https://api.bankr.bot/wallet/submit` — header `X-API-Key: bk_...`, body:
 ```json
 {"transaction": {"to": "0x..", "chainId": 8453, "value": "0", "data": "0x.."}, "description": "...", "waitForConfirmation": true}
 ```
-Returns `{success, transactionHash, ...}`. Wallet address via `GET /agent/balances?chains=<slug>`.
+Returns `{success, transactionHash, ...}`. Wallet address via `GET /wallet/me`.
 
 **Chain support caveat:** the swap chain must be one Bankr's Submit API can transact on. The reliable overlap of *Bankr-native* wallets and *Ophis-supported* chains is **Base (8453), Unichain (130), Arbitrum (42161), Polygon (137), BNB (56), Ethereum (1)**. Unichain and Base are the sweet spot (Bankr-native **and** a live Ophis stack). Optimism (10) is Ophis-sovereign but was not in Bankr's advertised native wallet set — verify Bankr can submit on OP before relying on it.
 
@@ -63,4 +63,4 @@ Native sells do NOT use the order path; they call `CoWSwapEthFlow.createOrder(..
 
 - **presign order acceptance:** confirm the live orderbook accepts `signingScheme:"presign"` with `signature:"0x"` on the target chain (some deployments want the owner address as the signature). Adjust `post_order` if so.
 - **appData exact bytes:** this scaffold builds a deterministic (sorted-key) appData that is self-consistent with its own hash and carries the correct partnerFee shape. For byte-exact parity with the audited path, consider generating appData + the order body via `@ophis/sdk` (`buildOphisOrderMetadata` / `buildOphisOrderCreation`) in a small Node helper and keeping Python only for the Bankr Submit orchestration.
-- **Bankr `/agent/balances` address field:** confirm the exact JSON key for the wallet address and adjust `bankr_wallet_address` if needed.
+- **Bankr `/wallet/me` address field:** `bankr_wallet_address` resolves the EVM address by FORMAT (a 0x-40-hex value), preferring wallet-named keys then falling back to a top-level scan. A Solana address is never 0x-40-hex, so it cannot be picked by mistake, and the resolution does not depend on the exact JSON key.

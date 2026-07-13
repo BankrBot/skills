@@ -178,21 +178,26 @@ def encode_set_presignature(order_uid_hex: str, signed: bool = True) -> str:
 # ── HTTP + Bankr Submit API ───────────────────────────────────────────────────
 def _http(method: str, url: str, body: dict | None = None, headers: dict | None = None,
           timeout: int = 60) -> dict:
+    if not url.lower().startswith("https://"):
+        sys.exit(f"refusing non-HTTPS URL: {url}")  # block file://, http://, etc.
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method)
     req.add_header("content-type", "application/json")
     for k, v in (headers or {}).items():
         req.add_header(k, v)
     try:
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- URL is scheme-guarded to https:// above and built from the fixed ORDERBOOK_URLS/BANKR_API https maps.
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read().decode()
-            return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")
         sys.exit(f"{method} {url} -> HTTP {e.code}: {detail[:500]}")
     except (urllib.error.URLError, socket.timeout, TimeoutError) as e:
         # A DNS/connection/timeout failure must exit cleanly, not dump a traceback.
         sys.exit(f"{method} {url} -> network error: {e}")
+    # Single explicit return: the except branches sys.exit (NoReturn), so this is the only
+    # non-error path — no implicit fall-through to None for a function typed -> dict.
+    return json.loads(raw) if raw else {}
 
 
 def bankr_api_key() -> str:
@@ -207,18 +212,44 @@ def bankr_api_key() -> str:
     return key
 
 
-def bankr_wallet_address(key: str, chain_slug: str = "base") -> str:
-    res = _http("GET", f"{BANKR_API}/agent/balances?chains={chain_slug}", headers={"X-API-Key": key})
-    # Bankr returns the EVM wallet address on the balances payload; support a few shapes.
-    addr = res.get("address") or res.get("wallet") or (res.get("data") or {}).get("address")
+_EVM_ADDR_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
+
+
+def bankr_wallet_address(key: str) -> str:
+    # GET /wallet/me returns the wallet info (address + chains). The legacy /agent/* endpoints
+    # were removed; the Wallet API is the current surface. Resolve the EVM address by FORMAT,
+    # not by guessing one exact key: Bankr is multi-chain (EVM + Solana) and a Solana address is
+    # never 0x-40-hex, so a format guard can never return one.
+    res = _http("GET", f"{BANKR_API}/wallet/me", headers={"X-API-Key": key})
+
+    def _named(d):
+        # Prefer an explicitly wallet-named key, so a stray token/contract 0x can't win.
+        if not isinstance(d, dict):
+            return None
+        for k in ("evmAddress", "address", "evm", "wallet", "walletAddress", "signer", "owner"):
+            v = d.get(k)
+            if isinstance(v, str) and _EVM_ADDR_RE.match(v):
+                return v
+        return None
+
+    addr = None
+    if isinstance(res, dict):  # a non-object JSON response falls through to the clean error below
+        addr = _named(res)
+        for nest in ("data", "wallet", "addresses", "evm"):  # tolerate one level of nesting
+            addr = addr or _named(res.get(nest))
+        if not addr:
+            # Last resort: any top-level 0x EVM value. /wallet/me is wallet info (address + chains),
+            # not a token list, so a bare format-guarded scan is safe.
+            addr = next((v for v in res.values() if isinstance(v, str) and _EVM_ADDR_RE.match(v)), None)
     if not addr:
-        sys.exit(f"could not resolve the Bankr wallet address from /agent/balances: {json.dumps(res)[:300]}")
+        sys.exit(f"could not resolve the Bankr EVM wallet address from /wallet/me: {json.dumps(res)[:300]}")
     return addr
 
 
 def bankr_submit(key: str, chain_id: int, to: str, data: str, description: str, value: str = "0") -> dict:
+    # POST /wallet/submit (the current Wallet API; /agent/submit was removed). Same body shape.
     res = _http(
-        "POST", f"{BANKR_API}/agent/submit",
+        "POST", f"{BANKR_API}/wallet/submit",
         body={
             "transaction": {"to": to, "chainId": chain_id, "value": value, "data": data},
             "description": description,
@@ -227,10 +258,23 @@ def bankr_submit(key: str, chain_id: int, to: str, data: str, description: str, 
         headers={"X-API-Key": key},
         timeout=120,  # waitForConfirmation blocks on the tx being mined
     )
-    # Treat an explicit success flag OR a returned transactionHash as success (the
-    # exact success key is confirmed against a live /agent/submit response).
-    if not (res.get("success") or res.get("transactionHash")):
-        sys.exit(f"Bankr submit failed ({description}): {json.dumps(res)[:400]}")
+    # Documented /wallet/submit status values are "success" | "reverted" | "pending". With
+    # waitForConfirmation a mined-but-REVERTED tx still returns a hash, so a hash alone is NOT
+    # success (a reverted approval / setPreSignature would otherwise print as a fillable order).
+    status = str(res.get("status") or res.get("state") or "").lower()
+    if status in ("reverted", "failed", "failure", "error", "dropped"):
+        sys.exit(f"Bankr submit reverted/failed ({description}, status={status!r}): {json.dumps(res)[:400]}")
+    if status == "pending":
+        # Not yet confirmed — refuse regardless of any success flag; an approval/presign this
+        # skill submits MUST be mined before we build/print an order that depends on it.
+        sys.exit(f"Bankr submit not confirmed ({description}, status=pending): {json.dumps(res)[:400]}")
+    has_status_key = ("status" in res) or ("state" in res)
+    # Accept an explicit confirmed success; only fall back to a bare hash when the response
+    # reports NO status field at all (legacy) — a present-but-empty status is not "confirmed".
+    ok = status in ("success", "confirmed", "mined", "ok") or res.get("success") is True \
+        or (not has_status_key and bool(res.get("transactionHash")))
+    if not ok:
+        sys.exit(f"Bankr submit not confirmed successful ({description}): {json.dumps(res)[:400]}")
     return res
 
 
@@ -249,9 +293,14 @@ def get_quote(chain_id: int, sell_token: str, buy_token: str, sell_amount_wei: i
         "sellTokenBalance": "erc20",
         "buyTokenBalance": "erc20",
         "priceQuality": "optimal",
-        "signingScheme": "eip712",   # pricing only; the order below uses presign
+        # The order is submitted with signingScheme presign, so quote with the same scheme — CoW
+        # treats the requested scheme as part of the returned order shape/UID expectations.
+        "signingScheme": "presign",
         "onchainOrder": False,
-        "appData": full_app_data,
+        # Send the appData HASH (not the full JSON) to the quote: CoW's strict app-data schema
+        # rejects the Ophis-only ophisReferrer key, so an inline full doc 400s a referral'd quote.
+        # The full string is only PUT + submitted (those paths accept the extension).
+        "appData": app_data_hash,
         "appDataHash": app_data_hash,
         "validFor": 1200,
     }
@@ -284,11 +333,16 @@ def enroll_wallet(wallet: str) -> None:
     indexer outage (DNS/connection/timeout/non-2xx) is swallowed so the healthy
     swap+fee path still proceeds. Uses a raw urllib call (not _http, which exits on
     error) so every failure mode is caught here."""
+    if not re.match(r"^0x[0-9a-fA-F]{40}$", wallet or ""):
+        return  # only a validated 0x-address goes into the URL path
     try:
         req = urllib.request.Request(f"{REBATE_INDEXER_URL}/tier/{wallet}", method="GET")
+        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- fixed https REBATE_INDEXER_URL + a validated 0x-address path segment.
         with urllib.request.urlopen(req, timeout=15) as resp:
             resp.read()
     except Exception:
+        # Best-effort + non-blocking by design (see docstring): every failure mode of the
+        # rebate-indexer GET is swallowed so a swap never aborts on an enrollment hiccup.
         pass
 
 
