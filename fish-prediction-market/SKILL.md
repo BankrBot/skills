@@ -1,6 +1,6 @@
 ---
 name: fish-prediction-market
-description: Place ETH prediction market bets on any token via Fish (fishwithme.xyz). Bet YES or NO on whether a token's price will 2× within 72 hours. Works for any token on Base or Robinhood Chain — including tokens just deployed through Bankr Bot. Use when the user wants to bet on token prices, check market odds, or claim winnings from a resolved market.
+description: Place ETH prediction market bets on any token via Fish (fishwithme.xyz). Bet YES or NO on whether a token's price will 2× within 1 hour. Works for any token on Base or Robinhood Chain — including tokens just deployed through Bankr Bot. Use when the user wants to bet on token prices, check market odds, or claim winnings from a resolved market.
 metadata:
   {
     "clawdbot":
@@ -14,7 +14,7 @@ metadata:
 
 # Fish Prediction Market
 
-Bet ETH on whether any token's price will double (2×) within 72 hours. Works for any token on Base or Robinhood Chain — including tokens just deployed through Bankr Bot that aren't on DexScreener yet.
+Bet ETH on whether any token's price will double (2×) within 1 hour. Works for any token on Base or Robinhood Chain — including tokens just deployed through Bankr Bot that aren't on DexScreener yet.
 
 ## When To Use
 
@@ -50,7 +50,8 @@ curl "https://fishwithme.xyz/api/bankr/market?token={TOKEN_ADDRESS_OR_SYMBOL}&ch
   "entryPrice": 0.00000199,
   "targetPrice": 0.00000398,
   "deadline": 1720828800,
-  "hoursRemaining": 68,
+  "hoursRemaining": 1,
+  "minutesRemaining": 42,
   "yesPool": "5000000000000000",
   "noPool": "2000000000000000",
   "status": "active",
@@ -90,7 +91,7 @@ Content-Type: application/json
     "data": "{ABI-encoded placeBet(marketId, yes)}",
     "value": "{bet amount in wei}"
   },
-  "description": "Bet {amount} ETH {YES/NO} that {SYMBOL} 2× in {hoursRemaining}h — Fish",
+  "description": "Bet {amount} ETH {YES/NO} that {SYMBOL} 2× in {minutesRemaining}m — Fish",
   "waitForConfirmation": true
 }
 ```
@@ -106,7 +107,7 @@ Set `yes` to `true` for YES bets (price will 2×), `false` for NO bets (price wi
 | Currency | ETH (native — **not** USDC) |
 | YES wins if | Token price reaches 2× entry price before deadline |
 | NO wins if | Token price does **not** reach 2× entry price |
-| Market duration | 72 hours from creation |
+| Market duration | 1 hour from creation |
 | Chain | Base (8453) by default; Robinhood Chain (4663) with `chain=robinhood` |
 
 Always confirm bet amount and direction with the user before submitting.
