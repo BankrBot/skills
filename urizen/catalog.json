@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "slug": "urizen",
+  "provider": "URIZEN",
+  "providerUrl": "https://urizenfund.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "urizen-fund.sh",
+    "language": "bash",
+    "code": "# The fund's live book (positions + NAV)\ncurl https://urizenfund.com/api/fund/book\n\n# Copy-trade weights — mirror the fund's allocation\ncurl https://urizenfund.com/api/fund/mirror\n\n# The reads behind the book (momentum / trend / RSI)\ncurl https://urizenfund.com/api/fund/signals\n\n# A ready-to-sign buy of 0.01 ETH of $URI\ncurl \"https://urizenfund.com/api/fund/quote?side=buy&amount=0.01&taker=0xYOURWALLET\""
+  },
+  "setup": [
+    "No signup — every endpoint is public, key-less and CORS-open",
+    "Read the fund: `GET https://urizenfund.com/api/fund/book` and `/api/fund/strategies`",
+    "Copy-trade it: `GET https://urizenfund.com/api/fund/mirror` for the live target weights, replicate via Bankr",
+    "One-token exposure: `@bankrbot buy $URI` or https://ctrl.build/urizen"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "urizen",
+    "command": "install the urizen skill from https://github.com/BankrBot/skills/tree/main/urizen"
+  },
+  "token": {
+    "symbol": "URI",
+    "address": "0x970078468807853bc316432e745165eb34398ba3",
+    "chainId": 4663
+  }
+}
