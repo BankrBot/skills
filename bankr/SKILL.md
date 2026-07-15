@@ -501,6 +501,7 @@ The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unifie
 - Check credits: `bankr llm credits` | Top up: `bankr llm credits add <amount>` | Auto top-up: `bankr llm credits auto --enable --amount 25 --tokens USDC`
 - In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-5`). In direct API calls, use bare IDs (e.g. `claude-sonnet-5`). Run `bankr llm models` for the current model list
 - **Per-model discounts** available for Bankr Club members and partners — applied automatically at billing time
+- **Image generation**: generate images via the OpenAI-native `/v1/images/generations` endpoint (model `gpt-image-2`), billed from the same LLM credit balance — see the reference
 - **Expiring credit grants**: promotional or developer grants may carry an expiry date. Your spendable balance is your permanent (purchased) credits plus any unexpired grants — grants are spent first (soonest-expiring first) and drop off automatically at expiry
 
 ### Quick Commands
@@ -591,6 +592,7 @@ For full details — setup paths, model list, provider config, SDK examples, key
 - Browse and search collections
 - View floor prices and listings
 - Purchase NFTs via OpenSea
+- Accept offers on NFTs you own
 - View your NFT portfolio
 - Transfer NFTs
 - Mint from supported platforms
@@ -630,7 +632,7 @@ Spot stocks work with swaps, transfers, limit orders, and DCA. Only Robinhood st
 
 ### Token Deployment
 
-- **EVM (Base, default)**: Launch ERC20 tokens via Doppler on a Uniswap V4 pool with customizable metadata and social links. Fixed **100 billion** supply, **0.7%** swap fee split **95% creator / 5% protocol**. Tokens deploy to Base by default. Legacy Clanker tokens remain claimable (claims auto-detect Doppler vs Clanker).
+- **EVM (Base default, or Robinhood Chain)**: Launch ERC20 tokens via Doppler on a Uniswap V4 pool with customizable metadata and social links. Fixed **100 billion** supply, **0.7%** swap fee split **95% creator / 5% protocol**. Tokens deploy to Base by default; pass a chain (`bankr launch --chain robinhood`) to launch on Robinhood Chain instead. Legacy Clanker tokens remain claimable (claims auto-detect Doppler vs Clanker).
 - **Solana**: Launch SPL tokens via Raydium LaunchLab with bonding curve and auto-migration to CPMM
 - Creator fee claiming on both chains
 - Fee Key NFTs for Solana (50% LP trading fees post-migration)
@@ -704,9 +706,9 @@ The agent can answer questions about Bankr itself — how features work, officia
 | World Chain | ETH          | Uniswap V3/V4 swaps          | Very Low |
 | Arbitrum    | ETH          | DeFi, low-cost transactions   | Very Low |
 | BNB Chain   | BNB          | BSC ecosystem trading         | Low      |
-| Robinhood Chain | ETH      | Tokenized stocks & ETFs (USDG), memecoins | Very Low |
+| Robinhood Chain | ETH      | Tokenized stocks & ETFs (USDG), memecoins, token launches | Very Low |
 
-**Robinhood Chain** is an EVM L2 (chainId `4663`) whose native stablecoin is **USDG** (Global Dollar). It hosts 95+ Robinhood-issued tokenized stocks and ETFs alongside memecoins. Tokenized-stock trades require location verification (see [Tokenized Stock Trading](#tokenized-stock-trading)); memecoin swaps, bridging, and transfers do not.
+**Robinhood Chain** is an EVM L2 (chainId `4663`) whose native stablecoin is **USDG** (Global Dollar). It hosts 95+ Robinhood-issued tokenized stocks and ETFs alongside memecoins, and supports Bankr token launches (Doppler). Tokenized-stock trades require location verification (see [Tokenized Stock Trading](#tokenized-stock-trading)); memecoin swaps, token launches, bridging, and transfers do not.
 
 ## Safety & Access Control
 
@@ -721,6 +723,7 @@ User-controlled settings that apply to every surface — chat, agent, API, CLI. 
 | Pause all transactions | Off | Blocks every outbound transaction until unpaused |
 | Daily spending limit | $500 / 24h | Rejects any tx that pushes rolling-24h USD outflow past the limit |
 | Per-transaction limit | $500 | Rejects any single tx priced above the limit |
+| Price impact limit | On (15%) | Rejects a swap whose estimated price impact exceeds the limit — guards against catastrophic fills in thin/low-liquidity pools. Adjustable 1–100% or turned off |
 | Permitted recipients | Off | Restricts transfers/swaps to an allowlist; new entries enter a configurable cooldown (default 24h) |
 | Disable arbitrary contract calls | Off | Blocks `write_contract`, raw `/wallet/submit`, and arbitrary transaction tools (named operations like swaps still work) |
 

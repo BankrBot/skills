@@ -1,12 +1,13 @@
 # Token Deployment Reference
 
-Deploy and manage tokens on Base (via Doppler / Uniswap V4) and Solana (via Raydium LaunchLab). Older tokens launched through Clanker remain fully claimable; fee claims auto-detect Doppler vs Clanker.
+Deploy and manage tokens on Base and Robinhood Chain (via Doppler / Uniswap V4) and Solana (via Raydium LaunchLab). Older tokens launched through Clanker remain fully claimable; fee claims auto-detect Doppler vs Clanker.
 
 ## Supported Chains
 
 | Chain | Protocol | Token Standard | Best For |
 |-------|----------|----------------|----------|
 | **Base** (default) | Doppler (Uniswap V4) | ERC20 | Memecoins, social/agent tokens |
+| **Robinhood Chain** | Doppler (Uniswap V4) | ERC20 | Memecoins alongside tokenized stocks |
 | **Solana** | Raydium LaunchLab | SPL | High-speed trading, bonding curves |
 
 > **Builder exits:** selling a token you earn creator fees on through Bankr's ordinary swap/limit/stop/DCA/TWAP tools is intentionally restricted (buying and transferring still work). To take profit, builders use a **Glidepath** — a capped, AI-paced gradual sell managed from the token page at [bankr.bot](https://bankr.bot). Glidepath is a web feature, not a CLI/API action. Details: https://docs.bankr.bot/token-launching/glidepath
@@ -186,9 +187,9 @@ Users can launch additional tokens beyond sponsored limits by paying ~0.01 SOL g
 
 ---
 
-## EVM Token Launches (Base, via Doppler)
+## EVM Token Launches (Base & Robinhood Chain, via Doppler)
 
-Launch ERC20 tokens on Base. New launches create a Uniswap V4 pool via Doppler with a fixed supply and a single swap-fee tier shared between you and the protocol. Tokens deploy to Base by default.
+Launch ERC20 tokens on Base or Robinhood Chain. New launches create a Uniswap V4 pool via Doppler with a fixed supply and a single swap-fee tier shared between you and the protocol. Tokens deploy to **Base by default**; pass a chain to launch on Robinhood Chain instead (`bankr launch --chain robinhood`, or "launch a token on robinhood"). Robinhood Chain memecoin launches need no location verification — that gate only applies to Robinhood-issued tokenized stocks.
 
 ### Token Economics
 
@@ -221,6 +222,7 @@ Fees accumulate in your token and WETH and can be claimed anytime.
 - "Create a memecoin: name=DogeKiller, symbol=DOGEK"
 - "Deploy token with website myproject.com and Twitter @myproject"
 - "Create a token on Base"
+- "Launch a token called CoolBot on robinhood"
 - "Launch a token called CoolBot and route fees to @partner"
 
 **Claim fees:**
@@ -256,7 +258,7 @@ High-volume or bot-like deploy patterns can trigger automated spam protections a
 
 ### Taking Profit (Glidepath)
 
-Selling a token you earn creator fees on through Bankr's swap/limit/stop/DCA/TWAP tools is restricted (buying and transferring are unaffected). To take profit, builders use a **Glidepath** — a capped, AI-paced gradual sell that feeds a committed slice of your tokens back into the pool over time instead of dumping. Glidepath is managed from the token page at [bankr.bot](https://bankr.bot) (a web feature, not a CLI/API action). Details: https://docs.bankr.bot/token-launching/glidepath
+Selling a token you earn creator fees on through Bankr's swap/limit/stop/DCA/TWAP tools is restricted (buying and transferring are unaffected). To take profit, builders use a **Glidepath** — a capped, AI-paced gradual sell that feeds a committed slice of your tokens back into the pool over time instead of dumping. Glidepath is available for Base and Robinhood Chain launches and is managed from the token page at [bankr.bot](https://bankr.bot) (a web feature, not a CLI/API action). Details: https://docs.bankr.bot/token-launching/glidepath
 
 ---
 

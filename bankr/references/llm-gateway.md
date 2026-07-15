@@ -413,6 +413,26 @@ message = client.messages.create(
 )
 ```
 
+## Image Generation
+
+The gateway supports image generation through an OpenAI-native `POST /v1/images/generations` endpoint (model `gpt-image-2`). The request and response mirror OpenAI's images API, so the OpenAI SDK's `images.generate()` works against the gateway with just a base-URL swap:
+
+```bash
+curl -X POST "https://llm.bankr.bot/v1/images/generations" \
+  -H "Authorization: Bearer $BANKR_LLM_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-image-2", "prompt": "a neon city skyline at dusk"}'
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="https://llm.bankr.bot/v1", api_key="your_bankr_key")
+img = client.images.generate(model="gpt-image-2", prompt="a neon city skyline at dusk")
+```
+
+Image-output models are billed from the same LLM credit balance as text models, priced per image (image-output usage is metered separately). Image-capable models advertise an `image` output modality and per-image pricing in `GET /v1/models` (`output_modalities`, `pricing.image_output`); run `bankr llm models` for the current list.
+
 ## Model Deprecation
 
 The gateway supports model deprecation with automatic redirect to replacement models:

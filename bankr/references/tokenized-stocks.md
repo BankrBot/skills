@@ -35,11 +35,13 @@ Robinhood Chain hosts 95+ tokenized stocks and ETFs issued by Robinhood — larg
 
 Prices track the underlying equity. Trades settle on-chain against **USDG (Global Dollar)**, Robinhood Chain's native stablecoin — Bankr routes through it automatically, so you can fund a purchase from ETH, USDG, or any token on the chain in a single command.
 
-Stocks work with automations too:
+Robinhood Chain supports the full set of advanced orders — **limit, stop (including trailing), DCA, and TWAP** — alongside spot swaps and transfers:
 
 ```
 "every monday, analyze the tokenized stock market and put $100 into your strongest pick"
 "DCA $50 into SPY every friday"
+"buy NVDA on robinhood if it drops to $150"
+"set a trailing stop on my TSLA on robinhood"
 ```
 
 ### Location verification
