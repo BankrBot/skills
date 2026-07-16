@@ -15,10 +15,15 @@ User-controlled wallet safety features configured at [bankr.bot](https://bankr.b
 | Pause all transactions | Off | Blocks every outbound transaction until unpaused |
 | Daily spending limit | $500 / 24h | Rejects any tx that pushes rolling-24h USD outflow past the limit |
 | Per-transaction limit | $500 | Rejects any single tx priced above the limit |
+| Price impact limit | On (15%) | Rejects a swap whose estimated price impact exceeds the limit |
 | Permitted recipients | Off | Restricts transfers/swaps to an allowlist; new entries enter a configurable cooldown |
 | Disable arbitrary contract calls | Off | Blocks `write_contract`, raw `/wallet/submit`, and arbitrary transaction tools (named operations like swaps still work) |
 
 USD limits accept `1` to `1,000,000`. Setting `0` is rejected — disable the limit instead. Cooldown accepts `0` to `168` hours (default 24h).
+
+### Price Impact Limit
+
+Enabled by default at **15%**, adjustable from **1% to 100%** or turned off on the Security page. Before a swap is signed, Bankr estimates its price impact (how far the trade moves the pool price) and rejects it when the estimate exceeds the limit — this protects against catastrophic fills on thin or low-liquidity pools while leaving normal trading (well under the threshold) untouched. The guard applies to user-initiated swaps across chains; when impact can't be estimated it fails open, and slippage plus minimum-received bounds still protect the fill.
 
 ### Pricing & Fail-Closed Behavior
 

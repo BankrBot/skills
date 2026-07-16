@@ -33,6 +33,12 @@ Polymarket is a decentralized prediction market where users can search markets, 
 - "What bets do I have active?"
 - "My Polymarket portfolio"
 
+This lists your open bets and any resolved **winning** positions you can still redeem. Resolved **losing** positions (a market you lost settles at $0) are hidden by default and only summarized as a count — ask explicitly to see them:
+
+```
+"show my losing polymarket positions too"
+```
+
 You can also pull your current Polymarket positions directly over REST without going through the agent:
 
 ```bash
@@ -44,6 +50,8 @@ curl "https://api.bankr.bot/polymarket/positions" \
 - "Redeem my Polymarket positions"
 - "Cash out my resolved bets"
 - "Claim my winnings"
+
+Only positions worth more than $0 are redeemed — resolved losers have nothing to claim, so they're skipped rather than reported as failed redemptions.
 
 ## How Betting Works
 

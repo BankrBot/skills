@@ -3,7 +3,7 @@
   "slug": "checkr",
   "provider": "checkr",
   "providerUrl": "https://www.checkr.social/",
-  "logo": null,
+  "logo": "checkr.png",
   "demo": {
     "title": "checkr.sh",
     "language": "bash",

@@ -215,6 +215,8 @@ curl -s https://x402.bankr.bot/0xOwner/service | jq .
 
 Returns `{ x402Version, accepts: [{ scheme, network, maxAmountRequired, asset, payTo }] }`.
 
+The Bankr agent can pay both **x402 v1 and v2** endpoints (Bankr-hosted or external), signing the payment in whichever protocol version the endpoint advertises.
+
 ## Endpoint URL Format
 
 ```

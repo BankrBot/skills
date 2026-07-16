@@ -10,7 +10,10 @@ Execute token trades and swaps across multiple blockchains.
 | Polygon | MATIC | Fast, cheap transactions |
 | Ethereum | ETH | Highest liquidity, expensive gas |
 | Unichain | ETH | Newer L2 option |
+| Robinhood Chain | ETH | Tokenized stocks & ETFs (USDG stablecoin), memecoins |
 | Solana | SOL | High speed, minimal fees |
+
+> **Tokenized stocks & ETFs:** Bankr can buy and sell tokenized equities (spot) on Robinhood Chain, Solana (xStocks), and Base, and offers leveraged equity perps on Avantis/Hyperliquid. Robinhood-issued stocks require one-time location verification. See [tokenized-stocks.md](tokenized-stocks.md).
 
 ## Amount Formats
 

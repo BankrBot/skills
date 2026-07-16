@@ -1,6 +1,6 @@
 ---
 name: bankr
-description: AI-powered crypto trading agent, wallet API, and LLM gateway via natural language. Use when the user wants to trade crypto, check portfolio balances (with PnL and NFTs), view token prices, search tokens, transfer crypto, manage NFTs, use leverage (Hyperliquid or Avantis), bet on Polymarket, deploy tokens, set up automated trading, sign and submit raw transactions, call or deploy x402 paid API endpoints, browse the web, or access LLM models through the Bankr LLM gateway funded by your Bankr wallet. Supports Base, Ethereum, Polygon, Solana, Unichain, World Chain, Arbitrum, and BNB Chain.
+description: AI-powered crypto trading agent, wallet API, and LLM gateway via natural language. Use when the user wants to trade crypto, trade tokenized stocks and ETFs (spot or leveraged), check portfolio balances (with PnL and NFTs), view token prices, search tokens, transfer crypto, manage NFTs, use leverage (Hyperliquid or Avantis), bet on Polymarket, deploy tokens, set up automated trading, sign and submit raw transactions, call or deploy x402 paid API endpoints, browse the web, or access LLM models through the Bankr LLM gateway funded by your Bankr wallet. Supports Base, Ethereum, Polygon, Solana, Unichain, World Chain, Arbitrum, BNB Chain, and Robinhood Chain.
 metadata:
   {
     "clawdbot":
@@ -287,7 +287,7 @@ For full API details (request/response schemas, job states, rich data, polling s
 | `bankr wallet portfolio --pnl` | Include profit/loss data |
 | `bankr wallet portfolio --nfts` | Include NFT holdings |
 | `bankr wallet portfolio --all` | Include both PnL and NFTs |
-| `bankr wallet portfolio --chain <chains>` | Filter by chain(s): base, polygon, mainnet, unichain, solana (comma-separated) |
+| `bankr wallet portfolio --chain <chains>` | Filter by chain(s): base, polygon, mainnet, unichain, arbitrum, bnb, worldchain, robinhood, solana (comma-separated) |
 | `bankr wallet portfolio --json` | Output raw JSON |
 | `bankr wallet transfer --to <recipient> --token <symbol> --amount <amount>` | Transfer tokens; `--to` accepts a 0x address or ENS-style name (`.eth`, `.base.eth`, `.cb.id`), `--token` resolves symbols to contracts. Social handles work via the AI agent only. |
 | `bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base` | ENS recipient with explicit chain |
@@ -499,8 +499,9 @@ The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unifie
 - **LLM credits** (USD) and **trading wallet** (crypto) are completely separate balances — having crypto does NOT give you LLM credits
 - **New accounts start with $0 LLM credits** — top up via `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) before making any LLM calls, or you will get a 402 error
 - Check credits: `bankr llm credits` | Top up: `bankr llm credits add <amount>` | Auto top-up: `bankr llm credits auto --enable --amount 25 --tokens USDC`
-- In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-4.6`). In direct API calls, use bare IDs (e.g. `claude-sonnet-4.6`)
+- In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-5`). In direct API calls, use bare IDs (e.g. `claude-sonnet-5`). Run `bankr llm models` for the current model list
 - **Per-model discounts** available for Bankr Club members and partners — applied automatically at billing time
+- **Image generation**: generate images via the OpenAI-native `/v1/images/generations` endpoint (model `gpt-image-2`), billed from the same LLM credit balance — see the reference
 - **Expiring credit grants**: promotional or developer grants may carry an expiry date. Your spendable balance is your permanent (purchased) credits plus any unexpired grants — grants are spent first (soonest-expiring first) and drop off automatically at expiry
 
 ### Quick Commands
@@ -591,6 +592,7 @@ For full details — setup paths, model list, provider config, SDK examples, key
 - Browse and search collections
 - View floor prices and listings
 - Purchase NFTs via OpenSea
+- Accept offers on NFTs you own
 - View your NFT portfolio
 - Transfer NFTs
 - Mint from supported platforms
@@ -610,14 +612,27 @@ For full details — setup paths, model list, provider config, SDK examples, key
 ### Leverage Trading
 
 - **Hyperliquid** (primary) — Perpetual futures on Hyperliquid L1 with on-chain order book. Crypto, stocks (TSLA, AAPL, NVDA via HIP-3), spot trading. Up to 50x leverage.
-- **Avantis** (secondary) — Perpetuals on Base for crypto (up to 50x), forex and commodities (up to 100x)
+- **Avantis** (secondary) — Perpetuals on Base for crypto, equities (NVDA, TSLA, AAPL, HOOD, and more), forex, and commodities. Equity, forex, and commodity pairs trade during their underlying market hours only.
 - Stop loss, take profit, and position management on both platforms
 
 **Reference**: [references/leverage-trading.md](references/leverage-trading.md) | [references/hyperliquid.md](references/hyperliquid.md)
 
+### Tokenized Stock Trading
+
+Trade tokenized stocks and ETFs — real-world equities issued as on-chain tokens — with a plain prompt, the same way you trade any other asset. Bankr resolves the best venue automatically when you name a ticker, or you can specify a chain/venue:
+
+- **Robinhood Chain** — spot tokens issued by Robinhood (95+ stocks and ETFs: NVDA, AAPL, TSLA, SPY, QQQ, and more). Trades settle against USDG (Global Dollar); Bankr routes funding through it automatically. **Requires one-time location verification** — log in to the [Bankr console](https://bankr.bot) (verified automatically from your connection, renews on login, expires after 30 days). Not available in the US, UK, or sanctioned countries/regions.
+- **Solana** — spot tokens from third-party issuers such as xStocks (AAPLx, TSLAx). No verification required; trade like any other token.
+- **Base** — spot tokens from third-party issuers. No verification required.
+- **Leveraged (perps)** — for long/short exposure without owning the token, use Avantis (Base) or Hyperliquid.
+
+Spot stocks work with swaps, transfers, limit orders, and DCA. Only Robinhood stock trades are location-gated — memecoins on Robinhood Chain, bridging, and transfers work without verification.
+
+**Reference**: [references/tokenized-stocks.md](references/tokenized-stocks.md)
+
 ### Token Deployment
 
-- **EVM (Base, default)**: Launch ERC20 tokens via Doppler on a Uniswap V4 pool with customizable metadata and social links. Fixed **100 billion** supply, **0.7%** swap fee split **95% creator / 5% protocol**. Tokens deploy to Base by default. Legacy Clanker tokens remain claimable (claims auto-detect Doppler vs Clanker).
+- **EVM (Base default, or Robinhood Chain)**: Launch ERC20 tokens via Doppler on a Uniswap V4 pool with customizable metadata and social links. Fixed **100 billion** supply, **0.7%** swap fee split **95% creator / 5% protocol**. Tokens deploy to Base by default; pass a chain (`bankr launch --chain robinhood`) to launch on Robinhood Chain instead. Legacy Clanker tokens remain claimable (claims auto-detect Doppler vs Clanker).
 - **Solana**: Launch SPL tokens via Raydium LaunchLab with bonding curve and auto-migration to CPMM
 - Creator fee claiming on both chains
 - Fee Key NFTs for Solana (50% LP trading fees post-migration)
@@ -691,6 +706,9 @@ The agent can answer questions about Bankr itself — how features work, officia
 | World Chain | ETH          | Uniswap V3/V4 swaps          | Very Low |
 | Arbitrum    | ETH          | DeFi, low-cost transactions   | Very Low |
 | BNB Chain   | BNB          | BSC ecosystem trading         | Low      |
+| Robinhood Chain | ETH      | Tokenized stocks & ETFs (USDG), memecoins, token launches | Very Low |
+
+**Robinhood Chain** is an EVM L2 (chainId `4663`) whose native stablecoin is **USDG** (Global Dollar). It hosts 95+ Robinhood-issued tokenized stocks and ETFs alongside memecoins, and supports Bankr token launches (Doppler). Tokenized-stock trades require location verification (see [Tokenized Stock Trading](#tokenized-stock-trading)); memecoin swaps, token launches, bridging, and transfers do not.
 
 ## Safety & Access Control
 
@@ -705,6 +723,7 @@ User-controlled settings that apply to every surface — chat, agent, API, CLI. 
 | Pause all transactions | Off | Blocks every outbound transaction until unpaused |
 | Daily spending limit | $500 / 24h | Rejects any tx that pushes rolling-24h USD outflow past the limit |
 | Per-transaction limit | $500 | Rejects any single tx priced above the limit |
+| Price impact limit | On (15%) | Rejects a swap whose estimated price impact exceeds the limit — guards against catastrophic fills in thin/low-liquidity pools. Adjustable 1–100% or turned off |
 | Permitted recipients | Off | Restricts transfers/swaps to an allowlist; new entries enter a configurable cooldown (default 24h) |
 | Disable arbitrary contract calls | Off | Blocks `write_contract`, raw `/wallet/submit`, and arbitrary transaction tools (named operations like swaps still work) |
 
@@ -919,6 +938,16 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 - "Sell 50% of my PEPE"
 - "Bridge 100 USDC from Polygon to Base"
 
+### Tokenized Stocks
+
+- "Buy $100 of NVDA on robinhood" (spot, location verification required)
+- "Swap $50 of ETH to SPY on robinhood"
+- "Sell half my AAPL on robinhood"
+- "Buy $50 of AAPLx on solana" (xStocks, no verification)
+- "DCA $50 into SPY every friday"
+- "Long TSLA with 5x leverage on avantis" (leveraged perp)
+- "Short HOOD on hyperliquid"
+
 ### Portfolio
 
 - `bankr wallet portfolio` (direct, no AI processing — hides low-value tokens by default)
@@ -1063,7 +1092,7 @@ curl -X POST "https://api.bankr.bot/wallet/swap" \
   -d '{"fromChain": "base", "fromToken": "0x...", "toChain": "base", "toToken": "0x...", "amount": "0.1", "minBuyAmount": "..."}'
 ```
 
-The `/wallet/swap*` endpoints take token **contract addresses** (use the zero address for the chain's native token); the CLI resolves symbols for you. Swap output is always returned to your own wallet, so `allowedRecipients` does not apply.
+The `/wallet/swap*` endpoints take token **contract addresses** (use the zero address for the chain's native token); the CLI resolves symbols for you. Swap output is always returned to your own wallet, so `allowedRecipients` does not apply. Supported EVM chains include `base`, `mainnet`, `polygon`, `unichain`, `arbitrum`, `bnb`, `worldchain`, and `robinhood`. Swaps of tokenized stocks on `robinhood` require a passed location check — without one the endpoint returns `403` with instructions to verify at the Bankr console. Execution is also checked against your Bankr Terminal per-transaction and daily spend limits (a `403` is returned when a limit would be exceeded).
 
 ### Sign API (Synchronous)
 
