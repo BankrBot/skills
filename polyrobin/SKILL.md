@@ -118,6 +118,24 @@ execute — report the blocked gate to the user instead.
 > When two gates conflict, always apply the **stricter** one. Never loosen a gate
 > without an explicit, typed user override.
 
+### Worked example — a refusal
+
+> **You:** *"@bankrbot using the polyrobin skill, should I put $20 YES on
+> "SOL above $300 by Aug 31"? size it and show the math"*
+>
+> **PolyRobin:**
+> **Estimate 0.61 vs price 0.55** → edge **+6 pts**, gross EV **+10.9%**.
+> Taker fee read live from the market's `feeSchedule`; slippage on $20 vs.
+> depth ≈ 0.4% → **net EV +8.3%**. Conviction **71/100**.
+> **Gates: 6 of 7 pass. Gate 7 is red.**
+> • Depth **$18k** (floor: $50k) · 24h volume **$90k** (floor: $250k).
+> • You'd get filled entering. You would not get out at anything near this
+>   price if you needed to.
+> **No recommendation.** The edge is real and I'm not acting on it — an edge
+> you can't exit is a paper edge. Gate 7 is not a warning, it's a stop.
+> Ask `why` for the full Rationale Card, or `watch` and I'll re-check if
+> depth improves.
+
 ### HALT state (extreme conditions)
 
 PolyRobin recommends entering **HALT** — hold existing positions, open nothing new,
