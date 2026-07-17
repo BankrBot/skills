@@ -83,9 +83,11 @@ mostly Polymarket.** Robinhood Chain / Meridian Predict prediction markets are
 ## Safety Model
 
 Safety is the control flow, not an afterthought. PolyRobin fails **closed**: if any
-gate is red, it does not recommend the action. All thresholds live in
-`~/.polyrobin/config.yaml`; loosening any gate beyond its safe band requires a
-typed override and a loud warning.
+gate is red, it does not recommend the action. All thresholds are **defaults defined
+in this SKILL.md**, adjustable in conversation (e.g. *set my daily loss limit to 3%*);
+loosening any gate beyond its safe band requires an explicit typed override and a loud
+warning. **Gate 5 (confirmation) is hard-locked and can never be disabled.** When two
+settings conflict, the **stricter** one always wins.
 
 ### The 7 hard gates
 
@@ -133,7 +135,7 @@ Exiting HALT always requires an explicit `resume`.
 ### Kill-switch & emergency pause
 
 - **`panic` (kill-switch):** immediately recommends HALT, snapshots the book and
-  pending ideas to the audit log, and advises cancelling any working (unfilled)
+  pending ideas into a Rationale Card in the reply, and advises cancelling any working (unfilled)
   orders through BankrBot. It never force-liquidates settled positions.
 - **`pause` (emergency soft freeze):** suspends all *new* recommendations and
   automation while keeping monitoring, alerts, and resolution/claim tracking on.
@@ -270,9 +272,9 @@ For any natural-language social wager, PolyRobin:
      PolyRobin recommends the lightest option that fits the stake and trust level, and
      always names the chain explicitly (**Robinhood Chain** for escrow/transfers,
      per the routing rules above).
-4. **Confirms, then tracks and settles.** After your explicit `yes`, it records the
-   bet as a **Rationale Card** in `~/.polyrobin/audit/`, monitors the resolution
-   source, and when the deadline hits it **auto-notifies both parties, declares the
+4. **Confirms, then tracks and settles.** After your explicit `yes`, it emits the
+   bet as a structured **Rationale Card** (JSON returned inline in the reply), monitors
+   the resolution source, and when the deadline hits it **auto-notifies both parties, declares the
    outcome against the agreed statement, and guides settlement/release of escrow** —
    always with a final confirmation before funds actually move.
 
@@ -469,17 +471,23 @@ introduce new execution surfaces.
 | **Edge & conviction engine** | EV math + 0–100 conviction score, fully shown |
 | **Fractional-Kelly sizer** | Volatility-adjusted size within exposure caps |
 | **Safety gate controller** | Runs the 7 gates + HALT/pause/kill-switch logic |
-| **Rationale Card writer** | Records the reasoning for every recommendation |
+| **Rationale Card emitter** | Returns the full reasoning inline for every recommendation |
 
 > Robinhood Chain / **Meridian Predict prediction markets**: discovery + analysis
 > layer only for now (BankrBot has no native Meridian Predict execution integration yet).
 > PolyRobin does not claim native bet execution there and falls back to Polymarket
 > where an equivalent market exists.
 
-### Config sketch
+### Default parameters
+
+These are the values PolyRobin ships with — there is no config file to create or edit.
+Adjust any of them in conversation with @bankrbot (gate 5 stays locked on); the stricter
+setting always wins on conflict. The block below is an illustrative reference of those
+defaults, not a file the user writes to disk.
 
 ```yaml
-# ~/.polyrobin/config.yaml — decision parameters (execution runs through BankrBot)
+# PolyRobin default parameters — shipped with the skill, adjustable in conversation
+# (not a file you create; execution runs through BankrBot)
 bankroll_source: robinhood-chain     # home chain for funds
 risk:
   daily_loss_limit: 0.05             # gate 1
@@ -552,12 +560,12 @@ BankrBot MUST use these formulas so the shown math is correct and reproducible. 
 - **Slippage:** estimate from **order size vs. order-book depth**. When the order is
   far smaller than depth, slippage ≈ 0 — **say so explicitly** rather than omitting
   it. It grows with size and on thin books.
-- **Fees:** most Polymarket markets charge ~0 trading fee, so the real cost is
-  slippage + minimal Polygon gas. **Exception — short-interval crypto markets**
-  (BTC/ETH/SOL/XRP **up-or-down over 15-minute windows**) carry a **taker fee**;
-  "fee ≈ 0" is **false** there, and the fee must be subtracted from EV. **Never claim
-  "net of fees/slippage" without showing the deduction** (or stating it's ≈ 0 and why,
-  which does *not* apply to the 15-minute markets).
+- **Fees:** the taker fee is **read live from the market's `feeSchedule`** — never
+  assumed. When `feesEnabled=false` the fee is 0 and the real cost is just slippage +
+  minimal Polygon gas; when fees are enabled — e.g. **short-interval crypto markets**
+  (BTC/ETH/SOL/XRP **up-or-down over 15-minute windows**) — a real **taker fee** applies
+  and MUST be subtracted from EV. **Never claim "net of fees/slippage" without showing
+  the deduction** (or showing the live-read fee is 0 and why).
 - **Net EV:** `EV_net = EV_gross − slippage − fees`. Gate 4b compares **net EV** to
   the **+4%** floor.
 - **Full-Kelly fraction:** `f* = (p − c) / (1 − c)` (as a fraction of bankroll).
@@ -589,15 +597,16 @@ replies `yes` — it is not "passed" until then.
 
 ## Auditability & Transparency
 
-Every recommendation is fully explainable and recorded as a **Rationale Card**
-(JSON + human-readable) in `~/.polyrobin/audit/`:
+Every recommendation is fully explainable and emitted as a **Rationale Card** —
+structured JSON (plus a human-readable summary) returned inline in the reply:
 
 - Market, venue, and resolution criteria (with an ambiguity assessment).
 - **Independent probability estimate** and **conviction score (0–100)**.
 - Every input, **source-tagged, weighted, timestamped** — news sentiment, onchain
   signals, historical resolution data.
 - **Full edge math:** `EV_gross = (p − c)/c`, then `EV_net = gross − slippage − fees`
-  (slippage from order size vs. depth; Polymarket fee ≈ 0) — see *Sizing & EV*.
+  (slippage from order size vs. depth; taker fee read live from the market's `feeSchedule`,
+  never assumed) — see *Sizing & EV*.
 - **Full size math:** Kelly `f* = (p − c)/(1 − c)`, × fractional-Kelly (¼ default) ×
   volatility adjustment, capped by exposure gates, rounded down — step by step.
 - Each of the **7 gates** and its result, plus any HALT/pause state.
@@ -608,7 +617,7 @@ A typical response before any bet:
 > **Market:** *Will \<fighter\> win tonight?* · **Venue:** Polymarket
 > **Price (YES):** 0.52 · **My estimate:** 0.58 · **Conviction:** 68/100
 > **Edge:** +6pts. **EV_gross** = 0.06/0.52 = **+11.5%**; slippage ≈ 0 ($20 ≪ depth),
-> Polymarket fee ≈ 0 → **EV_net ≈ +11.5%**.
+> taker fee read live from `feeSchedule` (0 here, `feesEnabled=false`) → **EV_net ≈ +11.5%**.
 > **Why:** recent-form + matchup data favor \<fighter\> (historical), sentiment
 > mildly aligned (weak prior); resolution is a clean official-result feed ✅.
 > **Size:** Kelly `f* = (0.58−0.52)/(1−0.52) = 0.125` → ¼-Kelly `0.031` → ~$31 on a

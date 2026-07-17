@@ -1,8 +1,9 @@
 # Sample Rationale Card (human-readable)
 
-> **Illustrative output — not a live recommendation.** PolyRobin writes one of these
-> (JSON + this readable form) to `~/.polyrobin/audit/` for **every** recommendation,
-> including stand-downs. The machine-readable version is
+> **Illustrative output — not a live recommendation.** PolyRobin emits one of these
+> (JSON + this readable form) **inline in the @bankrbot reply** for **every**
+> recommendation, including stand-downs — surfaced in full behind `why`. Nothing is
+> written to a local directory. The machine-readable version is
 > [`rationale-card.json`](./rationale-card.json).
 
 ---
@@ -24,7 +25,7 @@ draw or no-contest → NO. **Ambiguity:** low ✅ (single authoritative source, 
 ```
 EV_gross = (p − c) / c = (0.58 − 0.52) / 0.52   = +11.5%
 − slippage ($20 order ≪ ~$120k depth)            ≈  0%   (negligible)
-− Polymarket trading fee                         ≈  0%
+− taker fee (live from feeSchedule; feesEnabled=false → 0)      ≈  0%
 EV_net                                           ≈ +11.5%  → clears the +4% gate
 ```
 

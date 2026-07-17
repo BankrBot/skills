@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Validate the PolyRobin skill definition and sample config.
+# Validate the PolyRobin skill definition and default-parameters reference.
 # - Checks SKILL.md has YAML frontmatter with all required fields.
-# - Checks the example config parses as YAML.
+# - Checks examples/default-parameters.yaml parses as YAML and stays in-band.
 # Exits non-zero on any failure so CI can gate on it.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKILL="$ROOT/SKILL.md"
-CONFIG="$ROOT/examples/config.yaml"
+CONFIG="$ROOT/examples/default-parameters.yaml"
 
 fail() { echo "❌ $1" >&2; exit 1; }
 pass() { echo "✅ $1"; }
 
 [ -f "$SKILL" ]  || fail "SKILL.md not found at $SKILL"
-[ -f "$CONFIG" ] || fail "examples/config.yaml not found at $CONFIG"
+[ -f "$CONFIG" ] || fail "examples/default-parameters.yaml not found at $CONFIG"
 
 PY="$(command -v python3 || command -v python || true)"
 [ -n "$PY" ] || fail "python3 (or python) is required to validate YAML"
@@ -76,14 +76,14 @@ print("✅ SKILL.md has all required sections")
 try:
     cfg = yaml.safe_load(open(config_path, encoding="utf-8"))
 except yaml.YAMLError as e:
-    print(f"❌ examples/config.yaml is not valid YAML: {e}", file=sys.stderr)
+    print(f"❌ examples/default-parameters.yaml is not valid YAML: {e}", file=sys.stderr)
     sys.exit(1)
 
 for key in ["risk", "venues", "rails", "execution"]:
     if key not in cfg:
-        print(f"❌ examples/config.yaml missing top-level key: {key}", file=sys.stderr)
+        print(f"❌ examples/default-parameters.yaml missing top-level key: {key}", file=sys.stderr)
         sys.exit(1)
-print("✅ examples/config.yaml parses and has expected keys")
+print("✅ examples/default-parameters.yaml parses and has expected keys")
 
 # --- Config values must sit inside the SAFE gate bands ----------------------
 # Loosening a gate beyond its safe band should require a deliberate, loud override

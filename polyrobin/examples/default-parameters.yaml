@@ -1,8 +1,9 @@
-# PolyRobin sample configuration — DECISION PARAMETERS ONLY.
-# Execution runs through BankrBot's existing rails. NEVER put private keys here;
+# PolyRobin default parameters — DECISION PARAMETERS ONLY.
+# This is a read-only reference of the defaults the skill ships with (mirrored in
+# SKILL.md). It is NOT a config file you create or edit: PolyRobin has no local
+# filesystem. Adjust any of these in conversation with @bankrbot instead.
+# Execution runs through BankrBot's existing rails. No private keys are ever involved;
 # signing and custody stay with BankrBot / your own wallet.
-#
-# Copy to ~/.polyrobin/config.yaml and adjust.
 
 # --- Bankroll ---------------------------------------------------------------
 bankroll_source: robinhood-chain   # home chain for funds
@@ -61,7 +62,8 @@ rails:
     routing: optimal
 
 # --- Audit ------------------------------------------------------------------
+# Every recommendation is emitted as a Rationale Card (structured JSON + a
+# human-readable summary) INLINE in the @bankrbot reply, surfaced in full behind
+# `why`. Nothing is written to a local directory.
 audit:
-  dir: ~/.polyrobin/audit
-  format: both                       # json | human | both
-  retain_days: 365
+  format: both                       # json | human | both — both returned inline

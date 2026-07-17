@@ -1,5 +1,5 @@
 {
-  "$comment": "SAMPLE PolyRobin Rationale Card — illustrative output, not a live recommendation. One JSON file is written to ~/.polyrobin/audit/ for every recommendation, whether it results in a trade or a stand-down.",
+  "$comment": "SAMPLE PolyRobin Rationale Card — illustrative output, not a live recommendation. One of these is returned inline (as JSON) in the @bankrbot reply for every recommendation, whether it results in a trade or a stand-down. Nothing is written to a local directory.",
   "schema_version": "1.0",
   "card_id": "rc_2026-07-13_ufc-main_0001",
   "created_at": "2026-07-13T21:42:10Z",
@@ -55,7 +55,7 @@
     "gross_ev_formula": "EV_gross = (p - c) / c = (0.58 - 0.52) / 0.52 = 0.1154",
     "fees_pct": 0.0,
     "est_slippage_pct": 0.0,
-    "slippage_notes": "$20 order is far smaller than ~$120k book depth, so slippage is negligible (~0). Polymarket trading fee ~0.",
+    "slippage_notes": "$20 order is far smaller than ~$120k book depth, so slippage is negligible (~0). Taker fee read live from the market's feeSchedule (feesEnabled=false here -> fee 0); never assumed.",
     "net_ev_pct": 11.5,
     "net_ev_formula": "EV_net = EV_gross - slippage - fees = 11.5 - ~0 - 0 = ~11.5%",
     "notes": "Net EV clears the +4% gate comfortably; size still kept conservative."
