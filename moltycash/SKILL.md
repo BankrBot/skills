@@ -1,9 +1,11 @@
 ---
 name: moltycash
 description: >
-  USDC payments from AI agents to humans via molty.cash. Use when the agent wants to
-  tip someone, hire a person for a task, or create a pay-per-task gig. Payments settle
-  on-chain via x402 on Base using Bankr wallet for signing.
+  USDC payments from AI agents to humans via molty.cash. Use to create a pay-per-view
+  (CPM) content campaign — earners post about your product/token and get paid per
+  1,000 views. Payments settle on-chain via x402 on Base or Solana using the Bankr
+  wallet for signing (Bankr itself signs on Base only — molty's other settlement
+  chain, Solana, is available via other wallets in molty's catalog).
   Do NOT use for token swaps, DeFi, or non-USDC payments.
 metadata:
   {
@@ -18,220 +20,88 @@ metadata:
 
 # MoltyCash — Agent-to-Human Payments with USDC
 
-[molty.cash](https://molty.cash) lets AI agents pay humans with USDC. Tip someone, hire them for a task, or post a gig for multiple people to earn from — all settled on-chain via [x402](https://x402.org) on Base.
+[molty.cash](https://molty.cash) lets AI agents pay humans with USDC. This skill covers **campaign.create** — fund a pay-per-view (CPM) content campaign that any eligible earner can submit a post to and get paid per 1,000 views, settled on-chain via [x402](https://x402.org).
 
-This skill covers three actions: **tip**, **hire**, and **gig create**. All use the Bankr CLI (`bankr x402 call`) for x402 payment signing.
-
-### `--max-payment`
-
-`bankr x402 call` defaults to a $1 max payment. The total charged is amount + platform fee (see Fees below), so pass `--max-payment` when the total exceeds $1:
-
-```bash
-# Example: hire for $1.00 → fee is 3% ($0.03) → total $1.03 → needs --max-payment 1.03
-bankr x402 call <url> --max-payment 1.03 ...
-```
-
-Max allowed value is `10`.
+This skill covers **Bankr's transport**. For the full payload reference (every method, every param, fees, all settlement chains) see [moltycash PAYMENT.md](https://molty.cash/skills/PAYMENT.md) and [campaign/SKILL.md](https://molty.cash/skills/campaign/SKILL.md) — linked rather than duplicated so this doc doesn't drift out of date again.
 
 ---
 
 ## Prerequisites
 
-1. Bankr CLI installed and logged in (`bankr whoami` to verify)
-2. Funded Bankr wallet (Base USDC)
-3. `MOLTY_IDENTITY_TOKEN` — required for **tip**, **hire**, and **gig create**
-
-### Getting an Identity Token
-
-1. Login to [molty.cash](https://molty.cash) with your X account
-2. Open the profile dropdown and click "Identity Token"
-3. Generate your token and copy it
-4. `export MOLTY_IDENTITY_TOKEN="your_token"`
+- Bankr CLI installed + `bankr whoami` confirms a session
+- Funded Bankr wallet (Base USDC)
+- No identity token required to create a campaign — molty auto-creates an anonymous agent profile for the sender on first paid call, visible at `molty.cash/agent/{generated-name}`. *(Optional: `MOLTY_IDENTITY_TOKEN` if the human already has a molty account they want the campaign attributed to.)*
 
 ---
 
-## Tip
-
-Send a USDC tip to any molty.cash user.
+## Transport pattern
 
 ```bash
-bankr x402 call https://api.molty.cash/0xmesuthere/a2a \
-  --method POST \
-  --body '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tip",
-    "params": {
-      "amount": 0.10,
-      "identity_token": "'$MOLTY_IDENTITY_TOKEN'"
-    }
-  }'
+bankr x402 call <url> --method POST --max-payment <usdc> --body '<json>'
 ```
 
-### Tip any user
+`--max-payment` must be ≥ the fee for the call (creation is a flat $1 regardless of credits granted). Default $1 if omitted; pick a value with headroom.
 
-Replace `0xmesuthere` with any X handle:
-
-```bash
-bankr x402 call https://api.molty.cash/{username}/a2a \
-  --method POST \
-  --body '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tip",
-    "params": {
-      "amount": 0.50,
-      "identity_token": "'$MOLTY_IDENTITY_TOKEN'"
-    }
-  }'
-```
+Bankr signs x402 on Base (`eip155:8453`) only. That's independent from the campaign's **payout** chain — where *earners* get paid — which you choose via `payout_chain` in the JSON body (`base` or `solana`) regardless of which chain the creation fee itself settles on.
 
 ---
 
-## Hire
+## Create a campaign
 
-Hire a specific person to complete a task. Payment is escrowed via x402. The person is auto-assigned and has 4 hours to submit proof.
-
-```bash
-bankr x402 call https://api.molty.cash/0xmesuthere/a2a \
-  --method POST \
-  --max-payment 1.03 \
-  --body '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "hire",
-    "params": {
-      "amount": 1.00,
-      "description": "explain how bankr and MoltyCash integration works in a post",
-      "identity_token": "'$MOLTY_IDENTITY_TOKEN'"
-    }
-  }'
-```
-
-### Hire any user
-
-Replace `0xmesuthere` with any X handle:
-
-```bash
-bankr x402 call https://api.molty.cash/{username}/a2a \
-  --method POST \
-  --max-payment 1.03 \
-  --body '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "hire",
-    "params": {
-      "amount": 1.00,
-      "description": "Your task description here",
-      "identity_token": "'$MOLTY_IDENTITY_TOKEN'"
-    }
-  }'
-```
-
-### Hire Rules
-
-| Rule | Detail |
-|------|--------|
-| Max amount | 10 USDC |
-| Description | Max 500 characters |
-| Assignment TTL | 4 hours to submit proof |
-| Review deadline | 4h auto-approve if not reviewed |
-| Hold period | 2h after approval before payment release |
-
----
-
-## Gig Create
-
-Create a gig that multiple people can earn from. You define the task, set a price per completion, and review submissions.
+`POST https://api.molty.cash/a2a`
 
 ```bash
 bankr x402 call https://api.molty.cash/a2a \
-  --method POST \
+  --method POST --max-payment 1.05 \
   --body '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "gig.create",
+    "method": "campaign.create",
     "params": {
-      "identity_token": "'$MOLTY_IDENTITY_TOKEN'",
-      "description": "Share a post about bankr and mention @moltycash on X",
-      "price": 0.30,
-      "quantity": 3
+      "description": "Write an original X post about molty.cash",
+      "cpm_rate": 5,
+      "max_payout_per_submission": 50,
+      "payout_chain": "base"
     }
   }'
 ```
 
-### With eligibility criteria
+`description`, `cpm_rate` (payout tokens per 1,000 views), and `max_payout_per_submission` (hard cap per post) are required. `payout_chain` defaults to `solana` if omitted.
 
-```bash
-bankr x402 call https://api.molty.cash/a2a \
-  --method POST \
-  --body '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "gig.create",
-    "params": {
-      "identity_token": "'$MOLTY_IDENTITY_TOKEN'",
-      "description": "Share a post about bankr and mention @moltycash on X",
-      "price": 0.30,
-      "quantity": 3,
-      "require_premium": true,
-      "min_followers": 10000
-    }
-  }'
-```
+Optional params: `token_contract` (defaults to USDC on the payout chain), `ticker`, `credits` (defaults to a $1 grant, more at $0.02/credit), `window_days` (default 7 — how long daily top-ups run), `release_mode` (`auto` reads view counts straight from X; `agent` lets your own agent report views for any platform), `min_holder_amount`, `min_followers`, `min_account_age_days`.
 
-### Gig Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `description` | string | Yes | Task description, max 500 characters |
-| `price` | number | Yes | USDC per completion |
-| `quantity` | number | No | Number of slots (default 1) |
-| `require_premium` | boolean | No | Require X Premium subscription |
-| `min_followers` | number | No | Minimum follower count |
-| `min_account_age_days` | number | No | Minimum account age in days |
-
-### Gig Rules
-
-| Rule | Detail |
-|------|--------|
-| Max total amount | 10 USDC |
-| Max per-post price | 10 USDC |
-| Gig deadline | 24 hours from creation |
-| Assignment TTL | 4 hours to submit proof |
-| Review deadline | 24h auto-approve if not reviewed |
-| Hold period | 2h after approval; tweet re-checked before payment |
+Response includes `wallet_address` — fund it with the payout token to start paying earners. Full param table: [campaign/SKILL.md](https://molty.cash/skills/campaign/SKILL.md).
 
 ---
 
-## Fees & Refunds
+## Fees
 
-### Platform Fee
-
-| Amount | Fee |
-|--------|-----|
-| < $1 | $0.01 flat |
-| >= $1 | 3% |
-
-The fee is added on top of the payment amount — the payer pays amount + fee.
-
-### Refunds
-
-- **Expired gigs**: Unclaimed slots are auto-refunded after the 24h gig deadline
-- **Expired assignments**: Freed after 4h if no proof submitted — slot reopens for others
-- **Unreviewed submissions**: Auto-approved after 4h if the payer doesn't review
+| Call | Platform fee |
+|---|---|
+| Campaign creation | flat **$1** (covers the default credit grant regardless of count) |
+| Other paid calls, < $1 | **1¢** flat |
+| Other paid calls, ≥ $1 | **3%** |
 
 ---
 
-## A2A Endpoints
+## Manage the campaign
 
-| Endpoint | Purpose |
-|----------|---------|
-| `POST api.molty.cash/a2a` | Global — gig creation |
-| `POST api.molty.cash/{username}/a2a` | Per-user — tip or hire a specific person |
+`campaign.create` returns a 24h **session token** bound to the paying wallet. Use it (as the `X-Molty-Session-Token` header) to call `campaign.review` and `campaign.close` with no further x402 payment. `campaign.topup` and `campaign.status` are their own small paid x402 calls, not session-gated.
+
+- **`campaign.close`** rejects any in-flight submissions and sweeps the campaign wallet's remaining balance back to **your own registered payout destination** for the campaign's chain — never an arbitrary caller-supplied address. Add a destination at [molty.cash/dashboard](https://molty.cash/dashboard) first if you haven't.
+
+Full method list + session-token mechanics: [PAYMENT.md](https://molty.cash/skills/PAYMENT.md).
+
+---
+
+## Rewards
+
+Every paid call (`campaign.create`, `campaign.topup`, etc.) mints **$moltycash** reward tokens back to the payer's molty wallet — a tier-based rebate on the platform fee (25% / 50% / 100%) as the payer's `$moltycash` balance crosses tier thresholds. Current tiers + details: [PAYMENT.md](https://molty.cash/skills/PAYMENT.md).
+
+---
 
 ## Links
 
 - [molty.cash](https://molty.cash)
-- [bankr.bot](https://bankr.bot)
+- [bankr.bot](https://docs.bankr.bot)
 - [x402.org](https://x402.org)
