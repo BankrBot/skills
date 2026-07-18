@@ -56,7 +56,10 @@ bankr config get llmKey
 | `gemini-2.5-flash` | Google | Speed, high throughput |
 | `gemma-4-31b-it` | Google | Multimodal, cost-effective (262K) |
 | `gemma-4-26b-a4b-it` | Google | MoE, cost-effective (262K) |
-| `gpt-5.5` | OpenAI | Latest, most capable (1M context, image input) |
+| `gpt-5.6-sol` | OpenAI | Latest flagship, most capable (1M context, image input) |
+| `gpt-5.6-terra` | OpenAI | Latest balanced tier (1M context, image input) |
+| `gpt-5.6-luna` | OpenAI | Latest fast/economical tier (1M context, image input) |
+| `gpt-5.5` | OpenAI | Previous flagship (1M context, image input) |
 | `gpt-5.4` | OpenAI | Advanced reasoning (1M context, image input) |
 | `gpt-5.4-mini` | OpenAI | Fast, economical (400K context, image input) |
 | `gpt-5.4-nano` | OpenAI | Ultra-fast, lowest cost (400K context, image input) |
@@ -64,7 +67,8 @@ bankr config get llmKey
 | `gpt-5.2-codex` | OpenAI | Code generation (400K context) |
 | `gpt-5-mini` | OpenAI | Previous gen, economical (400K) |
 | `gpt-5-nano` | OpenAI | Previous gen, ultra-fast (400K) |
-| `grok-4.20` | xAI | Latest, deep reasoning (2M context) |
+| `grok-4.20` | xAI | Deep reasoning, largest context (2M context) |
+| `grok-4.5` | xAI | Latest, balanced multimodal (500K context, image input) |
 | `grok-4.3` | xAI | Balanced performance (1M context) |
 | `deepseek-v4-pro` | DeepSeek | Long context reasoning (1M, 384K output) |
 | `deepseek-v4-flash` | DeepSeek | High throughput, cost-effective (1M) |
@@ -74,7 +78,8 @@ bankr config get llmKey
 | `qwen3.5-plus` | Alibaba | Long-context reasoning (1M) |
 | `qwen3.5-flash` | Alibaba | Fast, economical (1M) |
 | `qwen3-coder` | Alibaba | Code generation, debugging (262K) |
-| `kimi-k2.7-code` | Moonshot AI | Latest, code-focused long-context (262K) |
+| `kimi-k3` | Moonshot AI | Latest flagship, long-context multimodal (1M context, image input) |
+| `kimi-k2.7-code` | Moonshot AI | Code-focused long-context (262K) |
 | `kimi-k2.6` | Moonshot AI | Long-context (262K) |
 | `kimi-k2.5` | Moonshot AI | Long-context reasoning (262K) |
 | `minimax-m3` | MiniMax | Flagship multimodal reasoning (512K context) |
