@@ -225,8 +225,8 @@ Omit `threadId` to start a new conversation. CLI equivalent: `bankr agent prompt
 |----------|--------|------|-------------|
 | `/wallet/me` | GET | Read | Wallet info (address, chains) |
 | `/wallet/portfolio` | GET | Read | Portfolio balances, supports `?include=pnl,nfts` for progressive loading |
-| `/wallet/swap-quote` | POST | Read | Quote a same-chain EVM swap without executing |
-| `/wallet/swap` | POST | Write | Execute a same-chain EVM swap (output returns to your wallet) |
+| `/wallet/swap-quote` | POST | Read | Quote a swap (same-chain EVM, cross-chain, or Solana) without executing |
+| `/wallet/swap` | POST | Write | Execute a swap — same-chain EVM, cross-chain, or any Solana leg (output returns to your wallet) |
 | `/wallet/transfer` | POST | Write | Transfer tokens (multi-chain, supports `allowedRecipients` enforcement) |
 | `/wallet/sign` | POST | Write | Sign messages, typed data, or transactions |
 | `/wallet/submit` | POST | Write | Submit raw transactions to chain |
@@ -291,7 +291,7 @@ For full API details (request/response schemas, job states, rich data, polling s
 | `bankr wallet portfolio --json` | Output raw JSON |
 | `bankr wallet transfer --to <recipient> --token <symbol> --amount <amount>` | Transfer tokens; `--to` accepts a 0x address or ENS-style name (`.eth`, `.base.eth`, `.cb.id`), `--token` resolves symbols to contracts. Social handles work via the AI agent only. |
 | `bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base` | ENS recipient with explicit chain |
-| `bankr wallet swap --from <symbol/addr> --to <symbol/addr> --amount <amount>` | Swap tokens on a single EVM chain (same-chain). Resolves symbols to contracts; `--from`/`--to`/`--amount` required; `--chain` defaults to `base`. Solana is not supported. |
+| `bankr wallet swap --from <symbol/addr> --to <symbol/addr> --amount <amount>` | Swap tokens on a single EVM chain (same-chain). Resolves symbols to contracts; `--from`/`--to`/`--amount` required; `--chain` defaults to `base`. Solana is not supported (use the Wallet API or agent for cross-chain and Solana swaps). |
 | `bankr wallet swap --from ETH --to USDC --amount 0.1 --chain base --quote-only` | Print the swap quote (you pay / you receive / min received) without executing |
 | `bankr wallet sign` | Sign messages/typed data/transactions |
 | `bankr wallet submit` | Submit raw transactions |
@@ -1070,7 +1070,7 @@ curl -X POST "https://api.bankr.bot/wallet/transfer" \
 
 ### Swap (Direct)
 
-Swap tokens on a single EVM chain (same-chain) via CLI or Wallet API without AI processing. Both legs must be on the same EVM chain — Solana and cross-chain routes go through the AI agent. The CLI resolves token symbols to contracts and uses the quote's `minBuyAmount` as slippage protection when executing.
+Swap tokens via CLI or Wallet API without AI processing. The **CLI** (`bankr wallet swap`) executes **same-chain EVM** swaps only. The **Wallet API** (`/wallet/swap`, `/wallet/swap-quote`) also handles **cross-chain and Solana** legs: same-chain EVM stays on the fast direct path, while cross-chain or any Solana leg routes through Relay behind the same endpoints. The CLI resolves token symbols to contracts and uses the quote's `minBuyAmount` as slippage protection when executing.
 
 ```bash
 # CLI — quote only (no execution)
@@ -1090,9 +1090,15 @@ curl -X POST "https://api.bankr.bot/wallet/swap" \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"fromChain": "base", "fromToken": "0x...", "toChain": "base", "toToken": "0x...", "amount": "0.1", "minBuyAmount": "..."}'
+
+# REST API — cross-chain (Base → Solana): distinct fromChain/toChain, base58 mint on the Solana leg
+curl -X POST "https://api.bankr.bot/wallet/swap-quote" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"fromChain": "base", "fromToken": "0x...", "toChain": "solana", "toToken": "<base58-mint>", "amount": "25"}'
 ```
 
-The `/wallet/swap*` endpoints take token **contract addresses** (use the zero address for the chain's native token); the CLI resolves symbols for you. Swap output is always returned to your own wallet, so `allowedRecipients` does not apply. Supported EVM chains include `base`, `mainnet`, `polygon`, `unichain`, `arbitrum`, `bnb`, `worldchain`, and `robinhood`. Swaps of tokenized stocks on `robinhood` require a passed location check — without one the endpoint returns `403` with instructions to verify at the Bankr console. Execution is also checked against your Bankr Terminal per-transaction and daily spend limits (a `403` is returned when a limit would be exceeded).
+The `/wallet/swap*` endpoints take token **contract addresses** — EVM legs use a 0x address (zero address for the chain's native token), Solana legs use a base58 mint; the CLI resolves symbols for you. For a **cross-chain or Solana** swap, set `fromChain`/`toChain` to different chains (or to `solana`) and the endpoints quote/execute the route automatically. Swap output is always returned to your own wallet, so `allowedRecipients` does not apply. Supported EVM chains include `base`, `mainnet`, `polygon`, `unichain`, `arbitrum`, `bnb`, `worldchain`, and `robinhood`, plus `solana`. Swaps of tokenized stocks on `robinhood` require a passed location check on **either leg** — without one the endpoint returns `403` with instructions to verify at the Bankr console. Execution is also checked against your Bankr Terminal per-transaction and daily spend limits (a `403` is returned when a limit would be exceeded).
 
 ### Sign API (Synchronous)
 
