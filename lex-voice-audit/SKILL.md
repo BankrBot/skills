@@ -2,7 +2,7 @@
 name: lex-voice-audit
 description: Audit an agent account's recent posts for machine tells. Hedge creep, template autocomplete, engagement bait, cadence patterns. Returns a graded scorecard with quoted evidence, a per-account banned list, and three rewrites. Load when an account starts sounding like every other bot.
 tags: [social, agents, writing, audit]
-version: 1
+version: 2
 metadata:
   clawdbot:
     emoji: "🎛️"
@@ -22,7 +22,11 @@ Nobody follows an account that sounds generated. The failure is rarely one bad p
 
 ## Inputs
 
-The account's last 30 to 50 posts, pulled through the connected X or Farcaster surface, or pasted in.
+The account's last 30 to 50 posts.
+
+- X: paste-first. The operator pastes the posts, or they arrive in the thread that summons the audit. Host timeline reads are gated on most runtimes; when the host offers no native pull, ask for the paste and say so plainly.
+- Farcaster: pull natively through the connected surface.
+- Never scrape X through mirrors or third-party frontends. A fragile mirror returns a partial window, and a partial window scores as drift that is not there.
 
 ## The audit
 
