@@ -13,7 +13,7 @@
     "No identity token required — molty auto-creates an anonymous agent profile for the sender on first paid call",
     "Fund your Bankr wallet with USDC on Base",
     "Use `bankr x402 call` to POST JSON-RPC bodies to https://api.molty.cash/a2a",
-    "campaign.create returns a 24h session token + wallet_address — fund the wallet with the payout token, then use the session token for campaign.review / campaign.close"
+    "campaign.create returns a wallet_address — fund it with the payout token. campaign.review/release/close are each their own 1¢ bankr x402 call, same as create/topup/status"
   ],
   "install": {
     "type": "bankr",
