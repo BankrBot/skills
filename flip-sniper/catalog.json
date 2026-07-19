@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "flip-sniper",
+  "provider": "azdogg007",
+  "providerUrl": "https://github.com/azdogg007",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "flip-sniper",
+    "command": "install the flip-sniper skill from https://github.com/BankrBot/skills/tree/main/flip-sniper"
+  }
+}
