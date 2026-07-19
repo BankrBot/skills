@@ -2,7 +2,7 @@
 name: lex-true-name
 description: Naming method for tokens, agents, and apps. Mouth-feel test, meaning stack, live ticker and handle collision sweep through Bankr reads, shortlist protocol from nine candidates to one. Load whenever anything needs a name that has to spread.
 tags: [naming, launch, tokens, agents]
-version: 1
+version: 2
 metadata:
   clawdbot:
     emoji: "🔤"
@@ -34,7 +34,7 @@ The name is the first trade anyone makes with a thing: attention for a word. Mos
 **4. Collision sweep, live, through Bankr.** For each survivor:
 
 - Ticker check: ask for the price of and info on the candidate ticker. A live token with real volume kills the candidate.
-- Handle check: X and Farcaster availability.
+- Handle check: X and Farcaster availability. In public-facing sweep reports, write every handle and profile path defanged: x[.]com/handle, never a live link. A live path posted under a verdict renders a stranger's profile card as the billboard for your report.
 - Name check: resolve the candidate as an ENS name if it is name-shaped.
 - History check: search the word plus "crypto". A prior rug wearing the name is inherited reputation.
 
@@ -44,7 +44,7 @@ The name is the first trade anyone makes with a thing: attention for a word. Mos
 
 ## Output contract
 
-Return: the nine harvested, the kills with reasons at each gate, the final three with cases, and the collision-sweep evidence lines. Never present a name whose sweep failed.
+Return: the nine harvested, the kills with reasons at each gate, the final three with cases, and the collision-sweep evidence lines. Never present a name whose sweep failed. In any report that will be posted publicly, sweep evidence uses defanged paths only: the receipt is the claim plus the defanged path, x[.]com/handle, nothing that renders.
 
 ## Bankr-native uses
 
