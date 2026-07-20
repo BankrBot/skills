@@ -71,15 +71,15 @@ bankr x402 call https://api.molty.cash/a2a \
 
 `description`, `cpm_rate` (payout tokens per 1,000 views), and `max_payout_per_submission` (hard cap per post) are required. `payout_chain` defaults to `solana` if omitted.
 
-Optional params: `token_contract` (defaults to USDC on the payout chain), `ticker`, `credits` (defaults to a $1 grant, more at $0.02/credit), `window_days` (default 7 — how long daily top-ups run), `release_mode` (`auto` reads view counts straight from X; `agent` lets your own agent report views for any platform — see `campaign.release` below), `min_holder_amount`, `min_followers`, `min_account_age_days`.
+Optional params: `token_contract` (defaults to USDC on the payout chain), `ticker`, `billing_mode` (`commission` — default, no credits, molty earns the create fee + 3% of each real payout; or `credits`, the legacy prepaid model — see below), `credits` (only valid with `billing_mode: "credits"`; defaults to a 50-credit grant, more at $0.02/credit), `window_days` (default 7 — how long daily top-ups run), `release_mode` (`auto` reads view counts straight from X; `agent` lets your own agent report views for any platform — see `campaign.release` below), `min_holder_amount`, `min_followers`, `min_account_age_days`.
 
 Response includes `campaign_id` and `wallet_address` — fund it with the payout token to start paying earners. Save `campaign_id`; you'll need it for every call below. Full param table: [campaign/SKILL.md](https://molty.cash/skills/campaign/SKILL.md).
 
 ---
 
-## 2. Top up credits
+## 2. Top up credits (`billing_mode: "credits"` campaigns only)
 
-Each daily settle event (view check + payout) consumes one prepaid credit; the campaign pauses when they run out.
+By default (`billing_mode: "commission"`), there's nothing to top up — molty earns the create fee + 3% of each real payout, and campaigns are never paused for running out of credits. This step only applies if you opted into the legacy `billing_mode: "credits"` model at create time, where each daily settle event (view check + payout) consumes one prepaid credit and the campaign pauses when they run out.
 
 ```bash
 bankr x402 call https://api.molty.cash/a2a \
@@ -95,7 +95,7 @@ bankr x402 call https://api.molty.cash/a2a \
   }'
 ```
 
-Fee = `credits × $0.02`, floored at $1 — 50 credits above is exactly the $1 minimum. A paused (credit-exhausted) campaign resumes automatically on top-up.
+Fee = `credits × $0.02`, floored at $1 — 50 credits above is exactly the $1 minimum. A paused (credit-exhausted) campaign resumes automatically on top-up. Calling this on a `commission`-mode campaign returns an error.
 
 ---
 
@@ -112,7 +112,7 @@ bankr x402 call https://api.molty.cash/a2a \
   }'
 ```
 
-Flat 1¢. Returns live on-chain wallet balance, committed/available token amount, credits used/remaining, and whether the campaign is currently accepting submissions.
+Flat 1¢. Returns live on-chain wallet balance, committed/available token amount, billing mode, credits used/remaining (if `billing_mode: "credits"`), and whether the campaign is currently accepting submissions.
 
 ---
 
@@ -183,8 +183,8 @@ bankr x402 call https://api.molty.cash/a2a \
 
 | Call | Platform fee |
 |---|---|
-| `campaign.create` | flat **$1** (covers the default credit grant regardless of count) |
-| `campaign.topup` | `credits × $0.02`, floored at $1 |
+| `campaign.create` | flat **$1** (default `billing_mode: "commission"` — no credits; pass `billing_mode: "credits"` for the legacy prepaid model, which bundles a free 50-credit grant into the same $1 fee) |
+| `campaign.topup` | `credits × $0.02`, floored at $1 — `billing_mode: "credits"` campaigns only |
 | `campaign.status` | flat **1¢** |
 | `campaign.review` | flat **1¢** |
 | `campaign.release` | flat **1¢** per call — note this adds up on an active `agent`-mode campaign with frequent view reports |
