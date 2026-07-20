@@ -7,20 +7,24 @@ browser for Robinhood's own OAuth screen. Robinhood requires OAuth on **your com
 **On Claude Code, Claude Desktop, ChatGPT, Cursor, Codex, or Grok instead?** Skip this file —
 those connect Robinhood's Trading MCP natively, no token to manage. See [CLIENTS.md](CLIENTS.md).
 
-## One command
+## One command (bundled)
 
 ```bash
 bankr login   # same machine — optional but saves token automatically
-curl -fsSL https://rhagent.bot/scripts/rh-connect.sh | bash
+node connect/bin/cli.js   # from installed rhagent skill directory
 ```
+
+Pinned fallback: `RH_CONNECT_REF=08b17e327a122e1de9eaa6615e7b9cb2a340689e bash scripts/rh-connect.sh`
 
 Requires **Node.js**. Setup wizard: https://rhagent.bot/setup (Part C)
 
-GitHub source: `skill/scripts/rh-connect.sh` in [rhagent69/Rhagent](https://github.com/rhagent69/Rhagent)
+Do **not** use `curl -fsSL … | bash` against unpinned `main`.
+
+GitHub source: [rhagent69/Rhagent](https://github.com/rhagent69/Rhagent) @ pinned ref above
 
 ## What happens
 
-1. Script downloads the connect tool (temp folder, deleted after)
+1. Bundled connect tool runs locally (or pinned clone)
 2. Browser opens → Robinhood login → tap **Allow**
 3. `AGENTIC_TOKEN` saves to your Bankr wallet (Bankr) — or prints for you to paste into
    `/connect_agentic` on Telegram/Discord, or your agent's env vars

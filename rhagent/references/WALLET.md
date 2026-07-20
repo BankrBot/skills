@@ -1,10 +1,12 @@
 # Robinhood wallet — rhagent reference
 
-Connect Robinhood Crypto and/or Agentic. Keys stay in your agent env (Bankr vault, local secrets) — **never stored on rhagents or the gateway (stateless default)**.
+Connect Robinhood Crypto and/or Agentic. Keys stay in your agent env (Bankr vault, local secrets).
+
+**Credential boundary:** [CREDENTIAL-BOUNDARY.md](CREDENTIAL-BOUNDARY.md) — Robinhood keys **never** go to rhagent.bot.
 
 **Setup wizard (Parts A–D):** https://rhagent.bot/setup  
 **How to get each credential:** [SETUP-CREDENTIALS.md](SETUP-CREDENTIALS.md)  
-**Gateway:** `${RH_WALLET_API_URL:-https://rhwallet-rhagent-production.up.railway.app}`
+**Gateway (optional proxy):** `${RH_WALLET_API_URL:-https://rhwallet-rhagent-production.up.railway.app}`
 
 ---
 
@@ -45,14 +47,25 @@ Full steps: [SETUP-CREDENTIALS.md](SETUP-CREDENTIALS.md)
 
 ## Connect Agentic (Part C)
 
+**Preferred — bundled connect tool (no remote curl | bash):**
+
 ```bash
-curl -fsSL https://rhagent.bot/scripts/rh-connect.sh | bash
+# From the installed rhagent skill directory:
+node connect/bin/cli.js
 ```
 
-MCP server: `https://rhwallet-rhagent-production.up.railway.app/v1/agentic/mcp`  
-Transport: Streamable HTTP · Auth: `Bearer $AGENTIC_TOKEN`
+**Alternative — pinned helper script** (only if the skill bundle is unavailable):
 
-Do **not** point MCP at `agent.robinhood.com` directly — use the proxy.
+```bash
+RH_CONNECT_REF=08b17e327a122e1de9eaa6615e7b9cb2a340689e bash scripts/rh-connect.sh
+```
+
+Do **not** run `curl -fsSL … | bash` against unpinned `main`.
+
+MCP server: `https://rhwallet-rhagent-production.up.railway.app/v1/agentic/mcp`  
+Transport: Streamable HTTP · Auth: `Bearer $AGENTIC_TOKEN` (stays in your env — **not** sent to rhagent.bot)
+
+Do **not** point MCP at `agent.robinhood.com` directly — use the proxy or self-host.
 
 ---
 
@@ -78,10 +91,18 @@ Check `/health` — if `requires_gateway_secret: true`, you must send the gatewa
 
 This is a **public** value (not a private Robinhood credential). It does not grant access to anyone's account — users still need their own `RH_API_KEY` + `RH_PRIVATE_KEY_BASE64`.
 
+### ⚠️ Gateway trust
+
+The `rh()` helper below sends **your Robinhood API key and private key** to the configured gateway host on every call. That host can place trades. Prefer:
+
+1. **Self-hosted** [rhwallet-rhagent](https://github.com/rhagent69/rhwallet-rhagent) with `RH_WALLET_API_URL` pointing at your instance
+2. **Never** forward these headers to **rhagent.bot** — see [CREDENTIAL-BOUNDARY.md](CREDENTIAL-BOUNDARY.md)
+
 ```bash
 RH_WALLET_API_URL="${RH_WALLET_API_URL:-https://rhwallet-rhagent-production.up.railway.app}"
 RH_GATEWAY_SECRET="${RH_GATEWAY_SECRET:-uniqueissomethingimtesting}"
 
+# Optional helper — only when YOU trust RH_WALLET_API_URL
 rh() {
   curl -sS -X "$1" "${RH_WALLET_API_URL}$2" \
     -H "Authorization: Bearer ${RH_GATEWAY_SECRET}" \

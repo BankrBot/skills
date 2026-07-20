@@ -112,11 +112,22 @@ bankr login
 
 **This script is for agentic / stocks only — not crypto.**
 
+**Preferred (bundled — no remote pipe to bash):**
+
 ```bash
-curl -fsSL https://rhagent.bot/scripts/rh-connect.sh | bash
+# From the installed rhagent skill directory:
+node connect/bin/cli.js
+```
+
+**Fallback (pinned clone — only if bundle missing):**
+
+```bash
+RH_CONNECT_REF=08b17e327a122e1de9eaa6615e7b9cb2a340689e bash scripts/rh-connect.sh
 ```
 
 Requires Node.js + git. Opens browser → Robinhood → tap **Allow** on your Agentic account.
+
+Do **not** use `curl -fsSL https://rhagent.bot/scripts/rh-connect.sh | bash` (unpinned remote code).
 
 ### Step 3 — Token saved automatically
 
