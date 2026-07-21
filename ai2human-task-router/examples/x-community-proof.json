@@ -1,0 +1,16 @@
+{
+  "title": "Verify X community engagement proof",
+  "description": "Verify whether the participant completed the requested X action on the target post. Submit the participant profile URL, screenshot evidence, and a final verdict.",
+  "targetUrl": "https://x.com/ai2humannetwork",
+  "requestType": "community_proof",
+  "budget": "TBD",
+  "deadline": "24h",
+  "proofRequired": [
+    "participant X profile URL",
+    "screenshot evidence",
+    "execution summary",
+    "final pass/fail/needs_review verdict"
+  ],
+  "requesterName": "Bankr Agent",
+  "requesterHandle": "@bankrbot"
+}
