@@ -1,12 +1,12 @@
 {
-  "title": "Verify X community engagement proof",
-  "description": "Verify whether the participant completed the requested X action on the target post. Submit the participant profile URL, screenshot evidence, and a final verdict.",
+  "title": "Review a public X post's link and media claim",
+  "description": "Check whether the public target post, its stated external link, and its attached media are reachable and accurately described. Do not like, repost, follow, comment, vote, or otherwise manipulate engagement. Submit source URLs, screenshot evidence, and a final verdict.",
   "targetUrl": "https://x.com/ai2humannetwork",
-  "requestType": "community_proof",
+  "requestType": "public_content_claim_review",
   "budget": "TBD",
   "deadline": "24h",
   "proofRequired": [
-    "participant X profile URL",
+    "public post URL and linked destination URL",
     "screenshot evidence",
     "execution summary",
     "final pass/fail/needs_review verdict"
