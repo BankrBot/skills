@@ -349,8 +349,7 @@ OnchainKit provides both React components and utility functions:
 ## Resources
 
 ### Documentation
-- Official docs: [onchainkit.xyz](https://onchainkit.xyz)
-- GitHub: [github.com/coinbase/onchainkit](https://github.com/coinbase/onchainkit)
+- Source and documentation: [github.com/coinbase/onchainkit](https://github.com/coinbase/onchainkit)
 - Examples: [OnchainKit playground](https://github.com/coinbase/onchainkit/tree/main/packages/playground)
 
 ### Support
