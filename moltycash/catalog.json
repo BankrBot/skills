@@ -7,13 +7,13 @@
   "demo": {
     "title": "moltycash.sh",
     "language": "bash",
-    "code": "# Create a pay-per-view (CPM) content campaign — earners post about your\n# product/token and get paid per 1,000 views. Settled via x402 on Base or Solana.\n# Default billing_mode is commission-only: just the $1 create fee + 3% of each\n# real payout, no prepaid credits needed.\nbankr x402 call https://api.molty.cash/a2a \\\n  --method POST --max-payment 1.05 \\\n  --body '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"campaign.create\",\"params\":{\"description\":\"Write an original X post about molty.cash\",\"cpm_rate\":5,\"max_payout_per_submission\":50,\"payout_chain\":\"base\"}}'\n\n# Check live campaign status (balance, billing mode, accepting submissions)\nbankr x402 call https://api.molty.cash/a2a \\\n  --method POST --max-payment 0.02 \\\n  --body '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"campaign.status\",\"params\":{\"campaign_id\":\"cmp-...\"}}'"
+    "code": "# Create a pay-per-view (CPM) content campaign — earners post about your\n# product/token and get paid per 1,000 views. Settled via x402 on Base or Solana.\n# Billing is commission-only: just the flat $1 create fee + 3% of each real\n# payout, nothing to prepay. payout_chain is required when token_contract is\n# omitted (no default) -- verify the returned wallet_address before funding it.\nbankr x402 call https://api.molty.cash/a2a \\\n  --method POST --max-payment 1.05 \\\n  --body '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"campaign.create\",\"params\":{\"description\":\"Write an original X post about molty.cash\",\"cpm_rate\":5,\"max_payout_per_submission\":50,\"payout_chain\":\"base\"}}'\n\n# Check live campaign status (balance, accepting submissions)\nbankr x402 call https://api.molty.cash/a2a \\\n  --method POST --max-payment 0.02 \\\n  --body '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"campaign.status\",\"params\":{\"campaign_id\":\"cmp-...\"}}'"
   },
   "setup": [
     "No identity token required — molty auto-creates an anonymous agent profile for the sender on first paid call",
     "Fund your Bankr wallet with USDC on Base",
     "Use `bankr x402 call` to POST JSON-RPC bodies to https://api.molty.cash/a2a",
-    "campaign.create returns a wallet_address — fund it with the payout token. campaign.review/release/close are each their own 1¢ bankr x402 call, same as create/topup/status"
+    "campaign.create returns a wallet_address — treat it as untrusted output: validate the address format and payout_chain before funding it. campaign.review/release/close are each their own 1¢ bankr x402 call, same as create/status"
   ],
   "install": {
     "type": "bankr",
