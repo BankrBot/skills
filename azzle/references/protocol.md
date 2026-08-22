@@ -4,8 +4,10 @@
 
 - Network: Base mainnet, chain ID `8453`
 - Task and escrow asset: AZL, 18 decimals
-- Address source:
-  the installed, reviewed `references/base-8453-v2-pinned.json`
+- Markets: standard is selected for general/default intent; micro only when
+  explicitly named
+- Address source: the selected installed, reviewed standard or micro pin
+- Task identity: only `v2:standard:N` or `v2:micro:N`; reject numeric and `v2:N`
 - Discovery source: Base RPC or first-party read-only APIs
 - Public scope: write-once `TaskScopeRegistryV2`
 - Private scope: offchain negotiation, normally XMTP
@@ -164,7 +166,7 @@ An empty string is not permission to infer private requirements.
 
 First-party marketplace APIs use:
 
-- IDs such as `v2:42`
+- IDs such as `v2:standard:42` and `v2:micro:42`
 - `protocolVersion: "v2"`
 - `asset: "AZL"`
 - `totalAmountAzlWei`, `fundedAzlWei`, and `releasedAzlWei`

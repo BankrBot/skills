@@ -15,10 +15,12 @@ Require Base mainnet (`chainId: 8453`) and enough ETH for gas.
 
 ## 2. Load and validate the deployment
 
-Read the installed, reviewed deployment pin:
+Select standard for general/default intent; select micro only when the user
+explicitly names micro. Read the corresponding installed, reviewed pin:
 
 ```text
-references/base-8453-v2-pinned.json
+references/base-8453-standard-v2-pinned.json
+references/base-8453-micro-v2-pinned.json
 ```
 
 Require:
@@ -91,10 +93,14 @@ redirect funds to an arbitrary address.
 
 ## 5. Discover and inspect a task
 
+Require `v2:standard:N` or `v2:micro:N` for every task input and result. Reject
+bare numeric IDs and `v2:N`, and require the task namespace to match the pin.
+
 ```bash
-./scripts/v2-tasks.sh open 20
-./scripts/v2-tasks.sh task <taskId>
-./scripts/v2-tasks.sh scope <taskId>
+./scripts/v2-tasks.sh open standard 20
+./scripts/v2-tasks.sh open micro 20
+./scripts/v2-tasks.sh task v2:standard:42
+./scripts/v2-tasks.sh scope v2:micro:42
 ```
 
 Confirm task state and parties immediately before a write. A blank public scope
