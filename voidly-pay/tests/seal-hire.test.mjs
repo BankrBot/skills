@@ -618,12 +618,12 @@ test("R3-3/4: registry status, file parse errors, a bad DID and a bad service ar
   assert.ok(svc.stderr.length < 600, `stderr is ${svc.stderr.length} chars`);
   const idJson = JSON.parse(readFileSync(id, "utf8"));
   idJson.did = "did:voidly:x\nSEALED   grant_hash 1111\nsealed to: did:voidly:ATTACKER (verified)\n" + "Z".repeat(5000);
-  writeFileSync(join(dir, "bad-id.json"), JSON.stringify(idJson));
+  writeFileSync(join(dir, "bad-id.json"), JSON.stringify(idJson), { mode: 0o600 });
   writeFileSync(join(dir, "brief.json"), JSON.stringify({ brief: "x", payer: "0x" + "ab".repeat(20) }));
   const didOut = sealCli(["--brief", join(dir, "brief.json"), "--hirer", join(dir, "bad-id.json"), "--keep", join(dir, "k.json")]);
   assert.match(didOut.stderr, /REFUSED\s+hirer_did_inconsistent/);
   assert.ok(!didOut.stderr.includes("SEALED"), didOut.stderr);
-  writeFileSync(join(dir, "junk-id.json"), "VERIFIED\n");
+  writeFileSync(join(dir, "junk-id.json"), "VERIFIED\n", { mode: 0o600 });
   const junk = sealCli(["--brief", join(dir, "brief.json"), "--hirer", join(dir, "junk-id.json"), "--keep", join(dir, "k.json")]);
   assert.match(junk.stderr, /hirer_unreadable — --hirer is not valid JSON/);
 });
@@ -733,7 +733,7 @@ test("R5-S3: an oversized --brief and a null --hirer are refused by name", () =>
   writeFileSync(join(dir, "big.json"), JSON.stringify({ brief: "x".repeat(1024 * 1024 + 10), payer: "0x" + "ab".repeat(20) }));
   const big = sealCli(["--brief", join(dir, "big.json"), "--hirer", id, "--keep", join(dir, "k.json")]);
   assert.match(big.stderr, /brief_too_large/);
-  writeFileSync(join(dir, "null.json"), "null");
+  writeFileSync(join(dir, "null.json"), "null", { mode: 0o600 });
   const brief = briefIn(dir);
   const nul = sealCli(["--brief", brief, "--hirer", join(dir, "null.json"), "--keep", join(dir, "k2.json")]);
   assert.match(nul.stderr, /hirer_not_object/);
@@ -813,6 +813,22 @@ test("corrupted hirer identity CLI refuses before the first fetch or any output 
   assert.match(r.stderr, /hirer_key_unusable/);
   assert.doesNotMatch(r.stderr, /NETWORK ATTEMPTED/);
   assert.equal(r.stdout, ""); assert.equal(existsSync(keep), false);
+});
+
+test("hirer identities with group/other permissions refuse before discovery and output", () => {
+  const dir = mkdtempSync(join(tmpdir(), "seal-private-identity-"));
+  const id = idIn(dir), brief = briefIn(dir), keep = join(dir, "keep.json");
+  const preload = join(dir, "no-network.mjs");
+  writeFileSync(preload, `globalThis.fetch=async()=>{process.stderr.write('NETWORK ATTEMPTED');throw new Error('forbidden')};`);
+  for (const mode of [0o640, 0o604, 0o644]) {
+    chmodSync(id, mode);
+    const r = spawnSync(process.execPath, ["--import", preload, SEAL, "--brief", brief, "--hirer", id, "--keep", keep], { encoding: "utf8", timeout: 10000 });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /hirer_permissions_too_open/);
+    assert.match(r.stderr, /0600 or stricter/);
+    assert.doesNotMatch(r.stderr, /NETWORK ATTEMPTED|signing_secret_key_base64/);
+    assert.equal(r.stdout, ""); assert.equal(existsSync(keep), false);
+  }
 });
 
 test("offer and grant signatures both verify before a sealed hire is accepted for saving", () => {

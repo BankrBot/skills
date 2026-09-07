@@ -25,6 +25,40 @@ test("bounded reader returns only unchanged regular bytes and refuses oversize, 
   assert.throws(() => readFileCapped(path, Infinity), errorCode("limit"));
 });
 
+test("private reads accept owner-only modes and refuse group/other permissions before open", (t) => {
+  const { path } = fixture(t); fs.writeFileSync(path, "inert");
+  for (const mode of [0o600, 0o400]) {
+    fs.chmodSync(path, mode);
+    assert.equal(readFileCapped(path, 16, { requirePrivate: true }).toString(), "inert");
+  }
+  for (const mode of [0o640, 0o604, 0o644, 0o620, 0o602, 0o610, 0o601]) {
+    fs.chmodSync(path, mode);
+    let opens = 0;
+    assert.throws(() => readFileCapped(path, 16, { requirePrivate: true, ops: { ...fs,
+      openSync(...args) { opens++; return fs.openSync(...args); },
+    }}), errorCode("permissions"));
+    assert.equal(opens, 0);
+  }
+  // Public artifacts remain readable through the same bounded helper.
+  assert.equal(readFileCapped(path, 16).toString(), "inert");
+});
+
+test("private permission changes during open or reading refuse and close the owned descriptor", (t) => {
+  const { path } = fixture(t); fs.writeFileSync(path, "inert");
+  for (const phase of ["open", "read"]) {
+    fs.chmodSync(path, 0o600);
+    let reads = 0, closes = 0;
+    const ops = { ...fs,
+      openSync(...args) { const fd = fs.openSync(...args); if (phase === "open") fs.chmodSync(path, 0o644); return fd; },
+      readSync(...args) { reads++; const n = fs.readSync(...args); if (phase === "read") fs.chmodSync(path, 0o640); return n; },
+      closeSync(fd) { closes++; fs.closeSync(fd); },
+    };
+    assert.throws(() => readFileCapped(path, 16, { requirePrivate: true, ops }), errorCode("permissions"));
+    assert.equal(closes, 1);
+    if (phase === "open") assert.equal(reads, 0);
+  }
+});
+
 test("replacement after lstat never reads another inode or follows a symlink", (t) => {
   const { dir, path } = fixture(t);
   const other = join(dir, "other");

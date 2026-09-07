@@ -13,6 +13,11 @@ const fail = (code, bytes) => { throw new LocalFileError(code, bytes); };
 const sameObject = (a, b) => a.dev === b.dev && a.ino === b.ino && a.mode === b.mode;
 const sameSnapshot = (a, b) => sameObject(a, b) && a.size === b.size &&
   a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs && a.nlink === b.nlink;
+// A POSIX mode check, matching the secret-response reader. It does not inspect
+// extended ACLs or establish secrecy from another process running as this user.
+const checkPrivateMode = (metadata, required) => {
+  if (required && (metadata.mode & 0o077) !== 0) fail("permissions");
+};
 const flags = () => {
   // Without these primitives a replacement FIFO can block before fstat, or a
   // final-component symlink can redirect the read. No silent platform fallback.
@@ -35,20 +40,25 @@ function readBounded(fd, cap, ops) {
 }
 
 /** Test-only callers may inject syscall faults; production uses Node's fs. */
-export function readFileCapped(path, cap, { ops = fs } = {}) {
+export function readFileCapped(path, cap, { requirePrivate = false, ops = fs } = {}) {
   if (!Number.isSafeInteger(cap) || cap < 1 || cap > 1024 * 1024) fail("limit");
   let fd = null, failure, bytes;
   try {
     const before = ops.lstatSync(path);
     if (before.isSymbolicLink()) fail("symlink");
     if (!before.isFile()) fail("not_regular");
+    checkPrivateMode(before, requirePrivate);
     if (before.size > cap) fail("too_large", before.size);
     fd = ops.openSync(path, fs.constants.O_RDONLY | flags());
     const opened = ops.fstatSync(fd);
+    checkPrivateMode(opened, requirePrivate);
     if (!opened.isFile() || !sameSnapshot(before, opened)) fail("changed");
     bytes = readBounded(fd, cap, ops);
-    if (bytes.length !== opened.size || !sameSnapshot(opened, ops.fstatSync(fd)) ||
-        !sameSnapshot(opened, ops.lstatSync(path))) fail("changed");
+    const after = ops.fstatSync(fd), named = ops.lstatSync(path);
+    checkPrivateMode(after, requirePrivate);
+    checkPrivateMode(named, requirePrivate);
+    if (bytes.length !== opened.size || !sameSnapshot(opened, after) ||
+        !sameSnapshot(opened, named)) fail("changed");
   } catch (error) {
     failure = error instanceof LocalFileError ? error : new LocalFileError("read");
   } finally {
@@ -65,6 +75,8 @@ export function readFileCapped(path, cap, { ops = fs } = {}) {
  * Failed files are retained for explicit recovery: check-then-unlink cannot
  * safely remove only our inode when another process controls the directory.
  * Path checks detect observed movement; this is not an atomic directory lease.
+ * Checked fsync is OS synchronization, not a universal power-loss guarantee
+ * (macOS offers the stronger F_FULLFSYNC separately from Node's fsync API).
  */
 export function writeNewVerifiedFile(path, bytes, { aliases = [], ops = fs } = {}) {
   if (!Buffer.isBuffer(bytes) || bytes.length > 2 * 1024 * 1024) fail("limit");

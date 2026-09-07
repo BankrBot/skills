@@ -229,14 +229,15 @@ const writeNewFileOrDie = (typedPath, value, die, what) => {
 
 // Only this bounded descriptor read reaches JSON.parse. No input path is opened
 // again after checking its size/type. Error text never contains input bytes.
-export function loadLocalJson(path, what, cap, die) {
+export function loadLocalJson(path, what, cap, die, { requirePrivate = false } = {}) {
   let bytes;
   try {
-    bytes = readFileCapped(path, cap);
+    bytes = readFileCapped(path, cap, { requirePrivate });
   } catch (error) {
     const code = error instanceof LocalFileError ? error.code : "read";
     if (code === "not_regular") die(`${what}_not_a_file`, `--${what} is not a regular file`);
     if (code === "too_large") die(`${what}_too_large`, `--${what} exceeds its ${cap}-byte limit`);
+    if (code === "permissions") die(`${what}_permissions_too_open`, `--${what} contains signing identity material; remove group/other permissions (mode 0600 or stricter) before continuing`);
     die(`${what}_unreadable`, `--${what} could not be read as an unchanged, bounded regular file`);
   }
   try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); }
@@ -570,7 +571,7 @@ if (isMain) {
   }
   const serviceRef = SERVICE_REF;
 
-  const identity = loadLocalJson(hirerPath, "hirer", MAX_IDENTITY_FILE_BYTES, die);
+  const identity = loadLocalJson(hirerPath, "hirer", MAX_IDENTITY_FILE_BYTES, die, { requirePrivate: true });
   const loadedIdentity = loadHirerIdentity(identity);
   if (!loadedIdentity.ok) die(loadedIdentity.reason, loadedIdentity.detail);
   const { kp, did, publicKeyBase64 } = loadedIdentity;
