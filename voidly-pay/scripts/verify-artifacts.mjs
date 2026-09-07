@@ -48,7 +48,8 @@
 //
 // Exit 0 VERIFIED / 1 REFUSED, by name.
 
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { realpathSync } from "node:fs";
+import { LocalFileError, readFileCapped } from "./lib/local-files.mjs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import {
@@ -200,30 +201,30 @@ const refuse = (name, detail) => {
 export const usableValue = usableArgValue;
 
 const loadJson = (path, what) => {
-  // A FIFO hung this read forever and /dev/zero was read until memory ran
-  // out; only a regular file of plausible size is read.
-  let st;
+  let bytes;
   try {
-    st = statSync(path);
-  } catch (e) {
-    refuse(`${what}_unreadable`, `--${what} could not be read (${e && e.code ? e.code : "error"})`);
+    bytes = readFileCapped(path, MAX_ARTIFACT_FILE_BYTES);
+  } catch (error) {
+    if (error instanceof LocalFileError && error.code === "not_regular") refuse(`${what}_unreadable`, `--${what} is not a regular file`);
+    if (error instanceof LocalFileError && error.code === "too_large") refuse(`${what}_unreadable`, `--${what} is ${error.bytes ?? MAX_ARTIFACT_FILE_BYTES + 1} bytes; these documents are small`);
+    refuse(`${what}_unreadable`, `--${what} could not be read as an unchanged, bounded regular file`);
   }
-  if (!st.isFile()) refuse(`${what}_unreadable`, `--${what} is not a regular file`);
-  if (st.size > MAX_ARTIFACT_FILE_BYTES) refuse(`${what}_unreadable`, `--${what} is ${st.size} bytes; these documents are small`);
-  let text;
-  try {
-    text = readFileSync(path, "utf8");
-  } catch (e) {
-    refuse(`${what}_unreadable`, `--${what} could not be read (${e && e.code ? e.code : "error"})`);
-  }
-  try {
-    return JSON.parse(text);
-  } catch {
-    // The parser's message quotes the file's own bytes; a file someone handed
-    // you is not text to relay.
-    refuse(`${what}_unreadable`, `--${what} is not valid JSON`);
-  }
+  try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); }
+  catch { refuse(`${what}_unreadable`, `--${what} is not valid JSON`); }
 };
+
+/** The supplied key may confirm the verified manifest key, never replace it. */
+export function attestationTrustRefusal({ env, signatureBase64, manifestKeyBase64, suppliedKey }) {
+  if (typeof manifestKeyBase64 !== "string" || manifestKeyBase64.length === 0) return { reason: "manifest_carries_no_attestor_key" };
+  if (suppliedKey !== undefined && suppliedKey !== manifestKeyBase64) return { reason: "attestor_key_not_the_manifest_key" };
+  // The manifest verifier already validated this encoding; retain a strict
+  // boundary here so pure callers cannot use Buffer's permissive base64 parser.
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(manifestKeyBase64)) return { reason: "attestor_key_undecodable" };
+  const key = Uint8Array.from(Buffer.from(manifestKeyBase64, "base64"));
+  if (key.length !== 32 || Buffer.from(key).toString("base64") !== manifestKeyBase64) return { reason: "attestor_key_wrong_length" };
+  if (!verifyDetached(env, signatureBase64, key)) return { reason: "attestation_signature_invalid" };
+  return null;
+}
 
 /**
  * --grant-hash was argv, and nothing ever tied it to --grant.
@@ -399,28 +400,13 @@ if (!isMain) {
     if (!out.ok) {
       refuse(out.reason, `${out.detail} — the attestor key is read from the verified manifest, so an unverified manifest is a refusal, not a fallback to --attestor-key`);
     }
-    const manifestKeyBase64 = out.provider.manifest.attestor_public_key_base64;
-    if (typeof manifestKeyBase64 !== "string" || manifestKeyBase64.length === 0) {
-      refuse("manifest_carries_no_attestor_key");
-    }
-    if (suppliedKey !== undefined && suppliedKey !== manifestKeyBase64) {
-      refuse(
-        "attestor_key_not_the_manifest_key",
-        "you passed a key the verified manifest does not publish; the manifest is the trust root, argv is not",
-      );
-    }
-    let key;
-    try {
-      key = Uint8Array.from(Buffer.from(manifestKeyBase64, "base64"));
-    } catch {
-      refuse("attestor_key_undecodable");
-    }
-    if (key.length !== 32) refuse("attestor_key_wrong_length", `${key.length} bytes, need 32`);
-
-    // 4. The signature, under that key and no other.
-    if (!verifyDetached(shaped.env, signature, key)) {
-      refuse("attestation_signature_invalid");
-    }
+    const trustBad = attestationTrustRefusal({
+      env: shaped.env,
+      signatureBase64: signature,
+      manifestKeyBase64: out.provider.manifest.attestor_public_key_base64,
+      suppliedKey,
+    });
+    if (trustBad) refuse(trustBad.reason);
 
     console.log("VERIFIED  redemption attestation");
     console.log(`  grant_hash:   ${shaped.env.grant_hash}`);

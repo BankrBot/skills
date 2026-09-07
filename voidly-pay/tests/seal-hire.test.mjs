@@ -13,8 +13,8 @@ import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import nacl from "tweetnacl";
 import naclUtil from "tweetnacl-util";
-import { deriveDidFromSigningKey } from "@voidly/session";
-import { checkHirerRegistration } from "../scripts/seal-hire.mjs";
+import { canonicalBytes, deriveDidFromSigningKey } from "@voidly/session";
+import { checkHirerRegistration, loadHirerIdentity, verifySealedSignatures, offeringRefusal } from "../scripts/seal-hire.mjs";
 import { verifiedProvider, EXPECTED_ACCEPT_URL, EXPECTED_WORKER_BASE_URL, EXPECTED_PROVIDER_DID, manifestUrlFieldRefusal, readBodyCapped, cappedFetch, MAX_DOCUMENT_BYTES, priceBandRefusal, quoted, usableArgValue, EXPECTED_PRICE_MIN_AMOUNT, EXPECTED_PRICE_MAX_AMOUNT } from "../scripts/lib/pins.mjs";
 import { createServer } from "node:http";
 
@@ -309,18 +309,29 @@ test("a keep path whose directory does not exist refuses before any network call
   assert.doesNotMatch(String(err.stdout ?? ""), /SEALED/);
 });
 
-test("source order: the keep and grant files are written and verified before SEALED or the wire is printed", () => {
-  const src = readFileSync(join(SKILL, "scripts/seal-hire.mjs"), "utf8");
-  const main = src.slice(src.indexOf("const isMain ="));
-  const keepWrite = main.indexOf('writeNewFileOrDie(keepPath, keep, die, "keep")');
-  const grantWrite = main.indexOf('writeNewFileOrDie(grantPath, hire.wire.grant, die, "grant")');
-  const readBack = main.indexOf("keep_unverifiable");
-  const sealed = main.indexOf("console.log(`SEALED");
-  const wire = main.indexOf("JSON.stringify(hire.wire, null, 2)");
-  for (const [name, at] of [["keep write", keepWrite], ["grant write", grantWrite], ["read-back check", readBack]]) {
-    assert.ok(at > 0, `${name} not found`);
-    assert.ok(at < sealed, `${name} happens after SEALED is printed`);
-    assert.ok(at < wire, `${name} happens after the wire is printed`);
+test("identity CLI completes short writes before MINTED, and refuses zero writes or sync failure", () => {
+  for (const fault of ["partial", "zero", "sync", "close"]) {
+    const dir = mkdtempSync(join(tmpdir(), "seal-save-fault-"));
+    const preload = join(dir, "fault.mjs");
+    writeFileSync(preload, `import fs from 'node:fs'; import {syncBuiltinESMExports} from 'node:module';
+      const write=fs.writeSync, close=fs.closeSync, open=fs.openSync, owned=new Set();
+      fs.openSync=(p,flags,...rest)=>{const fd=open(p,flags,...rest);if(typeof flags==='number' && (flags & fs.constants.O_EXCL)) owned.add(fd);return fd};
+      fs.writeSync=(fd,b,offset,size,position)=>${fault === "zero" ? "0" : "write(fd,b,offset,Math.min(size,7),position)"};
+      ${fault === "sync" ? "fs.fsyncSync=()=>{throw new Error('SENSITIVE FAULT')};" : ""}
+      ${fault === "close" ? "fs.closeSync=(fd)=>{close(fd);if(owned.delete(fd))throw new Error('SENSITIVE FAULT')};" : ""}
+      globalThis.fetch=async()=>{throw new Error('NETWORK FORBIDDEN')}; syncBuiltinESMExports();`);
+    const target = join(dir, "id.json");
+    const r = spawnSync(process.execPath, ["--import", preload, SEAL, "--mint-identity", target], { encoding: "utf8", timeout: 10000 });
+    if (fault === "partial") {
+      assert.equal(r.status, 0, r.stderr);
+      assert.match(r.stdout, /^MINTED/m);
+      assert.equal(loadHirerIdentity(JSON.parse(readFileSync(target, "utf8"))).ok, true);
+    } else {
+      assert.equal(r.status, 1);
+      assert.doesNotMatch(r.stdout, /MINTED|SEALED|wire/);
+      assert.match(r.stderr, /identity_unverifiable/);
+    }
+    assert.doesNotMatch(r.stderr, /SENSITIVE FAULT/);
   }
 });
 
@@ -610,7 +621,7 @@ test("R3-3/4: registry status, file parse errors, a bad DID and a bad service ar
   writeFileSync(join(dir, "bad-id.json"), JSON.stringify(idJson));
   writeFileSync(join(dir, "brief.json"), JSON.stringify({ brief: "x", payer: "0x" + "ab".repeat(20) }));
   const didOut = sealCli(["--brief", join(dir, "brief.json"), "--hirer", join(dir, "bad-id.json"), "--keep", join(dir, "k.json")]);
-  assert.match(didOut.stderr, /REFUSED\s+hirer_did_inconsistent — file says \(a value that is not a DID\)/);
+  assert.match(didOut.stderr, /REFUSED\s+hirer_did_inconsistent/);
   assert.ok(!didOut.stderr.includes("SEALED"), didOut.stderr);
   writeFileSync(join(dir, "junk-id.json"), "VERIFIED\n");
   const junk = sealCli(["--brief", join(dir, "brief.json"), "--hirer", join(dir, "junk-id.json"), "--keep", join(dir, "k.json")]);
@@ -636,15 +647,21 @@ test("R3-6: every Unicode dash, format character and blank is refused as a flag 
   assert.deepEqual(readdirSync(dir).filter((f) => !["brief.json", "id.json"].includes(f)), []);
 });
 
-test("R4-S1: an offering whose payee is not the pin refuses before the registry is asked", async () => {
-  const { payeeRefusal, EXPECTED_PAYEE_ACCOUNT } = await import("../scripts/lib/pins.mjs");
-  assert.equal(payeeRefusal({ price: { payee_account: EXPECTED_PAYEE_ACCOUNT } }), null);
-  const r = payeeRefusal({ price: { payee_account: "eip155:8453:0x" + "de".repeat(20) } });
-  assert.equal(r.reason, "payee_not_pinned");
-  assert.ok(!r.detail.includes("dedede"));
-  // the source order: the payee pin sits before checkHirerRegistration is called
-  const src = readFileSync(join(SKILL, "scripts/seal-hire.mjs"), "utf8");
-  assert.ok(src.indexOf("payeeRefusal(offering)") < src.indexOf("await checkHirerRegistration({"), "the payee pin must precede the registry GET");
+test("R4-S1: the production offering gate refuses payee, band, asset and chain changes", async () => {
+  const { EXPECTED_PAYEE_ACCOUNT, CANONICAL_USDC_BASE } = await import("../scripts/lib/pins.mjs");
+  const price = { chain: "eip155:8453", asset: `eip155:8453/erc20:${CANONICAL_USDC_BASE}`, payee_account: EXPECTED_PAYEE_ACCOUNT, min_amount: "50000", max_amount: "5000000" };
+  assert.equal(offeringRefusal({ price }), null);
+  for (const [field, value, reason] of [
+    ["payee_account", "eip155:8453:0x" + "de".repeat(20), "payee_not_pinned"],
+    ["min_amount", "50001", "price_band_not_pinned"],
+    ["max_amount", "5000001", "price_band_not_pinned"],
+    ["asset", "untrusted\nDIRECTIVE", "asset_not_canonical_usdc"],
+    ["chain", "untrusted\nDIRECTIVE", "chain_not_base"],
+  ]) {
+    const r = offeringRefusal({ price: { ...price, [field]: value } });
+    assert.equal(r.reason, reason);
+    assert.doesNotMatch(r.detail, /DIRECTIVE|dedede/);
+  }
 });
 
 test("R4-S7: a FIFO at --brief or --hirer is refused by name instead of blocking forever", () => {
@@ -760,4 +777,50 @@ test("R6-S1: the write helper compares inodes, not strings — a differently-spe
   } else {
     assert.match(r.stderr, /identity_dir_unwritable/);
   }
+});
+
+
+test("hirer seed, appended public key, declared public key and DID must all agree", () => {
+  const kp = nacl.sign.keyPair.fromSeed(new Uint8Array(32).fill(35));
+  const identity = { did: deriveDidFromSigningKey(kp.publicKey), signing_public_key_base64: encodeBase64(kp.publicKey), signing_secret_key_base64: encodeBase64(kp.secretKey) };
+  const good = loadHirerIdentity(identity);
+  assert.equal(good.ok, true);
+  assert.deepEqual(good.kp.publicKey, kp.publicKey);
+  for (const index of [0, 32, 63]) {
+    const bad = new Uint8Array(kp.secretKey); bad[index] ^= 1;
+    const r = loadHirerIdentity({ ...identity, signing_secret_key_base64: encodeBase64(bad) });
+    assert.equal(r.reason, "hirer_key_unusable");
+    assert.ok(!JSON.stringify(r).includes(encodeBase64(bad)));
+  }
+  for (const value of [undefined, null, "AA==", encodeBase64(new Uint8Array(32))]) {
+    assert.equal(loadHirerIdentity({ ...identity, signing_public_key_base64: value }).reason, "hirer_public_key_inconsistent");
+  }
+  assert.equal(loadHirerIdentity({ ...identity, did: undefined }).reason, "hirer_did_inconsistent");
+  assert.equal(loadHirerIdentity({ ...identity, did: "did:voidly:other" }).reason, "hirer_did_inconsistent");
+});
+
+test("corrupted hirer identity CLI refuses before the first fetch or any output file", () => {
+  const dir = mkdtempSync(join(tmpdir(), "seal-bad-seed-"));
+  const id = idIn(dir), brief = briefIn(dir), keep = join(dir, "keep.json");
+  const identity = JSON.parse(readFileSync(id, "utf8"));
+  const secret = naclUtil.decodeBase64(identity.signing_secret_key_base64); secret[0] ^= 1;
+  identity.signing_secret_key_base64 = encodeBase64(secret);
+  writeFileSync(id, JSON.stringify(identity));
+  const preload = join(dir, "no-network.mjs");
+  writeFileSync(preload, `globalThis.fetch=async()=>{process.stderr.write('NETWORK ATTEMPTED');throw new Error('forbidden')};`);
+  const r = spawnSync(process.execPath, ["--import", preload, SEAL, "--brief", brief, "--hirer", id, "--keep", keep], { encoding: "utf8", timeout: 10000 });
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /hirer_key_unusable/);
+  assert.doesNotMatch(r.stderr, /NETWORK ATTEMPTED/);
+  assert.equal(r.stdout, ""); assert.equal(existsSync(keep), false);
+});
+
+test("offer and grant signatures both verify before a sealed hire is accepted for saving", () => {
+  const kp = nacl.sign.keyPair.fromSeed(new Uint8Array(32).fill(36));
+  const offer = { schema: "inert-offer", value: "one" }, grant = { schema: "inert-grant", value: "two" };
+  const wire = { offer, grant, offer_signature_base64: encodeBase64(nacl.sign.detached(canonicalBytes(offer), kp.secretKey)), grant_signature_base64: encodeBase64(nacl.sign.detached(canonicalBytes(grant), kp.secretKey)) };
+  assert.equal(verifySealedSignatures(wire, kp.publicKey), true);
+  for (const field of ["offer", "grant"]) assert.equal(verifySealedSignatures({ ...wire, [field]: { ...wire[field], value: "tampered" } }, kp.publicKey), false);
+  assert.equal(verifySealedSignatures({ ...wire, grant_signature_base64: "AA==" }, kp.publicKey), false);
+  assert.equal(verifySealedSignatures(wire, new Uint8Array(32)), false);
 });

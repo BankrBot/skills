@@ -9,8 +9,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { bindAttestationToGrant, bindGrantToPins, invokedAsMain, shown, usableValue } from "../scripts/verify-artifacts.mjs";
-import { envelopeHash } from "@voidly/session";
+import { attestationTrustRefusal, bindAttestationToGrant, bindGrantToPins, invokedAsMain, shown, usableValue } from "../scripts/verify-artifacts.mjs";
+import nacl from "tweetnacl";
+import { canonicalBytes, envelopeHash } from "@voidly/session";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -193,20 +194,21 @@ test("C: verify-artifacts imports the reviewed pins — it was the only script t
   assert.match(src, /verifiedProvider\(fetchVerifiedProvider\)/, "attestor key comes from the verified manifest");
 });
 
-test("C: the attestor key is never taken from argv", () => {
-  const src = readFileSync(join(SKILL, "scripts/verify-artifacts.mjs"), "utf8");
-  // The only use of a supplied key is an equality check against the manifest.
-  assert.match(src, /attestor_key_not_the_manifest_key/);
-  assert.match(
-    src,
-    /Buffer\.from\(manifestKeyBase64, "base64"\)/,
-    "the bytes verified against must come from the manifest variable, not the argv one",
-  );
-  assert.doesNotMatch(
-    src,
-    /Buffer\.from\(suppliedKey/,
-    "an argv key must never be decoded into the verification key",
-  );
+test("C: the production attestor gate verifies the exact envelope under the manifest key only", () => {
+  const kp = nacl.sign.keyPair.fromSeed(new Uint8Array(32).fill(44));
+  const other = nacl.sign.keyPair.fromSeed(new Uint8Array(32).fill(45));
+  const env = { schema: "inert-test-attestation", grant_hash: "ab".repeat(32) };
+  const manifestKeyBase64 = Buffer.from(kp.publicKey).toString("base64");
+  const signatureBase64 = Buffer.from(nacl.sign.detached(canonicalBytes(env), kp.secretKey)).toString("base64");
+  const input = { env, signatureBase64, manifestKeyBase64 };
+  assert.equal(attestationTrustRefusal(input), null);
+  assert.equal(attestationTrustRefusal({ ...input, suppliedKey: manifestKeyBase64 }), null);
+  assert.equal(attestationTrustRefusal({ ...input, suppliedKey: Buffer.from(other.publicKey).toString("base64") }).reason, "attestor_key_not_the_manifest_key");
+  assert.equal(attestationTrustRefusal({ ...input, env: { ...env, grant_hash: "cd".repeat(32) } }).reason, "attestation_signature_invalid");
+  const attackerSignature = Buffer.from(nacl.sign.detached(canonicalBytes(env), other.secretKey)).toString("base64");
+  assert.equal(attestationTrustRefusal({ ...input, signatureBase64: attackerSignature }).reason, "attestation_signature_invalid");
+  assert.equal(attestationTrustRefusal({ ...input, manifestKeyBase64: "" }).reason, "manifest_carries_no_attestor_key");
+  assert.equal(attestationTrustRefusal({ ...input, manifestKeyBase64: manifestKeyBase64 + "\n" }).reason, "attestor_key_undecodable");
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

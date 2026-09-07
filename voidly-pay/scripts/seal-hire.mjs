@@ -58,8 +58,9 @@
 //
 // Exit 0 sealed / 1 refused, by name.
 
-import { closeSync, existsSync, fchmodSync, fstatSync, lstatSync, openSync, readFileSync, realpathSync, statSync, unlinkSync, writeSync, accessSync, constants as fsConstants } from "node:fs";
-import { basename, dirname, join as joinPath, resolve as resolvePath } from "node:path";
+import { lstatSync, realpathSync, statSync, accessSync, constants as fsConstants } from "node:fs";
+import { LocalFileError, readFileCapped, writeNewVerifiedFile } from "./lib/local-files.mjs";
+import { basename, dirname, join as joinPath } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import nacl from "tweetnacl";
@@ -72,6 +73,7 @@ import {
   exportSessionKeyBytes,
   destroySessionKey,
   fetchVerifiedProvider,
+  verifyDetached,
   x402SessionAccountCaip10,
 } from "@voidly/session";
 import {
@@ -207,92 +209,84 @@ export async function checkHirerRegistration({
  * this is exactly the kind of file two terminals reach for at once.
  */
 const writeNewFileOrDie = (typedPath, value, die, what) => {
-  // The pre-flight resolved the typed path through the real filesystem; the
-  // write goes to THAT location, not to whatever the typed path resolves to
-  // now (a parent swapped for a symlink between the two landed the key
-  // elsewhere while the output named the typed path).
   const path = realTarget(typedPath);
-  const json = JSON.stringify(value, null, 2);
-  // Written through a descriptor so the file's identity (device + inode) is
-  // known from the write itself. Every check below compares identities, never
-  // path strings: HFS+ hands back NFD for an NFC name, APFS folds case, and a
-  // string comparison called both "moved".
-  let fd = null;
-  let identity;
   try {
-    fd = openSync(path, "wx", 0o600);
-    writeSync(fd, json);
-    const st = fstatSync(fd);
-    identity = { dev: st.dev, ino: st.ino };
-  } catch (e) {
-    if (fd !== null) {
-      try { closeSync(fd); } catch { /* nothing to do */ }
+    writeNewVerifiedFile(path, Buffer.from(JSON.stringify(value, null, 2)), { aliases: [typedPath] });
+  } catch (error) {
+    const code = error instanceof LocalFileError ? error.code : "write";
+    if (code === "exists") {
+      die(`${what}_file_exists`, `${safePath(path)} already exists and was NOT overwritten. Choose another path or remove it deliberately.`);
     }
-    if (e && e.code === "EEXIST") {
-      die(
-        `${what}_file_exists`,
-        `${safePath(path)} already exists and was NOT overwritten. ` +
-          (what === "keep"
-            ? "A keep file is the only key to its hire — if that hire is paid for, replacing it loses the result. Choose another path, or delete it deliberately."
-            : what === "grant"
-              ? "The keep file for THIS hire was already written; its grant envelope is inside it at wire.grant. Delete the stale grant file deliberately, or choose another --keep path next time."
-              : "An identity file is the DID's only secret. Choose another path, or delete it deliberately."),
-      );
+    if (code === "moved") {
+      die(`${what}_moved`, `${safePath(path)} no longer names the file that was written; a file may remain and nothing was printed`);
     }
-    // Every other failure is ALSO a named refusal. `throw e` here surfaced as
-    // an uncaught stack trace after the seal — ENOTDIR through a file, EACCES
-    // on a directory with w but not x, ENOENT past a trailing slash — which
-    // is the one exit shape "refused, by name" rules out.
-    die(
-      `${what}_unwritable`,
-      `${safePath(path)} could not be written (${e && e.code ? e.code : "error"}); nothing was overwritten` +
-        (what === "keep" ? ", and no wire was printed for a hire whose key could not be kept" : ""),
-    );
-  }
-  try {
-    fchmodSync(fd, 0o600);
-  } catch (e) {
-    try { closeSync(fd); } catch { /* nothing to do */ }
-    die(
-      `${what}_mode_unsettable`,
-      `${safePath(path)} was written but its mode could not be set to 0600 (${e && e.code ? e.code : "error"}); a file holding it exists — fix its permissions or delete it deliberately; nothing was printed`,
-    );
-  }
-  try { closeSync(fd); } catch { /* nothing to do */ }
-  // The file must be reachable, as THIS inode, both at the pre-flighted path
-  // and at the path the user typed. A parent that became a symlink after the
-  // pre-flight fails the first; a retargeted symlink whose new target holds
-  // a planted decoy fails the second (the printed path would name the decoy
-  // while the real key sat elsewhere). Only a file that IS this inode is ever
-  // removed — the remedy must not delete a file this script did not write.
-  const sameInode = (p) => {
-    try {
-      const st = statSync(p);
-      return st.isFile() && st.dev === identity.dev && st.ino === identity.ino;
-    } catch {
-      return false;
+    if (code === "mode") {
+      die(`${what}_mode_unsettable`, `${safePath(path)} was created but its mode could not be set to 0600; a file may remain and nothing was printed`);
     }
-  };
-  if (!sameInode(path) || !sameInode(typedPath)) {
-    let removed = "a file holding it exists at a location this script can no longer name — nothing was printed";
-    for (const candidate of [path, typedPath]) {
-      if (sameInode(candidate)) {
-        try {
-          unlinkSync(candidate);
-          removed = "the misplaced file was removed";
-          break;
-        } catch {
-          /* leave the honest wording */
-        }
-      }
-    }
-    die(
-      `${what}_moved`,
-      `${safePath(path)} is no longer the file that was written (a parent changed under it after the pre-flight); ${removed}, nothing was printed` +
-        (what === "keep" ? ", and no wire exists for this hire" : what === "grant" ? "; the keep file for this hire was already written" : ""),
-    );
+    die(`${what}_unverifiable`, `${safePath(path)} could not be completely written, verified, synchronized and closed; a file may remain. Nothing was overwritten or printed`);
   }
 };
+
+// Only this bounded descriptor read reaches JSON.parse. No input path is opened
+// again after checking its size/type. Error text never contains input bytes.
+export function loadLocalJson(path, what, cap, die) {
+  let bytes;
+  try {
+    bytes = readFileCapped(path, cap);
+  } catch (error) {
+    const code = error instanceof LocalFileError ? error.code : "read";
+    if (code === "not_regular") die(`${what}_not_a_file`, `--${what} is not a regular file`);
+    if (code === "too_large") die(`${what}_too_large`, `--${what} exceeds its ${cap}-byte limit`);
+    die(`${what}_unreadable`, `--${what} could not be read as an unchanged, bounded regular file`);
+  }
+  try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); }
+  catch { die(`${what}_unreadable`, `--${what} is not valid JSON`); }
+}
+
+/** Validate the seed, appended public half and explicit identity before I/O. */
+export function loadHirerIdentity(identity) {
+  const bad = (reason, detail) => ({ ok: false, reason, detail });
+  if (identity === null || typeof identity !== "object" || Array.isArray(identity)) {
+    return bad("hirer_not_object", "--hirer must be the JSON object --mint-identity wrote");
+  }
+  let secret, kp;
+  try {
+    if (typeof identity.signing_secret_key_base64 !== "string") throw new Error();
+    secret = decodeBase64(identity.signing_secret_key_base64);
+    if (secret.length !== 64) throw new Error();
+    kp = nacl.sign.keyPair.fromSeed(secret.subarray(0, 32));
+    if (!nacl.verify(secret, kp.secretKey)) throw new Error();
+  } catch {
+    secret?.fill(0);
+    kp?.secretKey.fill(0);
+    return bad("hirer_key_unusable", "the signing secret must be a consistent 64-byte Ed25519 keypair");
+  }
+  secret.fill(0);
+  const did = deriveDidFromSigningKey(kp.publicKey);
+  const publicKeyBase64 = encodeBase64(kp.publicKey);
+  if (identity.signing_public_key_base64 !== publicKeyBase64) {
+    kp.secretKey.fill(0);
+    return bad("hirer_public_key_inconsistent", "the declared signing public key must equal the key derived from the secret seed");
+  }
+  if (identity.did !== did) {
+    kp.secretKey.fill(0);
+    return bad("hirer_did_inconsistent", "file says (a value that is not the derived DID); the declared DID must equal the secret seed's identity");
+  }
+  return { ok: true, kp, did, publicKeyBase64 };
+}
+
+/** A signer returning 64 bytes has not necessarily signed the requested bytes. */
+export function verifySealedSignatures(wire, publicKey) {
+  return verifyDetached(wire?.offer, wire?.offer_signature_base64, publicKey) &&
+    verifyDetached(wire?.grant, wire?.grant_signature_base64, publicKey);
+}
+
+/** Monetary terms are pinned before the registry or hire builder is called. */
+export function offeringRefusal(offering) {
+  if (offering?.price?.chain !== EXPECTED_CHAIN) return { reason: "chain_not_base", detail: `offering must use ${EXPECTED_CHAIN}` };
+  if (offering.price.asset !== `${EXPECTED_CHAIN}/erc20:${CANONICAL_USDC_BASE}`) return { reason: "asset_not_canonical_usdc", detail: "offering must use canonical USDC on Base" };
+  return priceBandRefusal(offering) ?? payeeRefusal(offering);
+}
 
 /**
  * Pre-flight for a path this script is about to CREATE: the parent must be a
@@ -541,33 +535,7 @@ if (isMain) {
     );
   }
 
-  // A FIFO or a device at --brief/--hirer blocks readFileSync forever with no
-  // output; only a regular file is read.
-  for (const [p, what] of [[briefPath, "brief"], [hirerPath, "hirer"]]) {
-    let st;
-    try {
-      st = lstatSync(p);
-    } catch (e) {
-      die(`${what}_unreadable`, `--${what} could not be read (${e && e.code ? e.code : "error"})`);
-    }
-    if (st.isSymbolicLink()) {
-      try {
-        st = statSync(p);
-      } catch (e) {
-        die(`${what}_unreadable`, `--${what} could not be read (${e && e.code ? e.code : "error"})`);
-      }
-    }
-    if (!st.isFile()) die(`${what}_not_a_file`, `--${what} is not a regular file`);
-    // A 600 MB --brief reached 1.76 GB of RSS before ERR_STRING_TOO_LONG.
-    const cap = what === "brief" ? MAX_BRIEF_FILE_BYTES : MAX_IDENTITY_FILE_BYTES;
-    if (st.size > cap) die(`${what}_too_large`, `--${what} is ${st.size} bytes; a ${what} file is under ${cap}`);
-  }
-  let spec;
-  try {
-    spec = JSON.parse(readFileSync(briefPath, "utf8"));
-  } catch (e) {
-    die("brief_unreadable", e && e.code ? `--brief could not be read (${e.code})` : "--brief is not valid JSON");
-  }
+  const spec = loadLocalJson(briefPath, "brief", MAX_BRIEF_FILE_BYTES, die);
   if (spec === null || typeof spec !== "object" || Array.isArray(spec)) {
     die("brief_not_object", "brief.json must be a JSON object with a \"brief\" string and a \"payer\" address");
   }
@@ -602,31 +570,13 @@ if (isMain) {
   }
   const serviceRef = SERVICE_REF;
 
-  let identity;
-  try {
-    identity = JSON.parse(readFileSync(hirerPath, "utf8"));
-  } catch (e) {
-    die("hirer_unreadable", e && e.code ? `--hirer could not be read (${e.code})` : "--hirer is not valid JSON");
-  }
-  if (identity === null || typeof identity !== "object" || Array.isArray(identity)) {
-    die("hirer_not_object", "--hirer must be the JSON object --mint-identity wrote");
-  }
-  let kp;
-  try {
-    const secret = decodeBase64(identity.signing_secret_key_base64);
-    if (secret.length !== 64) throw new Error(`signing_secret_key_base64 is ${secret.length} bytes, need 64`);
-    kp = nacl.sign.keyPair.fromSecretKey(secret);
-  } catch (e) {
-    die("hirer_key_unusable", e.message);
-  }
-  const did = deriveDidFromSigningKey(kp.publicKey);
-  const publicKeyBase64 = encodeBase64(kp.publicKey);
-  if (typeof identity.did === "string" && identity.did !== did) {
-    die(
-      "hirer_did_inconsistent",
-      `file says ${/^did:voidly:[1-9A-HJ-NP-Za-km-z]{1,64}$/.test(identity.did) ? identity.did : "(a value that is not a DID)"}, its secret key derives ${did}`,
-    );
-  }
+  const identity = loadLocalJson(hirerPath, "hirer", MAX_IDENTITY_FILE_BYTES, die);
+  const loadedIdentity = loadHirerIdentity(identity);
+  if (!loadedIdentity.ok) die(loadedIdentity.reason, loadedIdentity.detail);
+  const { kp, did, publicKeyBase64 } = loadedIdentity;
+  let identityFile;
+  try { identityFile = realpathSync.native(hirerPath); }
+  catch { die("hirer_unreadable", "the identity path could not be resolved before discovery"); }
   const sign = (bytes) => nacl.sign.detached(bytes, kp.secretKey);
 
   // 1. VERIFY the provider. The brief is sealed to whatever key this returns —
@@ -638,21 +588,8 @@ if (isMain) {
   if (!offering) {
     die("service_not_offered", `verified manifest does not offer ${serviceRef}`);
   }
-  // SKILL.md pledges Base mainnet + canonical USDC on every leg. Enforce it
-  // here, before anything is sealed against the offering.
-  if (offering.price.chain !== EXPECTED_CHAIN) {
-    die("chain_not_base", `offering is on ${offering.price.chain}, this skill is reviewed only for ${EXPECTED_CHAIN}`);
-  }
-  if (offering.price.asset !== `${EXPECTED_CHAIN}/erc20:${CANONICAL_USDC_BASE}`) {
-    die("asset_not_canonical_usdc", `offering asset is ${offering.price.asset}`);
-  }
-  // The band is a pin: a signed manifest naming a higher floor used to be
-  // sealed as-is, with no amount printed anywhere but inside the wire JSON.
-  const bandRefusal = priceBandRefusal(offering);
-  if (bandRefusal) die(bandRefusal.reason, bandRefusal.detail);
-  // The payee too: the last money field that was read off the document.
-  const payeeMismatch = payeeRefusal(offering);
-  if (payeeMismatch) die(payeeMismatch.reason, payeeMismatch.detail);
+  const offeringBad = offeringRefusal(offering);
+  if (offeringBad) die(offeringBad.reason, offeringBad.detail);
 
   // 2. THE REDEMPTION PREFLIGHT. Before a single byte is sealed: can this
   //    hirer actually redeem what it is about to pay for?
@@ -697,6 +634,12 @@ if (isMain) {
     die("sdk_threw", `the SDK threw ${/^[A-Za-z][A-Za-z0-9_]{0,40}$/.test(String(e?.constructor?.name ?? "")) ? e.constructor.name : "an error"} while building the hire; nothing was sealed`);
   }
   if (!hire.ok) die(hire.reason);
+  if (!verifySealedSignatures(hire.wire, kp.publicKey)) {
+    destroySessionKey(hire.keep.sessionKey);
+    kp.secretKey.fill(0);
+    die("hirer_signature_invalid", "the generated offer or grant signature did not verify; no hire was saved or printed");
+  }
+  kp.secretKey.fill(0);
 
   // PERSIST BEFORE PRINTING. The wire below is transmit-ready and payable; the
   // keep file is the only hirer-side way to open what that payment buys. If
@@ -726,23 +669,14 @@ if (isMain) {
         signing_public_key_base64: publicKeyBase64,
         // Absolute, so the keep file still points at the identity from
         // another working directory.
-        identity_file: resolvePath(hirerPath),
+        identity_file: identityFile,
         _note:
           "The signing SECRET stays in identity_file — this keep file does not copy it, so one leaked keep file cannot impersonate the identity across other hires.",
       },
     };
     writeNewFileOrDie(keepPath, keep, die, "keep");
-    // Read back and compare: a write that returned is not yet a file that
-    // holds the key.
-    let back;
-    try {
-      back = JSON.parse(readFileSync(realTarget(keepPath), "utf8"));
-    } catch (e) {
-      die("keep_unverifiable", `${safePath(keepPath)} was written but cannot be read back (${e && e.code ? e.code : "error"}); refusing to print a payable wire for a hire whose key is not safely kept`);
-    }
-    if (back === null || typeof back !== "object" || Array.isArray(back) || back.session_key_base64 !== keep.session_key_base64 || back.grant_hash !== keep.grant_hash) {
-      die("keep_unverifiable", `${safePath(keepPath)} read back differs from what was written; refusing to print a payable wire for a hire whose key is not safely kept`);
-    }
+    // The shared writer verifies every byte through the original descriptor
+    // and synchronizes both file and parent before returning.
     // The grant envelope, as its own file. verify-artifacts.mjs takes --grant,
     // and before this file existed nothing the skill wrote was named as that
     // input — users passed keep.json (the file they had) and got a hash
