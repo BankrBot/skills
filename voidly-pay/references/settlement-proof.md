@@ -1,8 +1,9 @@
 # Leg 3 — proving a settlement, and the exact limits of the proof
 
-`verify-settlement.mjs` needs no npm package: run this Node-only proof before
-approving any install. The separate payment-preview helper needs the approved
-locked dependencies for cryptographic recovery. A local signature check is
+`verify-settlement.mjs` needs no npm package: include its Node-only
+`scripts/lib/pins.mjs` and `scripts/lib/local-files.mjs` helpers and run it
+before approving any install. The separate payment-preview helper needs the
+approved locked dependencies for cryptographic recovery. A local signature check is
 not evidence of settlement, Bankr policy permission, submission or delivery.
 
 ## The nonce-binding rule
@@ -26,10 +27,18 @@ is `0x` + that (`settlementNonce`). The consequences:
   the nonce and check the binding against public RPCs — no Voidly surface in
   the loop.
 - The two payment variants (`receive` / `transfer`) share this one nonce:
-  they are alternatives, never steps. The second signature is a guaranteed
-  revert that still costs gas.
+  they are alternatives, never steps. Signing alone does not broadcast or
+  cost gas. After one authorization is consumed, another transaction reusing
+  it will revert if executed and may consume gas.
 
 ## What verify-settlement.mjs checks, in order
+
+With `--grant`, the CLI accepts at most 64 KiB of grant content, reading up
+to one extra byte to detect overflow through one no-follow, nonblocking
+descriptor, and checks for observed file changes.
+It refuses symlinks, non-regular files, over-limit content, read or close
+failures, and invalid UTF-8/JSON before contacting an RPC. The descriptor
+bound applies to bytes actually read, not only a prior pathname size check.
 
 1. **The quorum, before any network call.** At least **two** independent,
    HTTPS, allowlisted Base operators — not a default, a requirement. The
@@ -83,10 +92,11 @@ is `0x` + that (`settlementNonce`). The consequences:
     not a settlement — `block_hash_mismatch`; a receipt whose own `blockHash`
     is unreadable refuses `block_hash_unreadable` rather than comparing
     nothing to nothing.
-11. **Finality.** At least 12 confirmations, computed from the **lowest** head
-    across the quorum — the most conservative operator decides. The heads must
-    also agree to within 30 blocks (~1 minute on Base), or one of them is not
-    following the chain the other is — `rpc_head_divergence`.
+11. **Latest-head confirmation depth.** At least 12 blocks after the receipt
+    block, computed as the **lowest** `eth_blockNumber` answer minus the
+    receipt's block number. The heads must be within 30 blocks (~1 minute on
+    Base), otherwise `rpc_head_divergence` refuses. No `safe` or `finalized`
+    head is queried. This threshold is not a finality check.
 
 ### Why 7 and 9 exist — the batched-transaction hole
 
@@ -216,6 +226,20 @@ and bodies over 4 MiB.
 
 ## Scope limits — what PROVEN does not say
 
+- **Not Base finality.** `PROVEN` reports quorum-observed receipt inclusion
+  with a latest-head confirmation threshold. The machine result carries
+  `assurance: { level: "rpc-quorum-inclusion", confirmationBasis:
+  "lowest-latest-head", safe: "not-checked", finalized: "not-checked",
+  requiredConfirmations: 12 }` by default; the last field follows the
+  configured threshold. Safe/finalized status is not checked. The CLI prints
+  the same limitation. Neither a larger count nor agreeing RPCs establishes
+  safe/finalized status. Base distinguishes
+  latest/unsafe, safe and finalized heads in its
+  [derivation specification](https://docs.base.org/specifications/base-protocol/consensus/derivation);
+  [transaction finality](https://docs.base.org/specifications/transactions/transaction-finality)
+  describes the separate stages. This verifier trusts the queried operators
+  rather than deriving the chain from L1.
+
 - **Not the grant's terms — unless you pass `--grant`.** The nonce binds the
   transaction to the grant HASH. With `--grant ./keep.grant.json` the script
   recomputes that hash from the envelope (byte-for-byte the SDK's
@@ -230,7 +254,10 @@ and bodies over 4 MiB.
   (`amount_outside_grant_band` otherwise). Without `--grant`, the
   payer, payee and amount are asserted exactly as typed — true of the chain,
   silent about whether they are the grant's terms — and the `terms:` and
-  `scope:` lines say so.
+  `scope:` lines say so. The historical verifier pins Base, canonical USDC
+  and the payee, but reads the supplied grant's own price band. It does not
+  validate provider identity, current grant validity or permission to make
+  a payment. Those are separate pre-payment gates.
 - **Not delivery.** The chain proves a payment was bound to a hire. Whether
   the work was done, done well, or delivered at all is a separate check on
   separate artifacts: the sealed result capsule, the provider-signed delivery

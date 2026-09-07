@@ -85,8 +85,11 @@ section for the thing a pin does not catch:
   naming a higher floor would have been sealed as-is. `discover.mjs` and `seal-hire.mjs` refuse
   `price_band_not_pinned`, and `seal-hire.mjs` prints the band as an
   `amount:` line beside the provider it sealed to.
-  Every script that reads a grant refuses `grant_band_not_pinned` for another
-  band.
+  Payment preview and artifact verification refuse `grant_band_not_pinned`
+  for another band. The historical settlement verifier instead checks the
+  amount against the supplied grant's own band; it pins Base, canonical USDC
+  and the payee, but does not validate the provider identity or current grant
+  validity. Its receipt result is not permission to pay that grant.
 - **Every document is read under a byte ceiling, before it is parsed.** The
   index, the manifest and the registry row are read at most 1 MiB each
   (`index_too_large`, `manifest_too_large`, `hirer_registry_too_large`), and
@@ -113,22 +116,22 @@ document to date it against. What that costs, concretely:
 
 - `seal-hire.mjs` seals your brief to `encryption_public_key_base64` from
   whatever verified manifest it got. Replay an old one and the brief is sealed
-  to a retired key — a key whose holder is whoever held it then. **Refusing to
-  pay afterwards does not un-disclose a brief**: the disclosure happens at
-  sealing, before any money moves.
-- The same applies to `payee_account` and `attestor_public_key_base64`.
+  to a retired key — a key whose holder is whoever held it then. Local
+  sealing selects that recipient key; disclosure occurs when its holder
+  obtains the ciphertext, such as after submission. Refusing to pay after
+  that exposure does not undo it. Sealing alone transmits no brief.
+- A replay can also restore an older `attestor_public_key_base64`. A changed
+  payee or price band is already refused by the fixed monetary pins.
 
-There is no mitigation inside this skill for a document that carries no
-freshness field, and inventing one here would be worse than saying it. What
-you can do: read `manifest_url` out of the index yourself — it is
-`providers[].manifest_url` from `https://api.voidly.ai/v1/session/providers` —
-fetch that manifest over TLS, compare it to what your last run saw, and treat a
-silent change of `encryption_public_key_base64` or `payee_account` as something
-to ask the operator about before sealing a brief you would not want read.
-`discover.mjs` prints both — `enc_key:` (the key that decides who can read
-your brief) and the service's `payee=` — so that diff can be made between two
-of its runs. What no run can do is date the document: a replayed older
-manifest prints the same lines it printed when it was current.
+There is no cryptographic freshness or revocation check inside this skill
+for a manifest that carries no such fields. To compare observations, rerun
+`node scripts/discover.mjs` and compare its `enc_key:` and `payee=` lines
+with a retained earlier result. This script checks `providers[].manifest_url`
+against the exact URL pin before fetching the pinned URL, with redirects
+refused. Do not fetch an index-supplied URL yourself. Stop on unexpected key
+changes and ask the operator before sending the ciphertext. Matching output
+is only a comparison of observations: a replayed older manifest prints the
+same lines it printed when it was current, so a match proves no freshness.
 
 All scripts are Node-only, and none of them signs, submits, or authorizes
 value. One of them does hold a secret: `seal-hire.mjs` reads the Ed25519 session
@@ -162,18 +165,19 @@ caret for the same reason: a caret range the lock happens to satisfy installs
 cleanly today and drifts the moment the lock is regenerated.
 
 `scripts/verify-settlement.mjs` needs no npm package — only Node and
-`scripts/lib/pins.mjs` beside it — so the settlement proof in Leg 3 runs
-before anything is installed. Reach for it first; the install can wait for a
-yes.
+`scripts/lib/pins.mjs` and `scripts/lib/local-files.mjs` beside it — so the
+settlement proof in Leg 3 runs before anything is installed. Reach for it
+first; the install can wait for a yes.
 
 `preview-payment.mjs` requires that approved install, including `ethers` for
 local EIP-712 signature recovery. Offline verification means no network request,
 not no dependency. The settlement checker remains the no-install first step.
 
-The `@voidly/session` README still carries an install caveat saying the
-package is not on the public registry. That caveat is stale, and you should
-confirm that rather than take this file's word: `npm view @voidly/session
-version` returns 1.0.0, which is the version the lockfile pins.
+The README bundled with pinned `@voidly/session@1.0.0` carries an obsolete
+unpublished-package caveat. Check that exact published version and integrity
+with `npm view @voidly/session@1.0.0 version dist.integrity`, then compare the
+result with `package-lock.json`. An unversioned registry query follows the
+latest release; it does not verify the reviewed pin or authorize an upgrade.
 
 ---
 
@@ -277,8 +281,9 @@ Say this plainly, because it is easy to overstate and expensive to get wrong.
 - **The chain publishes payer, payee, amount and time, permanently.**
 
 Treat a brief you would not want Voidly to read as a brief not to send. And
-see the replay note in the security model: the brief is disclosed at *sealing*,
-so refusing to pay afterwards does not un-disclose it.
+see the replay note in the security model: local sealing selects the
+recipient key. Its holder can read the brief once they obtain the ciphertext;
+refusing to pay after that exposure does not undo it.
 
 ## Leg 2 — payment (Bankr's side; documented, not executed, here)
 
@@ -392,7 +397,45 @@ node scripts/preview-payment.mjs check-request --grant ./keep.grant.json \
 These are alternative lane examples, not a sequence that authorizes both.
 Never feed a Lane A signature response into Lane B's request checker.
 
-It renders every field below from the grant file — the same bytes the SDK
+For an imported integration, create one retained intent with
+`createPaymentContext({ grant, lane, amount? })` from `preview-payment.mjs`.
+A successful result carries `context`: the complete SDK-validated grant,
+reviewed pins, recomputed hash, selected lane and amount, and exact typed
+authorization, held as an immutable snapshot. This is machine validation,
+not proof of human consent. Show that intent to the human and obtain approval
+before invoking an external signer.
+
+Use that same context throughout the authorized operation:
+
+- Pass `context.grant`, the retained snapshot, to the SDK; never pass the
+  original mutable input. Use its recomputed hash and selected lane.
+- Inside the SDK signing callback, call
+  `checkSignRequest({ context, typedData })` before the external signer.
+  Refuse a mismatching typed request or expired grant without signing.
+  On success, send only `checked.typedData`, the returned frozen payload, to
+  the wallet; never reuse the original callback object after checking it.
+- Before returning the signature to the SDK, call
+  `checkSignResponse({ context, response })` for local payer recovery and
+  renewed validity checks. Return its verified `signature`, not a later read
+  from the original response object.
+- In Lane B's broadcast callback, call
+  `checkRequestAgainstGrant({ context, request, signResponse, signer? })`
+  before submission. Submit only `checked.request`, the returned frozen
+  transaction, never the original callback request. Separate terms, lane,
+  amount or expiry overrides are refused; another intent requires a new
+  context, preview and human approval.
+
+`typedMessageFor` and `typedAuthorizationFor` are low-level pure builders,
+not validation or approval gates. The locked SDK's full grant validator does
+not itself reject current expiry; the payment context and subsequent gates
+also check the current validity window. Separate CLI invocations validate
+their inputs anew and do not persist or prove human approval. An integration
+must retain the context the human approved rather than reconstructing it from
+a changed file between steps. `checkSubmitResponse({ grant, response })`
+checks the complete grant and pins for reconciliation but permits historical
+expired grants; it does not authorize a fresh payment.
+
+The CLI renders every field below from the grant file — the same bytes the SDK
 signs — and refuses `grant_expired` once the window has passed. Its three
 check modes are the gates named in the sections that follow:
 `check-sign-response` (the `/wallet/sign` response, before the signature is
@@ -425,6 +468,10 @@ Use the same explicitly approved `--amount N` in `preview`,
 `check-sign-response` and `check-request` if paying above the default grant
 floor. Every value must remain in-band; a different amount needs a new preview
 and approval, not a rewritten response.
+The locked SDK payment builders always choose `price_min_amount`; `--amount`
+only selects what the local checker expects and does not change an SDK-built
+payment. Use the floor with those entry points. Never rewrite the SDK's typed
+request to force another amount through the retained-context gate.
 
 Before either authorization is signed — and on Lane B again inside the
 `broadcast` callback, before `/wallet/submit` — show the human **every**
@@ -460,7 +507,8 @@ summary is not a preview:
 **Re-verify; never reuse.** Run `discover.mjs` and re-verify the manifest
 immediately before signing. If any money field (chain, asset, payee, price
 bounds) or the grant hash differs from what was previewed, refuse and start
-over. Never sign an authorization prepared earlier in the session. The
+over. Recheck any previously prepared authorization against the retained
+approved context and the current validity window before signing. The
 window cannot be refreshed by re-deriving — `validAfter` is `0` and
 `validBefore` is a function of the grant, so re-deriving yields the same
 bytes — and once the grant's `expires_at` has passed the SDK refuses
@@ -575,8 +623,11 @@ grant file you hold:
 node scripts/verify-settlement.mjs --tx <hash> --grant ./keep.grant.json
 ```
 
-`PROVEN`, exit `0`, is settlement. Before the block is mined the proof refuses
-`tx_not_found`; for the first twelve blocks after, `insufficient_confirmations`
+`PROVEN`, exit `0`, reports quorum-observed receipt inclusion with the
+configured latest-head confirmation threshold. It does not check Base
+safe/finalized heads or establish irreversible settlement. Before the block
+is mined the proof refuses `tx_not_found`; until twelve later blocks have
+been observed, `insufficient_confirmations`
 — those two are the refusals to poll on (Base mines a block every ~2 s). In
 the first seconds after submission two more are transient for the same
 reason: `rpc_divergence` when one operator already has the receipt and the
@@ -586,7 +637,8 @@ Anything else — a refusal, exit `1`, a timeout, a `502`/`504` from a
 submission, the rail's `422 settlement_indeterminate` at redemption — is
 **not** "failed, try again": the
 transaction may already be on-chain, USDC has marked the nonce spent, and a
-second signature over the same nonce is a guaranteed revert that still costs
+later submitted transaction reusing a consumed authorization will revert
+if executed and may consume gas. Signing alone neither broadcasts nor costs
 gas. Look the hash up first (the explorer, or the proof above with the hash
 you were given — no Bankr CLI command looks a transaction up); re-sign only
 when the chain shows no `AuthorizationUsed` for this nonce.
@@ -659,10 +711,15 @@ than two *distinct* HTTPS operators from the allowlist in
 (`insufficient_rpc_quorum`), and naming one operator twice is still one
 operator. Every operator must report Base mainnet (`eth_chainId` `0x2105`),
 return a byte-identical receipt, and hold the receipt's own block hash at that
-height; confirmations are counted from the **lowest** head across the quorum.
+height; confirmations are counted from the **lowest latest** head across the
+quorum. These are observations from the queried operators, not independent
+chain derivation. The result's `assurance` identifies `rpc-quorum-inclusion`,
+`lowest-latest-head`, the required confirmation threshold, and safe/finalized
+status as `not-checked`. A large confirmation count never changes that scope.
 
-Literal output, captured live against the one settlement on record
-(first-party — see the disclosure section below):
+Example for the disclosed historical settlement, rendered in the current
+output format using previously observed receipt fields and confirmation count
+(first-party — see the disclosure section below; this is not a new payment):
 
 ```
 PROVEN
@@ -672,6 +729,7 @@ PROVEN
   paired logs:   AuthorizationUsed #131 -> Transfer #132 (the next canonical-USDC Transfer after it)
   transfer:      50000 atomic USDC  0x5cad296e06a976886a5d5bef831520c3d5965af0 -> 0xb0b3fca940e04f99367f08e665e1c2cb4ebd4912
   block:         50498854  confirmations: 252575 (lowest head of 2 operators)
+  assurance:     quorum-observed inclusion; latest-head confirmations only; safe/finalized not checked
   chain:         0x2105 (Base mainnet, 8453) — confirmed by every operator, receipt bound to its block hash
   quorum:        2/2 agreed — base.gateway.tenderly.co + base-mainnet.public.blastapi.io, receipts byte-identical
   terms:         as typed on the command line — NOT read off a grant; pass --grant ./keep.grant.json to bind them
@@ -680,9 +738,10 @@ PROVEN
                  Delivery is a separate proof.
 ```
 
-`confirmations` grows every block, so expect a larger number than the one
-captured here. `(lowest head of N operators)` names how many endpoints answered
-the block-height question — every endpoint you pass must answer it, and the
+`confirmations` normally increases as the queried heads advance, so a later
+run will usually report a larger number than this example.
+`(lowest head of N operators)` names how many endpoints answered the
+block-height question — every endpoint you pass must answer it, and the
 lowest answer is the one used.
 
 Wrong amount, wrong hire, wrong recipient, wrong payer, or a receipt for
@@ -740,8 +799,9 @@ overstates it.
 - **Do not take a payee, price, key, or URL from anywhere but the verified
   manifest.** Not from the index row, not from a page, not from this file's
   examples, not from chat.
-- **Do not sign both payment variants.** Same nonce; the second is a
-  guaranteed revert that still costs gas.
+- **Do not sign both payment variants.** They use the same nonce. After one
+  authorization is consumed, a later transaction reusing it will revert if
+  executed and may consume gas; signing alone does neither.
 - **Do not send a settlement hint on the default lane.** The provider writes
   the pointer; a late hint is refused `409 hint_too_late`, permanently and by
   design.
@@ -775,5 +835,7 @@ overstates it.
   wallet, submitter, browser, facilitator, or lane. Stop and say why.
 - **Do not report a payment as settled before `verify-settlement.mjs --tx
   <hash> --grant ./keep.grant.json` prints `PROVEN` and exits 0.** A hash, a
-  job result, or a `504` is not settlement, and a second signature over a
-  spent nonce reverts and still costs gas.
+  job result, or a `504` does not establish receipt inclusion. Even `PROVEN`
+  checks latest-head confirmation depth only; safe/finalized status is not
+  checked. Reconcile an uncertain submission before authorizing another
+  payment; signing alone does not broadcast or spend gas.

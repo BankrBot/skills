@@ -33,7 +33,7 @@ import {
 import { createServer } from "node:http";
 import { gzipSync } from "node:zlib";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -83,7 +83,7 @@ const receiptOf = (logs, { transactionHash = TX, status = "0x1", blockHash = BLO
 
 // `_url` used to be discarded here, so every operator in every test returned
 // the same head — which is exactly why 71 tests were green while one dishonest
-// endpoint could decide finality by itself. `heads` lets a test disagree.
+// endpoint could decide confirmation depth by itself. `heads` lets a test disagree.
 const rpcServing = (
   receipt,
   { head = BLOCK + 100n, heads = null, asked = null, chainIds = null, blocks = null } = {},
@@ -133,6 +133,47 @@ test("an honest settlement proves, and reports the pair it used", async () => {
   assert.equal(v.authLogIndex, 0);
   assert.equal(v.transferLogIndex, 1);
   assert.equal(v.value, "50000");
+});
+
+test("F6: even deep, agreeing receipts report only latest-head inclusion, never safe/finalized status", async () => {
+  for (const depth of [12n, 1000000n]) {
+    const calls = [];
+    const transport = rpcServing(HONEST, { head: BLOCK + depth });
+    const v = await verifySettlement({
+      tx: TX, rpcUrls: RPCS, ...HIRE_A,
+      rpc: async (url, method, params) => {
+        calls.push({ method, params });
+        return transport(url, method, params);
+      },
+    });
+    assert.equal(v.ok, true);
+    assert.equal(v.confirmations, Number(depth));
+    assert.deepEqual(v.assurance, {
+      level: "rpc-quorum-inclusion", confirmationBasis: "lowest-latest-head",
+      safe: "not-checked", finalized: "not-checked", requiredConfirmations: 12,
+    });
+    assert.match(renderVerdict(v).join("\n"), /latest-head confirmations only; safe\/finalized not checked/);
+    assert.deepEqual([...new Set(calls.map((c) => c.method))].sort(),
+      ["eth_blockNumber", "eth_chainId", "eth_getBlockByNumber", "eth_getTransactionReceipt"]);
+    assert.ok(calls.filter((c) => c.method === "eth_getBlockByNumber")
+      .every((c) => c.params[0] === HONEST.blockNumber), "no safe/finalized head was queried");
+  }
+});
+
+test("F6: assurance records the actual configured depth without promoting operator trust", async () => {
+  const shallow = await run(HONEST, { ...HIRE_A, minConfirmations: 13 }, { head: BLOCK + 12n });
+  assert.equal(shallow.ok, false);
+  assert.equal(shallow.assurance, undefined);
+  const v = await verifySettlement({
+    tx: TX, rpcUrls: ["https://a.example", "https://b.example"], ...HIRE_A,
+    rpc: rpcServing(HONEST, { head: BLOCK + 13n }), allowUnpinnedRpc: true, minConfirmations: 13,
+  });
+  assert.equal(v.ok, true);
+  assert.equal(v.assurance.requiredConfirmations, 13);
+  assert.equal(v.assurance.safe, "not-checked");
+  assert.equal(v.assurance.finalized, "not-checked");
+  assert.deepEqual(v.unpinnedHosts, ["a.example", "b.example"]);
+  assert.match(renderVerdict(v).join("\n"), /NOT on the reviewed allowlist/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1151,7 +1192,8 @@ test("grant mode: payer, payee and amount are read off the grant, and the verdic
   const lines = renderVerdict(v);
   assert.ok(lines.some((l) => /terms:\s+read off the --grant envelope/.test(l)), lines.join("\n"));
   assert.ok(lines.some((l) => /scope:\s+payment proven for THIS grant/.test(l)), lines.join("\n"));
-  assert.ok(!lines.some((l) => /not checked/.test(l)));
+  assert.ok(!lines.some((l) => /^  (terms|scope):.*not checked/.test(l)));
+  assert.ok(lines.some((l) => /^  assurance:.*safe\/finalized not checked/.test(l)));
 });
 
 test("grant mode: the same tx refuses for a grant whose terms it did not settle", async () => {
@@ -1516,15 +1558,129 @@ test("R2-F3: a credential-shaped flag NAME is withheld; a typo'd name is shown",
   assert.match(c.stderr, /unknown_flag — --grant_hash/);
 });
 
-test("R2-F4: --grant must be a regular file of plausible size", () => {
+test("R2-F4: --grant must be a regular file of plausible size", (t) => {
   const dir = mkdtempSync(join(tmpdir(), "vs-gfile-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   const asDir = runCli(["--tx", TX, "--grant", dir]);
   assert.match(asDir.stderr, /grant_unreadable — --grant is not a regular file/);
   writeFileSync(join(dir, "big.json"), "{" + "\"a\":\"" + "x".repeat(70 * 1024) + "\"}");
   const big = runCli(["--tx", TX, "--grant", join(dir, "big.json")]);
-  assert.match(big.stderr, /grant_unreadable — --grant is \d+ bytes; a task-grant envelope is under 65536/);
+  assert.match(big.stderr, /grant_unreadable — --grant exceeds its 65536-byte limit/);
   const missing = runCli(["--tx", TX, "--grant", join(dir, "nope.json")]);
-  assert.match(missing.stderr, /grant_unreadable — --grant could not be read \(ENOENT\); path withheld/);
+  assert.match(missing.stderr, /grant_unreadable — --grant could not be read as an unchanged, bounded regular file; path withheld/);
+});
+
+// Faults are scoped to a synthetic grant's descriptor. Module-loader reads and
+// closes keep their real behavior; no installed package or remote endpoint runs.
+function grantReadFixture(t, fault = "") {
+  const dir = mkdtempSync(join(tmpdir(), "vs-grant-read-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const target = join(dir, "grant.json");
+  writeFileSync(target, "{}");
+  const preload = join(dir, "fault.cjs");
+  writeFileSync(preload, `
+const fs = require("node:fs");
+const target = ${JSON.stringify(target)};
+const original = { ...fs };
+let owned = null, total = 0;
+fs.openSync = (...args) => {
+  const fd = original.openSync(...args);
+  if (args[0] === target) owned = fd;
+  return fd;
+};
+fs.readSync = (...args) => {
+  const n = original.readSync(...args);
+  if (args[0] === owned) total += n;
+  return n;
+};
+globalThis.fetch = async () => { process.stderr.write("NETWORK_ATTEMPTED"); throw new Error("network forbidden"); };
+process.on("exit", () => process.stderr.write("READ_BYTES=" + total + "\\n"));
+${fault}
+`);
+  return { dir, target, run: () => spawnSync(process.execPath,
+    ["--require", preload, CLI, "--tx", TX, "--grant", target],
+    { encoding: "utf8", timeout: 5000 }) };
+}
+
+function assertGrantReadRefused(result) {
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, /REFUSED\s+grant_unreadable/);
+  assert.doesNotMatch(result.stderr + result.stdout, /NETWORK_ATTEMPTED|PROVEN|SYNTHETIC_PRIVATE_ERROR/);
+}
+
+test("grant CLI caps actual descriptor bytes when a small file grows after fstat", (t) => {
+  const fixture = grantReadFixture(t, `
+const countedRead = fs.readSync;
+let grew = false;
+fs.readSync = (...args) => {
+  if (args[0] === owned && !grew) {
+    grew = true;
+    original.writeFileSync(target, " ".repeat(100000));
+  }
+  return countedRead(...args);
+};`);
+  const result = fixture.run();
+  assertGrantReadRefused(result);
+  assert.match(result.stderr, /exceeds its 65536-byte limit/);
+  assert.match(result.stderr, /READ_BYTES=65537\n/);
+});
+
+test("grant CLI rejects replacement between lstat and open before reading bytes", (t) => {
+  const fixture = grantReadFixture(t, `
+fs.lstatSync = (...args) => {
+  const stat = original.lstatSync(...args);
+  if (args[0] === target) {
+    original.writeFileSync(target + ".replacement", "{}");
+    original.renameSync(target + ".replacement", target);
+  }
+  return stat;
+};`);
+  const result = fixture.run();
+  assertGrantReadRefused(result);
+  assert.match(result.stderr, /READ_BYTES=0\n/);
+});
+
+test("grant CLI refuses a failed descriptor close without disclosing the OS error", (t) => {
+  const fixture = grantReadFixture(t, `
+fs.closeSync = (fd) => {
+  original.closeSync(fd);
+  if (fd === owned) throw new Error("SYNTHETIC_PRIVATE_ERROR");
+};`);
+  assertGrantReadRefused(fixture.run());
+});
+
+test("grant CLI rejects final-component symlinks without reading their target", (t) => {
+  const fixture = grantReadFixture(t);
+  const other = join(fixture.dir, "other.json");
+  writeFileSync(other, "{}");
+  rmSync(fixture.target);
+  symlinkSync(other, fixture.target);
+  const result = fixture.run();
+  assertGrantReadRefused(result);
+  assert.match(result.stderr, /READ_BYTES=0\n/);
+});
+
+test("grant CLI refuses invalid UTF-8 instead of parsing replacement characters", (t) => {
+  const fixture = grantReadFixture(t);
+  writeFileSync(fixture.target, Buffer.from([0x7b, 0x22, 0xff, 0x22, 0x3a, 0x31, 0x7d]));
+  const result = fixture.run();
+  assertGrantReadRefused(result);
+  assert.match(result.stderr, /--grant is not JSON/);
+});
+
+test("settlement CLI and its two bundled helpers run outside any npm installation", (t) => {
+  const fixture = grantReadFixture(t);
+  mkdirSync(join(fixture.dir, "scripts", "lib"), { recursive: true });
+  for (const relative of ["verify-settlement.mjs", "lib/pins.mjs", "lib/local-files.mjs"]) {
+    copyFileSync(join(SKILL2, "scripts", relative), join(fixture.dir, "scripts", relative));
+  }
+  writeFileSync(fixture.target, "not JSON");
+  const result = spawnSync(process.execPath,
+    ["--require", join(fixture.dir, "fault.cjs"), join(fixture.dir, "scripts", "verify-settlement.mjs"),
+      "--tx", TX, "--grant", fixture.target], { encoding: "utf8", timeout: 5000 });
+  assertGrantReadRefused(result);
+  assert.match(result.stderr, /--grant is not JSON/);
+  assert.doesNotMatch(result.stderr, /ERR_MODULE_NOT_FOUND/);
 });
 
 test("R2-F5: a typed amount of zero is not a payment", async () => {

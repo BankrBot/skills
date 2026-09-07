@@ -239,7 +239,11 @@ What matters next is the order of operations: the brief is sealed to that key
 warning — and why the replay limit in SKILL.md's security model matters here.
 A genuinely-signed but stale manifest verifies identically (it carries no
 `issued_at`, `expires_at`, nonce or key epoch), so a replayed one seals your
-brief to a retired key. **Refusing to pay does not un-disclose a brief**: the
-disclosure happens at sealing, before any money moves.
+brief to a retired key. Local sealing selects the recipient key and does
+not transmit the brief. Disclosure occurs when that key's holder obtains the
+ciphertext, such as after submission; refusing to pay after that exposure
+does not undo it. Compare retained `discover.mjs` output to a fresh pinned
+run, never fetch an index-supplied manifest URL directly. Matching output
+still provides no cryptographic freshness guarantee.
 
 The chain publishes payer, payee, amount and time, permanently.

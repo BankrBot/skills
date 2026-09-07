@@ -317,17 +317,60 @@ test("F: the refusal rule is scoped to a DISAGREEING surface, never a replayed o
   assert.match(SKILL_MD, /replaying an older, genuinely signed\*\*\s*\n?manifest is not refused/);
 });
 
-test("F: the consequence is tied to sealing, where it actually bites", () => {
-  assert.match(SKILL_MD, /Refusing to\n  pay afterwards does not un-disclose a brief/);
-  assert.match(SKILL_MD, /sealed\n  to a retired key/);
-  assert.match(HIRE_MD, /Refusing to pay does not un-disclose a brief/);
+test("F: sealing selects a key, while disclosure requires ciphertext exposure", () => {
+  for (const [name, text] of [["SKILL.md", SKILL_MD], ["encrypted-hire.md", HIRE_MD], ["catalog.json", CATALOG_TEXT]]) {
+    assert.match(plain(text), /local sealing selects (?:that )?(?:the )?recipient key/i, name);
+    assert.match(plain(text), /disclosure occurs when[^.]{0,80}holder obtains the ciphertext/i, name);
+    assert.doesNotMatch(plain(text), /disclos(?:ed|ure happens) at sealing/i, name);
+  }
 });
 
 test("F: no mitigation is invented for a field that does not exist", () => {
   assert.match(
     SKILL_MD,
-    /There is no mitigation inside this skill for a document that carries no\nfreshness field/,
+    /There is no cryptographic freshness or revocation check inside this skill/,
   );
+});
+
+test("F5: manual observation keeps the pre-fetch URL pin and does not imply replay detection", () => {
+  const advice = SKILL_MD.split("### What the pin does NOT catch: a replayed manifest")[1].split("All scripts are Node-only")[0];
+  assert.match(plain(advice), /rerun node scripts\.discover|rerun node scripts\/discover\.mjs/);
+  assert.match(plain(advice), /exact URL pin before fetching the pinned URL/);
+  assert.match(plain(advice), /Do not fetch an index-supplied URL yourself/);
+  assert.doesNotMatch(plain(advice), /read manifest_url out of the index yourself|fetch that manifest over TLS/);
+  assert.match(plain(advice), /match proves no freshness/);
+});
+
+test("F6: success prose consistently separates latest-head inclusion from finality", () => {
+  for (const [name, text] of [["SKILL.md", SKILL_MD], ["settlement-proof.md", PROOF_MD], ["catalog.json", CATALOG_TEXT]]) {
+    assert.match(plain(text), /quorum-observed (?:receipt )?inclusion/i, name);
+    assert.match(plain(text), /latest-head confirmation/i, name);
+    assert.match(plain(text), /safe\/finalized[^.]{0,40}not.checked|not.checked[^.]{0,40}safe\/finalized/i, name);
+    assert.doesNotMatch(plain(text), /Finality\. At least 12 confirmations|PROVEN, exit 0, is settlement/i, name);
+  }
+  assert.match(PROOF_MD, /https:\/\/docs\.base\.org\/specifications\/base-protocol\/consensus\/derivation/);
+});
+
+test("P3: registry, historical band and gas statements match their actual checks", () => {
+  assert.match(SKILL_MD, /npm view @voidly\/session@1\.0\.0 version dist\.integrity/);
+  assert.doesNotMatch(plain(SKILL_MD), /npm view @voidly\/session version.*returns 1\.0\.0/);
+  assert.match(plain(SKILL_MD), /historical settlement verifier[^.]{0,100}supplied grant's own band/i);
+  assert.doesNotMatch(plain(SKILL_MD), /Every script that reads a grant refuses grant_band_not_pinned/);
+  for (const [name, text] of ALL_PROSE) {
+    assert.doesNotMatch(plain(text), /second signature[^.]{0,100}(?:revert|costs gas)/i, name);
+  }
+});
+
+test("F1: integration retains validated intent and separates gates from pure builders and consent", () => {
+  for (const api of ["createPaymentContext", "checkSignRequest", "checkSignResponse", "checkRequestAgainstGrant", "checkSubmitResponse"]) assert.ok(SKILL_MD.includes(api), api);
+  assert.match(plain(SKILL_MD), /context\.grant[^.]{0,100}retained snapshot/);
+  assert.match(plain(SKILL_MD), /machine validation, not proof of human consent/);
+  assert.match(plain(SKILL_MD), /low-level pure builders, not validation or approval gates/);
+  assert.match(plain(SKILL_MD), /does not itself reject current expiry/);
+  assert.match(plain(SKILL_MD), /permits historical expired grants/);
+  assert.match(plain(SKILL_MD), /CLI invocations[^.]{0,100}do not persist or prove human approval/);
+  assert.match(plain(SKILL_MD), /send only checked\.typedData, the returned frozen payload/);
+  assert.match(plain(SKILL_MD), /Submit only checked\.request, the returned frozen transaction/);
 });
 
 // ── The rest of the prose must keep up with the code ────────────────────────
@@ -356,7 +399,7 @@ test("SKILL.md documents the pairing and identity rules (A and B)", () => {
   assert.match(PROOF_MD, /the batched-transaction hole/i);
 });
 
-test("the captured PROVEN block matches what the script prints today", async () => {
+test("the documented PROVEN example matches what the script prints today", async () => {
   // This guard's name promised a whole-block comparison twice while its body
   // pinned two substrings, and the capture drifted both times. Now the script
   // exports its printer, so the comparison is line-for-line against
@@ -364,7 +407,7 @@ test("the captured PROVEN block matches what the script prints today", async () 
   // confirmation count (the one number that legitimately moves) is normalized.
   const { renderVerdict } = await import("../scripts/verify-settlement.mjs");
   const fence = /```\n(PROVEN\n[\s\S]*?)```/.exec(SKILL_MD);
-  assert.ok(fence, "SKILL.md must still carry a captured PROVEN block");
+  assert.ok(fence, "SKILL.md must still carry a documented PROVEN example");
   const captured = fence[1].trimEnd().split("\n");
   const rendered = renderVerdict({
     tx: "0xb1ac733095c19e2e4829a3d448a02b8297d08e55f98678adfcba2e3e92747a3a",
@@ -385,13 +428,13 @@ test("the captured PROVEN block matches what the script prints today", async () 
   assert.equal(
     captured.length,
     rendered.length,
-    "the captured block and the script's printer disagree on the number of lines",
+    "the documented example and the script's printer disagree on the number of lines",
   );
   for (let i = 0; i < rendered.length; i += 1) {
     assert.equal(
       norm(captured[i]),
       norm(rendered[i]),
-      `line ${i + 1} of the captured PROVEN block is not what the script prints`,
+      `line ${i + 1} of the documented PROVEN example is not what the script prints`,
     );
   }
 });
@@ -403,15 +446,15 @@ test("no testnet vocabulary and no legacy pay endpoints crept in", () => {
   }
 });
 
-test("S: the captured PROVEN block matches the shape the script prints", () => {
-  // SKILL.md calls this block "Literal output, captured live". It had drifted:
+test("S: the documented PROVEN example matches the shape the script prints", () => {
+  // The historical example previously claimed to be an unchanged live capture:
   // the script began appending "(lowest head of N operators)" and the capture
   // did not have it, so the partner's reference output was not what they would
   // see. Re-capturing alone drifts again on the next change — this compares
   // the two, and it is the comparison that has to exist.
   const script = read("scripts/verify-settlement.mjs");
   const fence = /```\n(PROVEN\n[\s\S]*?)```/.exec(SKILL_MD);
-  assert.ok(fence, "SKILL.md must still carry a captured PROVEN block");
+  assert.ok(fence, "SKILL.md must still carry a documented PROVEN example");
   const captured = fence[1].trimEnd().split("\n");
 
   // Every label in the capture must be a label the script actually prints.
@@ -420,23 +463,23 @@ test("S: the captured PROVEN block matches the shape the script prints", () => {
     if (!label) continue;
     assert.ok(
       script.includes(`${label[1]}:`),
-      `SKILL.md's captured block has a "${label[1]}:" line the script never prints`,
+      `SKILL.md's documented example has a "${label[1]}:" line the script never prints`,
     );
   }
 
   // And the annotations the script ALWAYS emits must be present, which is the
   // half that catches an append like this one.
   const blockLine = captured.find((l) => l.trimStart().startsWith("block:"));
-  assert.ok(blockLine, "the captured block must have a block: line");
+  assert.ok(blockLine, "the documented example must have a block: line");
   assert.match(
     blockLine,
     /\(lowest head of \d+ operators?\)/,
     "the script appends the head-operator count to every block: line; the capture must show it",
   );
 
-  // "Literal output" must be true of every byte inside the fence — no prose,
+  // The current-output example must contain only rendered lines — no prose,
   // no shell comments explaining that a number moves.
   for (const line of captured) {
-    assert.doesNotMatch(line, /\s#\s/, `the fence is captured output, so this annotation belongs outside it: ${line}`);
+    assert.doesNotMatch(line, /\s#\s/, `the fence is a rendered output example, so this annotation belongs outside it: ${line}`);
   }
 });

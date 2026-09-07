@@ -67,7 +67,7 @@
 //      height must return the receipt's own blockHash on every operator. A
 //      receipt agreed on by RPCs but hanging off no block either of them has
 //      is not a settlement.
-//   6. Finality: at least 12 confirmations, measured from the LOWEST head
+//   6. Confirmation depth: at least 12 blocks after inclusion, from the LOWEST latest head
 //      across the quorum — and the heads must agree to within
 //      MAX_HEAD_DIVERGENCE blocks, or one operator is not following the
 //      chain the other is.
@@ -88,7 +88,8 @@
 // is only as strong as those operators and is not a transferable proof.
 
 import { createHash } from "node:crypto";
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { realpathSync } from "node:fs";
+import { LocalFileError, readFileCapped } from "./lib/local-files.mjs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import {
@@ -107,6 +108,14 @@ export const TOPIC_AUTHORIZATION_USED =
 export const TOPIC_TRANSFER =
   "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 export const MIN_CONFIRMATIONS = 12;
+// This verifier observes RPC answers; it does not derive Base's chain from L1
+// or query its safe/finalized heads. Keep the machine result explicit too.
+export const SETTLEMENT_ASSURANCE = Object.freeze({
+  level: "rpc-quorum-inclusion",
+  confirmationBasis: "lowest-latest-head",
+  safe: "not-checked",
+  finalized: "not-checked",
+});
 // A quorum of one is not a quorum. Two independent operators is the floor.
 export const MIN_OPERATORS = 2;
 // Base produces a block every ~2s, so honest operators sit within a handful of
@@ -1054,7 +1063,7 @@ async function verifySettlementInner({
     );
   }
 
-  // ── Finality. Every named operator, not only the first. ──────────────────
+  // ── Latest-head depth. Every named operator, not only the first. ─────────
   //
   // This read was `rpc(rpcUrls[0], ...)`. The receipt was under quorum and the
   // head was not, so ONE dishonest endpoint — merely by being first in argv —
@@ -1068,7 +1077,7 @@ async function verifySettlementInner({
   // The LOWEST head is used rather than a unanimity rule. A liar reporting a
   // head far ahead cannot raise the floor, and a lagging honest operator can
   // only lower it — both directions fail closed, which is the property a
-  // finality check has to have.
+  // confirmation-depth check has to have.
   // `"" `, `"0x"` and any non-numeric value all coerce through BigInt() or
   // Number() into a block of 0 and a fabricated confirmation count, so this
   // tests for a READABLE block number rather than for two specific absences.
@@ -1133,7 +1142,7 @@ async function verifySettlementInner({
       return refuse(
         unanswered(e),
         `${host(url)}: ${redactUrls(e.message, url)} — this operator returned a receipt but no block` +
-          ` height; an operator that answers half the questions cannot corroborate finality`,
+          ` height; an operator that answers half the questions cannot corroborate confirmation depth`,
       );
     }
     // `BigInt(true)` is 1n and `BigInt([])` is 0n: a head of the wrong type
@@ -1141,7 +1150,7 @@ async function verifySettlementInner({
     if (!isQuantity(raw)) {
       return refuse(
         "rpc_head_unreadable",
-        `${host(url)} answered eth_blockNumber with ${raw === null ? "null" : Array.isArray(raw) ? "an array" : `a ${typeof raw}`}, not a hex quantity — an operator that cannot state its head cannot corroborate finality`,
+        `${host(url)} answered eth_blockNumber with ${raw === null ? "null" : Array.isArray(raw) ? "an array" : `a ${typeof raw}`}, not a hex quantity — an operator that cannot state its head cannot corroborate confirmation depth`,
       );
     }
     if (BigInt(raw) > 0x1fffffffffffffn) {
@@ -1184,6 +1193,7 @@ async function verifySettlementInner({
     transferLogIndex: paired.index,
     blockNumber: Number(receiptBlock),
     confirmations,
+    assurance: { ...SETTLEMENT_ASSURANCE, requiredConfirmations: minConfirmations },
     chain: EXPECTED_CHAIN_ID_HEX,
     // Where payer, payee and amount came from: "grant" (read off the envelope
     // whose hash the nonce binds; the amount checked against its band) or
@@ -1293,32 +1303,23 @@ if (isMain) {
     // The file is read here and nowhere else; the path itself is never echoed
     // past this line, and its contents are treated as an envelope to check,
     // not as text to trust.
-    // A regular file of plausible size, or a refusal: a FIFO hung the read
-    // forever and /dev/zero was read until memory ran out.
-    let st;
-    try {
-      st = statSync(flags.grant);
-    } catch (e) {
-      console.error(`REFUSED  grant_unreadable — --grant could not be read (${e.code ?? "error"}); path withheld`);
-      process.exit(1);
-    }
-    if (!st.isFile()) {
-      console.error(`REFUSED  grant_unreadable — --grant is not a regular file`);
-      process.exit(1);
-    }
-    if (st.size > MAX_GRANT_FILE_BYTES) {
-      console.error(`REFUSED  grant_unreadable — --grant is ${st.size} bytes; a task-grant envelope is under ${MAX_GRANT_FILE_BYTES}`);
-      process.exit(1);
-    }
+    // One no-follow, nonblocking descriptor; cap the bytes actually read and
+    // reject observed replacement/growth before parsing. No npm dependency.
     let raw;
     try {
-      raw = readFileSync(flags.grant, "utf8");
-    } catch (e) {
-      console.error(`REFUSED  grant_unreadable — --grant could not be read (${e.code ?? "error"}); path withheld`);
+      raw = readFileCapped(flags.grant, MAX_GRANT_FILE_BYTES);
+    } catch (error) {
+      const code = error instanceof LocalFileError ? error.code : "read";
+      const detail = code === "not_regular"
+        ? "--grant is not a regular file"
+        : code === "too_large"
+          ? `--grant exceeds its ${MAX_GRANT_FILE_BYTES}-byte limit`
+          : "--grant could not be read as an unchanged, bounded regular file; path withheld";
+      console.error(`REFUSED  grant_unreadable — ${detail}`);
       process.exit(1);
     }
     try {
-      grant = JSON.parse(raw);
+      grant = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw));
     } catch {
       console.error(`REFUSED  grant_unreadable — --grant is not JSON`);
       process.exit(1);
@@ -1368,6 +1369,7 @@ export function renderVerdict(verdict) {
     `  transfer:      ${verdict.value} atomic USDC  ${verdict.payer} -> ${verdict.payee}`,
     `  block:         ${verdict.blockNumber}  confirmations: ${verdict.confirmations}` +
       ` (lowest head of ${verdict.headOperators} operators)`,
+    "  assurance:     quorum-observed inclusion; latest-head confirmations only; safe/finalized not checked",
     `  chain:         ${verdict.chain} (Base mainnet, 8453) — confirmed by every operator, receipt bound to its block hash`,
     `  quorum:        ${verdict.rpcHosts.length}/${verdict.rpcHosts.length} agreed — ${verdict.rpcHosts.join(" + ")}, receipts byte-identical`,
     verdict.terms?.source === "grant"
