@@ -11,9 +11,10 @@ import { spawnSync } from "node:child_process";
 import { TypedDataEncoder, Wallet } from "ethers";
 import {
   decodeEip3009Calldata,
-  checkRequestAgainstGrant as checkRequestRaw,
-  checkSignResponse as checkSignRaw,
-  checkSubmitResponse,
+  checkRequestAgainstGrant as requestGate,
+  checkSignResponse as signGate,
+  checkSubmitResponse as submitGate,
+  createPaymentContext,
   typedMessageFor,
   operatorsFor,
   bindGrantTermsToPins,
@@ -23,7 +24,7 @@ import {
   USDC_BASE_DOMAIN,
 } from "../scripts/preview-payment.mjs";
 import { createServer } from "node:http";
-import { grantTermsOf, bindingNonce, grantHashOf, EXPECTED_PRICE_ASSET } from "../scripts/verify-settlement.mjs";
+import { grantTermsOf as readTerms, bindingNonce, grantHashOf, EXPECTED_PRICE_ASSET } from "../scripts/verify-settlement.mjs";
 import { CANONICAL_USDC_BASE } from "../scripts/lib/pins.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -40,8 +41,8 @@ const GRANT = (over = {}) => ({
   schema: "voidly-task-grant/v1",
   hirer_did: "did:voidly:mPJNnvvYiKrFuY96NeESb",
   provider_did: "did:voidly:6rGTFa5apSnKNF14bGXZfu",
-  provider_signing_pubkey_base64: "a".repeat(43) + "=",
-  provider_enc_pubkey_base64: "b".repeat(43) + "=",
+  provider_signing_pubkey_base64: "L16pOb+7U0Qjgs43s61D8KiLi6KRAJ1CpqszP6FzCyE=",
+  provider_enc_pubkey_base64: "BC4/bHqUQHnwt593WsVhgz1loPpUyESJV/Oy6SU5h1k=",
   offer_hash: "aa".repeat(32),
   capsule_hash: "bb".repeat(32),
   brief_commitment: "cc".repeat(32),
@@ -56,6 +57,26 @@ const GRANT = (over = {}) => ({
   expires_at: new Date(Date.now() + 9 * 60_000).toISOString(),
   ...over,
 });
+// Preserve each complete fixture grant while reusing the original calldata and
+// signature shape cases. Production gates only receive validated contexts.
+const fixtureGrants = new WeakMap();
+const grantTermsOf = grant => {
+  const terms = readTerms(grant);
+  fixtureGrants.set(terms, grant);
+  return terms;
+};
+const prepareFixture = (terms, lane, amount = null) =>
+  createPaymentContext({ grant: fixtureGrants.get(terms), lane, amount });
+const checkSignRaw = ({ terms, lane, typedAmount = null, response }) => {
+  const prepared = prepareFixture(terms, lane, typedAmount);
+  return prepared.ok ? signGate({ context: prepared.context, response }) : prepared;
+};
+const checkRequestRaw = ({ terms, typedAmount = null, request, signResponse, signer }) => {
+  const prepared = prepareFixture(terms, "b", typedAmount);
+  return prepared.ok ? requestGate({ context: prepared.context, request, signResponse, signer }) : prepared;
+};
+const checkSubmitResponse = ({ terms, response }) =>
+  submitGate({ grant: fixtureGrants.get(terms), response });
 const word = (hex) => hex.replace(/^0x/, "").padStart(64, "0");
 const fields = [
   { name: "from", type: "address" }, { name: "to", type: "address" },
@@ -424,7 +445,7 @@ test("signing success, type, amount and exact expiry remain fail-closed", () => 
 test("fractional grant expiry refuses at the exact signed second in preview, signing and request gates", (t) => {
   const dir = mkdtempSync(join(tmpdir(), "pp-expiry-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const grant = GRANT({ expires_at: "2027-01-01T00:00:00.999Z" });
+  const grant = GRANT({ issued_at: "2026-12-31T23:50:00.999Z", expires_at: "2027-01-01T00:00:00.999Z" });
   const terms = grantTermsOf(grant);
   const response = responseFor(terms);
   const m = typedMessageFor(terms, terms.expiresAt).message;

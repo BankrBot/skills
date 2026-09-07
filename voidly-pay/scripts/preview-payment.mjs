@@ -53,6 +53,8 @@ import { closeSync, constants as fsConstants, fstatSync, lstatSync, openSync, re
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { verifyTypedData } from "ethers";
+import { isDeepStrictEqual } from "node:util";
+import { validateGrant } from "@voidly/session";
 import {
   ALLOWED_BASE_RPC_HOSTS,
   CANONICAL_USDC_BASE,
@@ -195,7 +197,7 @@ export function typedMessageFor(terms, expiresAtIso) {
   };
 }
 
-/** Derive only the exact authorization this human-reviewed grant permits. */
+/** Low-level builder only: does not validate a grant or establish approval. */
 export function typedAuthorizationFor(terms, expiresAt, lane, typedAmount = null) {
   if (lane !== "a" && lane !== "b") return { ok: false, reason: "signature_lane_required", detail: "name the approved lane explicitly: a or b" };
   const typed = typedMessageFor(terms, expiresAt);
@@ -216,6 +218,131 @@ export function typedAuthorizationFor(terms, expiresAt, lane, typedAmount = null
     ] },
     message: { ...typed.message, value: BigInt(amount).toString() },
   };
+}
+
+// Contexts retain a validated snapshot, never a caller-supplied partial terms object.
+// They establish local consistency, not human consent or provider acceptance.
+const contexts = new WeakSet();
+const freezeTree = (value) => {
+  if (value && typeof value === "object") {
+    for (const child of Object.values(value)) freezeTree(child);
+    Object.freeze(value);
+  }
+  return value;
+};
+const refused = (reason, detail = "") => ({ ok: false, reason, detail });
+function validatedGrant(raw) {
+  // Grant v1 is a flat record of strings. Snapshot only own data properties;
+  // reject accessors, symbols, hidden fields and non-plain objects before SDK use.
+  try {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw) ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(raw))) return refused("grant_invalid");
+    const keys = Reflect.ownKeys(raw);
+    if (keys.length > 32) return refused("grant_invalid");
+    const snapshot = Object.create(null);
+    for (const key of keys) {
+      const d = Object.getOwnPropertyDescriptor(raw, key);
+      if (typeof key !== "string" || !d.enumerable || !("value" in d) ||
+          typeof d.value !== "string" || d.value.length > 4096) return refused("grant_invalid");
+      Object.defineProperty(snapshot, key, { value: d.value, enumerable: true });
+    }
+    const valid = validateGrant(snapshot, Date.now());
+    if (!valid.ok) return refused("grant_invalid", "the complete grant failed the locked SDK schema, identity or validity-window checks");
+    const grant = { ...valid.env };
+    const terms = grantTermsOf(grant);
+    if (!terms.ok) return terms;
+    const pinned = bindGrantTermsToPins(grant, terms);
+    if (!pinned.ok) return pinned;
+    return { ok: true, grant, terms };
+  } catch {
+    return refused("grant_invalid", "the complete grant could not be validated");
+  }
+}
+
+/** Validate the full grant and freeze the exact lane/amount to be previewed. */
+export function createPaymentContext(input = {}) {
+  const override = checkOptions(input, ["grant", "lane", "amount"]);
+  if (override) return override;
+  const { grant, lane, amount = null } = input;
+  const valid = validatedGrant(grant);
+  if (!valid.ok) return valid;
+  const authorization = typedAuthorizationFor(valid.terms, valid.terms.expiresAt, lane, amount);
+  if (!authorization.ok) return authorization;
+  const context = freezeTree({ grant: valid.grant, terms: valid.terms, lane,
+    amount: authorization.message.value, authorization });
+  contexts.add(context);
+  const live = liveContext(context);
+  return live.ok ? { ok: true, context } : live;
+}
+
+function liveContext(context) {
+  if (!context || !contexts.has(context)) return refused("payment_context_required", "retain the context returned by createPaymentContext; partial terms and copied contexts are not accepted");
+  const valid = validatedGrant(context.grant);
+  if (!valid.ok) return valid;
+  if (Math.floor(Date.now() / 1000) >= Number(context.authorization.message.validBefore)) {
+    return refused("grant_expired", "the signed validity window has passed; re-seal and preview again");
+  }
+  return { ok: true };
+}
+const isPlainRecord = value => value !== null && typeof value === "object" &&
+  [Object.prototype, null].includes(Object.getPrototypeOf(value));
+const checkOptions = (input, allowed) => {
+  if (!isPlainRecord(input)) return refused("payment_input_not_object");
+  for (const key of Reflect.ownKeys(input)) {
+    if (typeof key !== "string" || !allowed.includes(key)) return refused("payment_context_override", "lane, amount, expiry and terms must come from the retained context");
+    const d = Object.getOwnPropertyDescriptor(input, key);
+    if (!d.enumerable || !("value" in d)) return refused("payment_input_not_data", "use plain data properties");
+  }
+  return null;
+};
+function captureFields(value, keys, what) {
+  if (!isPlainRecord(value)) return refused(`${what}_not_object`);
+  const captured = {};
+  for (const key of keys) {
+    const d = Object.getOwnPropertyDescriptor(value, key);
+    if (d && (!d.enumerable || !("value" in d))) return refused(`${what}_not_data`, "use plain data properties");
+    captured[key] = d?.value;
+  }
+  return { ok: true, value: captured };
+}
+// Typed data has a small JSON shape. Copy descriptors, never invoke accessors.
+function snapshotTypedData(value, depth = 0, budget = { left: 128 }) {
+  if (--budget.left < 0 || depth > 8) throw new Error("typed data limit");
+  if (value === null || typeof value === "boolean" || typeof value === "number") return value;
+  if (typeof value === "string" && value.length <= 4096) return value;
+  const array = Array.isArray(value);
+  if (!array && !isPlainRecord(value)) throw new Error("typed data shape");
+  if (array && value.length > 32) throw new Error("typed data array limit");
+  const copied = array ? [] : {};
+  for (const key of Reflect.ownKeys(value)) {
+    if (array && key === "length") continue;
+    const d = Object.getOwnPropertyDescriptor(value, key);
+    if (typeof key !== "string" || !d.enumerable || !("value" in d)) throw new Error("typed data property");
+    Object.defineProperty(copied, key, { value: snapshotTypedData(d.value, depth + 1, budget), enumerable: true });
+  }
+  return copied;
+}
+const DOMAIN_FIELDS = [
+  { name: "name", type: "string" }, { name: "version", type: "string" },
+  { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" },
+];
+
+/** Call this inside the SDK sign callback BEFORE asking the external wallet. */
+export function checkSignRequest(input = {}) {
+  const override = checkOptions(input, ["context", "typedData"]);
+  if (override) return override;
+  const { context, typedData } = input;
+  const live = liveContext(context);
+  if (!live.ok) return live;
+  const { domain, types, primaryType, message } = context.authorization;
+  const expected = { domain, types, primaryType, message };
+  const sdkExpected = { ...expected, types: { EIP712Domain: DOMAIN_FIELDS, ...types } };
+  let captured;
+  try { captured = snapshotTypedData(typedData); } catch { return refused("sign_request_mismatch", "typed data must be a bounded plain data document"); }
+  if (!isDeepStrictEqual(captured, expected) && !isDeepStrictEqual(captured, sdkExpected)) {
+    return refused("sign_request_mismatch", "the wallet request differs from the retained lane, domain, types or message; do not sign");
+  }
+  return { ok: true, typedData: freezeTree(sdkExpected) };
 }
 
 /**
@@ -253,15 +380,23 @@ export function decodeEip3009Calldata(data) {
 }
 
 /**
- * Compare the SDK's request to the grant. Pure. `typedAmount` defaults to
- * the band's floor — the value the preview rendered and the SDK signs — so a
- * request moving any other in-band amount is refused unless the caller names
- * that amount explicitly. Every field is type-checked before it is compared:
- * an array or a number where a string belongs is a refusal, never a coercion.
+ * Compare the SDK request to the retained context, including its fixed amount.
+ * Return only the admitted transaction fields as a frozen snapshot. Forward
+ * that snapshot to submission; the caller's mutable object is not the result.
  */
-export function checkRequestAgainstGrant({ request, terms, expiresAt, typedAmount = null, signer = null, signResponse }) {
+export function checkRequestAgainstGrant(input = {}) {
+  const override = checkOptions(input, ["context", "request", "signer", "signResponse"]);
+  if (override) return override;
+  const { context, request: rawRequest, signer = null, signResponse } = input;
+  const live = liveContext(context);
+  if (!live.ok) return live;
+  if (context.lane !== "b") return refused("request_lane_mismatch", "raw submission requires the retained Lane B context");
+  const { terms, amount: typedAmount } = context;
+  const expiresAt = terms.expiresAt;
   const refuse = (reason, detail = "") => ({ ok: false, reason, detail });
-  if (request === null || typeof request !== "object" || Array.isArray(request)) return refuse("request_not_object");
+  const captured = captureFields(rawRequest, ["chainId", "to", "value", "data"], "request");
+  if (!captured.ok) return captured;
+  const request = captured.value;
   const chainOk =
     (typeof request.chainId === "number" && request.chainId === 8453) ||
     (isStr(request.chainId) && (request.chainId === "8453" || request.chainId.toLowerCase() === EXPECTED_CHAIN_ID_HEX));
@@ -301,22 +436,29 @@ export function checkRequestAgainstGrant({ request, terms, expiresAt, typedAmoun
   }
   if (Math.floor(Date.now() / 1000) >= Number(m.validBefore)) return refuse("grant_expired", "the signed validity window has passed; re-seal and preview again");
   if (signResponse === undefined) return refuse("sign_response_required", "the approved Lane B signing response is required before checking a submission");
-  const signed = checkSignResponse({ response: signResponse, terms: { ...terms, expiresAt }, lane: "b", typedAmount });
+  const signed = checkSignResponse({ context, response: signResponse });
   if (!signed.ok) return signed;
   const signature = signed.signature.toLowerCase();
   if (decoded.r !== signature.slice(0, 66) || decoded.s !== `0x${signature.slice(66, 130)}` || decoded.v !== parseInt(signature.slice(130, 132), 16)) {
     return refuse("request_signature_mismatch", "the submission signature differs from the approved signing response; do not submit");
   }
-  return { ok: true, decoded, message: { ...m, value: BigInt(previewed).toString() } };
+  return { ok: true, decoded, message: { ...m, value: BigInt(previewed).toString() },
+    request: Object.freeze({ to: CANONICAL_USDC_BASE, chainId: 8453, value: "0", data: request.data }) };
 }
 
 /** /wallet/sign response → the signature string, or a refusal. Pure. */
-export function checkSignResponse({ response, terms, lane, typedAmount = null }) {
+export function checkSignResponse(input = {}) {
+  const override = checkOptions(input, ["context", "response"]);
+  if (override) return override;
+  const { context, response: rawResponse } = input;
+  const live = liveContext(context);
+  if (!live.ok) return live;
+  const { terms, authorization: typed } = context;
   const refuse = (reason, detail = "") => ({ ok: false, reason, detail });
-  const typed = typedAuthorizationFor(terms, terms.expiresAt, lane, typedAmount);
-  if (!typed.ok) return typed;
   if (Math.floor(Date.now() / 1000) >= Number(typed.message.validBefore)) return refuse("grant_expired", "the signed validity window has passed; re-seal and preview again");
-  if (response === null || typeof response !== "object" || Array.isArray(response)) return refuse("response_not_object");
+  const captured = captureFields(rawResponse, ["success", "signatureType", "signature", "signer"], "response");
+  if (!captured.ok) return captured;
+  const response = captured.value;
   if (response.success !== true) return refuse("sign_not_success", "the response does not report successful signing");
   if (response.signatureType !== "eth_signTypedData_v4") return refuse("sign_type_mismatch", "the response is not an EIP-712 signing response");
   if (!isStr(response.signature)) return refuse("signature_malformed", "signature is not a string");
@@ -345,7 +487,10 @@ export function checkSignResponse({ response, terms, lane, typedAmount = null })
 }
 
 /** /wallet/submit response → the transaction hash, or a refusal. Pure. */
-export function checkSubmitResponse({ response, terms }) {
+export function checkSubmitResponse({ response, grant } = {}) {
+  const valid = validatedGrant(grant);
+  if (!valid.ok) return valid;
+  const { terms } = valid;
   const refuse = (reason, detail = "") => ({ ok: false, reason, detail });
   if (response === null || typeof response !== "object" || Array.isArray(response)) return refuse("response_not_object");
   if (response.success !== true) return refuse("submit_not_success", "success is not true");
@@ -431,7 +576,7 @@ export const invokedAsMain = (argv1, metaUrl) => {
 
 if (invokedAsMain(process.argv[1], import.meta.url)) {
   const [mode, ...rest] = process.argv.slice(2);
-  if (!(mode in MODES)) die("unknown_mode", `first argument must be one of ${Object.keys(MODES).join(", ")}`);
+  if (!Object.hasOwn(MODES, mode)) die("unknown_mode", `first argument must be one of ${Object.keys(MODES).join(", ")}`);
   const allowed = MODES[mode];
   const flags = { "--rpc": [] };
   for (let i = 0; i < rest.length; i += 1) {
@@ -447,22 +592,16 @@ if (invokedAsMain(process.argv[1], import.meta.url)) {
   }
   if (!flags["--grant"]) die("missing_arguments", `${mode} needs --grant ./keep.grant.json`);
   const grant = loadSmallJson(flags["--grant"], "grant");
-  const terms = grantTermsOf(grant);
-  if (!terms.ok) die(terms.reason, terms.detail);
-  const pinned = bindGrantTermsToPins(grant, terms);
-  if (!pinned.ok) die(pinned.reason, pinned.detail);
-  const typed = typedMessageFor(terms, terms.expiresAt);
-  if (!typed.ok) die(typed.reason, typed.detail);
-  const m = typed.message;
+  const lane = mode === "check-request" ? "b" : flags["--lane"] ?? (mode === "preview" ? "a" : undefined);
+  const prepared = mode === "check-submit-response" ? validatedGrant(grant)
+    : createPaymentContext({ grant, lane, amount: flags["--amount"] ?? null });
+  if (!prepared.ok) die(prepared.reason, prepared.detail);
+  const context = prepared.context;
+  const terms = context?.terms ?? prepared.terms;
   const clock = (sec) => new Date(Number(sec) * 1000).toISOString();
 
   if (mode === "preview") {
-    const lane = (flags["--lane"] ?? "a").toLowerCase();
-    if (lane !== "a" && lane !== "b") die("unknown_lane", "--lane must be a or b");
-    if (Math.floor(Date.now() / 1000) >= Number(typed.message.validBefore)) die("grant_expired", `the signed validity window ended ${clock(typed.message.validBefore)}; re-seal and preview again`);
-    const approved = typedAuthorizationFor(terms, terms.expiresAt, lane, flags["--amount"] ?? null);
-    if (!approved.ok) die(approved.reason, approved.detail);
-    const { primaryType, message: m } = approved;
+    const { primaryType, message: m } = context.authorization;
     console.log("PREVIEW  every field the signature commits to, from the grant file");
     console.log(`  grant_hash:      ${terms.grantHash}`);
     console.log(`  chain:           eip155:8453 (Base mainnet)   USDC: ${CANONICAL_USDC_BASE}`);
@@ -494,7 +633,7 @@ if (invokedAsMain(process.argv[1], import.meta.url)) {
   if (mode === "check-sign-response") {
     if (!flags["--response"]) die("missing_arguments", "check-sign-response needs --response ./sign-response.json");
     if (!flags["--lane"]) die("signature_lane_required", "check-sign-response requires --lane a or --lane b");
-    const r = checkSignResponse({ response: loadSmallJson(flags["--response"], "response", { requirePrivate: true }), terms, lane: flags["--lane"], typedAmount: flags["--amount"] ?? null });
+    const r = checkSignResponse({ response: loadSmallJson(flags["--response"], "response", { requirePrivate: true }), context });
     if (!r.ok) die(r.reason, r.detail);
     console.log("ACCEPTED  signature — recovered the grant payer over the exact approved lane, domain and message; hand the checked signature back to the SDK verbatim");
     process.exit(0);
@@ -502,7 +641,7 @@ if (invokedAsMain(process.argv[1], import.meta.url)) {
 
   if (mode === "check-submit-response") {
     if (!flags["--response"]) die("missing_arguments", "check-submit-response needs --response ./submit-response.json");
-    const r = checkSubmitResponse({ response: loadSmallJson(flags["--response"], "response"), terms });
+    const r = checkSubmitResponse({ response: loadSmallJson(flags["--response"], "response"), grant });
     if (!r.ok) die(r.reason, r.detail);
     console.log(`ACCEPTED  submission ${r.transactionHash} — mined, success, signer is the payer. Not yet settlement: run`);
     console.log(`  node scripts/verify-settlement.mjs --tx ${r.transactionHash} --grant ${safePath(flags["--grant"])}`);
@@ -516,7 +655,7 @@ if (invokedAsMain(process.argv[1], import.meta.url)) {
   const signResponse = loadSmallJson(flags["--sign-response"], "sign_response", { requirePrivate: true });
   const typedAmount = flags["--amount"] !== undefined ? flags["--amount"] : null;
   if (typedAmount !== null && !DECIMAL.test(typedAmount)) die("bad_amount", "--amount must be a decimal atomic amount");
-  const checked = checkRequestAgainstGrant({ request, terms, expiresAt: terms.expiresAt, typedAmount, signer: flags["--signer"] ?? null, signResponse });
+  const checked = checkRequestAgainstGrant({ request, context, signer: flags["--signer"] ?? null, signResponse });
   if (!checked.ok) die(checked.reason, checked.detail);
   const policy = operatorsFor(flags["--rpc"].length ? flags["--rpc"] : DEFAULT_RPCS);
   if (!policy.ok) die(policy.reason, policy.detail);
@@ -539,6 +678,8 @@ if (invokedAsMain(process.argv[1], import.meta.url)) {
     if (wei > GAS_PRICE_SANITY_CEILING_WEI) die("gas_price_implausible", `${host(op.url)} reports a gas price above ${GAS_PRICE_SANITY_CEILING_WEI} wei — not a fee a human should approve blind`);
     prices.push({ host: host(op.url), wei });
   }
+  const stillLive = liveContext(context);
+  if (!stillLive.ok) die(stillLive.reason, stillLive.detail);
   const worst = prices.reduce((a, b) => (b.wei > a.wei ? b : a));
   const feeWei = TYPICAL_TRANSFER_WITH_AUTHORIZATION_GAS * worst.wei;
   console.log("CHECKED  the SDK's request is THIS grant's transfer authorization and nothing else");

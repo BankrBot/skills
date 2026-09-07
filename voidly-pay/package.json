@@ -10,7 +10,7 @@
     "tweetnacl-util": "0.15.1"
   },
   "scripts": {
-    "test": "node --test tests/prose.test.mjs tests/seal-hire.test.mjs tests/verify-artifacts.test.mjs tests/verify-settlement.test.mjs tests/preview-payment.test.mjs tests/sdk-payment-parity.test.mjs"
+    "test": "node --test tests/prose.test.mjs tests/local-files.test.mjs tests/payment-context.test.mjs tests/seal-hire.test.mjs tests/verify-artifacts.test.mjs tests/verify-settlement.test.mjs tests/preview-payment.test.mjs tests/sdk-payment-parity.test.mjs"
   },
   "engines": {
     "node": ">=20"
