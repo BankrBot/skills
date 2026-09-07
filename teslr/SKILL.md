@@ -11,7 +11,7 @@ Teslr's X bot has its own agent and Teslafy image integration. Those are not pub
 
 ## Setup
 
-Requirements: Node.js 22 or later, outbound HTTPS to `teslr.club`, and a host-provided secure environment for credentials. Keep this skill's `scripts/` and `references/` with `SKILL.md`; resolve paths relative to the installed skill, not a hardcoded `/skills` directory. If the host cannot run the bundled helper or privately supply its credential, explain the missing prerequisite instead of falling back to ad hoc authenticated shell commands.
+Requirements: Node.js 22 or later (or the tested Bankr Bun 1.3.14 compatibility runtime), outbound HTTPS to `teslr.club`, and a host-provided secure environment for credentials. Keep this skill's `scripts/` and `references/` with `SKILL.md`; resolve paths relative to the installed skill, not a hardcoded `/skills` directory. If the host cannot run the bundled helper or privately supply its credential, explain the missing prerequisite instead of falling back to ad hoc authenticated shell commands.
 
 1. Have the user connect Tesla at `https://teslr.club` and save the issued **Teslr** token as `TESLR_FLEET_TOKEN` in the agent host's secret/environment settings. In Bankr, these are Terminal → Settings → Env Vars. Other hosts use their equivalent private settings.
 2. For vehicle commands, have the user approve Teslr's virtual key for each intended vehicle using `https://tesla.com/_ak/teslr.club` on a phone with the Tesla app.

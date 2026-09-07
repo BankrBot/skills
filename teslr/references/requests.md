@@ -142,3 +142,5 @@ node --test tests/*.test.mjs
 ```
 
 No real vehicle or account is needed. Passing these tests does not prove compatibility with a host that lacks Node, secret injection, or safe data transport.
+
+Bankr may expose Bun as its `node` compatibility shim. On the tested Bun 1.3.14 host, the unchanged helper runs through that shim, but `node --test` does not provide Node's test runner. Use `bun test tests/*.test.mjs` for the packaged offline tests there; do not rewrite the helper or tests to conceal a runtime failure. Verify the installed helper's `--capabilities` command and the complete offline suite before using that compatibility runtime.
