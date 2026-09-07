@@ -7,12 +7,12 @@
   "demo": {
     "title": "teslr.sh",
     "language": "bash",
-    "code": "# List your connected Teslas\nbankr prompt \"Use Teslr to list my vehicles\"\n\n# Check live vehicle data\nbankr prompt \"Use Teslr to check all four tire pressures\"\n\n# Run a vehicle command\nbankr prompt \"Use Teslr to warm my Tesla to 72 degrees\"\n\n# Find and send a nearby destination\nbankr prompt \"Use Teslr to navigate to the nearest Safeway\""
+    "code": "# Compare multiple vehicles in one request\nbankr prompt \"Use Teslr to tell me my Model 3 mileage and Model Y tire pressures\"\n\n# Mix commands and reads; approve the command preview\nbankr prompt \"Use Teslr to lock my Model 3 and check software updates on both cars\"\n\n# Discover connected energy products\nbankr prompt \"Use Teslr to check whether I have any connected energy sites\"\n\n# Read richer Tesla metadata\nbankr prompt \"Use Teslr to check service notices and warranty information\""
   },
   "setup": [
     "Connect directly at https://teslr.club, then save the one-time token as TESLR_FLEET_TOKEN in Bankr Terminal -> Settings -> Env Vars",
     "For direct vehicle commands, approve the Teslr virtual key for each vehicle in the Tesla app",
-    "Existing Tessie users may instead add TESSIE_API_TOKEN in Bankr Env Vars; the skill prefers Tessie when both tokens exist",
+    "The same skill works with other command-capable agents: keep its scripts and references together, use Node.js 22+, and supply TESLR_FLEET_TOKEN through the host's secure environment",
     "Keep tokens private: never paste them into a prompt, chat, or public X post"
   ],
   "install": {
