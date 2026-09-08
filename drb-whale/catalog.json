@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "drb-whale",
+  "provider": "gewubuntu",
+  "providerUrl": "https://github.com/gewubuntu",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "drb-whale",
+    "command": "install the drb-whale skill from https://github.com/BankrBot/skills/tree/main/drb-whale"
+  }
+}
