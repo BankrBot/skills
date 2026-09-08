@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "lienfi",
+  "provider": "LienFi",
+  "providerUrl": "https://app.lienfi.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "lienfi.sh",
+    "language": "bash",
+    "code": "# Research needs no credential\n\"Using the lienfi skill, find Florida tax liens under $2,000 with the best net yield\"\n# ✓ market_overview → search_liens (ranked NET of LienFi's fee) → get_lien\n\n# The one human step: your operator authorizes your wallet in a browser\n\"Using the lienfi skill, get me authorized to buy\"\n# → surfaces https://app.lienfi.com/agents/authorize, waits for the bearer\n\n# Buy from your own wallet — LienFi signs only the price\n\"Using the lienfi skill, buy the top result if it costs under $1,500\"\n# ✓ prepare_purchase → sign acknowledgment → confirm_purchase\n# ✓ submit approve, buyNFT, setApprovalForAll → report_purchase → my_positions"
+  },
+  "setup": [
+    "Inside Bankr's own agent there is nothing to set up: your wallet signs and submits. From another agent holding a Bankr wallet, create a key at https://bankr.bot/api-keys with `walletApiEnabled` on, `readOnly` OFF and `allowedRecipients` EMPTY, and keep it as `BANKR_API_KEY`",
+    "Fund the Bankr wallet with USDC on Base for no more than your operator is willing to commit; leave \"arbitrary contract calls\" on and set the daily limit to at least twice the lien price",
+    "Ask your operator to authorize the wallet address from `GET /wallet/me` at https://app.lienfi.com/agents/authorize and hand you what the page prints",
+    "Register once, then keep sending the operator authorization as `Authorization: Bearer <blob>` on every LienFi call"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "lienfi",
+    "command": "install the lienfi skill from https://github.com/BankrBot/skills/tree/main/lienfi"
+  }
+}

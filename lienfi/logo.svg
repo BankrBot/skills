@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2024" height="700" viewBox="0 0 2024 700" role="img" aria-label="LienFi logo">
+  <defs>
+    <linearGradient id="lgCircle" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0" stop-color="#22C7C8"/>
+      <stop offset="0.55" stop-color="#8FAE6A"/>
+      <stop offset="1" stop-color="#F3A018"/>
+    </linearGradient>
+    <linearGradient id="lgWord" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0" stop-color="#22C7C8"/>
+      <stop offset="0.55" stop-color="#8FAE6A"/>
+      <stop offset="1" stop-color="#F3A018"/>
+    </linearGradient>
+  </defs>
+  <circle cx="345" cy="350" r="345" fill="url(#lgCircle)"/>
+  <text x="883" y="530" font-family="Avenir Next, Inter, Helvetica Neue, Arial, sans-serif" font-size="410" font-weight="700" letter-spacing="-8" fill="url(#lgWord)" style="white-space: pre; font-size: 410px;">LienFi</text>
+</svg>
