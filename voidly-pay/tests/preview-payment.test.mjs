@@ -10,12 +10,10 @@ import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { TypedDataEncoder, Wallet } from "ethers";
 import {
-  decodeEip3009Calldata,
   checkRequestAgainstGrant as requestGate,
   checkSignResponse as signGate,
   checkSubmitResponse as submitGate,
   createPaymentContext,
-  typedMessageFor,
   operatorsFor,
   bindGrantTermsToPins,
   isoUtcMs,
@@ -23,8 +21,16 @@ import {
   TYPICAL_TRANSFER_WITH_AUTHORIZATION_GAS,
   USDC_BASE_DOMAIN,
 } from "../scripts/preview-payment.mjs";
-import { createServer } from "node:http";
-import { grantTermsOf as readTerms, bindingNonce, grantHashOf, EXPECTED_PRICE_ASSET } from "../scripts/verify-settlement.mjs";
+import { createHash } from "node:crypto";
+import { canonicalize } from "@voidly/session";
+const EXPECTED_PRICE_ASSET = "eip155:8453/erc20:0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+// Independent fixture encoding, never payment admission or runtime code.
+const grantHashOf = grant => createHash("sha256").update(canonicalize(grant)).digest("hex");
+const bindingNonce = hash => "0x" + createHash("sha256").update("voidly-session-settlement-binding/v1|" + hash.replace(/^0x/i, "").toLowerCase()).digest("hex");
+const readTerms = grant => ({ ok: true, grantHash: grantHashOf(grant),
+  payer: grant.price_payer_account.split(":").at(-1), payee: grant.price_payee_account.split(":").at(-1),
+  band: { min: grant.price_min_amount, max: grant.price_max_amount }, expiresAt: grant.expires_at,
+  chain: grant.price_chain, asset: grant.price_asset });
 import { CANONICAL_USDC_BASE } from "../scripts/lib/pins.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -59,20 +65,27 @@ const GRANT = (over = {}) => ({
 });
 // Preserve each complete fixture grant while reusing the original calldata and
 // signature shape cases. Production gates only receive validated contexts.
+// Independent synthetic message fixture only; production typed data comes from SDK.
+const typedMessageFor = (terms, expiresAt) => {
+  const ms = isoUtcMs(expiresAt);
+  if (ms === null) return { ok: false, reason: "grant_expires_at_malformed" };
+  return { ok: true, message: { from: terms.payer, to: terms.payee, value: terms.band.min,
+    validAfter: "0", validBefore: String(Math.floor(ms / 1000)), nonce: bindingNonce(terms.grantHash) } };
+};
 const fixtureGrants = new WeakMap();
 const grantTermsOf = grant => {
   const terms = readTerms(grant);
   fixtureGrants.set(terms, grant);
   return terms;
 };
-const prepareFixture = (terms, lane, amount = null) =>
-  createPaymentContext({ grant: fixtureGrants.get(terms), lane, amount });
-const checkSignRaw = ({ terms, lane, typedAmount = null, response }) => {
-  const prepared = prepareFixture(terms, lane, typedAmount);
+const prepareFixture = async (terms, lane, amount = null) =>
+  (await createPaymentContext({ grant: fixtureGrants.get(terms), lane, amount }));
+const checkSignRaw = async ({ terms, lane, typedAmount = null, response }) => {
+  const prepared = (await prepareFixture(terms, lane, typedAmount));
   return prepared.ok ? signGate({ context: prepared.context, response }) : prepared;
 };
-const checkRequestRaw = ({ terms, typedAmount = null, request, signResponse, signer }) => {
-  const prepared = prepareFixture(terms, "b", typedAmount);
+const checkRequestRaw = async ({ terms, typedAmount = null, request, signResponse, signer }) => {
+  const prepared = (await prepareFixture(terms, "b", typedAmount));
   return prepared.ok ? requestGate({ context: prepared.context, request, signResponse, signer }) : prepared;
 };
 const checkSubmitResponse = ({ terms, response }) =>
@@ -93,15 +106,15 @@ const responseFor = (terms, lane = "b", amount = null) => {
 const calldataFor = (m, { v, selector = TRANSFER_WITH_AUTHORIZATION_SELECTOR, signature = signMessage(m) } = {}) =>
   selector + word(m.from) + word(m.to) + word(BigInt(m.value).toString(16)) + word(BigInt(m.validAfter).toString(16)) + word(BigInt(m.validBefore).toString(16)) + word(m.nonce) + word((v ?? parseInt(signature.slice(130, 132), 16)).toString(16)) + signature.slice(2, 130);
 // Existing term/shape cases now receive genuine approved fixture signatures.
-const checkRequestAgainstGrant = (input) => checkRequestRaw({
+const checkRequestAgainstGrant = async (input) => (await checkRequestRaw({
   signResponse: responseFor(input.terms, "b", input.typedAmount ?? null), ...input,
-});
-const checkSignResponse = (input) => checkSignRaw({ lane: "b", ...input,
+}));
+const checkSignResponse = async (input) => (await checkSignRaw({ lane: "b", ...input,
   response: input.response && typeof input.response === "object" && !Array.isArray(input.response)
     ? { success: true, signatureType: "eth_signTypedData_v4", ...input.response } : input.response,
-});
+}));
 
-test("the typed message is the SDK's: floor value, validAfter 0, validBefore = expires_at seconds, nonce = 0x + binding", () => {
+test("the typed message is the SDK's: floor value, validAfter 0, validBefore = expires_at seconds, nonce = 0x + binding", async () => {
   const g = GRANT();
   const t = grantTermsOf(g);
   const typed = typedMessageFor(t, g.expires_at);
@@ -114,67 +127,60 @@ test("the typed message is the SDK's: floor value, validAfter 0, validBefore = e
   assert.deepEqual(USDC_BASE_DOMAIN, { name: "USD Coin", version: "2", chainId: 8453, verifyingContract: CANONICAL_USDC_BASE });
 });
 
-test("calldata decodes to the nine arguments, and only the exact length passes", () => {
-  const g = GRANT();
-  const m = typedMessageFor(grantTermsOf(g), g.expires_at).message;
-  const d = decodeEip3009Calldata(calldataFor(m));
-  assert.equal(d.ok, true);
-  assert.equal(d.selector, TRANSFER_WITH_AUTHORIZATION_SELECTOR);
-  assert.equal(d.from, PAYER);
-  assert.equal(d.to, PAYEE);
-  assert.equal(d.value, "50000");
-  assert.equal(d.nonce, m.nonce);
-  assert.ok(d.v === 27 || d.v === 28);
-  assert.equal(decodeEip3009Calldata(calldataFor(m) + "00").reason, "calldata_wrong_length");
-  assert.equal(decodeEip3009Calldata("0xzz").reason, "calldata_not_hex");
-  assert.equal(decodeEip3009Calldata(TRANSFER_WITH_AUTHORIZATION_SELECTOR + "ff".repeat(288)).reason, "calldata_address_malformed");
+test("SDK admission refuses malformed length, hex, and address words before any submit", async () => {
+  const terms = grantTermsOf(GRANT());
+  const m = typedMessageFor(terms, terms.expiresAt).message;
+  for (const data of [calldataFor(m) + "00", "0xzz", TRANSFER_WITH_AUTHORIZATION_SELECTOR + "ff".repeat(288)]) {
+    const out = (await checkRequestAgainstGrant({ terms, request: { to: CANONICAL_USDC_BASE, chainId: 8453, value: "0", data } }));
+    assert.equal(out.reason, "payment_submit_request_mismatch");
+  }
 });
 
-test("check-request refuses every deviation from the grant by name", () => {
+test("SDK-backed check-request refuses every deviation from the retained grant", async () => {
   const g = GRANT();
   const terms = grantTermsOf(g);
   const m = typedMessageFor(terms, g.expires_at).message;
   const req = (over = {}, data = calldataFor(m)) => ({ to: CANONICAL_USDC_BASE, chainId: 8453, value: "0x0", data, ...over });
-  const ok = checkRequestAgainstGrant({ request: req(), terms, expiresAt: g.expires_at });
+  const ok = (await checkRequestAgainstGrant({ request: req(), terms, expiresAt: g.expires_at }));
   assert.equal(ok.ok, true, JSON.stringify(ok));
-  assert.equal(checkRequestAgainstGrant({ request: req({ chainId: 1 }), terms, expiresAt: g.expires_at }).reason, "request_wrong_chain");
-  assert.equal(checkRequestAgainstGrant({ request: req({ to: PAYEE }), terms, expiresAt: g.expires_at }).reason, "request_wrong_target");
-  assert.equal(checkRequestAgainstGrant({ request: req({ value: "1" }), terms, expiresAt: g.expires_at }).reason, "request_carries_value");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor(m, { selector: "0xef55bec6" })), terms, expiresAt: g.expires_at }).reason, "request_wrong_selector");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, from: PAYEE })), terms, expiresAt: g.expires_at }).reason, "request_payer_mismatch");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, to: PAYER })), terms, expiresAt: g.expires_at }).reason, "request_payee_mismatch");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, value: "6000000" })), terms, expiresAt: g.expires_at }).reason, "request_amount_outside_grant_band");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, value: "60000" })), terms, expiresAt: g.expires_at, typedAmount: "50000" }).reason, "request_amount_not_the_previewed");
+  assert.equal((await checkRequestAgainstGrant({ request: req({ chainId: 1 }), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({ to: PAYEE }), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({ value: "1" }), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor(m, { selector: "0xef55bec6" })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, from: PAYEE })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, to: PAYER })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, value: "6000000" })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, value: "60000" })), terms, expiresAt: g.expires_at, typedAmount: "50000" })).reason, "payment_submit_request_mismatch");
   // R4-F1: with NO --amount, the previewed amount (the floor) binds — an in-band 100x is refused
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, value: "5000000" })), terms, expiresAt: g.expires_at }).reason, "request_amount_not_the_previewed");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, value: "5000000" })), terms, expiresAt: g.expires_at, typedAmount: "5000000" }).ok, true);
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, validAfter: "5" })), terms, expiresAt: g.expires_at }).reason, "request_valid_after_not_zero");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, validBefore: "99" })), terms, expiresAt: g.expires_at }).reason, "request_valid_before_mismatch");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, nonce: "0x" + "ee".repeat(32) })), terms, expiresAt: g.expires_at }).reason, "request_nonce_mismatch");
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor(m, { v: 1 })), terms, expiresAt: g.expires_at }).reason, "request_signature_malformed");
-  assert.equal(checkRequestAgainstGrant({ request: req(), terms, expiresAt: g.expires_at, signer: PAYEE }).reason, "signer_not_the_payer");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, value: "5000000" })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, value: "5000000" })), terms, expiresAt: g.expires_at, typedAmount: "5000000" })).ok, true);
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, validAfter: "5" })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, validBefore: "99" })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor({ ...m, nonce: "0x" + "ee".repeat(32) })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor(m, { v: 1 })), terms, expiresAt: g.expires_at })).reason, "payment_submit_request_mismatch");
+  assert.equal((await checkRequestAgainstGrant({ request: req(), terms, expiresAt: g.expires_at, signer: PAYEE })).reason, "signer_not_the_payer");
   const expired = GRANT({ expires_at: new Date(Date.now() - 1000).toISOString() });
   const et = grantTermsOf(expired);
   const em = typedMessageFor(et, expired.expires_at).message;
-  assert.equal(checkRequestAgainstGrant({ request: req({}, calldataFor(em)), terms: et, expiresAt: expired.expires_at }).reason, "grant_expired");
+  assert.equal((await checkRequestAgainstGrant({ request: req({}, calldataFor(em)), terms: et, expiresAt: expired.expires_at })).reason, "grant_expired");
 });
 
-test("check-sign-response binds the signer and the signature shape", () => {
+test("check-sign-response binds the signer and the signature shape", async () => {
   const terms = grantTermsOf(GRANT());
   const sig = responseFor(terms).signature;
-  assert.equal(checkSignResponse({ response: { signature: sig, signer: PAYER.toUpperCase().replace("0X", "0x") }, terms }).ok, true);
-  assert.equal(checkSignResponse({ response: { signature: sig, signer: PAYEE }, terms }).reason, "signer_not_the_payer");
-  assert.equal(checkSignResponse({ response: { signature: sig }, terms }).reason, "signer_missing");
-  assert.equal(checkSignResponse({ response: { signature: "0x" + "ab".repeat(64) + "00", signer: PAYER }, terms }).reason, "signature_malformed");
-  assert.equal(checkSignResponse({ response: { signature: "0xab", signer: PAYER }, terms }).reason, "signature_malformed");
-  assert.equal(checkSignResponse({ response: [], terms }).reason, "response_not_object");
+  assert.equal((await checkSignResponse({ response: { signature: sig, signer: PAYER.toUpperCase().replace("0X", "0x") }, terms })).ok, true);
+  assert.equal((await checkSignResponse({ response: { signature: sig, signer: PAYEE }, terms })).reason, "signer_not_the_payer");
+  assert.equal((await checkSignResponse({ response: { signature: sig }, terms })).reason, "signer_missing");
+  assert.equal((await checkSignResponse({ response: { signature: "0x" + "ab".repeat(64) + "00", signer: PAYER }, terms })).reason, "signature_malformed");
+  assert.equal((await checkSignResponse({ response: { signature: "0xab", signer: PAYER }, terms })).reason, "signature_malformed");
+  assert.equal((await checkSignResponse({ response: [], terms })).reason, "response_not_object");
   // R4: r = s = 0 is not a signature; an array where a string belongs is refused, not coerced
-  assert.equal(checkSignResponse({ response: { signature: "0x" + "00".repeat(64) + "1b", signer: PAYER }, terms }).reason, "signature_malformed");
-  assert.equal(checkSignResponse({ response: { signature: [sig], signer: PAYER }, terms }).reason, "signature_malformed");
-  assert.equal(checkSignResponse({ response: { signature: sig, signer: [PAYER] }, terms }).reason, "signer_missing");
+  assert.equal((await checkSignResponse({ response: { signature: "0x" + "00".repeat(64) + "1b", signer: PAYER }, terms })).reason, "signature_malformed");
+  assert.equal((await checkSignResponse({ response: { signature: [sig], signer: PAYER }, terms })).reason, "signature_malformed");
+  assert.equal((await checkSignResponse({ response: { signature: sig, signer: [PAYER] }, terms })).reason, "signer_missing");
 });
 
-test("check-submit-response: pending is not evidence, reverted is a refusal, the signer must be the payer", () => {
+test("check-submit-response: pending is not evidence, reverted is a refusal, the signer must be the payer", async () => {
   const terms = grantTermsOf(GRANT());
   const hash = "0x" + "ab".repeat(32);
   const base = { success: true, transactionHash: hash, status: "success", chainId: 8453, signer: PAYER };
@@ -199,7 +205,7 @@ test("check-submit-response: pending is not evidence, reverted is a refusal, the
   assert.ok(long.detail.length < 200);
 });
 
-test("the gas quorum has no unpinned arm and needs two distinct operators", () => {
+test("the gas quorum has no unpinned arm and needs two distinct operators", async () => {
   assert.equal(operatorsFor(["https://mainnet.base.org", "https://base.drpc.org"]).ok, true);
   assert.equal(operatorsFor(["https://mainnet.base.org"]).reason, "insufficient_rpc_quorum");
   // a trailing-dot spelling is not on the allowlist as written, and is refused there first
@@ -209,7 +215,7 @@ test("the gas quorum has no unpinned arm and needs two distinct operators", () =
   assert.equal(operatorsFor(["http://mainnet.base.org", "https://base.drpc.org"]).reason, "rpc_not_https");
 });
 
-test("CLI: preview prints every committed field from the grant, and refuses an expired grant", () => {
+test("CLI: preview prints every committed field from the grant, and refuses an expired grant", async () => {
   const dir = mkdtempSync(join(tmpdir(), "pp-"));
   const g = GRANT();
   writeFileSync(join(dir, "keep.grant.json"), JSON.stringify(g));
@@ -230,7 +236,7 @@ test("CLI: preview prints every committed field from the grant, and refuses an e
   assert.match(noMode.stderr, /unknown_mode/);
 });
 
-test("CLI: check-sign-response and check-submit-response on synthetic documents", () => {
+test("CLI: check-sign-response and check-submit-response on synthetic documents", async () => {
   const dir = mkdtempSync(join(tmpdir(), "pp2-"));
   const grant = GRANT();
   writeFileSync(join(dir, "keep.grant.json"), JSON.stringify(grant));
@@ -249,7 +255,7 @@ test("CLI: check-sign-response and check-submit-response on synthetic documents"
   assert.match(run(["check-submit-response", "--grant", join(dir, "keep.grant.json"), "--response", join(dir, "pending.json")]).stderr, /submit_pending/);
 });
 
-test("CLI: check-request decodes the request against the grant and refuses before any network call on a mismatch", () => {
+test("CLI: check-request decodes the request against the grant and refuses before any network call on a mismatch", async () => {
   const dir = mkdtempSync(join(tmpdir(), "pp3-"));
   const g = GRANT();
   const m = typedMessageFor(grantTermsOf(g), g.expires_at).message;
@@ -258,7 +264,7 @@ test("CLI: check-request decodes the request against the grant and refuses befor
   writeFileSync(join(dir, "bad.json"), JSON.stringify({ to: CANONICAL_USDC_BASE, chainId: 8453, value: "0x0", data: calldataFor({ ...m, to: PAYER }) }));
   const bad = run(["check-request", "--grant", join(dir, "keep.grant.json"), "--sign-response", join(dir, "sign.json"), "--request", join(dir, "bad.json")]);
   assert.equal(bad.status, 1);
-  assert.match(bad.stderr, /REFUSED\s+request_payee_mismatch/);
+  assert.match(bad.stderr, /REFUSED\s+payment_submit_request_mismatch/);
   // a good request with a single operator refuses the gas quorum before dialling
   writeFileSync(join(dir, "good.json"), JSON.stringify({ to: CANONICAL_USDC_BASE, chainId: 8453, value: "0x0", data: calldataFor(m) }));
   const one = run(["check-request", "--grant", join(dir, "keep.grant.json"), "--sign-response", join(dir, "sign.json"), "--request", join(dir, "good.json"), "--rpc", "https://mainnet.base.org"]);
@@ -271,7 +277,7 @@ test("CLI: check-request decodes the request against the grant and refuses befor
 // F5 (no pins on the grant), F7 (fee sanity), F8 (timestamp shape).
 // ═══════════════════════════════════════════════════════════════════════════
 
-test("R4-F5: a grant outside the pins never previews — provider, band, chain, asset", () => {
+test("R4-F5: a grant outside the pins never previews — provider, band, chain, asset", async () => {
   const g = GRANT();
   assert.deepEqual(bindGrantTermsToPins(g, grantTermsOf(g)), { ok: true });
   const impostor = GRANT({ provider_did: "did:voidly:2222222222222222" });
@@ -288,18 +294,11 @@ test("R4-F5: a grant outside the pins never previews — provider, band, chain, 
 
 test("R4-F2: check-request never sends the signed calldata anywhere — only eth_gasPrice leaves, and the fee line says typical gas", async () => {
   const seen = [];
-  const server = createServer((req, res) => {
-    let body = "";
-    req.on("data", (c) => { body += c; });
-    req.on("end", () => {
-      seen.push(body);
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ jsonrpc: "2.0", id: 1, result: "0x3b9aca00" })); // 1 gwei
-    });
-  });
-  await new Promise((r) => server.listen(0, "127.0.0.1", r));
-  const port = server.address().port;
-  try {
+  const fetch = async (_url, init) => {
+    seen.push(init.body);
+    const payload = JSON.parse(init.body);
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: payload.id, result: "0x3b9aca00" }));
+  };
     // The CLI's operator policy refuses anything but https allowlisted hosts, so
     // the transport contract is asserted directly: the module's only network
     // call in check-request is eth_gasPrice with no params.
@@ -312,17 +311,14 @@ test("R4-F2: check-request never sends the signed calldata anywhere — only eth
     assert.equal((src.match(/httpRpc\(/g) || []).length, 1, "exactly one transport call site");
     const { httpRpc, READ_METHODS } = await import("../scripts/verify-settlement.mjs");
     assert.ok(!READ_METHODS.has("eth_estimateGas"), "the transport itself refuses eth_estimateGas");
-    await assert.rejects(httpRpc(`http://127.0.0.1:${port}/`, "eth_estimateGas", [{}]), /refusing non-read method/);
-    assert.equal(await httpRpc(`http://127.0.0.1:${port}/`, "eth_gasPrice", []), "0x3b9aca00");
+    await assert.rejects(httpRpc("https://mainnet.base.org", "eth_estimateGas", [{}], { fetch }), /refusing non-read method/);
+    assert.equal(await httpRpc("https://mainnet.base.org", "eth_gasPrice", [], { fetch }), "0x3b9aca00");
     assert.equal(seen.length, 1, "the refused method never reached the wire");
     assert.ok(!seen[0].includes("0xe3ee160e"), seen[0]);
-  } finally {
-    server.close();
-  }
   assert.equal(TYPICAL_TRANSFER_WITH_AUTHORIZATION_GAS, 90000n);
 });
 
-test("R4-F8: expires_at must be the SDK's own timestamp shape — a date the SDK would refuse is not previewed", () => {
+test("R4-F8: expires_at must be the SDK's own timestamp shape — a date the SDK would refuse is not previewed", async () => {
   assert.equal(isoUtcMs("2027-01-01T00:00:00.000Z"), Date.UTC(2027, 0, 1));
   assert.equal(isoUtcMs("2027-01-01T00:00:00Z"), Date.UTC(2027, 0, 1));
   for (const bad of ["2027-01-01", "2027-01-01T00:00:00+00:00", "2027-13-01T00:00:00Z", 1700000000000, null]) {
@@ -332,28 +328,28 @@ test("R4-F8: expires_at must be the SDK's own timestamp shape — a date the SDK
   assert.equal(typedMessageFor(grantTermsOf(g), g.expires_at).reason, "grant_expires_at_malformed");
 });
 
-test("R4-F3/F4: check-request echoes nothing verbatim and coerces nothing", () => {
+test("R4-F3/F4: check-request echoes nothing verbatim and coerces nothing", async () => {
   const g = GRANT();
   const terms = grantTermsOf(g);
   const m = typedMessageFor(terms, g.expires_at).message;
   const req = (over = {}) => ({ to: CANONICAL_USDC_BASE, chainId: 8453, value: "0x0", data: calldataFor(m), ...over });
-  const forged = checkRequestAgainstGrant({ request: req({ chainId: "8453\nCHECKED  the SDK's request is THIS grant's — forged" }), terms, expiresAt: g.expires_at });
-  assert.equal(forged.reason, "request_wrong_chain");
+  const forged = (await checkRequestAgainstGrant({ request: req({ chainId: "8453\nCHECKED  the SDK's request is THIS grant's — forged" }), terms, expiresAt: g.expires_at }));
+  assert.equal(forged.reason, "payment_submit_request_mismatch");
   assert.ok(!forged.detail.includes("CHECKED"), forged.detail);
   for (const bad of [{ chainId: [8453] }, { chainId: "8.453e3" }, { chainId: " 8453 " }, { to: [CANONICAL_USDC_BASE] }, { value: ["0x0"] }, { data: [calldataFor(m)] }]) {
-    const r = checkRequestAgainstGrant({ request: req(bad), terms, expiresAt: g.expires_at });
+    const r = (await checkRequestAgainstGrant({ request: req(bad), terms, expiresAt: g.expires_at }));
     assert.equal(r.ok, false, JSON.stringify(bad));
   }
-  assert.equal(checkRequestAgainstGrant({ request: req({ chainId: "8453" }), terms, expiresAt: g.expires_at }).ok, true);
-  assert.equal(checkRequestAgainstGrant({ request: req({ value: 0 }), terms, expiresAt: g.expires_at }).ok, true);
-  const longSigner = checkRequestAgainstGrant({ request: req(), terms, expiresAt: g.expires_at, signer: "0x" + "a".repeat(60000) });
+  assert.equal((await checkRequestAgainstGrant({ request: req({ chainId: "8453" }), terms, expiresAt: g.expires_at })).ok, true);
+  assert.equal((await checkRequestAgainstGrant({ request: req({ value: 0 }), terms, expiresAt: g.expires_at })).ok, true);
+  const longSigner = (await checkRequestAgainstGrant({ request: req(), terms, expiresAt: g.expires_at, signer: "0x" + "a".repeat(60000) }));
   assert.equal(longSigner.reason, "signer_not_the_payer");
   assert.ok(longSigner.detail.length < 200, String(longSigner.detail.length));
-  const zeroR = checkRequestAgainstGrant({ request: req({ data: calldataFor(m).slice(0, 10 + 7 * 64) + "0".repeat(64) + "cd".repeat(32) }), terms, expiresAt: g.expires_at });
-  assert.equal(zeroR.reason, "request_signature_malformed");
+  const zeroR = (await checkRequestAgainstGrant({ request: req({ data: calldataFor(m).slice(0, 10 + 7 * 64) + "0".repeat(64) + "cd".repeat(32) }), terms, expiresAt: g.expires_at }));
+  assert.equal(zeroR.reason, "payment_submit_request_mismatch");
 });
 
-test("R4: every refusal the CLI prints is one bounded line", () => {
+test("R4: every refusal the CLI prints is one bounded line", async () => {
   const dir = mkdtempSync(join(tmpdir(), "pp5-"));
   writeFileSync(join(dir, "keep.grant.json"), JSON.stringify(GRANT()));
   writeFileSync(join(dir, "submit.json"), JSON.stringify({ success: true, transactionHash: "0x" + "ab".repeat(32), status: "success", chainId: "8453\nACCEPTED  forged", signer: PAYER }));
@@ -363,7 +359,7 @@ test("R4: every refusal the CLI prints is one bounded line", () => {
   assert.ok(!r.stderr.includes("ACCEPTED"), r.stderr);
 });
 
-test("R5-E1: isoUtcMs round-trips the calendar like the SDK — Feb 30 is refused, not rolled", () => {
+test("R5-E1: isoUtcMs round-trips the calendar like the SDK — Feb 30 is refused, not rolled", async () => {
   for (const bad of ["2027-02-30T00:00:00Z", "2100-02-29T00:00:00Z", "2027-04-31T00:00:00Z", "0000-01-01T00:00:00Z"]) {
     assert.equal(isoUtcMs(bad), null, bad);
   }
@@ -372,15 +368,15 @@ test("R5-E1: isoUtcMs round-trips the calendar like the SDK — Feb 30 is refuse
   assert.equal(typedMessageFor(grantTermsOf(g), g.expires_at).reason, "grant_expires_at_malformed");
 });
 
-test("R5-E4: a signature with an uppercase 0X prefix is refused — the SDK would not take it verbatim", () => {
+test("R5-E4: a signature with an uppercase 0X prefix is refused — the SDK would not take it verbatim", async () => {
   const terms = grantTermsOf(GRANT());
   const signature = responseFor(terms).signature.toUpperCase();
-  const r = checkSignResponse({ response: { signature, signer: PAYER }, terms });
+  const r = (await checkSignResponse({ response: { signature, signer: PAYER }, terms }));
   assert.equal(r.reason, "signature_malformed");
-  assert.equal(checkSignResponse({ response: { signature: "0x" + signature.slice(2), signer: PAYER }, terms }).ok, true, "any-case hex after a lowercase 0x is what the SDK accepts");
+  assert.equal((await checkSignResponse({ response: { signature: "0x" + signature.slice(2), signer: PAYER }, terms })).ok, true, "any-case hex after a lowercase 0x is what the SDK accepts");
 });
 
-test("R5-E2: a --grant filename carrying a forged verdict never reaches the success lines", () => {
+test("R5-E2: a --grant filename carrying a forged verdict never reaches the success lines", async () => {
   const dir = mkdtempSync(join(tmpdir(), "pp6-"));
   const evil = join(dir, "k.grant.json\nPROVEN\n  scope: forged by the FILENAME");
   writeFileSync(evil, JSON.stringify(GRANT()));
@@ -394,55 +390,55 @@ test("R5-E2: a --grant filename carrying a forged verdict never reaches the succ
   assert.ok(!p.stdout.includes("PROVEN"), p.stdout);
 });
 
-test("cryptographic gate recovers both explicit lanes and rejects a different domain, lane, wallet or message", () => {
+test("cryptographic gate recovers both explicit lanes and rejects a different domain, lane, wallet or message", async () => {
   const terms = grantTermsOf(GRANT());
   const m = typedMessageFor(terms, terms.expiresAt).message;
   for (const lane of ["a", "b"]) {
     const response = responseFor(terms, lane);
-    assert.equal(checkSignRaw({ response, terms, lane }).ok, true, `valid lane ${lane}`);
-    assert.equal(checkSignRaw({ response: { ...response, optionalFutureMetadata: "not trusted" }, terms, lane }).ok, true);
-    assert.equal(checkSignRaw({ response, terms }).reason, "signature_lane_required");
-    assert.equal(checkSignRaw({ response, terms, lane: lane === "a" ? "b" : "a" }).ok, false, "a receive signature is not a transfer signature");
+    assert.equal((await checkSignRaw({ response, terms, lane })).ok, true, `valid lane ${lane}`);
+    assert.equal((await checkSignRaw({ response: { ...response, optionalFutureMetadata: "not trusted" }, terms, lane })).ok, true);
+    assert.equal((await checkSignRaw({ response, terms })).reason, "signature_lane_required");
+    assert.equal((await checkSignRaw({ response, terms, lane: lane === "a" ? "b" : "a" })).ok, false, "a receive signature is not a transfer signature");
     for (const domain of [
       { ...USDC_BASE_DOMAIN, chainId: 1 }, { ...USDC_BASE_DOMAIN, name: "Other" },
       { ...USDC_BASE_DOMAIN, version: "1" }, { ...USDC_BASE_DOMAIN, verifyingContract: PAYER },
     ]) {
-      assert.equal(checkSignRaw({ response: { ...response, signature: signMessage(m, { lane, domain }) }, terms, lane }).reason, "signature_not_from_payer");
+      assert.equal((await checkSignRaw({ response: { ...response, signature: signMessage(m, { lane, domain }) }, terms, lane })).reason, "signature_not_from_payer");
     }
     for (const changed of [
       { from: PAYEE }, { to: PAYER }, { value: "50001" }, { validAfter: "1" },
       { validBefore: String(BigInt(m.validBefore) + 1n) }, { nonce: "0x" + "ee".repeat(32) },
     ]) {
-      assert.equal(checkSignRaw({ response: { ...response, signature: signMessage({ ...m, ...changed }, { lane }) }, terms, lane }).reason, "signature_not_from_payer", Object.keys(changed)[0]);
+      assert.equal((await checkSignRaw({ response: { ...response, signature: signMessage({ ...m, ...changed }, { lane }) }, terms, lane })).reason, "signature_not_from_payer", Object.keys(changed)[0]);
     }
     const other = Wallet.createRandom();
-    assert.equal(checkSignRaw({ response: { ...response, signature: signMessage(m, { lane, wallet: other }) }, terms, lane }).reason, "signature_not_from_payer", "claimed payer cannot replace recovery");
+    assert.equal((await checkSignRaw({ response: { ...response, signature: signMessage(m, { lane, wallet: other }) }, terms, lane })).reason, "signature_not_from_payer", "claimed payer cannot replace recovery");
   }
 });
 
-test("signing success, type, amount and exact expiry remain fail-closed", () => {
+test("signing success, type, amount and exact expiry remain fail-closed", async () => {
   const terms = grantTermsOf(GRANT());
   const response = responseFor(terms);
   for (const success of [false, undefined, "true"]) {
-    assert.equal(checkSignRaw({ response: { ...response, success }, terms, lane: "b" }).reason, "sign_not_success");
+    assert.equal((await checkSignRaw({ response: { ...response, success }, terms, lane: "b" })).reason, "sign_not_success");
   }
   for (const signatureType of [undefined, "personal_sign", "eth_signTransaction"]) {
-    assert.equal(checkSignRaw({ response: { ...response, signatureType }, terms, lane: "b" }).reason, "sign_type_mismatch");
+    assert.equal((await checkSignRaw({ response: { ...response, signatureType }, terms, lane: "b" })).reason, "sign_type_mismatch");
   }
   const otherAmount = responseFor(terms, "b", "60000");
-  assert.equal(checkSignRaw({ response: otherAmount, terms, lane: "b" }).reason, "signature_not_from_payer");
-  assert.equal(checkSignRaw({ response: otherAmount, terms, lane: "b", typedAmount: "60000" }).ok, true);
-  assert.equal(checkSignRaw({ response, terms, lane: "b", typedAmount: "5000001" }).reason, "request_amount_outside_grant_band");
+  assert.equal((await checkSignRaw({ response: otherAmount, terms, lane: "b" })).reason, "signature_not_from_payer");
+  assert.equal((await checkSignRaw({ response: otherAmount, terms, lane: "b", typedAmount: "60000" })).ok, true);
+  assert.equal((await checkSignRaw({ response, terms, lane: "b", typedAmount: "5000001" })).reason, "request_amount_outside_grant_band");
   const originalNow = Date.now;
   try {
     Date.now = () => Date.parse(terms.expiresAt);
-    assert.equal(checkSignRaw({ response, terms, lane: "b" }).reason, "grant_expired");
+    assert.equal((await checkSignRaw({ response, terms, lane: "b" })).reason, "grant_expired");
     Date.now = () => Math.floor(Date.parse(terms.expiresAt) / 1000) * 1000 - 1;
-    assert.equal(checkSignRaw({ response, terms, lane: "b" }).ok, true);
+    assert.equal((await checkSignRaw({ response, terms, lane: "b" })).ok, true);
   } finally { Date.now = originalNow; }
 });
 
-test("fractional grant expiry refuses at the exact signed second in preview, signing and request gates", (t) => {
+test("fractional grant expiry refuses at the exact signed second in preview, signing and request gates", async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "pp-expiry-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const grant = GRANT({ issued_at: "2026-12-31T23:50:00.999Z", expires_at: "2027-01-01T00:00:00.999Z" });
@@ -454,14 +450,14 @@ test("fractional grant expiry refuses at the exact signed second in preview, sig
   const originalNow = Date.now;
   try {
     Date.now = () => signedDeadline - 1;
-    assert.equal(checkSignRaw({ response, terms, lane: "b" }).ok, true);
-    assert.equal(checkRequestRaw({ request, terms, expiresAt: terms.expiresAt, signResponse: response }).ok, true);
+    assert.equal((await checkSignRaw({ response, terms, lane: "b" })).ok, true);
+    assert.equal((await checkRequestRaw({ request, terms, expiresAt: terms.expiresAt, signResponse: response })).ok, true);
     for (const now of [signedDeadline, signedDeadline + 500, signedDeadline + 999]) {
       Date.now = () => now;
       for (const lane of ["a", "b"]) {
-        assert.equal(checkSignRaw({ response: responseFor(terms, lane), terms, lane }).reason, "grant_expired", `${lane}: ${now}`);
+        assert.equal((await checkSignRaw({ response: responseFor(terms, lane), terms, lane })).reason, "grant_expired", `${lane}: ${now}`);
       }
-      assert.equal(checkRequestRaw({ request, terms, expiresAt: terms.expiresAt, signResponse: response }).reason, "grant_expired", String(now));
+      assert.equal((await checkRequestRaw({ request, terms, expiresAt: terms.expiresAt, signResponse: response })).reason, "grant_expired", String(now));
     }
   } finally { Date.now = originalNow; }
   const grantPath = join(dir, "grant.json");
@@ -474,7 +470,7 @@ test("fractional grant expiry refuses at the exact signed second in preview, sig
   assert.equal(preview.stdout, "");
 });
 
-test("a regular-file replacement by a FIFO between lstat and open refuses without blocking", (t) => {
+test("a regular-file replacement by a FIFO between lstat and open refuses without blocking", async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "pp-fifo-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const grant = GRANT();
@@ -502,29 +498,29 @@ require("node:module").syncBuiltinESMExports();
   const out = spawnSync(process.execPath, ["--require", hookPath, CLI, "check-sign-response", "--grant", grantPath, "--lane", "b", "--response", responsePath], { encoding: "utf8", timeout: 3000 });
   assert.equal(out.error, undefined, "the no-writer FIFO must not hold open until the subprocess timeout");
   assert.equal(out.status, 1, out.stderr);
-  assert.match(out.stderr, /^REFUSED\s+response_changed_while_opening/);
+  assert.match(out.stderr, /^REFUSED\s+response_changed_while_reading/);
   assert.equal(out.stdout, "");
 });
 
-test("submission is bound to the actual approved signature, not just nonzero limbs", () => {
+test("submission is bound to the actual approved signature, not just nonzero limbs", async () => {
   const terms = grantTermsOf(GRANT());
   const m = typedMessageFor(terms, terms.expiresAt).message;
   const signResponse = responseFor(terms);
   const request = { to: CANONICAL_USDC_BASE, chainId: 8453, value: "0", data: calldataFor(m) };
   const input = { terms, expiresAt: terms.expiresAt, request, signResponse };
-  assert.equal(checkRequestRaw(input).ok, true);
-  assert.equal(checkRequestRaw({ ...input, signResponse: undefined }).reason, "sign_response_required");
-  assert.equal(checkRequestRaw({ ...input, signResponse: responseFor(terms, "a") }).ok, false);
+  assert.equal((await checkRequestRaw(input)).ok, true);
+  assert.equal((await checkRequestRaw({ ...input, signResponse: undefined })).reason, "sign_response_required");
+  assert.equal((await checkRequestRaw({ ...input, signResponse: responseFor(terms, "a") })).ok, false);
   // Another real, offline fixture signature is not the approved one even when
   // inserted next to the correct call arguments. No live account is involved.
   const otherSignature = signMessage({ ...m, nonce: "0x" + "ff".repeat(32) });
   const changed = { ...request, data: calldataFor(m, { signature: otherSignature }) };
-  assert.equal(checkRequestRaw({ ...input, request: changed }).reason, "request_signature_mismatch");
+  assert.equal((await checkRequestRaw({ ...input, request: changed })).reason, "payment_submit_request_mismatch");
   const otherV = parseInt(signResponse.signature.slice(-2), 16) === 27 ? 28 : 27;
-  assert.equal(checkRequestRaw({ ...input, request: { ...request, data: calldataFor(m, { v: otherV }) } }).reason, "request_signature_mismatch");
+  assert.equal((await checkRequestRaw({ ...input, request: { ...request, data: calldataFor(m, { v: otherV }) } })).reason, "payment_submit_request_mismatch");
 });
 
-test("CLI requires explicit lane and private no-follow signature inputs, without printing bearer material", () => {
+test("CLI requires explicit lane and private no-follow signature inputs, without printing bearer material", async () => {
   const dir = mkdtempSync(join(tmpdir(), "pp-private-"));
   const grant = GRANT();
   const terms = grantTermsOf(grant);
@@ -560,4 +556,14 @@ test("CLI requires explicit lane and private no-follow signature inputs, without
   assert.equal(refused.status, 1);
   assert.equal(refused.stderr.trim().split("\n").length, 1);
   assert.ok(refused.stderr.length < 1200 && !refused.stderr.includes(bad.signature));
+});
+
+test('fee operator policy refuses credentials and uses its original reviewed host snapshot', async () => {
+  const { ALLOWED_BASE_RPC_HOSTS } = await import('../scripts/lib/pins.mjs');
+  const before = [...ALLOWED_BASE_RPC_HOSTS];
+  try {
+    ALLOWED_BASE_RPC_HOSTS.push('unreviewed.invalid');
+    assert.equal(operatorsFor(['https://user:synthetic-password@mainnet.base.org', 'https://base.drpc.org']).reason, 'rpc_credentials_refused');
+    assert.equal(operatorsFor(['https://unreviewed.invalid/path', 'https://base.drpc.org']).reason, 'rpc_host_not_allowlisted');
+  } finally { ALLOWED_BASE_RPC_HOSTS.splice(0, ALLOWED_BASE_RPC_HOSTS.length, ...before); }
 });

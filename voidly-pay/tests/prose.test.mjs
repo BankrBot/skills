@@ -102,7 +102,7 @@ test("arbitrary-call prose uses the effective policy, default on and optional ti
   }
   assert.match(SKILL_MD,/on by default\*\*[^.]{0,80}\[Terminal controls and timers\]\(https:\/\/docs\.bankr\.bot\/security\/bankr-terminal\/\)/);
 });
-test("installation names four direct dependencies and preserves the no-install settlement-first path", () => {
+test("installation names runtime and development dependencies before either SDK-backed checker", () => {
   for (const [name,text] of [["SKILL.md",SKILL_MD],["catalog.json",CATALOG_TEXT],["encrypted-hire.md",HIRE_MD]]) {
     for (const dependency of ["@voidly/session", "ethers", "tweetnacl", "tweetnacl-util"]) assert(text.includes(dependency),`${name}: ${dependency}`);
     assert.match(plain(text),/four direct/i,name);
@@ -110,8 +110,9 @@ test("installation names four direct dependencies and preserves the no-install s
   }
   assert.match(SKILL_MD,/ethers@6\.17\.0/);
   assert.match(plain(SKILL_MD),/preview-payment\.mjs[^.]{0,100}approved install/i);
-  assert(CATALOG.demo.code.indexOf("node scripts/verify-settlement.mjs")<CATALOG.demo.code.indexOf("npm ci --ignore-scripts"));
-  assert.match(plain(PROOF_MD),/verify-settlement\.mjs[^.]{0,70}needs no npm package/i);
+  assert(CATALOG.demo.code.indexOf("npm ci --ignore-scripts") < CATALOG.demo.code.indexOf("node scripts/verify-settlement.mjs"));
+  assert.match(plain(PROOF_MD),/verify-settlement\.mjs requires the approved locked/i);
+  assert.match(plain(SKILL_MD), /ethers@6\.17\.0[^.]{0,60}development-only/i);
 });
 test("signature gate commands name lane, private response and exact local recovery", () => {
   assert.match(SKILL_MD,/check-sign-response --grant \.\/keep\.grant\.json --lane a[\s\S]{0,80}--response \.\/lane-a-sign-response\.json/);
@@ -352,7 +353,7 @@ test("F6: success prose consistently separates latest-head inclusion from finali
 });
 
 test("P3: registry, historical band and gas statements match their actual checks", () => {
-  assert.match(SKILL_MD, /npm view @voidly\/session@1\.0\.0 version dist\.integrity/);
+  assert.match(SKILL_MD, /npm view @voidly\/session@1\.3\.0 version dist\.integrity/);
   assert.doesNotMatch(plain(SKILL_MD), /npm view @voidly\/session version.*returns 1\.0\.0/);
   assert.match(plain(SKILL_MD), /historical settlement verifier[^.]{0,100}supplied grant's own band/i);
   assert.doesNotMatch(plain(SKILL_MD), /Every script that reads a grant refuses grant_band_not_pinned/);
@@ -361,11 +362,11 @@ test("P3: registry, historical band and gas statements match their actual checks
   }
 });
 
-test("F1: integration retains validated intent and separates gates from pure builders and consent", () => {
+test("F1: integration retains SDK-validated intent and separates fresh authority, historical checks and consent", () => {
   for (const api of ["createPaymentContext", "checkSignRequest", "checkSignResponse", "checkRequestAgainstGrant", "checkSubmitResponse"]) assert.ok(SKILL_MD.includes(api), api);
   assert.match(plain(SKILL_MD), /context\.grant[^.]{0,100}retained snapshot/);
   assert.match(plain(SKILL_MD), /machine validation, not proof of human consent/);
-  assert.match(plain(SKILL_MD), /low-level pure builders, not validation or approval gates/);
+  assert.match(plain(SKILL_MD), /SDK builds and admits the complete payload/);
   assert.match(plain(SKILL_MD), /does not itself reject current expiry/);
   assert.match(plain(SKILL_MD), /permits historical expired grants/);
   assert.match(plain(SKILL_MD), /CLI invocations[^.]{0,100}do not persist or prove human approval/);

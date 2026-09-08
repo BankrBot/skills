@@ -15,10 +15,10 @@ cd voidly-pay && npm ci --ignore-scripts   # exact locked versions, no install s
 node scripts/discover.mjs
 ```
 
-This approved install includes `ethers@6.17.0` for the payment-preview
-helper's local signature recovery. It is not needed by the Node-only
-settlement checker. Sealing remains preparation, not payment or a completed
-hire. Before any later signature, read the effective Bankr policy checks in
+This approved install includes three runtime dependencies and development-only
+`ethers@6.17.0` for synthetic signing tests. Both settlement and payment-preview
+commands use the locked public SDK. Sealing remains preparation, not payment
+or a completed hire. Before any later signature, read the effective Bankr policy checks in
 [SKILL.md](../SKILL.md): a configured recipient restriction stops both lanes;
 do not relax a protection or switch paths to bypass it.
 
@@ -68,7 +68,7 @@ DID it does not know. So an unregistered hirer can seal, and pay, and never
 redeem: money gone, brief sealed, no result. This script used to mint a fresh
 ephemeral identity on every run and seal with it, which is exactly that trap.
 
-`@voidly/session@1.0.0` exports no registration call, and this skill does
+`@voidly/session@1.3.0` exports no registration call, and this skill does
 not POST for you by design, so the script does the other thing: it refuses to
 seal until the DID actually resolves, and prints the request for you to run.
 

@@ -9,13 +9,14 @@ import {
   signReceiveAuthorization,
   signTransferAuthorization,
   buildTransferWithAuthorizationCalldata,
+  createSelfSubmitter,
 } from '@voidly/session';
 import {
-  typedAuthorizationFor,
   createPaymentContext,
   checkSignRequest,
   checkSignResponse,
   checkRequestAgainstGrant,
+  checkSubmitResponse,
 } from '../scripts/preview-payment.mjs';
 
 for (const lane of ['a', 'b']) {
@@ -44,7 +45,7 @@ for (const lane of ['a', 'b']) {
         price_min_amount: '50000', price_max_amount: '5000000', nonce: 'n'.repeat(24),
         issued_at: new Date(nowMs - 60_000).toISOString(), expires_at: initial.expiresAt,
       };
-      const prepared = createPaymentContext({ grant, lane, amount });
+      const prepared = (await createPaymentContext({ grant, lane, amount }));
       assert.equal(prepared.ok, true, JSON.stringify(prepared));
       const { context } = prepared;
       const { terms } = context;
@@ -60,30 +61,45 @@ for (const lane of ['a', 'b']) {
       const build = lane === 'a' ? buildReceiveAuthorizationTypedData : buildTransferAuthorizationTypedData;
       const sdk = await build(input);
       assert.equal(sdk.ok, true);
-      const local = typedAuthorizationFor(terms, terms.expiresAt, lane, amount);
+      const local = context.authorization;
       assert.equal(local.ok, true);
-      assert.deepEqual(local.domain, sdk.typedData.domain);
+      assert.deepEqual(structuredClone(local.domain), sdk.typedData.domain);
       assert.equal(local.primaryType, sdk.typedData.primaryType);
-      assert.deepEqual(local.types[local.primaryType], sdk.typedData.types[sdk.typedData.primaryType]);
-      assert.deepEqual(local.message, sdk.typedData.message);
+      assert.deepEqual(structuredClone(local.types[local.primaryType]), sdk.typedData.types[sdk.typedData.primaryType]);
+      assert.deepEqual(structuredClone(local.message), sdk.typedData.message);
 
       const sign = lane === 'a' ? signReceiveAuthorization : signTransferAuthorization;
-      const signed = await sign({ ...input, nowMs }, async typed => {
+      let signApproved = false, walletSignCalls = 0;
+      const walletSign = async payload => {
+        walletSignCalls++;
+        assert.deepEqual(Object.keys(payload).sort(), ['signatureType', 'typedData']);
+        assert.equal(payload.signatureType, 'eth_signTypedData_v4');
+        const { EIP712Domain: _domain, ...types } = payload.typedData.types;
+        const signature = await wallet.signTypedData(payload.typedData.domain, types, payload.typedData.message);
+        return { success: true, signatureType: payload.signatureType, signer: wallet.address,
+          signature: '0x' + signature.slice(2).toUpperCase() };
+      };
+      const guardedSign = async typed => {
         const admitted = checkSignRequest({ context, typedData: typed });
         assert.equal(admitted.ok, true);
-        typed = admitted.typedData;
-        // Ethers derives EIP712Domain itself. No provider is attached, so this
-        // signs only an in-memory synthetic fixture, never a wallet request.
-        const { EIP712Domain: _domain, ...types } = typed.types;
-        return wallet.signTypedData(typed.domain, types, typed.message);
-      });
+        if (!signApproved) throw new Error('explicit human signing consent absent');
+        const response = await walletSign(Object.freeze({ signatureType: 'eth_signTypedData_v4', typedData: admitted.typedData }));
+        const checked = checkSignResponse({ context, response });
+        assert.equal(checked.ok, true);
+        assert.equal(checked.signature, response.signature, 'original signature bytes are returned');
+        return checked.signature;
+      };
+      assert.equal((await sign({ ...input, nowMs }, guardedSign)).ok, false);
+      assert.equal(walletSignCalls, 0);
+      signApproved = true;
+      const signed = await sign({ ...input, nowMs }, guardedSign);
       assert.equal(signed.ok, true);
       const response = {
         success: true, signatureType: 'eth_signTypedData_v4',
         signer: wallet.address, signature: signed.signed.signature,
       };
       assert.equal(checkSignResponse({ response, context }).ok, true);
-      assert.equal(checkSignResponse({ response, context: createPaymentContext({ grant, lane: lane === 'a' ? 'b' : 'a', amount }).context }).ok, false);
+      assert.equal(checkSignResponse({ response, context: (await createPaymentContext({ grant, lane: lane === 'a' ? 'b' : 'a', amount })).context }).ok, false);
       if (lane === 'b') {
         const built = buildTransferWithAuthorizationCalldata(signed.signed);
         assert.equal(built.ok, true);
@@ -98,6 +114,33 @@ for (const lane of ['a', 'b']) {
         const checkedData = checked.request.data;
         candidate.data = '0x';
         assert.equal(checked.request.data, checkedData);
+        for (const changed of [{ ...built.request, value: '0X0' },
+          { ...built.request, data: '0X' + built.request.data.slice(2) }]) {
+          assert.equal(checkRequestAgainstGrant({ context, request: changed, signResponse: response }).ok, false);
+        }
+        let submitApproved = false, walletSubmitCalls = 0;
+        const txHash = '0x' + 'ab'.repeat(32);
+        const submitter = createSelfSubmitter({ broadcast: async request => {
+          const admitted = checkRequestAgainstGrant({ context, request, signResponse: response });
+          assert.equal(admitted.ok, true);
+          if (!submitApproved) throw new Error('explicit human submission consent absent');
+          const { to, chainId, data } = admitted.request;
+          const payload = Object.freeze({ transaction: Object.freeze({ to, chainId, data }), value: '0',
+            waitForConfirmation: true, description: `Voidly grant ${context.terms.grantHash}` });
+          walletSubmitCalls++;
+          assert.deepEqual(Object.keys(payload).sort(), ['description', 'transaction', 'value', 'waitForConfirmation']);
+          assert.deepEqual(Object.keys(payload.transaction).sort(), ['chainId', 'data', 'to']);
+          assert.equal(payload.transaction.data, built.request.data);
+          const result = checkSubmitResponse({ grant: context.grant, response: {
+            success: true, transactionHash: txHash, chainId: 8453, signer: wallet.address, status: 'success' } });
+          assert.equal(result.ok, true);
+          return result.transactionHash;
+        } });
+        assert.equal((await submitter.submit(signed.signed)).ok, false);
+        assert.equal(walletSubmitCalls, 0);
+        submitApproved = true;
+        assert.equal((await submitter.submit(signed.signed)).transactionHash, txHash);
+        assert.equal(walletSubmitCalls, 1);
         let reads = 0;
         Object.defineProperty(candidate, 'data', { enumerable: true, get() { reads++; return checkedData; } });
         assert.equal(checkRequestAgainstGrant({ context, request: candidate, signResponse: response }).reason, 'request_not_data');
