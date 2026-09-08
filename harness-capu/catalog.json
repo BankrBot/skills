@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "harness-capu",
+  "provider": "Capminal",
+  "providerUrl": "https://www.capminal.ai/gateway",
+  "logo": null,
+  "demo": {
+    "title": "harness-capu.sh",
+    "language": "bash",
+    "code": "# Set up wallet-owned OpenCAP inference with a chosen purchase budget\nbankr prompt \"Buy $50 of CAPU on Base, stake it, and create my OpenCAP API key\"\n\n# Use CAPU already in the wallet\nbankr prompt \"Stake my 1 CAPU and set up OpenCAP with a $1 daily key budget\"\n\n# Check today's allocation and remaining credit\nbankr prompt \"Check my CAPU stake and OpenCAP quota\"\n\n# Recover a safely stored key through a private handoff\nbankr prompt \"I lost my OpenCAP API key; recover it from the secret store\"\n\n# Revoke an exposed key and create a replacement\nbankr prompt \"My OpenCAP API key was exposed. Rotate it\""
+  },
+  "setup": [
+    "Use the Base wallet that should own the OpenCAP account; its signer must support Ethereum personal-message signing, or use the browser handoff",
+    "Buy CAPU within the user's budget or use existing CAPU; staking is on the CAPU token itself at 0x67558d3D990EA40b64fD37FBd5c4860d1f9B3a9F, with no CAPU approval",
+    "Each staked CAPU funds $1/day of inference credit, renewed at 00:00 UTC without rollover; buying CAP or staking sCAP is optional",
+    "Sign in through the gateway's SIWE nonce/verify flow, then create an inference key with the account token; authenticated flow documented from the deployed dashboard and requires wallet validation during setup",
+    "Save the inference key as OPENCAP_API_KEY and hand it off privately once; keep the account token private. CAP_API_KEY is a separate trading-wallet credential",
+    "Client base URL: https://gw.capminal.ai/api/inference/v1. Browser setup and key management: https://www.capminal.ai/gateway"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "harness-capu",
+    "command": "install the harness-capu skill from https://github.com/BankrBot/skills/tree/main/harness-capu"
+  }
+}
