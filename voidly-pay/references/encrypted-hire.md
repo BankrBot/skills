@@ -44,17 +44,25 @@ payment_buys: an attempt, not an outcome
 above comes from the verified signed manifest — captured elsewhere on this
 page rather than repeated here.)
 
-Wrong pin refuses, by name. Captured with this exact call against the live
-manifest — note that `fetchVerifiedProvider` takes ONE options object, not
-positional arguments:
+The historical wrong-pin check below returned `manifest_did_not_pinned`.
+Its original call used an unbounded fetch and an index-derived URL, so that
+call is obsolete and has been removed. This current example uses the reviewed
+transport and pinned URL; the historical output is not a new execution of it.
+Run from the `voidly-pay` directory. `fetchVerifiedProvider` takes ONE options
+object:
 
 ```js
+import { fetchVerifiedProvider } from "@voidly/session";
+import { cappedFetch, EXPECTED_MANIFEST_URL } from "./scripts/lib/pins.mjs";
+
 await fetchVerifiedProvider({
-  fetchImpl: fetch,
-  manifestUrl,                                      // from the index entry
+  fetchImpl: cappedFetch,
+  manifestUrl: EXPECTED_MANIFEST_URL,
   expectedProviderDid: "did:voidly:2222222222222222", // deliberately wrong
 })
 ```
+
+Historical output:
 
 ```
 {"ok":false,"reason":"manifest_did_not_pinned","detail":"manifest_did_not_pinned"}

@@ -709,7 +709,7 @@ than two *distinct* HTTPS operators from the allowlist in
 `scripts/lib/pins.mjs` is refused before a single packet leaves
 (`insufficient_rpc_quorum`), and naming one operator twice is still one
 operator. Every operator must report Base mainnet (`eth_chainId` `0x2105`),
-return a byte-identical receipt, and hold the receipt's own block hash at that
+return the same canonical receipt document, and hold the receipt's own block hash at that
 height; confirmations are counted from the **lowest latest** head across the
 quorum. These are observations from the queried operators, not independent
 chain derivation. The result's `assurance` identifies `rpc-quorum-inclusion`,
