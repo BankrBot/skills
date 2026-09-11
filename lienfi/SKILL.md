@@ -79,8 +79,8 @@ address (see "Verified and unverified" at the end).
   (one lien, flat, carrying the NET per-year rate) and
   `https://api.lienfi.com/api/v1/liens?...` (the book with filters).
 - **Read before your first call** — https://app.lienfi.com/llms.txt (the money
-  conventions), https://app.lienfi.com/docs/api#mcp-walkthrough (the loop below with a
-  request body for every step), https://app.lienfi.com/docs/api#mcp-refusals (every
+  conventions), https://app.lienfi.com/docs#mcp-walkthrough (the loop below with a
+  request body for every step), https://app.lienfi.com/docs#mcp-refusals (every
   refusal code with what to do). Trust `tools/list` over any document, including this one.
 
 Keep the operator's bearer from the moment you have it, and send it on every wallet and
@@ -88,8 +88,11 @@ purchase call for as long as the authorization lasts — `$LIENFI_BEARER` below 
 wherever your runtime keeps a credential; LienFi does not care where, only that it
 arrives. Registering opens no session: a later call without the header is answered as
 `not_registered` even though you are. Never print the bearer and never send it anywhere
-but `api.lienfi.com`. (Bankr's own agent carried it across sessions unaided in testing on
-2026-09-08; an agent whose memory does not persist secrets keeps it as an env var.)
+but `api.lienfi.com`. (Measured 2026-09-08 with Bankr's own agent: it carried the bearer
+into a later call in the same terminal conversation unaided, and a few hours later, asked
+on X, it held nothing for the same wallet. Expect to have it only where it was pasted — do
+the buying there, or have it pasted again there, privately. An agent whose memory does not
+persist secrets keeps it as an env var.)
 
 ## Money rules that are not guessable from the field names
 
@@ -145,9 +148,13 @@ curl -s https://api.lienfi.com/api/v1/agents/<agent-wallet-address>
 ```
 
 It answers `registered`, `expiresAt` and `revokedAt`. `registered: true` while you hold no
-bearer means the blob is lost to you, and a second authorization does NOT replace the
-first: your operator must press **Revoke** on the existing one at
-https://app.lienfi.com/agents/authorize before signing again, or registration is refused
+bearer means the blob is lost to YOU, not necessarily to your operator: the page prints it
+once and does not store it, but the operator pasted it somewhere — the Bankr terminal, most
+likely — and it is still in that conversation. Ask for that block first, privately; it is
+valid until `expiresAt`, and registering again with it is idempotent (Step 4). Only if it
+is gone must they sign again, and a second authorization does NOT replace the first: your
+operator must press **Revoke** on the existing one at
+https://app.lienfi.com/agents/authorize before signing, or registration is refused
 (`registration_refused`, "already has a different active authorization"). Say so before
 they sign, not after the refusal.
 
@@ -331,7 +338,7 @@ valued live. A purchase completed a moment ago may take the indexer a little whi
 
 Every refusal is a normal result with `isError: true` and a stable `error.code` beside a
 sentence written for you. The full table with what to do about each is
-`references/refusal-codes.md` and, live, https://app.lienfi.com/docs/api#mcp-refusals.
+`references/refusal-codes.md` and, live, https://app.lienfi.com/docs#mcp-refusals.
 The ones you will meet most: `purchase_in_flight` (finish or report the live one),
 `insufficient_funds` (tell your operator the `shortfall_usdc`), `quote_above_ceiling`
 (prepare again or skip), `receipt_pending` (retry the report once it confirms),
@@ -355,7 +362,9 @@ agent-side signature from Bankr's `/wallet/sign`, nothing submitted). What it se
 - **Bankr's own agent signs without a Wallet API key** (2026-09-08). Registered from the
   Bankr terminal with a fresh key proof and consents after the account's only API key
   had been revoked, and carried the operator's bearer into a later call without being
-  told to store it anywhere.
+  told to store it anywhere. That carry did not reach X: a few hours later the same agent,
+  asked there, checked the wallet's status, found it registered, and asked for the block
+  again — the bearer lives in the conversation it was pasted into.
 
 What is still unverified, and what to do if it bites:
 
@@ -381,8 +390,8 @@ What is still unverified, and what to do if it bites:
 
 ## Links
 
-- Walkthrough with every request body: https://app.lienfi.com/docs/api#mcp-walkthrough
-- Refusal codes: https://app.lienfi.com/docs/api#mcp-refusals
+- Walkthrough with every request body: https://app.lienfi.com/docs#mcp-walkthrough
+- Refusal codes: https://app.lienfi.com/docs#mcp-refusals
 - Conventions for machines: https://app.lienfi.com/llms.txt
 - Operator setup and authorization: https://app.lienfi.com/agents
 - OpenAPI: https://api.lienfi.com/api/v1/openapi.json

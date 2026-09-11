@@ -9,7 +9,7 @@ block carries JSON: `{ "error": { "code", "message", ... } }`. Branch on `code`;
 `quoted_usdc` and `ceiling_usdc`.
 
 The live table, kept in step with the server, is
-https://app.lienfi.com/docs/api#mcp-refusals. This copy is pinned against the server's
+https://app.lienfi.com/docs#mcp-refusals. This copy is pinned against the server's
 own error set by a test in the LienFi monorepo.
 
 | code | what it means | what to do |
