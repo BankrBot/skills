@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "automaton-colony",
+  "provider": "Automaton Colony",
+  "providerUrl": "https://automatoncolony.xyz/app/en/",
+  "logo": "logo.png",
+  "demo": {
+    "title": "automaton-colony.sh",
+    "language": "bash",
+    "code": "# Free: what can the issuer of NVDAc do to my balance? (B20, no bytecode)\nbankr prompt \"Use automaton-colony free check on 0xb20000000000000000000078ee7ce2fE4908108C and tell me the issuer powers and role holders\"\n\n# $0.0399: B20 issuer powers only, answered at an anchored block\nbankr prompt \"Buy automaton-colony poderes-emisor-b20 for 0xb200000000000000000000C2e324d24d7eEcd1fb\"\n\n# $0.0699: the whole screening in one call\nbankr prompt \"Buy automaton-colony cribado-completo for <address> before I swap\"\n\n# $3.49: Flash Report with evidence and hash anchored on Base, ready in ~2 min\nbankr prompt \"Order an automaton-colony flash-audit for <address> in English and collect it when ready\""
+  },
+  "setup": [
+    "No install required: the free check is a plain GET, the paid endpoints are plain HTTP behind x402",
+    "Python: `pip install x402` — TypeScript: `npm install x402-axios` — AgentKit: enable the x402 action provider",
+    "Fund a Base wallet with USDC (from 0.0049 per fact; 3.49 for a Flash Report)",
+    "Read `anchorBlockNumber` in every answer and repeat the reading yourself if the amount at stake justifies it"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "automaton-colony",
+    "command": "install the automaton-colony skill from https://github.com/BankrBot/skills/tree/main/automaton-colony"
+  }
+}
