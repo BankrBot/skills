@@ -55,16 +55,17 @@ bankr config get llmKey
 | `gemini-3.7-flash` | Google | Previous Flash, coding and agents (1M, image input) |
 | `gemini-3.6-flash` | Google | Fast, cost-effective multimodal (1M, image input) |
 | `gemini-3.5-flash` | Google | Fast general-purpose (1M) |
-| `gemini-3.5-flash-lite` | Google | Ultra-fast, lowest cost (1M) |
+| ~~`gemini-3.5-flash-lite`~~ | Google | **Deprecated** — use `gemini-3.8-flash` |
 | `gemini-3.1-pro` | Google | Long context, reasoning (1M) |
-| `gemini-3.1-flash-lite` | Google | Ultra-fast, lowest cost (1M) |
+| ~~`gemini-3.1-flash-lite`~~ | Google | **Deprecated** — use `gemini-3.8-flash` |
 | ~~`gemini-3-pro`~~ | Google | **Deprecated** — use `gemini-3.1-pro` |
 | `gemini-3-flash` | Google | High throughput (1M) |
 | `gemini-2.5-pro` | Google | Long context, multimodal |
 | `gemini-2.5-flash` | Google | Speed, high throughput |
 | `gemma-4-31b-it` | Google | Multimodal, cost-effective (262K) |
 | `gemma-4-26b-a4b-it` | Google | MoE, cost-effective (262K) |
-| `gpt-5.6-sol` | OpenAI | Latest flagship, most capable (1M context, image input) |
+| `gpt-6-astra` | OpenAI | Latest frontier, most capable (1M context, image input) |
+| `gpt-5.6-sol` | OpenAI | Previous frontier flagship (1M context, image input) |
 | `gpt-5.6-terra` | OpenAI | Latest balanced tier (1M context, image input) |
 | `gpt-5.6-luna` | OpenAI | Latest fast/economical tier (1M context, image input) |
 | `gpt-5.5` | OpenAI | Previous flagship (1M context, image input) |
@@ -79,9 +80,10 @@ bankr config get llmKey
 | `grok-4.5` | xAI | Latest, balanced multimodal (500K context, image input) |
 | `grok-4.3` | xAI | Balanced performance (1M context) |
 | `grok-4.1-fast` | xAI | Fast, economical, largest context (2M) |
-| `deepseek-v4-pro-0813` | DeepSeek | Latest frontier, high-capacity reasoning (1M) |
+| `deepseek-v4.1-flash` | DeepSeek | Latest Flash — agents, coding, vision (1M, image input) |
+| `deepseek-v4-pro-0813` | DeepSeek | Frontier, high-capacity reasoning (1M) |
 | `deepseek-v4-pro` | DeepSeek | Previous V4 Pro build, 0423 (1M, 384K output) |
-| `deepseek-v4-flash` | DeepSeek | High throughput, cost-effective (1M) |
+| `deepseek-v4-flash` | DeepSeek | Previous Flash — high throughput, cost-effective (1M) |
 | `deepseek-v3.2` | DeepSeek | Cost-effective (164K context) |
 | `qwen3.8-max` | Alibaba | Flagship Qwen, multimodal (1M, image input) |
 | `qwen3.8-flash` | Alibaba | Latest fast tier, multimodal (1M, image input) |
@@ -185,7 +187,9 @@ Only a **trailing** tier token counts as the opt-in, so unrelated model IDs cont
 
 ### Max Mode — Choose the Agent's Model
 
-Max Mode replaces the Bankr agent's default model (`gemini-3.8-flash`) with any gateway model, billed per token from your **LLM credit balance**. It's the pay-per-use alternative to a Bankr Club subscription for unlimited terminal messages, and unlike Club checkout it works with external/connected wallets.
+Max Mode replaces the Bankr agent's default model (`gemini-3.8-flash`) with a more capable gateway model, billed per token from your **LLM credit balance**. It's the pay-per-use alternative to a Bankr Club subscription for unlimited terminal messages, and unlike Club checkout it works with external/connected wallets.
+
+**Not every gateway model is a Max Mode choice.** Only the **frontier, flagship and balanced** lines are offered. Light models — `claude-haiku-4.5`, the GPT mini/nano tiers and similar — stay available through the gateway API but are not selectable as the agent's model, since swapping the default for something weaker isn't the point of Max Mode.
 
 ```bash
 bankr agent "analyze my portfolio" --model claude-opus-5
@@ -193,7 +197,9 @@ bankr agent "what are the top memecoins today?" -m gemini-3.1-pro
 bankr agent prompt "tell me more" --continue --model claude-sonnet-5
 ```
 
-The selection is stored on your wallet and applies across every surface — CLI, web terminal, Farcaster, X, Telegram, XMTP, and automations. In the web terminal, toggle the **Max** button and pick a model from the picker; a usage badge under each response shows model, tokens, and cost.
+The selection is stored on your wallet and applies across every surface — CLI, web terminal, Farcaster, X, Telegram, and automations, which all offer the same ranks. In the web terminal, toggle the **Max** button and pick a model from the picker; a usage badge under each response shows model, tokens, and cost.
+
+**Superseded releases collapse out of the pickers.** The web picker and `bankr llm models` list the two newest releases of each frontier/flagship/balanced line, so an older release stops being offered once two newer ones ship. The API still accepts that older id for as long as the gateway serves it — pin one explicitly if you depend on it, and don't assume a model is gone just because it dropped off a picker.
 
 **How credits are enforced:**
 
@@ -600,23 +606,31 @@ message = client.messages.create(
 
 ## Image Generation
 
-The gateway supports image generation through an OpenAI-native `POST /v1/images/generations` endpoint (model `gpt-image-2`). The request and response mirror OpenAI's images API, so the OpenAI SDK's `images.generate()` works against the gateway with just a base-URL swap:
+The gateway supports image generation through an OpenAI-native `POST /v1/images/generations` endpoint. The request and response mirror OpenAI's images API, so the OpenAI SDK's `images.generate()` works against the gateway with just a base-URL swap:
+
+| Model | Best for |
+|-------|----------|
+| `gpt-image-2.5-flare` | Speed and high-volume work — the default choice |
+| `gpt-image-2.5-sunburst` | Precision |
+| `gpt-image-2` | Previous generation |
 
 ```bash
 curl -X POST "https://llm.bankr.bot/v1/images/generations" \
   -H "Authorization: Bearer $BANKR_LLM_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"model": "gpt-image-2", "prompt": "a neon city skyline at dusk"}'
+  -d '{"model": "gpt-image-2.5-flare", "prompt": "a neon city skyline at dusk"}'
 ```
 
 ```python
 from openai import OpenAI
 
 client = OpenAI(base_url="https://llm.bankr.bot/v1", api_key="your_bankr_key")
-img = client.images.generate(model="gpt-image-2", prompt="a neon city skyline at dusk")
+img = client.images.generate(model="gpt-image-2.5-flare", prompt="a neon city skyline at dusk")
 ```
 
-Image-output models are billed from the same LLM credit balance as text models, priced per image (image-output usage is metered separately). Image-capable models advertise an `image` output modality and per-image pricing in `GET /v1/models` (`output_modalities`, `pricing.image_output`); run `bankr llm models` for the current list.
+**Generation only.** The gateway exposes `/v1/images/generations` but not `/v1/images/edits`, so both 2.5 models are used for generation here — Sunburst's editing-accuracy advantage isn't reachable through the gateway yet. Streaming is not supported and `n` is capped at 4.
+
+Image-output models are billed from the same LLM credit balance as text models, priced per image (image-output usage is metered separately). The whole image line is priced identically, so the choice between them is about output, not cost. Image-capable models advertise an `image` output modality and per-image pricing in `GET /v1/models` (`output_modalities`, `pricing.image_output`); run `bankr llm models` for the current list.
 
 ## Model Deprecation
 

@@ -72,6 +72,23 @@ All chains: Base, Polygon, Ethereum, Unichain, Solana, World Chain, Arbitrum, BN
 - **Exact Balances**: token `balance` is the exact decimal amount in plain notation, carried as a string — never rounded, and never in scientific notation for very small or very large holdings. If you do arithmetic on it, parse it with a decimal-safe library rather than relying on a float
 - **Partial-Failure Resilient**: the native balance and the token-list lookup are fetched independently per chain, so an indexer failure on the token side no longer takes the chain's native row down with it. A degraded chain returns the native balance it did retrieve rather than reporting the wallet as empty of it
 
+## Low-Value Tokens Are Filtered
+
+**A balance list you get back from the agent is filtered by default, and you must not read it as the whole wallet.** The agent's balance tools apply the same low-value rule as the web portfolio — the wallet's `showLowValueTokens` preference and its **$1** threshold — so a wallet holding airdrop dust on a thinly-indexed chain answers with its real holdings instead of a wall of `$0.00` rows.
+
+What that means when you consume the result:
+
+- **Native gas rows are never hidden.** "How much ETH do I have?" still answers on a near-empty wallet, whatever the balance is worth.
+- **The filtering is reported, not silent.** A filtered response carries `hiddenLowValueTokens` — a count of what was dropped — so "the list didn't mention token X" is never evidence the wallet doesn't hold it. Check the count before concluding anything about absence.
+- **Ask for everything explicitly** with `includeLowValueTokens` when you genuinely need the full list (dust sweeps, auditing an airdrop, reconciling against an indexer).
+- **Trading paths are unfiltered.** Swap and transfer resolution reads balances directly, so a token too small to show in a balance listing is still sellable and transferable — see below.
+
+## Selling and Transferring by Ticker
+
+Ticker resolution for sells and transfers runs against **what you actually hold**, with no USD floor, so a holding worth a few cents resolves the same way a large one does. "Sell all my WOLF for ETH" finds the WOLF in your wallet rather than falling through to a global market-cap search that doesn't know what you own.
+
+Holdings form the *candidate set*, not the answer — an airdropped token sharing a real one's symbol can't win by being held. If several tokens on the chain match the ticker you named, the agent returns a disambiguation listing **your own contracts and balances** to choose from. If none match, it falls back to the global search, so buying a token you don't yet hold is unchanged. Security checks run on whichever contract is finally selected.
+
 ## Common Tokens Tracked
 
 - **Stablecoins**: USDC, USDT, DAI
