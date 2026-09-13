@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "bankr-take-profit",
+  "provider": "Community",
+  "providerUrl": "https://github.com/BankrBot/skills",
+  "logo": null,
+  "demo": {
+    "title": "Take profit on a confirmed position",
+    "language": "text",
+    "code": "Use bankr-take-profit to prepare a dry run selling half of a confirmed spot position at 50% above its fill price. Show the exact quantity, target, proceeds token and expiry. Do not submit an order."
+  },
+  "setup": [
+    "Install this skill in your Bankr agent.",
+    "Provide the exact chain, token, position quantity or fill reference, profit target, output asset and expiry.",
+    "Use an authorized trading session to place orders; dry runs do not require transaction authority."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "bankr-take-profit",
+    "command": "install the bankr-take-profit skill from https://github.com/BankrBot/skills/tree/main/bankr-take-profit"
+  }
+}
