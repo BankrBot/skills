@@ -9,8 +9,7 @@ metadata:
     emoji: "🧭"
     homepage: "https://steer.finance"
     requires:
-      bins: [node, npm]
-      packages: ["@steerprotocol/cli"]
+      bins: [node, steer]
 ---
 
 # Steer
@@ -19,7 +18,7 @@ Create, curate, deposit into, and manage LP vaults with the Steer CLI. Establish
 
 ## Before use
 
-1. At the start of each live workflow, run `node scripts/ensure-steer-cli.mjs`. It resolves npm latest, installs that exact version only when needed, and verifies the `steer` binary on PATH matches. Proceed only when its JSON result has `ok: true`. Do not re-run it between quote and preparation; if it updated the CLI, inspect the relevant command help and schema before collecting live data.
+1. Use the Steer CLI provided by Bankr. Bankr owns installation, approved versions, upgrades, and executable resolution in its controlled environment. This skill must never install or upgrade the CLI. At the start of each live workflow, run `steer --version` and check the required command help and schema. Stop with `CLI_UNAVAILABLE` if the CLI cannot run, or `CLI_VERSION_UNSUPPORTED` if its version or command interface cannot satisfy the workflow. Bankr must keep the same CLI version and executable available throughout quote and preparation.
 2. Configure `STEER_RPC_URL` and `STEER_SUBGRAPH_STUDIO_KEY` securely. Do not print either value or a credentialed RPC URL. The rebalance-context helper requires the subgraph key; tend quote and preparation require `eth_getProof` support from the RPC.
 3. Resolve the Bankr EVM wallet and requested chain. Use that wallet as `--account` for account-aware quote and preparation commands.
 4. Read [references/command-discovery.md](references/command-discovery.md), then inspect the exact installed command with `--help` and `--schema`. Use native structured Steer tools only when their schema matches the installed CLI.
