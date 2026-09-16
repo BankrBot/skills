@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "pi-fire-science",
+  "provider": "Pattern Integrity / Pi Fire Science",
+  "providerUrl": "https://pifirescience.com",
+  "demo": {
+    "title": "pi-fire-science-quickcheck.sh",
+    "language": "bash",
+    "code": "echo \"Pi Fire Science | Pattern Integrity LLC\"\necho \"Site: https://pifirescience.com\"\necho \"Token: $PiFire on Base | CA 0x3d44e71c839da9fa7fc1d5b3c199fbcdde04fba3\"\necho \"Pool fee 0.7%; creator ~0.665% (95% of pool fee); LP hook ~0.285% separate\"\necho \"DexScreener: https://dexscreener.com/base/0x3d44e71c839da9fa7fc1d5b3c199fbcdde04fba3\"\necho \"YouTube Studio metrics: snapshot ~Sep 13, 2026 \u2014 not live\"\necho \"Treasury: 0xddd66dcb122fe2934388cc915071d545bd0c3c41\"\n"
+  },
+  "setup": [
+    "After merge: install from https://github.com/BankrBot/skills/tree/main/pi-fire-science",
+    "Before merge: install from your public fork/branch path containing this folder",
+    "Confirm references/tokenomics.md is present in the skill directory",
+    "$PiFire Base CA: 0x3d44e71c839da9fa7fc1d5b3c199fbcdde04fba3"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "pi-fire-science",
+    "command": "install the pi-fire-science skill from https://github.com/BankrBot/skills/tree/main/pi-fire-science"
+  }
+}
