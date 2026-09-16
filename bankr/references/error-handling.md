@@ -16,14 +16,15 @@ Resolve Bankr API errors and common issues.
 bun install -g @bankr/cli
 ```
 
-**2. Authenticate**
+**2. Authenticate** — headless email login (recommended for agents):
 ```bash
-bankr login
+bankr login email user@example.com                                   # step 1: send OTP
+bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent" --agent-api --read-write   # step 2
 ```
 
-Or if you already have an API key from https://bankr.bot/api-keys:
+Or if you already have an API key from https://bankr.bot/api-keys (also the only route for MFA-enabled accounts — headless login can't complete the passkey step-up and fails with `MFA_STEP_UP_REQUIRED`):
 ```bash
-bankr config set apiKey bk_your_actual_key_here
+bankr login --api-key bk_your_actual_key_here
 ```
 
 **3. Verify Setup**
