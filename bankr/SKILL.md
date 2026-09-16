@@ -41,6 +41,8 @@ bankr login email user@example.com --code 123456 --accept-terms --key-name "My A
 
 This creates a wallet, accepts terms, and generates an API key — no browser needed. Before running step 2, ask the user which APIs they need (wallet, agent, both via `--read-write`, LLM gateway) and their preferred key name.
 
+> **Not for MFA-enabled accounts.** Minting an API key requires a passkey step-up when MFA is on, and the CLI can't complete that ceremony — step 2 fails with `MFA_STEP_UP_REQUIRED`. Use Option B: create the key in the Bankr Terminal (the passkey prompt happens there), then run `bankr login --api-key bk_...`.
+
 **Option B: Bankr Terminal**
 
 1. Visit [bankr.bot/api-keys](https://bankr.bot/api-keys)
@@ -67,7 +69,7 @@ npm install -g @bankr/cli
 
 #### Headless email login (recommended for agents)
 
-When the user asks to log in with an email, walk them through this flow:
+When the user asks to log in with an email, walk them through this flow. If the user has MFA enabled on their Bankr account, skip this and use "Login with existing API key" below — the headless flow cannot pass the passkey step-up.
 
 **Step 1 — Send verification code**
 
@@ -135,7 +137,7 @@ Any option not provided on the command line will be prompted interactively by th
 
 #### Login with existing API key
 
-If the user already has an API key:
+If the user already has an API key (this is also the only route for MFA-enabled accounts):
 
 ```bash
 bankr login --api-key bk_YOUR_KEY_HERE
