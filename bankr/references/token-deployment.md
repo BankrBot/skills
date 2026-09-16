@@ -387,14 +387,22 @@ After the third counted attempt, wait for the oldest one to age out of the 24-ho
 | Same token name | Across all accounts, per hour | 10 |
 | Fee-recipient address | Across all accounts, per 24 hours | 20 |
 
+**Per-network (IP) cap.** Separately from the wallet quota, non-partner deploys are capped at roughly **10 successful deploys per 24 hours per client IP**; exceeding it returns `429` with "Too many token deployments from this network." Only deploys that succeed count — failed attempts and rate-limited requests don't — and partner deploys are exempt, since many end-users share one partner server's IP.
+
+Treat the number as approximate rather than a contract: the counter lives in the API process serving you, and its 24-hour window starts at your first counted deploy instead of each deploy ageing out individually. If you deploy programmatically from one host, this is the ceiling you'll hit first — well before the per-wallet quota — so pace deploys rather than retrying into the `429`.
+
 ### Launch-Wallet Requirements (anti-sybil)
 
 Standard and Bankr Club launches require the Bankr wallet to be:
 
-- **At least 24 hours old**, measured from when Bankr created the wallet — not from the age of the linked X or other social account
+- **At least 24 hours old**, measured from when Bankr created the wallet — not from the age of the linked X or other social account. **A wallet whose only linked account is an email needs 72 hours**, not 24; linking a real social account puts it back on the 24-hour gate
 - Holding **at least 0.002 native ETH on the launch chain**
 
-Both checks run *before* quota is reserved, metadata is pinned, or a transaction is submitted, so a rejection here costs neither a launch attempt nor gas. The balance minimum applies even on Base, where Bankr sponsors deploy gas; on Robinhood Chain and Arbitrum it also has to cover the launch's own gas. Validated active partner-organization and provisioned-wallet launch paths are exempt from both requirements — only while the organization is active with token launching enabled, and (for a provisioned wallet) while the wallet stays active and linked to that organization. Retail **simulations** still require the 24-hour wallet age, but skip the balance check.
+Both checks run *before* quota is reserved, metadata is pinned, or a transaction is submitted, so a rejection here costs neither a launch attempt nor gas. The balance minimum applies even on Base, where Bankr sponsors deploy gas; on Robinhood Chain and Arbitrum it also has to cover the launch's own gas. Validated active partner-organization and provisioned-wallet launch paths are exempt from both requirements — only while the organization is active with token launching enabled, and (for a provisioned wallet) while the wallet stays active and linked to that organization. Retail **simulations** still require the wallet-age gate, but skip the balance check.
+
+**Simulations have their own cap: 20 per wallet per 24 hours.** It is counted separately from the launch quota — a simulation still never consumes a launch slot — but it does mean `--simulate` / `simulateOnly: true` is not free to loop over. Budget it if you simulate before every deploy. Partner deploys are exempt from the simulate cap, as they are from the other retail gates.
+
+**Launches are also geo-gated**, and every eligibility gate above runs on *every* launch path — REST deploy, the web terminal, the Agent API and the social surfaces alike — not only the REST endpoints. A blocked launch answers with one generic "token launch not available" message rather than naming the reason, so don't try to branch your automation on the specific cause; treat it as a terminal refusal for that wallet and region.
 
 ### Gas Sponsorship
 

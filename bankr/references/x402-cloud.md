@@ -252,6 +252,10 @@ https://x402.bankr.bot/<walletAddress>/<serviceName>[/path]
 
 Payments only settle if your handler returns a successful response (status < 400). Failed requests are never charged.
 
+**Verification and settlement are Bankr's to drive, not yours.** Steps 4 and 5 run through a dedicated facilitator service — your handler code never touches payment logic, and neither payers nor handlers call `verify`/`settle` directly. Both operations are authenticated and rate-limited: each call carries a short-lived token bound to the specific endpoint being paid for, and settlement pays out to the address on that endpoint's record rather than anything supplied in the request, so a payout target can't be swapped by a crafted request.
+
+The `facilitator` URL that comes back in a `402` response is informational — it tells payment clients which facilitator quoted the price. Don't build a flow that posts to it yourself; use the `X-PAYMENT` retry above (or a client like `x402-fetch`) and let the router handle the rest. The verified payer's wallet address reaches your handler as the `x-402-payer` header.
+
 ## Limits
 
 | Resource | Limit |

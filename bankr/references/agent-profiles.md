@@ -147,6 +147,7 @@ Add a project update entry.
 | `limit` | 20 | Results per page (1-100) |
 | `offset` | 0 | Pagination offset |
 | `sort` | marketCap | Sort: `marketCap` or `newest` |
+| `includeFeatured` | — | `1` also returns every ops-featured profile on the first unfiltered page. That page may then exceed `limit`, so size your buffer off the array you get back rather than off `limit` |
 
 ## Approval Workflow
 
