@@ -5,7 +5,11 @@
   "providerUrl": "https://github.com/GeObts",
   "logo": null,
   "demo": null,
-  "setup": [],
+  "description": "Buy Bitcoin hashpower and Megapot lottery tickets through the BASED x402 endpoints on Base. Use when the user says mine bitcoin, solo mining, based pool, buy hashpower, rent hashrate, block odds, block party, party-slot, my mining payout, mining profitability, hashprice, megapot, lottery ticket, or jackpot. Covers live pool stats, hashpower quotes, $10 anytime mining blocks, Block Party tickets via party-slot ($10 per call, paused on Bankr until live), and $1 lottery tickets.",
+  "setup": [
+    "Install: `install the based-mining skill from https://github.com/BankrBot/skills/tree/main/based-mining`",
+    "Covers BASED pool stats, $10 anytime `mine` hashpower, Block Party / `party-slot` tickets ($10 per call; deployed on Bankr but paused — not accepting payments yet), and $1 Megapot tickets."
+  ],
   "install": {
     "type": "bankr",
     "repoPath": "based-mining",
