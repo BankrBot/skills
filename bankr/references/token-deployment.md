@@ -202,6 +202,7 @@ Launch ERC20 tokens on Base, Robinhood Chain or Arbitrum One. New launches creat
 | Default quote asset | WETH | WETH | WETH |
 | `pairedStockAddress` (tokenized stock) | Yes — B20 equities | Yes — Robinhood stocks | **No** |
 | `pairedTokenAddress` (quote token) | Yes — 5 fixed tokens | **No** | **No** |
+| `bankr launch quotes --chain …` lists | WETH, 5 fixed tokens, B20 stocks | WETH, Robinhood stocks | WETH only |
 | Retail launch gas | Sponsored | Wallet pays | Wallet pays |
 
 Arbitrum launches are therefore **WETH-paired only**. Everything else — supply, fee schedule, creator vesting, quote-only fees, degen mode, fee claiming — behaves as on Base. Fund the launch wallet with ETH on Arbitrum before deploying.
@@ -327,8 +328,8 @@ Degen mode starts the token at a **$2,500 market cap** instead of the standard s
 | **Fee Recipient** | No | Route creator fees to a wallet, ENS, or social handle | "@partner" |
 | **Quote-only fees** | No | Collect all creator fees in the quote token; fixed at launch | `quoteOnlyFees: true` |
 | **Degen mode** | No | Start at a $2,500 market cap; explicit opt-in, not on partner deploys | `degenMode: true` |
-| **Paired stock** | No | Quote the pool in a registry tokenized stock instead of WETH | `pairedStockAddress: "0x…"` |
-| **Paired quote token** | No | Base only — quote the pool in BNKR, ba3Pump, cbHYPE, cbZEC or TAO instead of WETH; not combinable with a paired stock | `pairedTokenAddress: "0x…"` |
+| **Paired stock** | No | Quote the pool in a registry tokenized stock instead of WETH (Robinhood Chain / Base); the API takes the stock's address, the CLI a symbol or address | `pairedStockAddress: "0x…"` (`--quote TSLA`) |
+| **Paired quote token** | No | Base only — quote the pool in BNKR, ba3Pump, cbHYPE, cbZEC or TAO instead of WETH; not combinable with a paired stock | `pairedTokenAddress: "0x…"` (`--quote BNKR`) |
 | **Chain** | No | `robinhood` (agent/API default), `base` (CLI and web default), or `arbitrum` | `chain: "arbitrum"` |
 | **Disable vesting** | No | Skip the default 15% creator vesting and sell 100% of supply into the pool | `disableVesting: true` (`--no-vesting`) |
 
@@ -346,6 +347,11 @@ Degen mode starts the token at a **$2,500 market cap** instead of the standard s
 - "Launch MOON on Arbitrum"
 - "Launch FROG on Base paired with TAO"
 - "Launch a token with no vesting"
+
+**Pick the quote token from the CLI:**
+- `bankr launch quotes --chain robinhood` — list every token a Robinhood Chain launch can pair with (WETH, then each priceable Stock Token, with `[thin liquidity]` where the stock's own pool is thin)
+- `bankr launch --name Semis --chain robinhood --quote NVDA -y` — launch quoted in tokenized NVDA (symbol or contract address; the wizard offers the same list when `--quote` is omitted)
+- `bankr launch --name Frog --chain base --quote TAO -y` — Base launch quoted in one of the fixed additional quote tokens
 
 **Creator vesting:**
 - "How much of my MTK allocation has vested?"
@@ -431,14 +437,23 @@ Instead of pairing your token's pool with WETH, you can pair it with a registry 
 
 ```bash
 bankr agent prompt "Launch a token called Semis paired with NVDA on base"
+
+# CLI: list the stocks (and other quote tokens) a chain offers, then pick one by symbol or address
+bankr launch quotes --chain robinhood
+bankr launch --name Semis --chain robinhood --quote NVDA -y
 ```
 
 ```json
+GET /token-launches/quote-tokens?chain=robinhood
+→ { "chain": "robinhood", "provider": "doppler", "quoteTokens": [ { "symbol": "WETH", "isDefault": true, "deployField": null, … }, { "symbol": "NVDA", "address": "0x…", "kind": "stock", "deployField": "pairedStockAddress", "illiquid": false, … } ] }
+
 POST /token-launches/deploy
-{ "name": "Semis", "symbol": "SEMIS", "chain": "base", "pairedStockAddress": "0x..." }
+{ "name": "Semis", "symbol": "SEMIS", "chain": "robinhood", "provider": "doppler", "pairedStockAddress": "0x..." }
 ```
 
+- `GET /token-launches/quote-tokens?chain=<chain>` (public) is the list to choose from: the chain default first, then the Base allowlist, then every stock Bankr can price there. Each entry's `deployField` names the deploy-body field that selects it; send the entry's `address` there (a ticker is rejected by the API — only the CLI and the agent resolve symbols) together with the response's `provider`, so the pairing is honoured by the provider that listed it.
 - Only stocks Bankr can price are offered — the launch curve's tick math needs a USD price, so an unpriceable stock would fail late rather than early.
+- A stock flagged `illiquid: true` (CLI: `[thin liquidity]`) still launches; its pool is just hard to trade until liquidity arrives. Treat it as a warning to relay, not a refusal.
 - The same rule set validates the pairing in the launch wizard, the deploy API, and the agent, so what's offered is what's accepted.
 - Pairing is fixed at launch, like the fee schedule.
 - The pool's quote asset is the stock, so a swap leg that touches it is subject to that stock's location verification like any other stock trade.
@@ -453,7 +468,7 @@ POST /token-launches/deploy
 
 ### Deployment Process
 
-1. **Specify Parameters**: Name (required); symbol, description, social links, fee recipient (optional)
+1. **Specify Parameters**: Name (required); symbol, description, social links, fee recipient, chain and quote token (optional — `bankr launch quotes --chain <chain>` shows the quote tokens on offer)
 2. **Contract Deployment**: Doppler deploys the ERC20 and creates the Uniswap V4 pool with automatic liquidity
 3. **Verification**: Get the token address and pool metadata, view on a block explorer
 
