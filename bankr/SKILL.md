@@ -41,6 +41,8 @@ bankr login email user@example.com --code 123456 --accept-terms --key-name "My A
 
 This creates a wallet, accepts terms, and generates an API key — no browser needed. Before running step 2, ask the user which APIs they need (wallet, agent, both via `--read-write`, LLM gateway) and their preferred key name.
 
+> **Not for MFA-enabled accounts.** Minting an API key requires a passkey step-up when MFA is on, and the CLI can't complete that ceremony — step 2 fails with `MFA_STEP_UP_REQUIRED`. Use Option B: create the key in the Bankr Terminal (the passkey prompt happens there), then run `bankr login --api-key bk_...`.
+
 **Option B: Bankr Terminal**
 
 1. Visit [bankr.bot/api-keys](https://bankr.bot/api-keys)
@@ -67,7 +69,7 @@ npm install -g @bankr/cli
 
 #### Headless email login (recommended for agents)
 
-When the user asks to log in with an email, walk them through this flow:
+When the user asks to log in with an email, walk them through this flow. If the user has MFA enabled on their Bankr account, skip this and use "Login with existing API key" below — the headless flow cannot pass the passkey step-up.
 
 **Step 1 — Send verification code**
 
@@ -135,7 +137,7 @@ Any option not provided on the command line will be prompted interactively by th
 
 #### Login with existing API key
 
-If the user already has an API key:
+If the user already has an API key (this is also the only route for MFA-enabled accounts):
 
 ```bash
 bankr login --api-key bk_YOUR_KEY_HERE
@@ -258,6 +260,7 @@ The legacy aliases `/public/resolve-recipient` and `/public/search-users` have b
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/token-launches` | GET | List recent token launches (cached, public) |
+| `/token-launches/quote-tokens?chain=<chain>` | GET | Quote tokens a launch on that chain can pair with — WETH first, then tokenized stocks (Robinhood Chain / Base) and the Base allowlist; each entry names the deploy field that selects it |
 
 #### Removed legacy endpoints
 
@@ -396,7 +399,7 @@ The flag implies `--yes` on every confirmation prompt and fails fast (exit 1, cl
 | Command | Required headless flag(s) when --ni is set |
 |---------|---------------------------------------------|
 | `bankr login` | `--api-key <key>`, `login siwe --private-key <key>`, or `login email <addr> [--code <otp>]` |
-| `bankr launch` | `--name <name>` (other fields default to empty) |
+| `bankr launch` | `--name <name>` (other fields default to empty; add `--chain` and `--quote <symbol\|address>` to pick the chain and the pool's quote token — WETH otherwise) |
 | `bankr fees claim-wallet` | `--all` (plus `--private-key` or `BANKR_PRIVATE_KEY`) |
 | `bankr agent` | a prompt argument or piped stdin |
 
@@ -542,7 +545,7 @@ The [Bankr LLM Gateway](https://docs.bankr.bot/llm-gateway/overview) is a unifie
 - In OpenClaw config, prefix model IDs with `bankr/` (e.g. `bankr/claude-sonnet-5`). In direct API calls, use bare IDs (e.g. `claude-sonnet-5`). Run `bankr llm models` for the current model list
 - **Claude Code's `[1m]` context-tier suffix is optional through the gateway** — it's stripped before model lookup and the 1M window comes from the model's own context window, so `claude-opus-5` and `claude-opus-5[1m]` behave identically. If you do use it, quote it (`--model "claude-opus-5[1m]"`) — in zsh it's a glob character class and the command aborts before the CLI runs
 - **Per-model discounts** available for Bankr Club members and partners — applied automatically at billing time
-- **Image generation**: generate images via the OpenAI-native `/v1/images/generations` endpoint (model `gpt-image-2`), billed from the same LLM credit balance — see the reference
+- **Image generation**: generate images via the OpenAI-native `/v1/images/generations` endpoint — the `gpt-image-2.5` line (`-flare` for speed, `-sunburst` for precision) plus the previous `gpt-image-2`, all priced identically and billed from the same LLM credit balance — see the reference
 - **Expiring credit grants**: promotional or developer grants may carry an expiry date. Your spendable balance is your permanent (purchased) credits plus any unexpired grants — grants are spent first (soonest-expiring first) and drop off automatically at expiry
 - **Privacy tiers**: every request is served at `standard`, `zdr` (zero data retention), or `private` (TEE). Ask for a tier per request, per model, per base URL, or account-wide — see below
 
@@ -768,8 +771,8 @@ Spot stocks work with swaps, transfers, limit orders, and DCA. Only issuer-token
 
 - **EVM (Base, Robinhood Chain, or Arbitrum One)**: Launch ERC20 tokens via Doppler on a Uniswap V4 pool with customizable metadata and social links. Supply is fixed and non-mintable once deployed; standard launches use **100 billion** (the web launch flow can set a custom figure — the deploy API and CLI always use the standard supply). Ticker symbols are **1–20 characters**. Every trade pays a **0.7% swap fee on the pool and 95% of it goes to you** (0.665% of volume, claimable anytime); the hook adds the Bankr protocol fee + BNKR buyback and LP fee on top, for **1.75% all-in**. The **0.285% LP fee is creator-side too** — it compounds as locked liquidity in your own pool, strengthening your token's liquidity on every swap, so the creator side totals **0.95% of volume**. **The default chain depends on the surface**: the CLI (`bankr launch`) and the web launch form preselect **Base**, while the AI agent and the deploy API fall back to **Robinhood Chain** when no chain is named. Name the chain explicitly (`bankr launch --chain robinhood`, `"chain": "base"`, or "launch it on Base") whenever it matters. Legacy Clanker tokens remain claimable (claims auto-detect Doppler vs Clanker).
 - **Arbitrum One launches** (`chain: "arbitrum"`, `bankr launch --chain arbitrum`, or "launch it on Arbitrum") are **WETH-paired only** — neither `pairedStockAddress` nor `pairedTokenAddress` is accepted there — and the launch wallet pays its own network gas (Bankr sponsors retail launch gas on Base only). Everything else — supply, fee schedule, creator vesting, quote-only fees, degen mode — behaves as on Base.
-- **Stock-paired launches** (Base and Robinhood Chain, optional): pair the new token's pool with a registry tokenized stock instead of WETH, so the token trades against equity exposure. Available on Base (B20 equities) and Robinhood Chain — pass `pairedStockAddress` to the deploy API, or ask the agent to pair the launch with a ticker. Only stocks Bankr can price are offered, since launch-curve math needs a USD price. Not available on Arbitrum.
-- **Base quote-token launches** (optional): on Base, quote the pool in one of **five fixed tokens** instead of WETH — **BNKR**, **ba3Pump** (Bankr-bridged PUMP from Solana), **cbHYPE** (Coinbase-wrapped HYPE), **cbZEC** (Coinbase-wrapped ZEC), or **TAO** (Bittensor on Base). Pass `chain: "base"` with the matching fixed `pairedTokenAddress`. User-key launches only; it can't be combined with `pairedStockAddress`, and omitting both gives you WETH. Volume in these pools stays eligible for the weekly developer rebate on the same terms as WETH-quoted launches. cbHYPE and cbZEC additionally wait on reviewed on-chain quote-token liquidity — if Bankr reports the pair isn't ready, that's a real refusal, not a fallback to WETH. The list is allowlisted by address; an arbitrary ERC-20 is never accepted as a quote token.
+- **Stock-paired launches** (Base and Robinhood Chain, optional): pair the new token's pool with a registry tokenized stock instead of WETH, so the token trades against equity exposure. Available on Base (B20 equities) and Robinhood Chain — run `bankr launch quotes --chain robinhood` (or `--chain base`) to list what you can pair with, then `bankr launch --chain robinhood --quote TSLA` (symbol or address); pass `pairedStockAddress` (the stock's contract address, never a ticker) plus `provider: "doppler"` to the deploy API — `GET /token-launches/quote-tokens?chain=<chain>` lists the addresses; or ask the agent to pair the launch with a ticker. Only stocks Bankr can price are offered, since launch-curve math needs a USD price. Not available on Arbitrum.
+- **Base quote-token launches** (optional): on Base, quote the pool in one of **five fixed tokens** instead of WETH — **BNKR**, **ba3Pump** (Bankr-bridged PUMP from Solana), **cbHYPE** (Coinbase-wrapped HYPE), **cbZEC** (Coinbase-wrapped ZEC), or **TAO** (Bittensor on Base). Pass `chain: "base"` with the matching fixed `pairedTokenAddress`, or `bankr launch --chain base --quote BNKR` in the CLI (`bankr launch quotes --chain base` lists them with their readiness). User-key launches only; it can't be combined with `pairedStockAddress`, and omitting both gives you WETH. Volume in these pools stays eligible for the weekly developer rebate on the same terms as WETH-quoted launches. cbHYPE and cbZEC additionally wait on reviewed on-chain quote-token liquidity — if Bankr reports the pair isn't ready, that's a real refusal, not a fallback to WETH. The list is allowlisted by address; an arbitrary ERC-20 is never accepted as a quote token.
 - **Creator vesting is on by default on EVM**: every non-partner launch premints **15% of supply to the fee recipient** and vests it over **1 year with a 30-day cliff** (the cliff sits inside the year, not on top of it); the other 85% seeds the pool. Turn it off at launch — "deploy with no vesting", `disableVesting: true`, or `bankr launch --no-vesting` — and 100% of supply goes into the pool instead. There is no custom percentage or schedule; the recipient is fixed at launch and transferring fee rights later does **not** move the allocation. Vested tokens are claimable once the cliff passes: `GET /token-launches/{tokenAddress}/vesting` reads the public schedule and position (phase, claimable, locked, unlocked %), and the claim runs from the token page or the API.
 - **Quote-only fees** (EVM, optional): opt in at launch to collect all creator fees in the quote token (e.g. WETH) instead of a mix of the launched token and quote token — your total take is identical either way. Ask for "quote-only fees", pass `quoteOnlyFees: true` to the deploy API, or use `bankr launch --quote-only-fees`. Fixed at launch, like the fee schedule itself.
 - **Degen mode** (EVM, optional): start the token at a **$2,500 market cap** instead of the standard starting cap, for maximum early volatility. Explicit opt-in only — ask for "degen mode" by name, or pass `degenMode: true` to the deploy API. The figure is fixed; there is no custom starting market cap, a token *named* DEGEN does not opt you in, and the mode is unavailable on partner deploys.
@@ -787,11 +790,13 @@ Spot stocks work with swaps, transfers, limit orders, and DCA. Only issuer-token
 |------|-------|
 | Counted launch attempts | **3 per Bankr wallet per rolling 24 hours** — identical for Standard, Bankr Club, partner organization and provisioned partner wallets |
 | Launch rate | At most **one token per minute** |
-| Launch-wallet age | Wallet must be **≥ 24 hours old** (measured from when Bankr created it, not from your X/social account's age) |
+| Launch-wallet age | Wallet must be **≥ 24 hours old** (measured from when Bankr created it, not from your X/social account's age) — **≥ 72 hours** if the wallet's only linked account is an email |
 | Launch-wallet balance | Must hold **≥ 0.002 native ETH on the launch chain** — required even on Base, where deploy gas is sponsored |
+| Simulations | **20 per wallet per 24 hours** — capped separately from the launch quota, and still never consumes a launch slot |
 | Same name, per account | 3 launches of the same token name per hour → `429` |
 | Same name, all accounts | 10 launches of the same name per hour → `429` |
 | Per fee-recipient address | 20 launches per 24 hours across *all* accounts → `429` |
+| Per client IP | ~10 **successful** deploys per 24 hours → `429` — non-partner only, approximate; the ceiling a single deploying host hits first |
 
 - **Only launches that actually went out consume budget.** Quota is reserved just before metadata pinning, and an attempt Bankr can prove never reached the chain hands its slot — and its name/fee-recipient allowance — back. Anything that was broadcast, or that Bankr can't prove wasn't, keeps counting: the classification fails safe, so never assume a failed deploy was free.
 - Validation, resolution and pricing failures before that reservation point never consume a slot, and **simulations don't either** (`--simulate` / `simulateOnly`). Retail simulations still require the 24h-old wallet; the balance minimum is skipped.
@@ -1180,6 +1185,8 @@ See [references/safety.md](references/safety.md) for comprehensive safety guidan
 - "What's my ETH balance?"
 - "Total portfolio value"
 - "Holdings on Base"
+
+> **Balance lists are filtered, including through the agent.** Low-value holdings are hidden by default on every balance surface — the wallet's `showLowValueTokens` preference and its $1 threshold — and the agent reports how many it dropped as `hiddenLowValueTokens`. Native gas rows are never hidden, and a filtered list is never proof the wallet holds nothing else; ask with `includeLowValueTokens` when you need everything. Selling and transferring by ticker resolve against your actual holdings with no floor, so a dust-sized position is still tradeable. See [references/portfolio.md](references/portfolio.md).
 
 ### Market Research
 
