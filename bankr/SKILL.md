@@ -129,6 +129,8 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "LLM Clien
 | `llmGatewayEnabled` | Disabled | `--llm` |
 | `readOnly` | Disabled | Toggle at [bankr.bot/api-keys](https://bankr.bot/api-keys) |
 
+Agent API on by default requires **@bankr/cli 0.3.36+** — older versions still mint email-login keys with Agent API off (run `bankr update`, or enable it at [bankr.bot/api-keys](https://bankr.bot/api-keys)). The `Features:` line printed after login shows what the key actually got.
+
 Any option not provided on the command line will be prompted interactively by the CLI, so you can mix headless and interactive as needed.
 
 #### Login with existing API key
