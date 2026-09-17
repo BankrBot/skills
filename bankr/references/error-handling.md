@@ -19,7 +19,7 @@ bun install -g @bankr/cli
 **2. Authenticate** — headless email login (recommended for agents):
 ```bash
 bankr login email user@example.com                                   # step 1: send OTP
-bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent" --agent-api --read-write   # step 2
+bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent"   # step 2 (wallet + agent + token launch, read-write by default)
 ```
 
 Or if you already have an API key from https://bankr.bot/api-keys (also the only route for MFA-enabled accounts — headless login can't complete the passkey step-up and fails with `MFA_STEP_UP_REQUIRED`):
