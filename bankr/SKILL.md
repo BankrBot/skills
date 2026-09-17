@@ -39,7 +39,7 @@ bankr login email user@example.com
 bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent"
 ```
 
-This creates a wallet, accepts terms, and generates an API key — no browser needed. New keys get the same defaults as the [bankr.bot/api-keys](https://bankr.bot/api-keys) create form: Wallet API, Agent API, and Token Launch on, read-write, LLM gateway off. Before running step 2, ask the user which of those to change (`--no-wallet-api`, `--no-token-launch`, `--llm`) and their preferred key name.
+This creates a wallet, accepts terms, and generates an API key — no browser needed. New keys get the same defaults as the [bankr.bot/api-keys](https://bankr.bot/api-keys) create form: Wallet API, Agent API, and Token Launch on, read-write, LLM gateway off. Before running step 2, ask the user which of those to change (`--no-wallet-api`, `--no-agent-api`, `--no-token-launch`, `--read-only`, `--llm`) and their preferred key name.
 
 > **Not for MFA-enabled accounts.** Minting an API key requires a passkey step-up when MFA is on, and the CLI can't complete that ceremony — step 2 fails with `MFA_STEP_UP_REQUIRED`. Use Option B: create the key in the Bankr Terminal (the passkey prompt happens there), then run `bankr login --api-key bk_...`.
 
@@ -83,9 +83,9 @@ bankr login email <user-email>
 2. **Accept Terms of Service (REQUIRED)** — Present the [Terms of Service](https://bankr.bot/terms) link and confirm the user agrees. **The login command will fail for new users without `--accept-terms`.** You MUST ask for ToS acceptance and do not pass `--accept-terms` unless the user has explicitly confirmed.
 3. **Which APIs do they need?**
    - **Wallet API** — enabled by default, use `--no-wallet-api` to disable
-   - **Agent API** — enabled by default (AI-powered prompts and natural language operations). No CLI flag; toggle it off at [bankr.bot/api-keys](https://bankr.bot/api-keys) if the key shouldn't have it
+   - **Agent API** — enabled by default (AI-powered prompts and natural language operations), use `--no-agent-api` to disable
    - **Token Launch** — enabled by default, use `--no-token-launch` to disable
-   - New keys are read-write by default. For a read-only key (research, monitoring), turn on **Read Only** at [bankr.bot/api-keys](https://bankr.bot/api-keys) after login
+   - **Read-only?** — new keys are read-write by default. Add `--read-only` for a research or monitoring key that must never transact
 4. **Enable LLM gateway access?** (`--llm`) — multi-model API at `llm.bankr.bot` (currently limited to beta testers). Skip if user doesn't need it.
 5. **Key name?** (`--key-name`) — a display name for the API key (e.g. "My Agent", "Trading Bot")
 
@@ -98,8 +98,11 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "Trading A
 # Same, plus LLM gateway access
 bankr login email <user-email> --code <otp> --accept-terms --key-name "My Agent" --llm
 
-# Agent-only (no token launch); make it read-only afterwards at bankr.bot/api-keys for research use
-bankr login email <user-email> --code <otp> --accept-terms --key-name "Research Agent" --no-token-launch
+# Research agent: read-only (prices, balances, research — no transactions), no token launch
+bankr login email <user-email> --code <otp> --accept-terms --key-name "Research Agent" --read-only --no-token-launch
+
+# Wallet API only (no AI prompts): direct /wallet/* calls from your own code
+bankr login email <user-email> --code <otp> --accept-terms --key-name "Wallet Client" --no-agent-api --no-token-launch
 
 # LLM-only (no wallet, no token launch)
 bankr login email <user-email> --code <otp> --accept-terms --key-name "LLM Client" --no-wallet-api --no-token-launch --llm
@@ -113,7 +116,9 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "LLM Clien
 | `--accept-terms` | Accept [Terms of Service](https://bankr.bot/terms) without prompting (required for new users) |
 | `--key-name <name>` | Display name for the API key (e.g. "My Agent"). Prompted if omitted |
 | `--no-wallet-api` | Disable Wallet API (enabled by default) |
-| `--read-write` | Disable read-only mode (allow transactions). New keys are already read-write, so this is a no-op |
+| `--no-agent-api` | Disable Agent API (enabled by default) |
+| `--read-only` | Restrict the key to read operations (new keys are read-write by default). Mutually exclusive with `--read-write` |
+| `--read-write` | Allow transactions. New keys are already read-write, so this is the default |
 | `--no-token-launch` | Disable Token Launch API (enabled by default) |
 | `--llm` | Enable [LLM gateway](https://docs.bankr.bot/llm-gateway/overview) access (multi-model API at `llm.bankr.bot`). Currently limited to beta testers |
 | `--allowed-ips <ips>` | Comma-separated IP/CIDR allowlist for the API key (e.g., `1.2.3.4,10.0.0.0/24`) |
@@ -124,12 +129,12 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "LLM Clien
 | Flag | Default | To change |
 |------|---------|-----------|
 | `walletApiEnabled` | Enabled | `--no-wallet-api` |
-| `agentApiEnabled` | Enabled | Toggle at [bankr.bot/api-keys](https://bankr.bot/api-keys) |
+| `agentApiEnabled` | Enabled | `--no-agent-api` |
 | `tokenLaunchApiEnabled` | Enabled | `--no-token-launch` |
 | `llmGatewayEnabled` | Disabled | `--llm` |
-| `readOnly` | Disabled | Toggle at [bankr.bot/api-keys](https://bankr.bot/api-keys) |
+| `readOnly` | Disabled | `--read-only` |
 
-Agent API on by default requires **@bankr/cli 0.3.36+** — older versions still mint email-login keys with Agent API off (run `bankr update`, or enable it at [bankr.bot/api-keys](https://bankr.bot/api-keys)). The `Features:` line printed after login shows what the key actually got.
+These defaults and the `--no-agent-api` / `--read-only` flags require **@bankr/cli 0.3.37+** — older versions mint email-login keys with Agent API off and have no opt-out flags (run `bankr update`, or fix the key at [bankr.bot/api-keys](https://bankr.bot/api-keys)). The `Features:` line printed after login shows what the key actually got. `bankr login siwe` differs in one way: its keys start read-only, and `--read-write` flips that (`--no-agent-api` works there too).
 
 Any option not provided on the command line will be prompted interactively by the CLI, so you can mix headless and interactive as needed.
 
@@ -958,7 +963,7 @@ Per-key settings configured at [bankr.bot/api-keys](https://bankr.bot/api-keys):
 
 **API Key Types**: Bankr uses a single key format (`bk_...`) with capability flags (`walletApiEnabled`, `agentApiEnabled`, `tokenLaunchApiEnabled`, `llmGatewayEnabled`). You can optionally configure a separate LLM Gateway key via `bankr config set llmKey` or `BANKR_LLM_KEY` — useful when you want independent revocation or different permissions for agent vs LLM access.
 
-**Read-Only API Keys**: New keys (web or CLI) are read-write by default; turn on **Read Only** at [bankr.bot/api-keys](https://bankr.bot/api-keys) to restrict one (`bankr login siwe` keys start read-only unless you pass `--read-write`). Read-only filters all write tools (swaps, transfers, staking, token launches, etc.) from agent sessions, and the `/wallet/swap`, `/wallet/sign`, `/wallet/submit`, and `/wallet/transfer` write endpoints return 403 (the `/wallet/swap-quote` read endpoint still works). Ideal for monitoring bots and research agents.
+**Read-Only API Keys**: New keys (web or CLI) are read-write by default; pass `--read-only` during `bankr login email` or turn on **Read Only** at [bankr.bot/api-keys](https://bankr.bot/api-keys) to restrict one (`bankr login siwe` keys start read-only unless you pass `--read-write`). Read-only filters all write tools (swaps, transfers, staking, token launches, etc.) from agent sessions, and the `/wallet/swap`, `/wallet/sign`, `/wallet/submit`, and `/wallet/transfer` write endpoints return 403 (the `/wallet/swap-quote` read endpoint still works). Ideal for monitoring bots and research agents.
 
 **IP Whitelisting**: Set `allowedIps` on your API key to restrict usage to specific IPs or CIDR ranges (e.g., `10.0.0.0/24`). Requests from non-whitelisted IPs are rejected with 403 at the auth layer.
 
