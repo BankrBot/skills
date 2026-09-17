@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "venice",
+  "provider": "Venice",
+  "providerUrl": "https://venice.ai",
+  "logo": null,
+  "demo": {
+    "title": "venice.sh",
+    "language": "bash",
+    "code": "# Stake VVV on Base\nbankr prompt \"Stake 10 VVV on Base\"\n\n# Auto-compound pending VVV staking rewards back into sVVV\nbankr prompt \"Compound my Venice staking rewards\"\n\n# Lock sVVV to mint DIEM on bonding curve\nbankr prompt \"Lock 50 sVVV to mint DIEM\"\n\n# Burn DIEM to unlock backed sVVV\nbankr prompt \"Burn 1 DIEM to retrieve my sVVV\"\n\n# Check cooldown status and active unstake queues\nbankr prompt \"What is my Venice unstaking status?\"\n\n# Stake DIEM for daily inference credit & mint Venice web3 API key\nbankr prompt \"Stake 0.5 DIEM and mint my Venice API key\""
+  },
+  "setup": [
+    "Agent wallet on Base with VVV, DIEM, USDC, or ETH",
+    "VVV token: 0xacfE6019Ed1A7Dc6f7B508C02d1b04ec88cC21bf on Base",
+    "sVVV staking contract: 0x321b7ff75154472B18EDb199033fF4D116F340Ff on Base",
+    "DIEM token contract: 0xF4d97F2da56e8c3098f3a8D538DB630A2606a024 on Base",
+    "7-day unstaking cooldown for sVVV -> VVV; 1-day unstaking cooldown for staked DIEM -> liquid DIEM"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "venice",
+    "command": "install the venice skill from https://github.com/BankrBot/skills/tree/main/venice"
+  }
+}
