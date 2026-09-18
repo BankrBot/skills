@@ -22,7 +22,7 @@ bankr login email user@example.com                                   # step 1: s
 bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent"   # step 2 (wallet + agent + token launch, read-write by default)
 ```
 
-Or if you already have an API key from https://bankr.bot/api-keys (also the only route for MFA-enabled accounts — headless login can't complete the passkey step-up and fails with `MFA_STEP_UP_REQUIRED`):
+On an MFA-enabled account, step 2 prints a `bankr.bot/mfa/confirm/...` link and waits up to five minutes for the user to approve with their passkey in a browser (CLI newer than 0.3.37). Or, if you already have an API key from https://bankr.bot/api-keys (also the fallback when that approval expires — the CLI exits with `MFA_STEP_UP_REQUIRED` guidance):
 ```bash
 bankr login --api-key bk_your_actual_key_here
 ```
