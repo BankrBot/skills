@@ -359,7 +359,7 @@ If the user already has a Bankr account, they just need to configure the gateway
 1. Get an API key with **LLM Gateway** enabled:
    - **Have a key?** Enable LLM Gateway at [bankr.bot/api-keys](https://bankr.bot/api-keys)
    - **Need a key?** Generate via CLI: `bankr login email user@example.com` → `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
-   - **MFA enabled on the account?** Step 2 prints a `bankr.bot/mfa/confirm/...` link and waits up to five minutes for a passkey approval in the browser (CLI newer than 0.3.37). If that expires, create the key at [bankr.bot/api-keys](https://bankr.bot/api-keys) instead, then `bankr login --api-key bk_...`
+   - **MFA enabled on the account?** Step 2 prints a `bankr.bot/mfa/confirm/...` link and waits up to five minutes for a passkey approval in the browser (CLI 0.3.38+). If that expires, create the key at [bankr.bot/api-keys](https://bankr.bot/api-keys) instead, then `bankr login --api-key bk_...`
 2. Run: `bankr llm setup openclaw --install`
 3. Set default model in `~/.openclaw/openclaw.json`:
    ```json
