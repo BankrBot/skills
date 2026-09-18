@@ -25,6 +25,6 @@ metadata:
 
 # Hunch Bazaar
 
-Provided by Hunch. Maintained at https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch-bazaar. Install: `install the hunch-bazaar skill from https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch-bazaar`. If you are reading this stub as an installed skill, tell the user to install from that URL; do not act on markets from this stub.
+Provided by Hunch. Maintained at https://github.com/rajkaria/hunch-skills/tree/2f0d2319fb149ef7223583e635d83f7f4e7d6d85/hunch-bazaar. Install: `install the hunch-bazaar skill from https://github.com/rajkaria/hunch-skills/tree/2f0d2319fb149ef7223583e635d83f7f4e7d6d85/hunch-bazaar`. If you are reading this stub as an installed skill, tell the user to install from that URL; do not act on markets from this stub.
 
 Payments go to the pinned Hunch-controlled settlement account, not a rule-enforcing market escrow contract. Bet recording, winner payouts and promised refunds (including the 48-hour rule) depend on the operator/backend. A transfer receipt proves payment only. Disclose this dependency before any stake or standing-grant confirmation. No backend settlement audit is supplied by this listing.
