@@ -41,7 +41,7 @@ bankr login email user@example.com --code 123456 --accept-terms --key-name "My A
 
 This creates a wallet, accepts terms, and generates an API key — no browser needed. New keys get the same defaults as the [bankr.bot/api-keys](https://bankr.bot/api-keys) create form: Wallet API, Agent API, and Token Launch on, read-write, LLM gateway off. Before running step 2, ask the user which of those to change (`--no-wallet-api`, `--no-agent-api`, `--no-token-launch`, `--read-only`, `--llm`) and their preferred key name.
 
-> **Not for MFA-enabled accounts.** Minting an API key requires a passkey step-up when MFA is on, and the CLI can't complete that ceremony — step 2 fails with `MFA_STEP_UP_REQUIRED`. Use Option B: create the key in the Bankr Terminal (the passkey prompt happens there), then run `bankr login --api-key bk_...`.
+> **MFA-enabled accounts get a browser step.** Minting an API key requires a passkey step-up when MFA is on, and a passkey can't run in a terminal. Step 2 prints an approval link (`https://bankr.bot/mfa/confirm/<token>`), opens it when interactive, and waits up to **five minutes** for the user to verify with their passkey there, then continues. Show the user the link and wait; don't retry step 2. If it expires, the CLI exits with `MFA_STEP_UP_REQUIRED` guidance — fall back to Option B: create the key in the Bankr Terminal, then `bankr login --api-key bk_...`. Requires **@bankr/cli 0.3.38+** (`bankr update`); older versions fail step 2 outright on MFA accounts.
 
 **Option B: Bankr Terminal**
 
@@ -69,7 +69,7 @@ npm install -g @bankr/cli
 
 #### Headless email login (recommended for agents)
 
-When the user asks to log in with an email, walk them through this flow. If the user has MFA enabled on their Bankr account, skip this and use "Login with existing API key" below — the headless flow cannot pass the passkey step-up.
+When the user asks to log in with an email, walk them through this flow. If the user has MFA enabled on their Bankr account, step 2 adds a browser approval: the CLI prints a `bankr.bot/mfa/confirm/...` link and waits (up to five minutes) for the user to verify with their passkey there. Surface that link to the user as soon as it appears and keep the command running — the CLI continues on its own once approved. If the user can't approve in time, use "Login with existing API key" below instead.
 
 **Step 1 — Send verification code**
 
@@ -140,7 +140,7 @@ Any option not provided on the command line will be prompted interactively by th
 
 #### Login with existing API key
 
-If the user already has an API key (this is also the only route for MFA-enabled accounts):
+If the user already has an API key (also the fallback for MFA-enabled accounts when the browser approval expires or can't be completed):
 
 ```bash
 bankr login --api-key bk_YOUR_KEY_HERE
@@ -401,7 +401,7 @@ The flag implies `--yes` on every confirmation prompt and fails fast (exit 1, cl
 
 | Command | Required headless flag(s) when --ni is set |
 |---------|---------------------------------------------|
-| `bankr login` | `--api-key <key>`, `login siwe --private-key <key>`, or `login email <addr> [--code <otp>]` |
+| `bankr login` | `--api-key <key>`, `login siwe --private-key <key>`, or `login email <addr> [--code <otp>]` (on an MFA-enabled account step 2 still prints a passkey approval link and waits up to five minutes; it won't open a browser under `--ni`) |
 | `bankr launch` | `--name <name>` (other fields default to empty; add `--chain` and `--quote <symbol\|address>` to pick the chain and the pool's quote token — WETH otherwise) |
 | `bankr fees claim-wallet` | `--all` (plus `--private-key` or `BANKR_PRIVATE_KEY`) |
 | `bankr agent` | a prompt argument or piped stdin |
