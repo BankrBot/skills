@@ -10,7 +10,8 @@
     "code": "You:   @bankrbot market this: Will ETH close above $4,000 on Sep 19, 2026?\nBankr: Draft, not live yet: \"Will ETH close above $4,000 on Sep 19, 2026?\"\n       YES / NO · betting closes Sep 19 20:00 UTC · you resolve it by Sep 22 20:00 UTC\n       Reply \"confirm\" to publish.\nYou:   confirm\nBankr: Live. Settled by you. No bets yet: you set the odds.\n       bazaar.playhunch.xyz/markets/<id>\n\n— a friend, in the thread —\nThem:  @bankrbot bet $5 YES on bazaar.playhunch.xyz/markets/<id>\nBankr: $5.00 on YES pays $7.48 (1.49x) if YES wins against the pool as it stands.\n       Reply \"confirm\" to pay $5.00 USDC from your Bankr wallet."
   },
   "setup": [
-    "Install: `install the hunch-bazaar skill from https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch-bazaar`",
+    "Install: `install the hunch-bazaar skill from https://github.com/rajkaria/hunch-skills/tree/9b9be2e0cbe4a7c8dbf59fd0f05aaaca7c03bad4/hunch-bazaar`",
+    "X market creation uses Bankr native `sign_data` and permanent wallet files; no API key or environment variables required",
     "Fund your Bankr wallet with USDC on Base; a bet is $0.50 minimum with no Hunch maximum (Bankr's own limits apply)",
     "Make a market: `@bankrbot market this: <question>`, then reply `confirm` to the preview",
     "Only the creator resolves or voids; a market unresolved 48h past its deadline refunds every bettor in full",
@@ -19,7 +20,7 @@
   "install": {
     "type": "external",
     "provider": "Hunch",
-    "command": "install the hunch-bazaar skill from https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch-bazaar",
-    "reference": "https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch-bazaar"
+    "command": "install the hunch-bazaar skill from https://github.com/rajkaria/hunch-skills/tree/9b9be2e0cbe4a7c8dbf59fd0f05aaaca7c03bad4/hunch-bazaar",
+    "reference": "https://github.com/rajkaria/hunch-skills/tree/9b9be2e0cbe4a7c8dbf59fd0f05aaaca7c03bad4/hunch-bazaar"
   }
 }
