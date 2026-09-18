@@ -20,4 +20,4 @@ metadata:
 
 # Hunch
 
-Provided by Hunch. Maintained at https://github.com/rajkaria/hunch-skills/tree/main/hunch. Install: `install the hunch skill from https://github.com/rajkaria/hunch-skills/tree/main/hunch`. If you are reading this stub as an installed skill, tell the user to install from that URL; do not act on markets from this stub.
+Provided by Hunch. Maintained at https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch. Install: `install the hunch skill from https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch`. If you are reading this stub as an installed skill, tell the user to install from that URL; do not act on markets from this stub.
