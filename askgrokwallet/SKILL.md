@@ -54,15 +54,16 @@ your own label.
 
 | Verdict | HTTP | Body | What you do |
 | --- | --- | --- | --- |
-| `allow` | **409** | `{"error":"Request does not need human approval (allow).","verdict":{"verdict":"allow","reasons":[…]}}` | inside the rules — execute, then fetch the receipt |
+| `allow` | **200** | `{"ok":true,"verdict":{"verdict":"allow","reasons":[…]},…}` | inside the rules — execute, then fetch the receipt |
 | `ask` | **201** | `{"ok":true,"approval":{"id":"appr_…","status":"pending",…},"verdict":{"verdict":"ask","reasons":[…]}}` | **do not execute.** Show the user the approval row / `https://askgrokwallet.io/approvals` and wait |
-| `deny` | **409** | `{"error":"Request does not need human approval (deny).","verdict":{"verdict":"deny","reasons":[…]}}` | **do not execute, and do not retry with a tweaked target** |
+| `deny` | **200** | `{"ok":true,"verdict":{"verdict":"deny","reasons":[…]},…}` | **do not execute, and do not retry with a tweaked target** |
 
 Two traps worth knowing before you integrate:
 
-- **`allow` and `deny` both answer HTTP 409.** A client that does
-  `if (!res.ok) throw` will treat a legitimate `allow` as a failure. Parse
-  `verdict.verdict` from the JSON body; only a body with no verdict is an error.
+- **Read `verdict.verdict` from the body, never the status code.** Until
+  2026-09-18 `allow` and `deny` answered HTTP 409 with the reason in an `error` field,
+  so a client that does `if (!res.ok) throw` treated a legitimate `allow` as a failure;
+  that is fixed, but a client that reads the body works against both.
 - **`allow` returns no `approval.id`.** The row still exists — list it with
   `GET /api/approvals?status=auto-allowed`.
 
