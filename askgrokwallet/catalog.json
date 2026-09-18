@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "askgrokwallet",
+  "provider": "AskGrokWallet",
+  "providerUrl": "https://askgrokwallet.io",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "spend-guardrails.sh",
+    "language": "bash",
+    "code": "# Ask the policy engine before the wallet spends. No key needed.\ncurl -s -X POST https://askgrokwallet.io/api/approvals \\\n  -H 'content-type: application/json' \\\n  -d '{\"source\":\"demo\",\"requester\":\"bankr-agent\",\"summary\":\"swap 25 USDC for ETH\",\"amountUsd\":25,\"target\":\"uniswap\",\"intentKind\":\"trade\",\"policyText\":\"trades under $10 run automatically; over $10 ask me; daily budget $50\"}'\n\n# HTTP 201 + verdict.verdict \"ask\"  -> do NOT execute; the human decides\n#   https://askgrokwallet.io/approvals\n#\n# Over the line is \"ask\"; inside the rules is \"allow\" (HTTP 409, read the body!);\n# a forbidden target is \"deny\" (also 409). Executed rows come back signed and are\n# appended to a hash-chained log that anyone can verify:\n#   curl -LO https://github.com/askgrokwallet/askgrokwallet/releases/download/verify-receipt-v1.0.0/verify-receipt.mjs\n#   node verify-receipt.mjs receipt.json"
+  },
+  "setup": [
+    "Nothing to install — the policy engine is an HTTP endpoint and the demo identity is keyless.",
+    "Ask the user for their rules in plain English (or pick a preset from `GET /api/presets`).",
+    "Before any spend, `POST /api/approvals` and read `verdict.verdict` from the body: `allow` proceeds, `ask` waits for a human at askgrokwallet.io/approvals, `deny` stops.",
+    "After execution, hand the user the signed receipt and how to verify it with the one-file verifier."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "askgrokwallet",
+    "command": "install the askgrokwallet skill from https://github.com/BankrBot/skills/tree/main/askgrokwallet"
+  }
+}
