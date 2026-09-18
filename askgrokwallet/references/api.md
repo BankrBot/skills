@@ -19,13 +19,14 @@ Body: `source`, `requester`, `summary`, `amountUsd`, `target`, `intentKind`,
 downgrade · upgrade · delete · send · apply · update`. Payment kinds fall through to
 the amount rules; consequential kinds with no explicit rule default to `ask`.
 
-**Three verdicts, three shapes — and the two non-`ask` ones answer 409:**
+**Three verdicts, three shapes — all of them 2xx:**
 
 ```jsonc
-// allow — HTTP 409, no approval id (the row is created; list it with ?status=auto-allowed)
-{ "error": "Request does not need human approval (allow).",
+// allow — HTTP 200, no approval id (the row is created; list it with ?status=auto-allowed)
+{ "ok": true,
   "verdict": { "verdict": "allow", "reasons": ["amount $5 within auto threshold $10"], "resizedToUsd": null },
-  "policy": { "autoBelowUsd": 10, "askAboveUsd": 10, "…": "…" } }
+  "policy": { "autoBelowUsd": 10, "askAboveUsd": 10, "…": "…" },
+  "note": "Inside the policy — no human step needed. Nothing was persisted: pass logResolved to keep a receipt." }
 
 // ask — HTTP 201
 { "ok": true,
@@ -36,17 +37,20 @@ the amount rules; consequential kinds with no explicit rule default to `ask`.
                 "signedAt": "2026-09-18T07:17:02.684Z" },
   "verdict": { "verdict": "ask", "reasons": ["amount $25 exceeds ask threshold $10"] } }
 
-// deny — HTTP 409
-{ "error": "Request does not need human approval (deny).",
-  "verdict": { "verdict": "deny", "reasons": ["target matches deny rule: pumpdump"] } }
+// deny — HTTP 200
+{ "ok": true,
+  "verdict": { "verdict": "deny", "reasons": ["target matches deny rule: pumpdump"] },
+  "note": "Forbidden by policy — no human step exists for this. Nothing was persisted: pass logResolved to keep a receipt." }
 ```
 
 Rules the client must follow:
 
-1. Read `verdict.verdict` from the body. **Do not** branch on the HTTP status: 409
-   is the normal answer for `allow` and `deny`.
-2. Treat a body with no `verdict` as the real failure case (400 validation, 401
-   auth, 429 rate limit).
+1. Read `verdict.verdict` from the body. A verdict is an answer, not an error — before
+   2026-09-18 `allow`/`deny` answered 409 with the reason in an `error` field, so
+   branching on the status was wrong then and is unnecessary now.
+2. Treat a body with no `verdict` as the real failure case (400 validation, 401 auth,
+   429 rate limit; the route still uses 409 for genuine conflicts such as a reused
+   `idempotencyKey`).
 3. Never execute on `ask` or `deny`.
 
 ### Deny semantics, measured
