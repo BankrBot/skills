@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "coffer",
+  "provider": "Soteria Labs",
+  "providerUrl": "https://www.soterialabs.io",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "coffer.sh",
+    "language": "bash",
+    "code": "# Read the vault\nbankr prompt \"Using the coffer skill, what is the Coffer vault value?\"\nbankr prompt \"Using the coffer skill, what pairs are in the Coffer vault?\"\nbankr prompt \"Using the coffer skill, what are my Coffer shares?\"\n\n# Deposit ETH (routed across all legs; you do not pick a pair)\nbankr prompt \"Using the coffer skill, deposit 0.05 ETH into Coffer\"\n\n# Withdraw - burns liquid shares, pays WETH\nbankr prompt \"Using the coffer skill, withdraw 50% from Coffer\"\nbankr prompt \"Using the coffer skill, withdraw all from Coffer\""
+  },
+  "setup": [
+    "Chain: Robinhood (4663) - one vault, no factory; confirm the Bankr wallet supports 4663",
+    "Fund the wallet with ETH on Robinhood for deposits and gas",
+    "Deposits are ETH only; withdrawals burn liquid shares and pay WETH (aeWETH 0x0Bd7D308...)",
+    "Vault 0x948c683a5885D49383C8d94Fc1827a036543E803 - liquid shares 0xF2736eE8361241B283c1e579B5173eb9aB54EBD1",
+    "Live pairs come from vault.strategies(i) - volatile leg quoted in WETH, stock legs (AMZN, GLD) quoted in USDG",
+    "Read-only: vault value, total shares, my shares, fees earned, rotating tokens (references/addresses.md)",
+    "This skill does not operate the keeper or rotate assets - user deposit/withdraw only",
+    "Contracts and docs: https://github.com/soterialabs2025/coffer_contracts"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "coffer",
+    "command": "install the coffer skill from https://github.com/BankrBot/skills/tree/main/coffer"
+  }
+}
