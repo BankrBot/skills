@@ -24,7 +24,7 @@
 // `session_identity_unresolved`. So the old flow let a user pay for something
 // they could never redeem: money gone, brief sealed, no result.
 //
-// @voidly/session@1.0.0 exports no registration call (there is no
+// @voidly/session@1.3.0 exports no registration call (there is no
 // `registerAgent` in its export surface), and this skill does not POST by
 // design. So the fix is the other route named in the
 // review: REFUSE TO SEAL until the hirer DID actually resolves on the rail,
@@ -59,7 +59,7 @@
 // Exit 0 sealed / 1 refused, by name.
 
 import { lstatSync, realpathSync, statSync, accessSync, constants as fsConstants } from "node:fs";
-import { LocalFileError, readFileCapped, writeNewVerifiedFile } from "./lib/local-files.mjs";
+import { LocalFileError, readFileCapped, writeNewVerifiedFile } from "@voidly/session/node-files";
 import { basename, dirname, join as joinPath } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -305,7 +305,7 @@ export function offeringRefusal(offering) {
  */
 const safePath = (p) => (/^[A-Za-z0-9._~\/\-]{1,512}$/.test(String(p)) ? String(p) : `(a path with unusual characters, ${String(p).length} chars — not printed)`);
 
-/** The SDK refuses a brief longer than MAX_BRIEF_LENGTH (16,217 characters in @voidly/session@1.0.0, brief_too_long); the file that carries it is capped at 1 MiB, far above that. */
+/** The SDK refuses a brief longer than MAX_BRIEF_LENGTH (16,217 characters in @voidly/session@1.3.0, brief_too_long); the file that carries it is capped at 1 MiB, far above that. */
 const MAX_BRIEF_FILE_BYTES = 1024 * 1024;
 /** An identity file is four base64 keys and a DID. */
 const MAX_IDENTITY_FILE_BYTES = 64 * 1024;
