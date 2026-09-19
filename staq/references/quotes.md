@@ -56,6 +56,10 @@ Every skip is silent. None of them is an error, and none is retried.
 For `insufficient_balance`, say something specific and useful: "your wallet
 doesn't have enough USDC for this save", not "something went wrong".
 
+The save itself can land in USDC, USDT, WETH or native ETH, whichever the
+wallet can cover first. Only USDC has a pinned vault, so a save in any other
+asset sits idle in the reserve rather than earning.
+
 `not_deployed` never appears on a save, only on a claim or a deposit: saving is
 a plain transfer and works whether or not the contract exists. It means the
 money is there and the contract that pays it out is not, which is fixed once
@@ -71,10 +75,17 @@ Never generate a ref yourself, and never make one from a timestamp.
 
 ## Supported assets on Base
 
-USDC, USDT, ETH, WETH, tried in that order. The first one that covers the
+USDC, USDT, WETH, ETH, tried in that order. The first one that covers the
 **whole** amount funds the save. There is no splitting across assets, no
 swapping, and no bridging, because each of those turns a save into a trade the
 user did not ask for.
+
+Native ETH is last and is treated carefully: the amount needed is the save plus
+a gas buffer, so a save can never leave a wallet unable to pay for its next
+transaction.
+
+Only USDC has a pinned vault, so a save funded from any other asset sits idle
+in the reserve rather than earning.
 
 Base USDG is deliberately not supported.
 
