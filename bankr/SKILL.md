@@ -43,7 +43,7 @@ This creates a wallet, accepts the Terms of Service, and generates an API key �
 
 > **MFA-enabled accounts get a browser step.** Minting an API key requires a passkey step-up when MFA is on, and a passkey can't run in a terminal. Step 2 prints an approval link (`https://bankr.bot/mfa/confirm/<token>`), opens it when interactive, and waits up to **five minutes** for the user to verify with their passkey there, then continues. Show the user the link and wait; don't retry step 2. If it expires, the CLI exits with `MFA_STEP_UP_REQUIRED` guidance — fall back to Option B: create the key in the Bankr Terminal, then `bankr login --api-key bk_...`. Requires **@bankr/cli 0.3.38+** (`bankr update`); older versions fail step 2 outright on MFA accounts.
 
-> **Step 2 is single-use.** The OTP is consumed when it is verified. From **@bankr/cli 0.3.39+** the CLI retries the wallet and terms steps on its own after a dropped connection, so never re-run step 2 with the same code — if it fails outright, start again from step 1 to get a fresh code.
+> **Step 2 is single-use.** The OTP is consumed when it is verified. From **@bankr/cli 0.3.39+** the CLI retries the OTP verify, wallet and terms steps on its own after a dropped connection or a gateway 5xx (an invalid code or a 429 is not retried), so never re-run step 2 with the same code — if it fails outright, start again from step 1 to get a fresh code.
 
 **Option B: Bankr Terminal**
 
