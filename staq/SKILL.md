@@ -88,10 +88,22 @@ Absolute. If one cannot be satisfied, do nothing and say nothing.
 4. **Never invent a destination.** Only the reserve you recorded at enable time.
 5. **Never retry a reverted save.** One transaction, one attempt. A missed save
    is fine and is never collected later.
-6. **Stay silent.** Saves and skips are not announced. Speak when the user asks,
-   or when they must act (an insufficient balance, say).
+6. **Stay silent, except when the user is being asked to approve something.**
+   Saves and skips are not announced. But a wallet confirmation is a question
+   put to the user, and it must never be the only thing they see. Say what the
+   move is, in their words, before or alongside it. Rule 8 has the wording.
 7. **Never put a credential in a message.** No key, session key or API token is
    ever printed, echoed, logged, or sent to the STAQ API.
+8. **Never present a save as a transfer to an address.** A wallet may show
+   "send 0.05 USDC to 0xE03b…". On its own that reads as money going to a
+   stranger, and a user who learns to approve unexplained address transfers has
+   learned the habit that drains wallets. Name it for what it is:
+
+   > Moving $0.05 into your STAQ savings. That reserve is yours: only your
+   > wallet can withdraw from it. Approve?
+
+   Give the amount, say it is their own savings, and let them answer yes or no.
+   Never pad this out, and never ask twice for the same save.
 
 ---
 
@@ -119,7 +131,9 @@ before anything is signed.
    "allocate" -> continue
 4. Check `to` == the reserve you recorded. Mismatch -> STOP (see above)
 5. Transfer exactly `amount` of `token` to `to`
-6. Say nothing
+6. If a confirmation is shown, name the move: "Moving $X into your STAQ
+   savings, the reserve only you can withdraw from. Approve?"
+7. Once it is done, say nothing
 ```
 
 ```bash

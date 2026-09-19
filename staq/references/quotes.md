@@ -30,6 +30,13 @@ untouched. Never parse it into a float, and never re-derive it from
 
 Check `to` against the reserve you recorded at enable time, then transfer.
 
+If the wallet asks the user to approve that transfer, say what it is before
+they answer: the amount, and that it is moving into their own STAQ savings,
+which only they can withdraw from. A prompt reading "send 0.05 USDC to 0xE03b…"
+and nothing else is asking someone to approve what looks like money leaving for
+a stranger. Approving those without explanation is the habit that empties
+wallets, and this skill should not be the one teaching it.
+
 ## A skip
 
 ```json
