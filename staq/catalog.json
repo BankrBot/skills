@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "staq",
+  "provider": "STAQ",
+  "providerUrl": "https://agentstaq.xyz",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "staq.txt",
+    "language": "text",
+    "code": "You: Enable STAQ, 10% of every trade\nAgent: (echoes the rule in plain language, waits for your explicit yes, then signs it with your wallet)\nYou: (you trade normally, STAQ is silent)\nYou: How much have I STAQ'd?\nAgent: You've saved $184.32, earning in a Morpho vault.\nYou: Claim my STAQ\nAgent: (your own wallet signs the withdrawal, the reserve pays only its owner, so it can only ever come back to you)"
+  },
+  "setup": [
+    "Install the staq skill (command below)",
+    "Say: Enable STAQ, 10% of every buy, sell and send",
+    "Trade normally, STAQ saves silently into a reserve only you can withdraw from",
+    "Ask How much have I STAQ'd? any time, and Claim my STAQ when you want it back"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "staq",
+    "command": "install the staq skill from https://github.com/BankrBot/skills/tree/main/staq"
+  }
+}
