@@ -36,12 +36,14 @@ Two-step flow — send OTP, then verify and complete setup. See "First-Time Setu
 bankr login email user@example.com
 
 # Step 2 — verify OTP and generate API key (options based on user preferences)
-bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent"
+bankr login email user@example.com --code 123456 --key-name "My Agent"
 ```
 
-This creates a wallet, accepts terms, and generates an API key — no browser needed. New keys get the same defaults as the [bankr.bot/api-keys](https://bankr.bot/api-keys) create form: Wallet API, Agent API, and Token Launch on, read-write, LLM gateway off. Before running step 2, ask the user which of those to change (`--no-wallet-api`, `--no-agent-api`, `--no-token-launch`, `--read-only`, `--llm`) and their preferred key name.
+This creates a wallet, accepts the Terms of Service, and generates an API key — no browser needed. **Completing step 2 accepts the [Terms of Service](https://bankr.bot/terms) on the user's behalf** (headless login implies `--accept-terms`), so share that link and tell the user that logging in means accepting the Terms before you run it — see "First-Time Setup" below. New keys get the same defaults as the [bankr.bot/api-keys](https://bankr.bot/api-keys) create form: Wallet API, Agent API, and Token Launch on, read-write, LLM gateway off. Before running step 2, ask the user which of those to change (`--no-wallet-api`, `--no-agent-api`, `--no-token-launch`, `--read-only`, `--llm`) and their preferred key name.
 
 > **MFA-enabled accounts get a browser step.** Minting an API key requires a passkey step-up when MFA is on, and a passkey can't run in a terminal. Step 2 prints an approval link (`https://bankr.bot/mfa/confirm/<token>`), opens it when interactive, and waits up to **five minutes** for the user to verify with their passkey there, then continues. Show the user the link and wait; don't retry step 2. If it expires, the CLI exits with `MFA_STEP_UP_REQUIRED` guidance — fall back to Option B: create the key in the Bankr Terminal, then `bankr login --api-key bk_...`. Requires **@bankr/cli 0.3.38+** (`bankr update`); older versions fail step 2 outright on MFA accounts.
+
+> **Step 2 is single-use.** The OTP is consumed when it is verified. From **@bankr/cli 0.3.39+** the CLI retries the wallet and terms steps on its own after a dropped connection, so never re-run step 2 with the same code — if it fails outright, start again from step 1 to get a fresh code.
 
 **Option B: Bankr Terminal**
 
@@ -80,7 +82,7 @@ bankr login email <user-email>
 **Step 2 — Ask the user for the OTP code and all preferences in a single message.** This avoids unnecessary back-and-forth. Ask for:
 
 1. **OTP code** — the code they received via email
-2. **Accept Terms of Service (REQUIRED)** — Present the [Terms of Service](https://bankr.bot/terms) link and confirm the user agrees. **The login command will fail for new users without `--accept-terms`.** You MUST ask for ToS acceptance and do not pass `--accept-terms` unless the user has explicitly confirmed.
+2. **Terms of Service (REQUIRED)** — Share the [Terms of Service](https://bankr.bot/terms) link and state plainly that **by completing this login the user accepts Bankr's Terms of Service**. Headless login accepts the Terms as part of logging in (no flag needed), so the user's go-ahead is the only gate. Say something like: "By completing this login you accept Bankr's Terms of Service (https://bankr.bot/terms). Send me the code to continue, or tell me if you don't accept and I'll stop here." **If the user does not accept, stop — do not run step 2.**
 3. **Which APIs do they need?**
    - **Wallet API** — enabled by default, use `--no-wallet-api` to disable
    - **Agent API** — enabled by default (AI-powered prompts and natural language operations), use `--no-agent-api` to disable
@@ -89,23 +91,23 @@ bankr login email <user-email>
 4. **Enable LLM gateway access?** (`--llm`) — multi-model API at `llm.bankr.bot` (currently limited to beta testers). Skip if user doesn't need it.
 5. **Key name?** (`--key-name`) — a display name for the API key (e.g. "My Agent", "Trading Bot")
 
-**Step 3 — Construct and run the step 2 command** with the user's choices. **Do NOT execute if the user has not explicitly accepted the Terms of Service** — ask again if needed:
+**Step 3 — Construct and run the step 2 command** with the user's choices. **Do NOT execute if the user declined the Terms of Service or hasn't answered** — ask again if needed. Running step 2 accepts the Terms on their behalf:
 
 ```bash
 # Default key: wallet + agent + token launch, read-write (AI can execute transactions)
-bankr login email <user-email> --code <otp> --accept-terms --key-name "Trading Agent"
+bankr login email <user-email> --code <otp> --key-name "Trading Agent"
 
 # Same, plus LLM gateway access
-bankr login email <user-email> --code <otp> --accept-terms --key-name "My Agent" --llm
+bankr login email <user-email> --code <otp> --key-name "My Agent" --llm
 
 # Research agent: read-only (prices, balances, research — no transactions), no token launch
-bankr login email <user-email> --code <otp> --accept-terms --key-name "Research Agent" --read-only --no-token-launch
+bankr login email <user-email> --code <otp> --key-name "Research Agent" --read-only --no-token-launch
 
 # Wallet API only (no AI prompts): direct /wallet/* calls from your own code
-bankr login email <user-email> --code <otp> --accept-terms --key-name "Wallet Client" --no-agent-api --no-token-launch
+bankr login email <user-email> --code <otp> --key-name "Wallet Client" --no-agent-api --no-token-launch
 
 # LLM-only (no wallet, no token launch)
-bankr login email <user-email> --code <otp> --accept-terms --key-name "LLM Client" --no-wallet-api --no-token-launch --llm
+bankr login email <user-email> --code <otp> --key-name "LLM Client" --no-wallet-api --no-token-launch --llm
 ```
 
 #### Login options reference
@@ -113,8 +115,8 @@ bankr login email <user-email> --code <otp> --accept-terms --key-name "LLM Clien
 | Option | Description |
 |--------|-------------|
 | `--code <otp>` | OTP code received via email (step 2) |
-| `--accept-terms` | Accept [Terms of Service](https://bankr.bot/terms) without prompting (required for new users) |
-| `--key-name <name>` | Display name for the API key (e.g. "My Agent"). Prompted if omitted |
+| `--accept-terms` | Accept [Terms of Service](https://bankr.bot/terms) without prompting. Implied by headless login (`--code` / `--ni`) on **@bankr/cli 0.3.39+**, where it is a no-op kept for older scripts; on 0.3.38 and older, new accounts must still pass it or step 2 fails |
+| `--key-name <name>` | Display name for the API key (e.g. "My Agent"). Prompted if omitted; headless runs default to `CLI-<date>-<time>` |
 | `--no-wallet-api` | Disable Wallet API (enabled by default) |
 | `--no-agent-api` | Disable Agent API (enabled by default) |
 | `--read-only` | Restrict the key to read operations (new keys are read-write by default). Mutually exclusive with `--read-write` |
