@@ -201,11 +201,13 @@ Launch ERC20 tokens on Base, Robinhood Chain or Arbitrum One. New launches creat
 |---|---|---|---|
 | Default quote asset | WETH | WETH | WETH |
 | `pairedStockAddress` (tokenized stock) | Yes — B20 equities | Yes — Robinhood stocks | **No** |
-| `pairedTokenAddress` (quote token) | Yes — 5 fixed tokens | **No** | **No** |
-| `bankr launch quotes --chain …` lists | WETH, 5 fixed tokens, B20 stocks | WETH, Robinhood stocks | WETH only |
+| `pairedTokenAddress` (quote token) | Yes — 5 fixed tokens | Yes — BNKR, musebook | **No** |
+| `bankr launch quotes --chain …` lists | WETH, 5 fixed tokens, B20 stocks | WETH, BNKR, musebook, Robinhood stocks | WETH only |
 | Retail launch gas | Sponsored | Wallet pays | Wallet pays |
 
-Arbitrum launches are therefore **WETH-paired only**. Everything else — supply, fee schedule, creator vesting, quote-only fees, degen mode, fee claiming — behaves as on Base. Fund the launch wallet with ETH on Arbitrum before deploying.
+Doppler launches on Arbitrum are therefore **WETH-paired only**. Everything else — supply, fee schedule, creator vesting, quote-only fees, degen mode, fee claiming — behaves as on Base. Fund the launch wallet with ETH on Arbitrum before deploying.
+
+> **A second launch provider now exists.** The matrix above describes **Doppler**, still the default everywhere. On chains where **Bankr Launch v3** is live, `provider: "bankr_v3"` opens a wider quote-token set (including USDC and, on Arc, USDC only). See [Bankr Launch v3](#bankr-launch-v3-provider-bankr_v3).
 
 ### Token Economics
 
@@ -248,9 +250,11 @@ Two knock-on effects for anyone integrating against a quote-only token:
 
 Like the fee schedule, this option cannot be changed after launch.
 
-### Base Quote Tokens (optional, fixed at launch)
+### Additional Quote Tokens (optional, fixed at launch)
 
-Base launches can quote the new token's pool in one of **five fixed tokens** instead of WETH. Pass `chain: "base"` together with one of the allowlisted addresses:
+A launch can quote the new token's pool in one of its chain's **fixed allowlisted tokens** instead of WETH. Pass the matching `chain` together with one of the allowlisted addresses in `pairedTokenAddress`. **Each address is valid only on its own chain.**
+
+**Base** (`chain: "base"`):
 
 | Quote token | What it is | `pairedTokenAddress` | Decimals |
 |-------------|------------|----------------------|----------|
@@ -260,14 +264,47 @@ Base launches can quote the new token's pool in one of **five fixed tokens** ins
 | cbZEC | Coinbase Wrapped ZEC on Base | `0xB2000000000000000000008501b13360000cb2EC` | 8 |
 | TAO | Bittensor's TAO on Base | `0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67` | 18 |
 
-- **Base only.** These are not launch quote-token options on Robinhood Chain or Arbitrum.
+**Robinhood Chain** (`chain: "robinhood"`):
+
+| Quote token | What it is | `pairedTokenAddress` | Decimals |
+|-------------|------------|----------------------|----------|
+| BNKR | BankrCoin on Robinhood Chain — **a different contract from Base BNKR** | `0x178E54df3D091EE4D0B2534742eF9e3692b76526` | 18 |
+| musebook | A token launched on Robinhood Chain through Bankr | `0x91A2DAe9699f0B82540B5886b0d8759C22820bA3` | 18 |
+
+`bankr launch --chain <chain> --quote BNKR` picks the BNKR contract belonging to `--chain`, so you never have to pick the address by hand.
+
+- **Not available on Arbitrum.** Doppler launches there are WETH-paired only.
 - **User-key launches only** — not available on org Partner Key deploys.
 - **Mutually exclusive with `pairedStockAddress`.** Sending both is rejected; omit both to get WETH.
 - The allowlist is fixed — an arbitrary ERC-20 is not accepted as a quote token.
 - **cbHYPE and cbZEC wait on reviewed on-chain quote-token liquidity.** If Bankr reports either pair isn't ready, that's a real refusal — the launch does not silently fall back to WETH or to a paired stock. Retry once the pair is live.
 - cbHYPE and cbZEC are Coinbase-wrapped **crypto** assets, not tokenized stocks: they go in `pairedTokenAddress`, never `pairedStockAddress`, and no location/geo verification applies to them.
-- Volume in a BNKR- or ba3Pump-quoted pool remains eligible for the weekly developer rebate under the same rules as a WETH-quoted launch.
+- Volume in an additional quote-token pool remains eligible for the weekly developer rebate under the same rules as a WETH-quoted launch.
 - Everything else — supply, the fee schedule, creator vesting, quote-only fees, degen mode — behaves exactly as on a WETH launch. "Quote token" here just names the pool's other side.
+
+### Bankr Launch v3 (`provider: "bankr_v3"`)
+
+Bankr Launch v3 is a second launch provider alongside Doppler, rolling out chain by chain. Where it is live it replaces the fixed per-chain allowlist with **the chain registry's quote-token set**, so a launch pool can be quoted in a stablecoin or an equity token rather than only WETH.
+
+**Selecting it.** `GET /token-launches/quote-tokens?chain=<chain>` returns the chain's quote tokens *and* the `provider` that serves them; send that value back as `provider` on the deploy so the pairing is resolved by the provider that listed it. `bankr_v3` is rejected on a chain where v3 is not live.
+
+**Choosing the quote.** On a v3 launch the quote is **not** `pairedTokenAddress` / `pairedStockAddress` — it is `launchV3.quoteAddress`, the quote's contract address. Omit it for the chain default. `GET /launch-v3/quotes?chain=<chain>` is the live list; entries in `/token-launches/quote-tokens` that belong to v3 name it in `deployField`. The agent takes a symbol, ticker, company name or address in `quote`, and reads `pairedStock` / `pairedToken` as the quote on a v3 chain.
+
+| Chain | Majors (default first) | More tokens | Stocks |
+|---|---|---|---|
+| Base | WETH, USDC | BNKR, ba3Pump, cbHYPE, cbZEC, TAO | the 13 Coinbase B20 equities (AAPLc, AMZNc, COINc, CRCLc, GOOGLc, INTCc, METAc, MSFTc, MSTRc, NVDAc, SNDKc, SPCXc, TSLAc) |
+| Robinhood Chain | WETH, USDG | — | every active Robinhood Stock Token |
+| Arbitrum | WETH, USDC | — | the Reality rTokens rHOOD, rAAPL, rSPCX |
+| Arc | USDC | — | — |
+
+Things that will bite an integration:
+
+- **A stock quote needs a live price.** Stock and project-token quotes are priced from a Chainlink feed or Bankr's signed price *at launch*. A stale feed — the market is closed — **refuses the launch** until it reopens, rather than launching on a bad tick. Don't retry into it; wait for the open.
+- **Dev buys are unavailable on Coinbase-issued quotes** — the B20 equities, cbHYPE and cbZEC.
+- **Reality rTokens rebase** by an on-chain index. Bankr auto-pauses new launches on an rToken if its index moves, so an rHOOD/rAAPL/rSPCX-quoted launch can be refused without warning.
+- **Arc is USDC-only**, matching its native gas token — there is no WETH leg to fall back to.
+
+Fee claiming, creator vesting and the launches feed all understand `bankr_v3` tokens, and v3 tokens surface in Discover and token search like any other Bankr launch.
 
 ### Creator Vesting (on by default, fixed at launch)
 
@@ -399,12 +436,19 @@ Treat the number as approximate rather than a contract: the counter lives in the
 
 ### Launch-Wallet Requirements (anti-sybil)
 
-Standard and Bankr Club launches require the Bankr wallet to be:
+Bankr **can** require a Standard or Bankr Club launch wallet to be:
 
-- **At least 24 hours old**, measured from when Bankr created the wallet — not from the age of the linked X or other social account. **A wallet whose only linked account is an email needs 72 hours**, not 24; linking a real social account puts it back on the 24-hour gate
-- Holding **at least 0.002 native ETH on the launch chain**
+- **At least 24 hours old**, measured from when Bankr created the wallet — not from the age of the linked X or other social account. Rejects with `TOKEN_LAUNCH_WALLET_TOO_NEW`
+- Holding a **minimum native ETH balance on the launch chain**. Rejects with `TOKEN_LAUNCH_MIN_BALANCE_REQUIRED`
 
-Both checks run *before* quota is reserved, metadata is pinned, or a transaction is submitted, so a rejection here costs neither a launch attempt nor gas. The balance minimum applies even on Base, where Bankr sponsors deploy gas; on Robinhood Chain and Arbitrum it also has to cover the launch's own gas. Validated active partner-organization and provisioned-wallet launch paths are exempt from both requirements — only while the organization is active with token launching enabled, and (for a provisioned wallet) while the wallet stays active and linked to that organization. Retail **simulations** still require the wallet-age gate, but skip the balance check.
+**Both are runtime switches, and both are currently off** — a Standard or Bankr Club wallet can launch as soon as it exists, with no ETH balance minimum. Treat them as controls that can come back on rather than as permanently gone: keep handling those two error codes.
+
+Two things still gate a launch regardless of those switches:
+
+- **Gas is still gas.** On Robinhood Chain and Arbitrum the wallet pays the launch's own gas, so it needs native ETH there; an **Arc** launch needs **0.5 USDC** (Arc's gas token). Base retail launches are sponsored.
+- **An email-only wallet waits 72 hours.** A wallet whose only active sign-in is an email address can't launch for 72 hours — an independent anti-farm control, not one of the switches above. Linking an X, Farcaster or Telegram account lifts it immediately; those identities are what the wait substitutes for.
+
+When enabled, these checks run *before* quota is reserved, metadata is pinned, or a transaction is submitted, so a rejection costs neither a launch attempt nor gas. Validated active partner-organization and provisioned-wallet launch paths are always exempt from both — only while the organization is active with token launching enabled, and (for a provisioned wallet) while the wallet stays active and linked to that organization. Retail **simulations** run the wallet-age gate but skip the balance check.
 
 **Simulations have their own cap: 20 per wallet per 24 hours.** It is counted separately from the launch quota — a simulation still never consumes a launch slot — but it does mean `--simulate` / `simulateOnly: true` is not free to loop over. Budget it if you simulate before every deploy. Partner deploys are exempt from the simulate cap, as they are from the other retail gates.
 
@@ -483,7 +527,8 @@ Selling a token you earn creator fees on through Bankr's swap/limit/stop/DCA/TWA
 | Issue | Chain | Resolution |
 |-------|-------|------------|
 | Launch quota reached (EVM) | EVM | Wait for the oldest of your 3 attempts to age out of the rolling 24h window — Bankr Club does not raise the cap |
-| Launch wallet rejected (EVM) | EVM | Wallet must be ≥ 24h old and hold ≥ 0.002 native ETH on the launch chain |
+| Launch wallet rejected (EVM) | EVM | The wallet-age / minimum-balance switches are currently off. Most likely an **email-only wallet inside its 72h wait** — link an X, Farcaster or Telegram account. Otherwise check gas: unsponsored chains need native ETH, Arc needs 0.5 USDC |
+| `TOKEN_LAUNCH_NOT_AVAILABLE` | EVM | Blocked by a region or account-shape gate. Deliberately generic — don't branch on the cause; treat it as terminal for that wallet and region |
 | Name/symbol taken | EVM | Choose different name |
 | Insufficient SOL | Solana | Add SOL for gas fees |
 | NFT not found | Solana | Token may still be on bonding curve |
