@@ -12,8 +12,16 @@ Base URL `https://askgrokwallet.io`. Everything below was exercised live on
 
 ## POST /api/approvals — evaluate (and record) a spend request
 
-Body: `source`, `requester`, `summary`, `amountUsd`, `target`, `intentKind`,
-`policyText`, optional `execute` intent, optional `drawdownUsd` / `lossTodayUsd`.
+Body: `source`, `requester`, `summary`, `amountUsd`, `target`, `assets`,
+`counterparty`, `intentKind`, `policyText`, optional `logResolved`, optional `execute`
+intent, optional `drawdownUsd` / `lossTodayUsd`.
+
+`target` is the venue (`uniswap`); `assets` (array, max 10) and `counterparty` name the
+thing being moved and the other side. A `never X` rule is matched against all of them
+plus `summary` — see *Deny semantics* below for why that matters.
+
+`logResolved: true` persists a receipt for an `allow` or `deny` verdict (which
+otherwise persist nothing) and returns it with its `id`.
 
 `intentKind` accepts `transfer · purchase · billPay · refund · trade · cancel ·
 downgrade · upgrade · delete · send · apply · update`. Payment kinds fall through to
@@ -22,11 +30,19 @@ the amount rules; consequential kinds with no explicit rule default to `ask`.
 **Three verdicts, three shapes — all of them 2xx:**
 
 ```jsonc
-// allow — HTTP 200, no approval id (the row is created; list it with ?status=auto-allowed)
+// allow — HTTP 200, nothing persisted unless you asked for it.
+// With "logResolved": true this is HTTP 201 and carries the stored receipt + its id;
+// without it there is no id to keep, and ?status=auto-allowed is a status-wide list,
+// not a way to recover your row.
 { "ok": true,
   "verdict": { "verdict": "allow", "reasons": ["amount $5 within auto threshold $10"], "resizedToUsd": null },
   "policy": { "autoBelowUsd": 10, "askAboveUsd": 10, "…": "…" },
   "note": "Inside the policy — no human step needed. Nothing was persisted: pass logResolved to keep a receipt." }
+
+// allow with logResolved — HTTP 201
+{ "ok": true,
+  "approval": { "id": "appr_…", "status": "auto-allowed", "verdict": "allow", "signature": "…" },
+  "verdict": { "verdict": "allow", "reasons": ["amount $5 within auto threshold $10"] } }
 
 // ask — HTTP 201
 { "ok": true,
@@ -39,7 +55,7 @@ the amount rules; consequential kinds with no explicit rule default to `ask`.
 
 // deny — HTTP 200
 { "ok": true,
-  "verdict": { "verdict": "deny", "reasons": ["target matches deny rule: pumpdump"] },
+  "verdict": { "verdict": "deny", "reasons": ["deny rule \"pumpdump\" matched summary: swap 25 USDC for PUMPDUMP"] },
   "note": "Forbidden by policy — no human step exists for this. Nothing was persisted: pass logResolved to keep a receipt." }
 ```
 
@@ -53,15 +69,28 @@ Rules the client must follow:
    `idempotencyKey`).
 3. Never execute on `ask` or `deny`.
 
-### Deny semantics, measured
+### Deny semantics, measured (2026-09-19)
 
-- `never trade PUMPDUMP` + `target: "PUMPDUMP"` → `deny` — *"target matches deny rule: pumpdump"*.
-- `never pay blacklisted merchants` + `target: "blacklisted-merchant"` → `deny` — *"target matches deny rule: blacklisted"*.
-- `never delete anything` + `intentKind: "delete"` → `deny` — *"action type delete is denied by policy"*.
-- A deny keyword is matched against the **`target`** field (case-insensitive
-  substring). It is not matched against `summary`: `never trade PUMPDUMP` with
-  `target: "pumpdump-coin"` and a summary mentioning it still returns `allow`.
-  Send a real target string.
+A deny keyword is matched, case-insensitively, against the request's **whole stated
+identity**: `target`, `assets`, `counterparty`, `recipient`, `payee`, `merchant`,
+`token`, `pair`, `market`, and `summary`. The reason names the field it matched, so a
+denial is reproducible rather than mysterious.
+
+| policy | request | verdict |
+| --- | --- | --- |
+| `never trade PUMPDUMP` | `target: "uniswap"`, `summary: "swap 25 USDC for PUMPDUMP"` | `deny` — *deny rule "pumpdump" matched summary* |
+| `never trade PUMPDUMP` | `target: "PUMPDUMP"` | `deny` — *deny rule "pumpdump" matched target* |
+| `never trade PUMPDUMP` | `target: "uniswap"`, `assets: ["PUMPDUMP"]` | `deny` — *deny rule "pumpdump" matched assets* |
+| `never trade PUMPDUMP` | `target: "uniswap"`, `summary: "swap 5 USDC for ETH"` | `allow` — the rule is about the asset, and the asset is not in the plan |
+| `never trade PUMPDUMP` | no asset, counterparty or plan named | `ask` — *policy forbids "pumpdump" but the request names no asset, counterparty or plan to check it against* |
+| `never pay blacklisted merchants` | `target: "blacklisted-merchant"` | `deny` — *deny rule "blacklisted" matched target* |
+| `never trade pumpdump-coin` | `target: "pumpdump-coin"` | `deny` — keyword `pumpdump-coin`, a hyphenated name stays one keyword |
+| `never pay coinbase` | `target: "openai"` | `allow` — keywords are whole words; the older substring matching turned this rule into the keyword `base` |
+| `never delete anything` | `intentKind: "delete"` | `deny` — *action type delete is denied by policy* |
+
+Before 2026-09-19 this search ran over `target` alone, so `never trade PUMPDUMP` was
+cleared by sending the venue and putting the asset only in the summary. If you cached
+that behaviour anywhere, re-run it.
 
 ### Policy fields produced by `policyText`
 
@@ -107,12 +136,31 @@ standalone verifier by construction — it asks the issuer whether the issuer's 
 receipt is good. Prefer the released one-file verifier:
 
 ```bash
-BASE=https://github.com/askgrokwallet/askgrokwallet/releases/download/verify-receipt-v1.0.0
+BASE=https://github.com/askgrokwallet/askgrokwallet/releases/download/verify-receipt-v1.0.1
 curl -LO $BASE/verify-receipt.mjs && curl -LO $BASE/test-verify-receipt.mjs
-node verify-receipt.mjs --version      # 1.0.0 + sha256 of the bytes you hold
-node test-verify-receipt.mjs           # checks the verifier itself, offline
-node verify-receipt.mjs receipt.json   # signature / chain / onchain / verdict
+curl -sLO $BASE/SHA256SUMS
+shasum -a 256 -c SHA256SUMS           # check the bytes BEFORE running them
+node verify-receipt.mjs --version     # 1.0.1 + sha256 of the bytes you hold
+node test-verify-receipt.mjs          # checks the verifier itself, offline
+node verify-receipt.mjs receipt.json  # signature / chain / onchain / verdict
+node verify-receipt.mjs receipt.json --json   # structured result, for branching
 ```
+
+`--version` reporting its own hash *after* it runs is not an integrity gate — it is a
+claim by the thing you are checking. Verify against the published `SHA256SUMS` (or the
+hash in the release notes) first.
+
+### What the four lines do and do not say
+
+- `signature ✓` — these exact fields were signed by the key this file pins.
+- `chain ✓` — this record sits at this position in the issuer's append-only log.
+- `onchain ✓` — that log's head is in a transaction that executed. An anchor that is
+  only broadcast, that reverted, or whose outcome the node would not report is `~`.
+- `verdict ✓` — genuine, and fixed onchain. **It is a statement about the record, not
+  about a payment.** An approval receipt, a denial receipt, and a receipt with
+  `txHash: null` all authenticate exactly as well as a payment. `~` means *unverified*
+  and must never be read as a pass. "Did the money move" is a separate question,
+  answered by reading the transaction the receipt names.
 
 ## Rate limits
 
