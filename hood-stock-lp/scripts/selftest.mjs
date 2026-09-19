@@ -9,6 +9,8 @@
 // builders must reproduce them BYTE FOR BYTE.
 
 import { MARKETS, USDG, SEL, NPM_V3, MAX_UINT128, getMarket } from "./lib/markets.mjs";
+import { tearsheetUrl, parseTearsheet, buildLedger, renderLedger, TEARSHEET_PRICE_ATOMIC } from "./lib/ledger.mjs";
+import { CHAIN as LEDGER_CHAIN, COVERED as LEDGER_COVERED } from "./lib/ledger-coverage.mjs";
 import {
   addrWord,
   uintWord,
@@ -213,6 +215,70 @@ check("v3 collect bytes == viem output", v3Col.toLowerCase() === V.v3Collect);
   );
 }
 
+// --- ledger (DeltaDesk tearsheet -> fees vs informed flow vs IL, per $1k) ---
+// Synthetic fixture in the tearsheet's shape (numbers chosen to be checkable
+// by hand, not market data).
+{
+  const W = "0x2222222222222222222222222222222222222222";
+  const fixture = {
+    owner: W,
+    chain: "robinhood",
+    role: "owner",
+    generated_utc: "2026-09-19T00:00:00+00:00",
+    summary: {},
+    positions: [
+      { pool: "NVDA/USDG", token_id: "101", status: "closed", avg_notional_usd: 1000, active_days: 2, fees_usd: 80,
+        lvr_hl_1h_usd: 50, lvr_self_1h_usd: 40, il_usd: -30, gas_usd: 1, vs_hodl_usd: 49, price_pnl_usd: 10, net_usd: 59, residual_bp: 0.001 },
+      { pool: "TSLA/USDG", token_id: "202", status: "open", avg_notional_usd: 500, active_days: 1, fees_usd: 10,
+        lvr_hl_1h_usd: null, lvr_self_1h_usd: 4, il_usd: -2, gas_usd: 0.5, vs_hodl_usd: 7.5, price_pnl_usd: 0, net_usd: 7.5, residual_bp: null },
+      { pool: "QQQ/SPY", token_id: "303", status: "open", avg_notional_usd: 100, active_days: 1, fees_usd: 1,
+        lvr_hl_1h_usd: 1, il_usd: 0, gas_usd: 0, vs_hodl_usd: 1, price_pnl_usd: 0, net_usd: 1, residual_bp: null },
+    ],
+  };
+  const covered = Object.fromEntries(Object.entries(LEDGER_COVERED).map(([k, v]) => [k, v.market]));
+  for (const [key, c] of Object.entries(LEDGER_COVERED)) {
+    check(`ledger coverage ${key} is market ${c.market} with the same pool`, !!MARKETS[c.market] && MARKETS[c.market].pool.toLowerCase() === c.pool);
+  }
+  const url = tearsheetUrl(W.toUpperCase().replace("0X", "0x"), { chain: LEDGER_CHAIN });
+  check("ledger url: x402 tearsheet, chain, lowercased wallet", url.includes("/tearsheet?") && url.includes("chain=robinhood") && url.includes(`wallet=${W}`));
+  let threw = 0;
+  for (const bad of [() => tearsheetUrl("0x123", { chain: LEDGER_CHAIN }), () => tearsheetUrl(W, { chain: LEDGER_CHAIN, role: "x" })]) {
+    try { bad(); } catch { threw++; }
+  }
+  check("ledger url: bad wallet / role throw (fail closed)", threw === 2);
+  const L = buildLedger(parseTearsheet(JSON.stringify(fixture), { wallet: W, chain: LEDGER_CHAIN }), { covered });
+  const t = L.totals;
+  check("ledger selects covered markets only", t.positions === 2 && t.open === 1 && L.otherPools.join() === "QQQ/SPY");
+  check("ledger totals: fees, informed flow (HL, else self), vs holding", t.feesUsd === 90 && t.informedFlowUsd === 54 && t.vsHoldUsd === 56.5);
+  check("ledger edge = fees / informed flow", approx(t.edge, 90 / 54, 1e-9));
+  check("ledger per $1k·day = total x 1000 / capital-days", approx(t.per1kPerDay.fees, 36, 1e-9));
+  const nv = L.rows.find((r) => r.tokenId === "101");
+  const ts = L.rows.find((r) => r.tokenId === "202");
+  check("ledger per $1k deployed per position", nv.per1k.fees === 80 && nv.per1k.informedFlow === 50 && ts.per1k.fees === 20);
+  check("ledger marks the self-markout fallback", nv.informedFlowReference === "hyperliquid-1h" && ts.informedFlowReference === "self-1h");
+  check("ledger lists open positions first", L.rows[0].status === "open");
+  check("ledger --token-id / --open / --all", buildLedger(fixture, { covered, tokenIds: ["101"] }).rows.length === 1 &&
+    buildLedger(fixture, { covered, openOnly: true }).rows.length === 1 && buildLedger(fixture, { covered, all: true }).rows.length === 3);
+  const lines = renderLedger(L, { wallet: W, venueName: "Robinhood Chain (Uniswap)", coveredMarkets: ["NVDA", "SPY", "TSLA"], uncoveredHeld: ["GME"], notYetListed: ["404"] });
+  check("ledger report leads with the result vs holding", lines[0].includes("result vs simply holding +$56.50"));
+  check("ledger report shows fees vs informed flow and edge", lines[1].includes("Fees +$90.00 against informed flow −$54.00 (edge 1.67)"));
+  check("ledger report names uncovered and unlisted positions", lines.some((l) => l.includes("Not in the ledger yet: GME")) && lines.some((l) => l.includes("#404")));
+  const gain = renderLedger(buildLedger({ positions: [{ pool: "NVDA/USDG", token_id: "9", status: "open", avg_notional_usd: 100,
+    active_days: 1, fees_usd: 1, lvr_hl_1h_usd: -5, il_usd: 0, gas_usd: 0, vs_hodl_usd: 1 }] }, { covered }),
+    { wallet: W, venueName: "Robinhood Chain (Uniswap)", coveredMarkets: ["NVDA"] });
+  check("ledger: flow that lost on price prints as a gain, no edge", gain[1].includes("informed flow +$5.00;"));
+  let rejected = 0;
+  for (const [txt, ctx] of [
+    [JSON.stringify(fixture), { wallet: "0x3333333333333333333333333333333333333333", chain: LEDGER_CHAIN }],
+    [JSON.stringify({ ...fixture, chain: "base" }), { wallet: W, chain: LEDGER_CHAIN }],
+    [JSON.stringify({ error: "upstream 502" }), { wallet: W, chain: LEDGER_CHAIN }],
+    ["not json", { wallet: W, chain: LEDGER_CHAIN }],
+  ]) {
+    try { parseTearsheet(txt, ctx); } catch { rejected++; }
+  }
+  check("ledger rejects wrong wallet, wrong chain, error body, non-JSON", rejected === 4);
+}
+
 // --- live (read-only) ---
 if (process.argv.includes("--live")) {
   const names = Object.keys(MARKETS);
@@ -285,6 +351,19 @@ if (process.argv.includes("--live")) {
   // shared infra sanity
   const [npmCode] = await Promise.all([ethCall(NPM_V3, SEL.balanceOf + addrWord(OWNER)).catch(() => null)]);
   check("live v3 NPM answers balanceOf", npmCode !== null);
+}
+
+// --- live ledger endpoint (read-only, free: an unpaid call must answer 402 at the documented price) ---
+if (process.argv.includes("--live")) {
+  try {
+    const res = await fetch(tearsheetUrl("0x0000000000000000000000000000000000000001", { chain: LEDGER_CHAIN }), { signal: AbortSignal.timeout(20_000) });
+    const body = await res.json().catch(() => ({}));
+    const a = (body.accepts || [])[0] || {};
+    check("live ledger endpoint asks for x402 payment (402)", res.status === 402, `HTTP ${res.status}`);
+    check("live ledger price = $0.05 USDC on Base", a.amount === TEARSHEET_PRICE_ATOMIC && a.network === "eip155:8453", `${a.amount} on ${a.network}`);
+  } catch (e) {
+    check("live ledger endpoint reachable", false, String(e.message).slice(0, 80));
+  }
 }
 
 // --- report ---
