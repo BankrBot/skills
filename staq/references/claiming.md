@@ -7,7 +7,10 @@ curl -s "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/summary"
 ```
 
 Returns the reserve address, live balances read from chain, the vault position,
-and lifetime saved in micro-dollars. Divide by 1,000,000 for dollars, and format
+and lifetime saved in micro-dollars. Each balance carries `earning`, which is
+true only for an asset with a pinned vault. If any balance is idle, tell the
+user which and why rather than presenting one total as though all of it were
+at work. Divide by 1,000,000 for dollars, and format
 only at the moment you show it to the user.
 
 If the API is unreachable, say so. "I can't reach STAQ right now" is true;

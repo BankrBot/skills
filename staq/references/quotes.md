@@ -75,17 +75,27 @@ Never generate a ref yourself, and never make one from a timestamp.
 
 ## Supported assets on Base
 
-USDC, USDT, WETH, ETH, tried in that order. The first one that covers the
-**whole** amount funds the save. There is no splitting across assets, no
-swapping, and no bridging, because each of those turns a save into a trade the
-user did not ask for.
+A save is funded from **USDC, USDT, WETH, then native ETH**, tried in that
+order. The first one that covers the **whole** amount funds it.
 
-Native ETH is last and is treated carefully: the amount needed is the save plus
-a gas buffer, so a save can never leave a wallet unable to pay for its next
-transaction.
+Stablecoins come first on purpose, so a save keeps the dollar amount the user
+agreed to: $20 set aside in a volatile asset can be $14 later. WETH and ETH
+follow so that a wallet holding no stablecoin can still save rather than
+skipping forever. Native ETH is last, and needs the save **plus a gas buffer**,
+so a save can never leave a wallet unable to pay for its next transaction.
 
-Only USDC has a pinned vault, so a save funded from any other asset sits idle
-in the reserve rather than earning.
+The coin being traded is **never** touched. If someone buys a new token with
+ETH, the save comes out of their existing USDC or USDT balance and the purchase
+settles in full. There is no splitting across assets, no swapping, and no
+bridging, because each of those turns a save into a trade the user did not ask
+for, with its own slippage, fee and tax consequences.
+
+A wallet holding no stablecoin cannot save, and the quote skips with
+`insufficient_balance`. That is one of the few skips worth speaking up about,
+so the user can decide what to do rather than quietly never saving.
+
+A reserve can still **hold and claim** USDC, USDT, WETH and ETH, since earlier
+saves or plain transfers may have put them there. Only USDC earns.
 
 Base USDG is deliberately not supported.
 
