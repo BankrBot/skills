@@ -1,6 +1,6 @@
 ---
 name: hood-stock-lp
-description: LP tokenized stocks on Robinhood Chain — range-LP Robinhood tokenized equities (TSLA, SPCX, SPY, GOOGL, AAPL, NVDA, MSFT, GME, CRCL, USO, NFLX, INTC) against USDG on Uniswap v3 and v4 pools for trading-fee yield. Use when the user wants to LP stocks on Robinhood Chain, open/recenter/exit a position, check pool status, NAV, or yields, or get a portfolio overview ("how are my LP positions doing?") with P&L and projected APR. Bundled node scripts do the chain reads, gate checks, and calldata (both venues, byte-validated against the deployed forks); writes go via the Bankr arbitrary-transaction flow. NOT for perps, spot trading, or Aerodrome/Base (that is the aero-stock-lp skill).
+description: LP tokenized stocks on Robinhood Chain — range-LP Robinhood tokenized equities (TSLA, SPCX, SPY, GOOGL, AAPL, NVDA, MSFT, GME, CRCL, USO, NFLX, INTC) against USDG on Uniswap v3 and v4 pools for trading-fee yield. Use when the user wants to LP stocks on Robinhood Chain, open/recenter/exit a position, check pool status, NAV, or yields, or get a portfolio overview ("how are my LP positions doing?") with P&L and projected APR, or run the ledger ("what did my LP really earn?", "how much did informed flow take?"): fees vs value picked off by informed flow vs impermanent loss vs gas, per $1k, from DeltaDesk over x402 ($0.05). Bundled node scripts do the chain reads, gate checks, and calldata (both venues, byte-validated against the deployed forks); writes go via the Bankr arbitrary-transaction flow. NOT for perps, spot trading, or Aerodrome/Base (that is the aero-stock-lp skill).
 ---
 
 # hood-stock-lp — LP tokenized equities on Robinhood Chain
@@ -85,6 +85,8 @@ submit them in order via Bankr. `next` tells you the following command.
 | `node scripts/manage.mjs --wallet 0x… [--quote-TSLA 345.80 …]` | The MANAGE PASS: discovers all positions from chain (both venues), values them honestly (loose balances included), checks range, applies the cost-hurdle / trend-brake verdicts. Pass fresh quotes for any market that might need a recenter. |
 | `node scripts/exit.mjs begin --market TSLA --token-id N --wallet 0x…` | Exit phase 1, ONE tx: principal + fees land in the wallet (v3: decrease+collect+burn multicall; v4: burn+take). |
 | `node scripts/exit.mjs finish --market TSLA --token-id N --wallet 0x… [--keep-stock]` | Exit phase 2 (after phase 1 mines): sell residual stock so the user lands in USDG (minOut 2% floor), remove from state. `--keep-stock` for recenters — the re-entry absorbs the stock instead of round-tripping it. |
+| `node scripts/ledger.mjs url --wallet 0x…` | Ledger phase 1: the DeltaDesk tearsheet URL for this wallet. Call it with Bankr's x402 capability ($0.05 USDC on Base, not charged if it fails) and save the JSON body. No keys, no paid call inside the script. |
+| `node scripts/ledger.mjs report --wallet 0x… --in <saved.json> [--token-id N,…] [--open]` | Ledger phase 2: fees vs informed flow vs IL vs gas, per $1k, for this skill's NVDA / SPY / TSLA positions (§8). Names any held market DeltaDesk does not cover yet. `--hedge hl` is coming (refused today). |
 | `node scripts/selftest.mjs [--live]` | Offline math + byte-for-byte encoding vectors (ground truth: the Midpoint engine's viem encoders); `--live` also verifies all 12 markets against mainnet. Run `--live` once on first use of this skill. |
 
 Why entry is phased: there are transaction boundaries. Your own swap
@@ -234,3 +236,41 @@ the froth were the exit liquidity).
   tx, the tx doesn't happen.
 - Silence a failure: every skipped step, estimated basis, degraded input,
   or stopped sequence is reported in plain language.
+
+## 8. Ledger: what an LP position actually earned (DeltaDesk)
+
+Fees alone overstate what LPing a stock pays: traders who already know
+where the price is going (the 24/7 Hyperliquid price moves first) take part
+of it back. The ledger answers "I made $80 in fees, how much did informed
+flow take?" per position and for the book. Run it when the user asks what
+their LP really earned, whether they are getting picked off, or after an
+exit ("how did that position do?"). It never moves money.
+
+1. `node scripts/ledger.mjs url --wallet 0x…` and relay its one `report`
+   line (the $0.05 price) in the same breath as the answer, not as a
+   separate question: it is a data call, not a money-spending sequence.
+2. Call `call.url` with Bankr's x402 capability (CLI:
+   `bankr x402 call '<url>' --max-payment 0.05`). Save the JSON body as
+   returned. One call per request; never loop on it.
+3. `node scripts/ledger.mjs report --wallet 0x… --in <file>` and relay the
+   `report` lines nearly verbatim. On `ok: false`, relay `detail` in one
+   line and stop (a failed x402 call is not charged).
+
+Reading it honestly:
+- Lead with the result vs simply holding the tokens, then fees against
+  informed flow (the "edge": above 1, fees beat what informed flow took).
+- Informed flow is DeltaDesk's markout: value picked off by traders who knew
+  better, marked against Hyperliquid's price 1 hour after each swap. It
+  explains the result; it is not an extra cost on top of it. The result vs
+  holding is fees + impermanent loss − gas.
+- Per $1k lines are historical, never a forecast or an APR.
+- Coverage today: NVDA (v3), SPY and TSLA (v4). Other markets are named as
+  not covered yet; never imply they were measured. Positions opened in the
+  last hour may not be listed yet (DeltaDesk rebuilds about hourly).
+- `--hedge hl` (adding the Hyperliquid hedge leg: hedge P&L and funding) is
+  coming and refused by the script today. Say so if asked; don't simulate it.
+
+The ledger is built on DeltaDesk's open LP truth layer (every position in
+these pools rebuilt from chain logs, fees reconciled to on-chain collects);
+method and study: https://web-production-10951.up.railway.app. This section
+extends Igor Yuzovitskiy's hood-stock-lp; the LP flows above are unchanged.
