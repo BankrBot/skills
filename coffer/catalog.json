@@ -12,7 +12,9 @@
   "setup": [
     "Chain: Robinhood (4663) - one vault, no factory; confirm the Bankr wallet supports 4663",
     "Fund the wallet with ETH on Robinhood for deposits and gas",
-    "Deposits are ETH only; withdrawals burn liquid shares and pay WETH (aeWETH 0x0Bd7D308...)",
+    "Deposits are ETH only, no deposit fee; withdrawals burn liquid shares, take a withdrawal fee (live-read, currently 1%), and pay WETH (aeWETH 0x0Bd7D308...) - or WETH plus in-kind USDG / pair tokens if an exit price floor is refused",
+    "Before any transaction the skill previews amount, gas, fees and estimated output, simulates the exact call, and asks for explicit authorization; neither entrypoint accepts a min-output or deadline, so it stops if you require one",
+    "Results are reported from the mined receipt's Deposit / Withdraw events and token transfers, never from return values",
     "Vault 0x948c683a5885D49383C8d94Fc1827a036543E803 - liquid shares 0xF2736eE8361241B283c1e579B5173eb9aB54EBD1",
     "Live pairs come from vault.strategies(i) - volatile leg quoted in WETH, stock legs (AMZN, GLD) quoted in USDG",
     "Read-only: vault value, total shares, my shares, fees earned, rotating tokens (references/addresses.md)",
