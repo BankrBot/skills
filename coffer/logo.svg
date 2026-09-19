@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Soteria Labs">
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4A85CC"/>
+      <stop offset="0.55" stop-color="#2E66B0"/>
+      <stop offset="1" stop-color="#1E4F92"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6FAAF0"/>
+      <stop offset="1" stop-color="#3A72BE"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7AB2F4"/>
+      <stop offset="0.5" stop-color="#5691DA"/>
+      <stop offset="1" stop-color="#3F7ACB"/>
+    </linearGradient>
+    <linearGradient id="barTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Shield: outer dark edge, lighter rim, inner face -->
+  <path d="M512 73 L865 205 L865 560 C865 720 700 850 512 933 C324 850 159 720 159 560 L159 205 Z" fill="#0F3670"/>
+  <path d="M512 77 L861 207 L861 559 C861 717 698 845 512 928 C326 845 163 717 163 559 L163 207 Z" fill="url(#rim)"/>
+  <path d="M512 92 L848 213 L848 557 C848 706 690 830 512 909 C334 830 176 706 176 557 L176 213 Z" fill="url(#shield)"/>
+
+  <!-- Bars: drop bevel (dark), face, top highlight -->
+  <g>
+    <rect x="268" y="303" width="128" height="345" rx="22" fill="#0A2E63"/>
+    <rect x="454" y="228" width="128" height="540" rx="22" fill="#0A2E63"/>
+    <rect x="636" y="303" width="128" height="345" rx="22" fill="#0A2E63"/>
+  </g>
+  <g>
+    <rect x="260" y="295" width="128" height="345" rx="22" fill="url(#bar)"/>
+    <rect x="446" y="220" width="128" height="540" rx="22" fill="url(#bar)"/>
+    <rect x="628" y="295" width="128" height="345" rx="22" fill="url(#bar)"/>
+  </g>
+  <g>
+    <rect x="260" y="295" width="128" height="120" rx="22" fill="url(#barTop)"/>
+    <rect x="446" y="220" width="128" height="120" rx="22" fill="url(#barTop)"/>
+    <rect x="628" y="295" width="128" height="120" rx="22" fill="url(#barTop)"/>
+  </g>
+</svg>
