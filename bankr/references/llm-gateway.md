@@ -358,7 +358,8 @@ If the user already has a Bankr account, they just need to configure the gateway
 
 1. Get an API key with **LLM Gateway** enabled:
    - **Have a key?** Enable LLM Gateway at [bankr.bot/api-keys](https://bankr.bot/api-keys)
-   - **Need a key?** Generate via CLI: `bankr login email user@example.com` → `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
+   - **Need a key?** Generate via CLI: `bankr login email user@example.com` → `bankr login email user@example.com --code OTP --key-name "My Agent" --llm`
+   - **Terms of Service:** completing step 2 accepts the [Terms of Service](https://bankr.bot/terms) on the user's behalf (CLI 0.3.39+; older versions need `--accept-terms`). Share the link and tell the user that logging in means accepting them; if they don't accept, don't run step 2
    - **MFA enabled on the account?** Step 2 prints a `bankr.bot/mfa/confirm/...` link and waits up to five minutes for a passkey approval in the browser (CLI 0.3.38+). If that expires, create the key at [bankr.bot/api-keys](https://bankr.bot/api-keys) instead, then `bankr login --api-key bk_...`
 2. Run: `bankr llm setup openclaw --install`
 3. Set default model in `~/.openclaw/openclaw.json`:
@@ -371,7 +372,8 @@ If the user already has a Bankr account, they just need to configure the gateway
 ### Need Bankr Account
 
 1. Send OTP: `bankr login email user@example.com`
-2. Complete setup: `bankr login email user@example.com --code OTP --accept-terms --key-name "My Agent" --llm`
+2. Complete setup: `bankr login email user@example.com --code OTP --key-name "My Agent" --llm`
+   - Completing this step accepts the [Terms of Service](https://bankr.bot/terms) on the user's behalf (CLI 0.3.39+; older versions need `--accept-terms`). Share the link and tell the user that logging in means accepting them; if they don't accept, don't run it
    - On an MFA-enabled account this step prints a `bankr.bot/mfa/confirm/...` link — approve it with your passkey in the browser within five minutes and the CLI continues. Can also create/configure keys at [bankr.bot/api-keys](https://bankr.bot/api-keys) (the fallback if the approval expires); then `bankr login --api-key bk_...`
 3. **Top up credits:** `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) — new wallets start with $0
 4. Verify: `bankr llm credits` (must show > $0)

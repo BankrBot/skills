@@ -19,10 +19,10 @@ bun install -g @bankr/cli
 **2. Authenticate** — headless email login (recommended for agents):
 ```bash
 bankr login email user@example.com                                   # step 1: send OTP
-bankr login email user@example.com --code 123456 --accept-terms --key-name "My Agent"   # step 2 (wallet + agent + token launch, read-write by default)
+bankr login email user@example.com --code 123456 --key-name "My Agent"   # step 2 (wallet + agent + token launch, read-write by default)
 ```
 
-On an MFA-enabled account, step 2 prints a `bankr.bot/mfa/confirm/...` link and waits up to five minutes for the user to approve with their passkey in a browser (CLI 0.3.38+). Or, if you already have an API key from https://bankr.bot/api-keys (also the fallback when that approval expires — the CLI exits with `MFA_STEP_UP_REQUIRED` guidance):
+Completing step 2 accepts the [Terms of Service](https://bankr.bot/terms) on the user's behalf (CLI 0.3.39+; older versions need `--accept-terms`) — share the link and get the user's go-ahead first; if they don't accept, don't run it. On an MFA-enabled account, step 2 prints a `bankr.bot/mfa/confirm/...` link and waits up to five minutes for the user to approve with their passkey in a browser (CLI 0.3.38+). Or, if you already have an API key from https://bankr.bot/api-keys (also the fallback when that approval expires — the CLI exits with `MFA_STEP_UP_REQUIRED` guidance):
 ```bash
 bankr login --api-key bk_your_actual_key_here
 ```
