@@ -140,7 +140,7 @@ Submit raw transactions directly to the blockchain.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `to` | string | Yes | Destination address |
-| `chainId` | number | Yes | Chain ID (8453=Base, 1=Ethereum, 137=Polygon) |
+| `chainId` | number | Yes | Chain ID (8453=Base, 1=Ethereum, 137=Polygon, 130=Unichain, 480=World Chain, 42161=Arbitrum, 56=BNB Chain, 4663=Robinhood Chain, 5042=Arc) |
 | `value` | string | No | Value in wei (as string) |
 | `data` | string | No | Calldata (hex string) |
 | `gas` | string | No | Gas limit |
@@ -155,6 +155,27 @@ Submit raw transactions directly to the blockchain.
 |-------|------|---------|-------------|
 | `description` | string | - | Human-readable description for logging |
 | `waitForConfirmation` | boolean | `true` | Wait for on-chain confirmation |
+
+### Wallet Security Settings Apply
+
+Raw submissions are checked against the same wallet-level security settings as agent transactions, and a blocked one is rejected with `403` **before** anything is broadcast:
+
+- The native `value` is priced in USD and checked against the **per-transaction** and **daily** limits — and a submitted transaction counts toward the rolling daily total.
+- The wallet's **permitted-recipients** allowlist is enforced on `to`, but only when `value > 0`. Calldata with no native value counts as **$0** and is not recipient-checked, because the recipient can't be read out of arbitrary calldata.
+- **"Enable arbitrary contract calls" must be on.** While it is off, `/wallet/submit` is blocked outright.
+
+The `403` body carries a machine-readable `errorCode` alongside the user-facing `error`:
+
+| `errorCode` | Meaning |
+|-------------|---------|
+| `PER_TX_LIMIT_EXCEEDED` | The transaction's USD value is above the per-transaction limit |
+| `DAILY_LIMIT_EXCEEDED` | It would push rolling-24h outflow past the daily limit |
+| `RECIPIENT_NOT_PERMITTED` | `to` is not on the permitted-recipients allowlist |
+| `RECIPIENT_COOLDOWN` | `to` was allowlisted recently and is still inside its cooldown |
+| `PRICING_UNAVAILABLE` | USD pricing failed while a limit was enabled — fail-closed, not waved through |
+| `PAUSED` | The wallet has all transactions paused |
+
+Branch on `errorCode`, not on the message text. Note that a key configured with **allowed recipients on the API key itself** still blocks *all* raw submissions (the key-level list can't be verified from calldata) — that is separate from the wallet-level list above. Use `/agent/prompt` when you need key-level allowed recipients enforced.
 
 ### Request Examples
 
@@ -251,6 +272,7 @@ Without confirmation (`waitForConfirmation: false`):
 | 400 | Submission failed | Insufficient funds, gas estimation failed, etc. |
 | 401 | `Authentication required` | Missing or invalid API key |
 | 403 | `Agent API access not enabled` | API key lacks agent access |
+| 403 | `errorCode` set | Blocked by a wallet security setting — see [Wallet Security Settings Apply](#wallet-security-settings-apply) |
 
 ## Use Cases
 

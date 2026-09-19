@@ -28,6 +28,8 @@ A wallet that has never opened the Security page still has a **$500 daily and $5
 
 (System-owned vesting wallets are the one exception — they have no Security screen and no user to configure them, and are governed by their signing policy's authorized-caller gate instead.)
 
+**On raw `/wallet/submit` the check is now explicit and machine-readable.** The transaction's native `value` is priced in USD and tested against the per-transaction and daily limits (and counts toward the daily total); the permitted-recipients list is enforced on `to` whenever `value > 0`; and "Enable arbitrary contract calls" must be on at all. Calldata carrying no native value is priced at **$0** and is not recipient-checked — the recipient can't be recovered from arbitrary calldata, which is exactly why the arbitrary-calls switch guards that path instead. A rejection is a `403` carrying an `errorCode` (`PER_TX_LIMIT_EXCEEDED`, `DAILY_LIMIT_EXCEEDED`, `RECIPIENT_NOT_PERMITTED`, `RECIPIENT_COOLDOWN`, `PRICING_UNAVAILABLE`, `PAUSED`) — branch on that, not on the message. See [references/sign-submit-api.md](sign-submit-api.md).
+
 ### Timed Windows (auto-restoring)
 
 Most controls can be turned off for a bounded window instead of indefinitely, after which they restore themselves. Supported on the **daily limit**, **per-transaction limit**, **price impact limit**, **arbitrary contract calls**, and each **response channel**. Durations are a fixed vocabulary: **10, 30, 60, or 1440 minutes**.
