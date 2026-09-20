@@ -70,8 +70,35 @@ curl -s -X PUT "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/rule" \
   -d '{"message":"...","signature":"0x..."}'
 ```
 
-The response carries the new `version` and the user's `reserve` address.
-**Record that reserve address.** Every later save is checked against it.
+The response carries the new `version` and a `reserve` address.
+
+**Do not record that address as the reserve.** Derive the reserve from the pinned
+hub on chain and record *that*, then treat the response's field as one more thing
+to check against it. Storing what the API sent and comparing later saves to it
+means comparing the API against itself, which agrees with a wrong address instead
+of catching it.
+
+```bash
+# reserveOf(address) on the pinned hub. Selector 0x9fa77b20.
+WALLET=ee478415cc7a4576E6E03150223044127Eb4D6B2   # no 0x prefix
+curl -s -X POST https://mainnet.base.org \
+  -H 'content-type: application/json' \
+  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_call\",\"params\":[{
+        \"to\":\"0xBAd52264820F196258728ddBd2B6eE9076042b5A\",
+        \"data\":\"0x9fa77b20000000000000000000000000$WALLET\"},\"latest\"]}"
+```
+
+Take the last 40 hex characters of the result. Persist it together with the
+wallet, the chain id and the hub address it came from, and the rule version you
+just signed, so a later save can tell whose reserve it is and which hub produced
+it. Compare case-insensitively.
+
+Also persist **the rule itself**: enabled, mode, rate or fixed amount, and types.
+Every later quote is checked against it. The API is not the record of what the
+user agreed to; the signed message is, and you are the one holding it.
+
+If the derived address and the response disagree, stop and tell the user. Do not
+pick one.
 
 The nonce is spent in the same database transaction that writes the rule, so a
 replayed message cannot produce a second version. A message older than five
@@ -83,6 +110,12 @@ A pause is a normal rule update with `Enabled: false`. It stops future
 allocations and touches nothing else: existing savings stay in the reserve,
 still earning, and the reserve address never changes. Re-enabling later is
 another signed version.
+
+**A pause must survive a stale copy.** If the version you hold says enabled and
+the API says paused, the pause wins: being told to do less needs no signature.
+The reverse is not true, and re-enabling on the API's word alone is refused.
+`SKILL.md` has the full asymmetry, which is that the API may narrow what you are
+authorised to do and may never widen it.
 
 Disabling STAQ does **not** claim. If the user wants their money back, that is a
 separate, explicit claim.
