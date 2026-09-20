@@ -79,7 +79,7 @@ curl -s -X POST "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/activate" \
   -d '{"token":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}'
 ```
 
-It returns `steps`, in order: an approval for **one base unit** of that token,
+It returns `steps`, in order: an approval for **0.000001 USDC** of that token,
 then `allocate`, which deploys the reserve. Run them in the same contract-call
 window as the claim. `token` should be one the user actually holds a little of,
 since the approval is spent by the allocate.
@@ -103,8 +103,11 @@ and you can rebuild both because you know every argument of both:
   matched.
 - `value` is `"0"` on both. STAQ never asks you to send native value in any flow.
   A non-zero value did not come from STAQ.
-- **The approval is for one base unit**, which the allocate then spends. A larger
-  or unlimited approval is a refusal even if everything else matches.
+- **The approval is for 0.000001 USDC**, which the allocate then spends. That is
+  `1` in the calldata, since USDC has six decimals. Quote the user the amount, never
+  "one base unit": the unit is meaningless to them and "1 USDC" is a million times
+  too much. A larger or unlimited approval is a refusal even if everything else
+  matches.
 - **Simulate each step just before submitting it.** Not both up front: step 2
   spends the allowance step 1 creates, so simulating it early reverts with
   `ERC20: transfer amount exceeds allowance`. That is the pair working, and

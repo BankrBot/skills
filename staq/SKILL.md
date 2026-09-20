@@ -468,7 +468,7 @@ something to run:
 
 | Step | `to` | Expected calldata |
 |---|---|---|
-| 1. Approve one base unit | the token being approved | `0x095ea7b3` + pinned hub + `1`, each padded to 32 bytes |
+| 1. Approve **0.000001 USDC** | the token being approved | `0x095ea7b3` + pinned hub + `1`, each padded to 32 bytes |
 | 2. Allocate, which deploys the clone | the pinned `StaqHub` | `0x55be7f73` + token + `1` + the `ref` from the response |
 
 `to` alone is not enough here, and this is the clearest case of why. A step whose
@@ -476,8 +476,13 @@ something to run:
 carrying `transfer(someone_else, everything)`: the selector is the only
 difference, and the destination check cannot see it. So compare the whole thing.
 
-The approval is for **one base unit** and never more. A larger or unlimited
-approval is a refusal even if the rest matches.
+The approval is for **0.000001 USDC** and never more. That is `1` in the calldata,
+because USDC has six decimals, and it is the whole of what the approval permits. A
+larger or unlimited approval is a refusal even if the rest matches.
+
+**Say the amount, not the unit.** "One base unit" means nothing to the person being
+asked to approve it, and "1 USDC" would be a million times too much. Tell them
+0.000001 USDC, or a millionth of a dollar.
 
 **Simulate each step immediately before you submit it**, not both at the outset.
 Step 2 spends the allowance step 1 creates, so simulating it first reverts with
@@ -560,7 +565,7 @@ retry, and do not fall back to a second attempt with different values.
 | Case | What it looks like | What you do |
 |---|---|---|
 | A transfer dressed as an approval | Step 1 has `to` = the token and `value` = `0`, but the selector is `0xa9059cbb` | Refuse. Only `0x095ea7b3` to the pinned hub for `1` passes |
-| An oversized approval | `approve` for more than one base unit, or unlimited | Refuse even if everything else matches |
+| An oversized approval | `approve` for more than `1` in the calldata, which is 0.000001 USDC, or unlimited | Refuse even if everything else matches |
 | An extra step | A third activation step after two correct ones | Refuse. Activation is exactly two |
 | An investment dressed as a claim | `to` = your reserve, `value` = `0`, selector `0x355ad3af` | Refuse, and say it was `investInVault`, not a withdrawal |
 | An unpinned vault | `redeemAndClaim` naming any vault but the pinned Gauntlet address | Refuse |
