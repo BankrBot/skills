@@ -80,10 +80,10 @@ bankr config get llmKey
 | `grok-4.5` | xAI | Latest, balanced multimodal (500K context, image input) |
 | `grok-4.3` | xAI | Balanced performance (1M context) |
 | `grok-4.1-fast` | xAI | Fast, economical, largest context (2M) |
-| `deepseek-v4.1-flash` | DeepSeek | Latest Flash — agents, coding, vision (1M, image input) |
+| `deepseek-v4.1-flash` | DeepSeek | Mid-tier Flash — agents, coding, vision (1M, image input) |
 | `deepseek-v4-pro-0813` | DeepSeek | Frontier, high-capacity reasoning (1M) |
 | `deepseek-v4-pro` | DeepSeek | Previous V4 Pro build, 0423 (1M, 384K output) |
-| `deepseek-v4-flash` | DeepSeek | Previous Flash — high throughput, cost-effective (1M) |
+| `deepseek-v4-flash` | DeepSeek | Budget Flash — high throughput, cost-effective (1M) |
 | `deepseek-v3.2` | DeepSeek | Cost-effective (164K context) |
 | `qwen3.8-max` | Alibaba | Flagship Qwen, multimodal (1M, image input) |
 | `qwen3.8-flash` | Alibaba | Latest fast tier, multimodal (1M, image input) |

@@ -1,6 +1,8 @@
 # Agent Profiles Reference
 
-Create and manage public profile pages at [bankr.bot/agents](https://bankr.bot/agents). Profiles showcase project info, team, token data with live charts, weekly fee revenue, products, and activity.
+Create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects). Profiles showcase project info, team, token data with live charts, weekly fee revenue, products, GitHub activity, Ethos credibility, and activity.
+
+> The pages used to live at `/agents`; old `/agents` and `/agents/:token` links redirect to `/terminal/projects`, so existing links keep working. The CLI (`bankr agent profile`) and the REST surfaces (`/agent/profile`, `/agent-profiles`) are unchanged.
 
 **Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create an agent profile. The token address is verified against your deployment and beneficiary history.
 
@@ -12,7 +14,7 @@ Create and manage public profile pages at [bankr.bot/agents](https://bankr.bot/a
 | **description** | No | Project description | Max 2000 chars |
 | **profileImageUrl** | No | Logo/avatar URL (auto-populated from Twitter if linked) | Valid URL |
 | **tokenAddress** | Yes | Token contract address — must be a token deployed through Bankr (Doppler or Clanker) | - |
-| **tokenChainId** | No | Chain: base, ethereum, polygon, solana, worldchain, arbitrum, bnb (default: base) | - |
+| **tokenChainId** | **Derived** | Set automatically from `tokenAddress` — one of base, ethereum, polygon, solana, robinhood, arbitrum. **Not accepted as input**; sending it has no effect | - |
 | **tokenSymbol** | No | Token ticker symbol | Max 20 chars |
 | **tokenName** | No | Full token name | Max 100 chars |
 | **twitterUsername** | No | Twitter handle (auto-populated from linked account) | Max 50 chars |
@@ -151,7 +153,7 @@ Add a project update entry.
 
 ## Approval Workflow
 
-Profiles start with `approved: false` and are not publicly visible. After admin approval, the profile appears in the public listing at `/agents` and receives automatic market cap and revenue updates from background workers.
+Profiles start with `approved: false` and are not publicly visible. After admin approval, the profile appears in the public listing at `/terminal/projects` and receives automatic market cap and revenue updates from background workers.
 
 ## Auto-Populated Fields
 
@@ -173,6 +175,62 @@ Response includes:
 - `daily` — array of `{ date, requests, totalTokens }` entries for charting (gaps filled with zeros)
 
 No cost data is included (public-safe).
+
+## Derived Cards (GitHub, Ethos)
+
+Two cards on the project page are derived from links already on the profile — there is nothing extra to configure, and no dedicated field to set. Both are approved-profiles-only, cached, and rate-limited per IP.
+
+### GitHub Activity
+
+`GET /agent-profiles/:identifier/github-activity` returns the linked repository's activity. The repo is resolved from the **first** `github.com/{owner}/{repo}` URL found across the profile's `website`, then product URLs, then team-member links — so if you want a specific repo on the card, put it in `website`.
+
+```json
+{
+  "activity": {
+    "repo": { "owner": "myorg", "name": "myagent", "fullName": "myorg/myagent", "url": "https://github.com/myorg/myagent", "verified": true },
+    "stats": {
+      "commits": 1840,
+      "pullRequests": 212,
+      "releases": 18,
+      "lastPushAt": "2026-03-02T18:30:00.000Z",
+      "weekly": [{ "weekStart": "2025-03-09", "commits": 24 }]
+    }
+  }
+}
+```
+
+- `activity` is `null` when the profile links no GitHub repo at all.
+- `stats` is `null` when GitHub was unreachable or rate-limited — **the repo link still resolves**, so don't read a null `stats` as "no repo".
+- `commits` covers the last 52 weeks; `pullRequests` / `releases` cover the last 12 months. Each is individually `null` if GitHub hadn't finished computing it.
+- `repo.verified` means the profile owner's linked GitHub account owns or maintains that repo.
+- `weekly` holds up to 52 buckets, oldest first.
+
+### Ethos Credibility
+
+`GET /agent-profiles/:identifier/ethos` returns [Ethos](https://ethos.network) credibility cards for the X accounts on the profile: the project's own linked X account first, then up to five team members whose links include an X profile, deduped on the Ethos username.
+
+```json
+{
+  "cards": [
+    {
+      "source": "project",
+      "role": "Founder",
+      "ethos": {
+        "username": "myagent",
+        "score": 1640,
+        "level": "reputable",
+        "profileUrl": "https://app.ethos.network/profile/x/myagent",
+        "reviews": { "positive": 38, "neutral": 4, "negative": 1, "positivePercent": 88, "items": [] },
+        "vouches": { "count": 6, "eth": "1.4" }
+      }
+    }
+  ]
+}
+```
+
+- `source` is `project` for the profile's own X account, `team` for a team member's; `role` falls back to `Founder` on the project card.
+- **Accounts without an Ethos profile are omitted entirely, so `cards` can be empty** — that is not an error.
+- `reviews.positivePercent` is `null` until the account has at least one review; `reviews.items` holds at most three, newest first.
 
 ## Tweets
 
