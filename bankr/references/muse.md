@@ -18,41 +18,49 @@ If the host is not a cloud-VM agent with a credential store, follow the standard
 
 ## Credential Handling in Muse
 
-### The store, and the one key rule
+### The store, and the rotate rule
 
-`bankr login email` works headless inside Muse and saves the key to `~/.bankr/config.json` **on the VM**. That is the wrong final resting place: the key needs to move into the secure store as `BANKR_API_KEY`, and the on-disk copy needs to go.
+The key belongs in the secure store as `BANKR_API_KEY`, and it should get there without ever passing through the chat or through the agent's context. **Rotation** is how: bankr.bot/api-keys has a **Rotate Key** action (web session, passkey step-up if MFA is on) that issues a replacement with the same name and permissions and deactivates the old key atomically. Whatever copy existed before, on a laptop, in a config file, in a transcript, stops working the moment the store's copy starts.
 
-**Never mint a second key "with the same permissions" for the store.** The key that login just created is the key to store. A duplicate doubles the revocation surface for no benefit and leaves an orphaned key on the account.
+**Never mint a second key "with the same permissions" for the store.** Rotate the one that exists. A duplicate doubles the revocation surface and leaves the original live wherever it was.
 
-### Reuse, verify, logout
+### User already has a key (most common)
+
+Skip login entirely. Ask the user to open [bankr.bot/api-keys](https://bankr.bot/api-keys), rotate the key they want Muse to use (or add it as is if it was created for Muse and has never lived anywhere else), and add the new key through the credentials card as `BANKR_API_KEY`. Then verify:
+
+```bash
+bankr whoami
+```
+
+Never run `bankr login --api-key` on the VM just to check a key: that writes it to disk again.
+
+### Creating the key from inside Muse
+
+`bankr login email` works headless on the VM but saves the key to `~/.bankr/config.json`. Do not read that file to copy the key into the store. Rotate instead:
 
 ```bash
 # 1. Headless login (see SKILL.md "Headless email login" for the Terms of Service step)
 bankr login email user@example.com
 bankr login email user@example.com --code 123456 --key-name "Muse Agent" --no-token-launch
 
-# 2. Add the SAME key that login printed to Muse's secure store as BANKR_API_KEY
-#    (through the credentials card, not by pasting it into the chat)
+# 2. Ask the user to rotate the "Muse Agent" key at bankr.bot/api-keys and add the
+#    NEW key to the secure store as BANKR_API_KEY (through the credentials card)
 
-# 3. Verify the stored key works — the CLI reads BANKR_API_KEY over the config file
-bankr whoami
-
-# 4. Delete the on-disk copy
+# 3. Delete the stale on-disk copy, then verify from the store alone.
+#    The CLI reads BANKR_API_KEY over the config file.
 bankr logout
-bankr whoami   # must still succeed, now from the store alone
+bankr whoami
 ```
 
-REST equivalent of step 3 if the CLI is not the calling path:
+REST equivalent of the check if the CLI is not the calling path:
 
 ```bash
 curl "https://api.bankr.bot/wallet/me" -H "X-API-Key: $BANKR_API_KEY"
 ```
 
-If the user already has a key (Option B in SKILL.md, or an MFA account whose passkey step can't complete on the VM), skip login entirely: add the existing key to the store, verify, done. Never run `bankr login --api-key` on the VM just to check a key — that writes it to disk again.
+### Rotation and leaks
 
-### Rotation
-
-There is no API-key-authenticated rotate endpoint today. Rotation is **revoke and recreate** at [bankr.bot/api-keys](https://bankr.bot/api-keys), then update the `BANKR_API_KEY` entry in the store and re-run `bankr whoami`. If a key was ever pasted into chat, treat it as leaked and rotate it now.
+There is no API-key-authenticated rotate endpoint, so the agent cannot rotate its own key; rotation is a dashboard action the user takes. That is deliberate: a leaked key must not be able to mint its successor. If a key was ever pasted into chat, treat it as leaked: ask the user to pause the wallet at bankr.bot (Security), rotate the key, and update the store entry; then re-run `bankr whoami`.
 
 ## Recommended Key Setup
 
@@ -103,10 +111,10 @@ Muse's approval step is the last line of defence, so feed it something reviewabl
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `401` | Key missing, wrong or revoked; often the store entry is not named `BANKR_API_KEY`, or `bankr logout` ran before the store was verified | Check the store entry name, then `bankr whoami`; recreate the key if it was revoked |
+| `401` | Key missing, wrong, revoked or rotated away; often the store entry is not named `BANKR_API_KEY`, or it still holds the pre-rotation key | Check the store entry name, then `bankr whoami`; recreate the key if it was revoked |
 | `403` | Key is valid but lacks the capability: read-only key on a write, Agent API off, Token Launch off | Adjust the key at [bankr.bot/api-keys](https://bankr.bot/api-keys) or mint a correctly scoped one (and retire the old one) |
-| Key visible in the chat transcript | It was pasted instead of entered via the credentials card | Revoke at bankr.bot/api-keys, create a new key, add it through the card |
-| `bankr whoami` works before `logout` and fails after | Store not populated or not injected into the CLI's environment | Re-add `BANKR_API_KEY` to the store, then retry; `bankr login --api-key` is the last resort and re-creates the on-disk copy |
+| Key visible in the chat transcript | It was pasted instead of entered via the credentials card | Rotate at bankr.bot/api-keys (old key dies with it), add the new key through the card |
+| `bankr whoami` works before `logout` and fails after | Store not populated, not injected into the CLI's environment, or the key was rotated but the store still holds the old one | Re-add the current `BANKR_API_KEY` to the store, then retry; `bankr login --api-key` is the last resort and re-creates the on-disk copy |
 | `ECONNREFUSED localhost:*` or "open this URL in your browser" | Something assumed the user's machine | Use the hosted URL (`bankr.bot/...`) and ask the user to open it themselves; MFA approval links work this way |
 | Key still on disk | `bankr logout` was skipped | Run `bankr logout`, then confirm `~/.bankr/config.json` has no `apiKey` |
 
