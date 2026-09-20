@@ -202,6 +202,7 @@ ordinary skip; say so when a check actually failed.
 | "Change my STAQ to 15%" | Same flow, a new signed rule version |
 | "Pause STAQ" / "Turn STAQ off" | A signed rule with `Enabled: false`. Savings and yield untouched |
 | "How much have I STAQ'd?" | Read-only summary. No signature, nothing moves |
+| "Put my savings to work" / "Start earning on it" | A signed `STAQ yield v1` request. This is the only thing that deposits into the vault; nothing does it on its own |
 | "Claim my STAQ" | Confirm, then the user's own wallet signs the withdrawal |
 
 Rates above 25% need a **second** explicit confirmation, echoing the exact rate,
@@ -351,9 +352,16 @@ When someone is choosing a rule, it is fair to tell them that saving tends to
 land in USDC when they hold it, and that USDC is the asset that earns. Never
 put a figure on it as if it were owed to them.
 
-Deposits happen automatically once enough has accumulated. Yield is variable:
-never quote an APY as if it were promised, and never tell the user their savings
-are instantly withdrawable, because vault liquidity can fall short.
+**Saving is automatic. Depositing into the vault is not.** Moving idle savings
+into Morpho needs a signed `STAQ yield v1` request, so it happens when the user
+asks and not before. Do not tell them their savings started earning on their own,
+and do not let a balance sit idle in silence: when they ask about their savings
+and some of it is not deposited, say that putting it to work is a thing they can
+ask for.
+
+Yield is variable: never quote an APY as if it were promised, never tell the user
+their savings are instantly withdrawable, because vault liquidity can fall short,
+and never imply a deposited balance cannot fall.
 
 ---
 
