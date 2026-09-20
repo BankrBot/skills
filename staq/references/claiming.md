@@ -58,7 +58,11 @@ curl -s -X POST https://mainnet.base.org \
 again **after** activating: the point of activating is that it changes this
 answer, and a transaction hash is not evidence that it did.
 
-## Activating: only ever needed once
+## Deploying the reserve: only ever needed once
+
+Called "activation" by the API, whose endpoint is `/activate`. To a user, say
+**deploy your reserve**: they will hear "activate" as the thing they already did
+when they enabled STAQ, and then wonder why it needs doing twice.
 
 A reserve address is derived on chain before any contract exists at it, and
 saving is a plain transfer, which deploys nothing. So a user who has only ever

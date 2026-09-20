@@ -434,7 +434,20 @@ Two limits, because a simulation proves less than it appears to:
 
 ---
 
-## Activating a reserve: once per user, ever
+## Deploying a reserve: once per user, ever
+
+**Three different things get called "turning STAQ on", and only the middle one is
+what a user means.** Keep them apart when you talk to them:
+
+| | What it does | What it costs |
+|---|---|---|
+| **Installing** this skill | gives you these instructions. Saves nothing, signs nothing | nothing |
+| **Enabling** a rule | what the user means by turning STAQ on. Saving starts here | a signature, no gas |
+| **Deploying** the reserve | puts the contract at the reserve address so it can pay out | about a cent of gas, and 0.000001 USDC |
+
+The endpoint for the third is named `/activate`, which is why this section used to
+be called activation. Say "deploy your reserve" to a user, because "activate"
+sounds like the thing they already did when they enabled.
 
 A first claim may need the reserve to be deployed first. A reserve address
 is derived on chain before any contract exists at it, and saving is a plain
