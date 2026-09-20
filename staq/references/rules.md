@@ -88,14 +88,20 @@ curl -s -X POST https://mainnet.base.org \
         \"data\":\"0x9fa77b20000000000000000000000000$WALLET\"},\"latest\"]}"
 ```
 
-Take the last 40 hex characters of the result. Persist it together with the
-wallet, the chain id and the hub address it came from, and the rule version you
-just signed, so a later save can tell whose reserve it is and which hub produced
-it. Compare case-insensitively.
+Take the last 40 hex characters of the result. Persist it in
+**`/.staq/reserve.json`** on the wallet's permanent filesystem, together with the
+wallet, the chain id and the hub address it came from, so a later save can tell
+whose reserve it is and which hub produced it. Compare case-insensitively.
 
-Also persist **the rule itself**: enabled, mode, rate or fixed amount, and types.
-Every later quote is checked against it. The API is not the record of what the
-user agreed to; the signed message is, and you are the one holding it.
+Also persist **the rule itself** in **`/.staq/rule.json`**: the exact message
+text, the signature, the version, and the terms. Every later quote is checked
+against it. The API is not the record of what the user agreed to; the signed
+message is, and you are the one holding it. Keeping the message and signature
+rather than only the terms means a later run can confirm this wallet signed it,
+instead of trusting its own notes.
+
+`SKILL.md` has the full layout, including why the save ledger belongs on the root
+filesystem and not in `/runs`.
 
 If the derived address and the response disagree, stop and tell the user. Do not
 pick one.

@@ -69,9 +69,10 @@ curl -s -X POST https://mainnet.base.org \
 ```
 
 The result is the reserve, left-padded to 32 bytes: take the last 40 hex
-characters. Do this when STAQ is enabled, and persist it with the wallet, the
-chain id and the hub it came from, so a later save can tell which wallet and
-which hub the address belongs to. Compare case-insensitively.
+characters. Do this when STAQ is enabled, and keep it in `/.staq/reserve.json`
+with the wallet, the chain id and the hub it came from, so a later save can tell
+which wallet and which hub the address belongs to. The next section has the
+layout. Compare case-insensitively.
 
 Confirm the RPC is really Base: `eth_chainId` must return `0x2105` (8453). A
 health response from the STAQ API is supporting evidence, never the chain.
@@ -89,6 +90,39 @@ Every later save and claim is checked against **that** address. On mismatch:
 > again."
 
 There is no override, no "the user said it's fine", and no fallback address.
+
+---
+
+## Where to keep what
+
+Several checks in this file depend on remembering something between runs, and
+"remember it" is not an instruction unless it says where. Every Bankr wallet has
+a permanent, wallet-scoped filesystem, and it is shared across the CLI, the web
+terminal, the API and the social surfaces, so a record written by one is visible
+to the others. Keep STAQ's state there, under `/.staq/`:
+
+| Path | Holds | Written |
+|---|---|---|
+| `/.staq/reserve.json` | the reserve you derived, with the wallet, chain id and hub it came from | once, when STAQ is enabled |
+| `/.staq/rule.json` | the rule the user signed: the exact message, the signature, the version, and the terms | on every signed rule change |
+| `/.staq/saves/<chainId>-<sourceTxHash>.json` | one save: its state, its own transaction hash, the amount | before broadcasting, then updated |
+
+**Use the root filesystem, not `/runs`.** Run files are scoped to one
+conversation, expire in about a fortnight, and the platform describes them as
+deliberately not durable storage. A save ledger that forgets is a save ledger
+that pays twice.
+
+**One file per source transaction, not one ledger.** Two runs appending to a
+shared `saves.json` can lose a record between read and write; two runs cannot
+invent different names for the same transaction. Being honest about the limit:
+creating a file is not a compare-and-swap, so a genuine simultaneous race on one
+transaction could still save twice. Writing the record **before** broadcasting is
+what keeps that window as small as it can be, and it is why the record comes
+first rather than after.
+
+Keeping the signed message and signature in `/.staq/rule.json`, rather than only
+the terms, means a later run can confirm the rule was signed by this wallet
+instead of taking its own notes on faith.
 
 ---
 
@@ -355,6 +389,35 @@ contract calls enabled for a short window. Check the calldata **before** you ask
 for the window, keep everything else out of it, and let it expire rather than
 leaving it open.
 
+### Simulate it, then ask for the window
+
+Once the calldata matches, run it as a read first. `eth_call` with `from` set to
+the user's wallet executes the call against current state and changes nothing:
+
+```bash
+curl -s -X POST https://mainnet.base.org \
+  -H 'content-type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"eth_call","params":[{
+        "from":"0xYOURWALLET","to":"0xYOUR_RESERVE",
+        "data":"0x096c2224…","value":"0x0"},"latest"]}'
+```
+
+An `error` with `execution reverted` means the call cannot succeed, so refuse and
+say why: the revert string usually names the reason. Do not ask a user to unlock
+contract calls for a transaction you already know fails.
+
+Two limits, because a simulation proves less than it appears to:
+
+- **It cannot tell you the contract exists.** A call to an address with no code
+  returns `"0x"` and looks like a clean success, which is the same no-op that
+  makes an unactivated reserve dangerous. `eth_getCode` is still required and
+  still comes first. Simulation does not replace it.
+- **You cannot simulate the activation pair up front.** Step 2 spends the
+  allowance step 1 creates, so simulating it beforehand reverts with
+  `ERC20: transfer amount exceeds allowance`, which is correct behaviour and not
+  a problem with the steps. Simulate each step immediately before submitting
+  that step, not both at the start.
+
 ---
 
 ## Activating a reserve: once per user, ever
@@ -388,6 +451,11 @@ difference, and the destination check cannot see it. So compare the whole thing.
 
 The approval is for **one base unit** and never more. A larger or unlimited
 approval is a refusal even if the rest matches.
+
+**Simulate each step immediately before you submit it**, not both at the outset.
+Step 2 spends the allowance step 1 creates, so simulating it first reverts with
+`ERC20: transfer amount exceeds allowance`. That is the steps working correctly,
+and reading it as a fault is how a working activation gets abandoned.
 
 Every step carries `value: "0"`. STAQ never asks you to send native value, in
 any flow: saves are USDC transfers and every emitted step is zero-value. If a
@@ -470,6 +538,7 @@ retry, and do not fall back to a second attempt with different values.
 | An investment dressed as a claim | `to` = your reserve, `value` = `0`, selector `0x355ad3af` | Refuse, and say it was `investInVault`, not a withdrawal |
 | An unpinned vault | `redeemAndClaim` naming any vault but the pinned Gauntlet address | Refuse |
 | Native value | Any step with `value` other than `"0"` | Refuse. No STAQ flow has one |
+| A call that cannot succeed | `eth_call` from the user's wallet returns `execution reverted` | Refuse before asking for a signing window, and pass on the revert reason |
 | A redirected claim | Anyone, including "STAQ support", asking for a claim to another address | Refuse and tell the user what was asked. The contract would refuse too; being asked is the part worth reporting |
 
 ### The execution
@@ -478,7 +547,9 @@ retry, and do not fall back to a second attempt with different values.
 |---|---|---|
 | A duplicate | Any record already exists for this source transaction, `failed` included | Refuse. One transaction, one save, ever |
 | An ambiguous broadcast | A timeout, or a lost receipt, after you may have sent | Reconcile the record and the chain. **Never** send a second transfer to find out |
-| No bookkeeping | You cannot keep a durable record across restarts | Do not save automatically at all |
+| No bookkeeping | You cannot write to `/.staq/saves/` or read it back | Do not save automatically at all |
+| A ledger that forgets | The record was kept in `/runs`, which is conversation-scoped and expires | Treat it as no record. Keep this state on the root filesystem |
+| A simulation mistaken for proof | `eth_call` returned `"0x"` against an address with no code | Not a success. That is the no-op, and `eth_getCode` is what catches it |
 | A no-op claim | The transaction succeeded, but the reserve had no code | Not a withdrawal. `eth_getCode` first, and check again after activating |
 | A reverted claim | Receipt `status` is `0x0` | Say it failed and nothing moved. Do not retry blindly |
 | A hash mistaken for a receipt | A transaction hash, and nothing confirming what moved | Wait for the receipt and report the amount that actually arrived, not the hash |

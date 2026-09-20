@@ -98,9 +98,11 @@ not address any of those.
 
 So the record has to be yours, and it has to exist before the transfer does:
 
-1. **Before broadcasting**, write a durable record keyed by chain id, wallet and
-   **source transaction hash**, marked `attempted`. Durable means it survives a
-   restart, and if several workers can act for one wallet they must share it.
+1. **Before broadcasting**, write a durable record at
+   **`/.staq/saves/<chainId>-<sourceTxHash>.json`**, marked `attempted`. The
+   wallet's root filesystem is permanent and shared across every surface the
+   agent runs on, so a record written by one run is visible to the next and to a
+   concurrent one. Not `/runs`, which is scoped to a conversation and expires.
 2. Broadcast, then update it to `pending` with the save's own transaction hash,
    and to `confirmed` or `failed` when you know.
 3. **Any existing record refuses a new attempt**, `failed` included. A save is

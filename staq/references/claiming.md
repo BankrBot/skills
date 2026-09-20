@@ -33,10 +33,16 @@ The user asks. You confirm. Their own wallet signs.
    code    -> owner() must be the user's wallet
 4. POST /v1/wallets/:addr/claim with a signed STAQ claim v1 message
 5. Rebuild the expected calldata and compare. Mismatch -> STOP, tell the user
-6. Only now ask them to enable arbitrary contract calls, for as short a
+6. Simulate it: eth_call with from = the wallet. Reverts -> STOP, say why
+7. Only now ask them to enable arbitrary contract calls, for as short a
    window as will do, and keep everything else out of it
-7. Execute, wait for the receipt, let the window expire
-8. Report what actually moved, not just a hash
+8. Execute, wait for the receipt, let the window expire
+9. Report what actually moved, not just a hash
+
+Steps 3, 5 and 6 are three different questions and none of them answers another.
+`eth_getCode` asks whether there is a contract at all, the calldata comparison
+asks whether this is the call the user asked for, and the simulation asks whether
+that call can succeed right now. A claim can pass any two and fail the third.
 ```
 
 **`eth_getCode`, not `reserve.deployed`.** The API's flag is a claim about the
@@ -95,6 +101,10 @@ and you can rebuild both because you know every argument of both:
   A non-zero value did not come from STAQ.
 - **The approval is for one base unit**, which the allocate then spends. A larger
   or unlimited approval is a refusal even if everything else matches.
+- **Simulate each step just before submitting it.** Not both up front: step 2
+  spends the allowance step 1 creates, so simulating it early reverts with
+  `ERC20: transfer amount exceeds allowance`. That is the pair working, and
+  treating it as a failure abandons a working activation.
 
 Once `reserve.deployed` is true it stays true, and no user ever does this
 twice.
