@@ -238,7 +238,7 @@ Omit `threadId` to start a new conversation. CLI equivalent: `bankr agent prompt
 
 - **Read endpoints** (`/wallet/me`, `/wallet/portfolio`) — any valid API key with a wallet
 - **Swap quote** (`/wallet/swap-quote`) — a quote is a read, so read-only API keys are allowed; API-key callers still need `walletApiEnabled`
-- **Write endpoints** (`/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`) — require `walletApiEnabled` and reject read-only keys. `/wallet/transfer` also enforces `allowedRecipients`; `/wallet/swap` does not (output returns to your own wallet). `/wallet/submit` is checked against your **wallet security settings** too — spend limits on the native `value`, permitted recipients on `to` when `value > 0`, and the arbitrary-contract-calls switch — returning `403` with a machine-readable `errorCode` (see [references/sign-submit-api.md](references/sign-submit-api.md))
+- **Write endpoints** (`/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`) — require `walletApiEnabled` and reject read-only keys. `/wallet/transfer` also enforces `allowedRecipients`; `/wallet/swap` does not (output returns to your own wallet). `/wallet/submit` is checked against your **wallet security settings** too — spend limits on the native `value`, permitted recipients on `to` when `value > 0`, and the arbitrary-contract-calls switch — returning `403` either with a machine-readable `errorCode` (the guard's limit/recipient/pricing rejections) or with a plain message and no code (paused wallet, arbitrary calls off), so handle both shapes (see [references/sign-submit-api.md](references/sign-submit-api.md))
 - IP allowlist enforced on all endpoints
 
 #### Recipient & user lookup helpers (public, no auth)

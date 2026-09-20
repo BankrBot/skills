@@ -164,7 +164,16 @@ Raw submissions are checked against the same wallet-level security settings as a
 - The wallet's **permitted-recipients** allowlist is enforced on `to`, but only when `value > 0`. Calldata with no native value counts as **$0** and is not recipient-checked, because the recipient can't be read out of arbitrary calldata.
 - **"Enable arbitrary contract calls" must be on.** While it is off, `/wallet/submit` is blocked outright.
 
-The `403` body carries a machine-readable `errorCode` alongside the user-facing `error`:
+**A 403 comes back in one of two shapes — handle both.** The pause and arbitrary-contract-calls switches are checked at the route, before the safety guard runs, so they answer with a plain message and **no `errorCode`**:
+
+| `error` | Cause |
+|---------|-------|
+| `Wallet paused` | All wallet transactions are paused in Security settings |
+| `Arbitrary contract calls disabled` | The arbitrary-contract-calls switch is off |
+| `Read-only API key` | The key cannot submit transactions |
+| `Restricted API key` | The **key's** `allowedRecipients` is set — see the note below |
+
+Everything the safety guard rejects carries a machine-readable `errorCode` alongside the user-facing `error`:
 
 | `errorCode` | Meaning |
 |-------------|---------|
@@ -173,9 +182,8 @@ The `403` body carries a machine-readable `errorCode` alongside the user-facing 
 | `RECIPIENT_NOT_PERMITTED` | `to` is not on the permitted-recipients allowlist |
 | `RECIPIENT_COOLDOWN` | `to` was allowlisted recently and is still inside its cooldown |
 | `PRICING_UNAVAILABLE` | USD pricing failed while a limit was enabled — fail-closed, not waved through |
-| `PAUSED` | The wallet has all transactions paused |
 
-Branch on `errorCode`, not on the message text. Note that a key configured with **allowed recipients on the API key itself** still blocks *all* raw submissions (the key-level list can't be verified from calldata) — that is separate from the wallet-level list above. Use `/agent/prompt` when you need key-level allowed recipients enforced.
+Branch on `errorCode` where there is one, and don't treat its absence as "not a security rejection" — a paused wallet is a 403 with no code. Never branch on the message text. Note that a key configured with **allowed recipients on the API key itself** still blocks *all* raw submissions (the key-level list can't be verified from calldata) — that is separate from the wallet-level list above. Use `/agent/prompt` when you need key-level allowed recipients enforced.
 
 ### Request Examples
 
