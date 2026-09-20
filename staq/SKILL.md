@@ -124,6 +124,12 @@ Keeping the signed message and signature in `/.staq/rule.json`, rather than only
 the terms, means a later run can confirm the rule was signed by this wallet
 instead of taking its own notes on faith.
 
+**Compare the stored values, not your summary of them.** Reading a state file back
+and describing it is not the same as using it: a rate rendered as prose and then
+compared against a quote is a check that has quietly stopped happening. Parse the
+file and compare the fields, exactly as you would a value arriving from the API,
+which is the same rule as "pass values, never prose" applied to your own notes.
+
 ---
 
 ## The fee, stated up front
