@@ -336,11 +336,13 @@ Create and manage your public project page (the pages listed at [bankr.bot/termi
 |---------|-------------|
 | `bankr project` | View your project page (`--json` for raw output) |
 | `bankr project create` | Create a project page (interactive, or `--name/--description/--token/--image/--website`) |
-| `bankr project update` | Update fields (`--slug` to target a specific page) |
-| `bankr project add-update` | Post a timeline update (`--title`, `--content`) |
-| `bankr project delete` | Delete a project page |
+| `bankr project update` | Update fields (`--slug`, required once the wallet holds more than one project) |
+| `bankr project add-update` | Post a timeline update (`--title`, `--content`, `--slug`) |
+| `bankr project delete` | Delete a project page (`--slug`) |
 
-Formerly `bankr agent profile`. That spelling and the older top-level `bankr profile` still work as hidden deprecated aliases that print a warning. The REST paths (`/agent/profile`, `/agent-profiles`), JSON field names and socket events are unchanged — only the CLI wording moved. See [references/agent-profiles.md](references/agent-profiles.md).
+A wallet can hold more than one project page — that's what `--slug` disambiguates.
+
+Formerly `bankr agent profile`. That spelling and the older top-level `bankr profile` still work as hidden deprecated aliases that print a warning. The rename moved the CLI wording only: the REST paths (`/agent/profile`, `/agent-profiles`), JSON field names and socket events are untouched by it. See [references/agent-profiles.md](references/agent-profiles.md) for the REST surface, including the slug-addressed and `multi=true` variants.
 
 ### `bankr tokens` — Token Discovery
 
@@ -1575,6 +1577,9 @@ All endpoints require API key authentication via `X-API-Key` header.
 | `PUT` | `/agent/profile` | Update profile fields |
 | `DELETE` | `/agent/profile` | Delete own profile |
 | `POST` | `/agent/profile/update` | Add a project update |
+| `GET` | `/agent/profile/token-eligibility?address=0x…` | Check a token can be linked before saving |
+
+These are the **single-profile forms**. A wallet may hold several projects: `?multi=true` makes `GET` return an array and lets `POST` create an additional profile (without it, a second `POST` is a `409`), and the writes take an optional slug — `PUT|DELETE /agent/profile/{slug}`, `POST /agent/profile/{slug}/update`.
 
 **Create profile:**
 ```bash

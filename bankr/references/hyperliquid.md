@@ -19,15 +19,19 @@ Hyperliquid is a high-performance L1 DEX with an on-chain order book. It support
 
 Perps trading requires USDC in the perps account. Bankr auto-transfers from spot to perps when needed.
 
-**Unified accounts share one USDC pool.** Hyperliquid accounts in **unified account** or **portfolio margin** mode hold a single USDC collateral balance backing both spot and perps, instead of two separately funded accounts. Bankr detects the mode and adapts:
+> **In practice your account is a unified account, and the split above no longer describes it.** Before placing any perps or spot order, Bankr puts the managed wallet into Hyperliquid's **unified account** mode — a single USDC collateral pool backing both spot and perps. So the two-account table above describes a wallet that has never traded through Bankr; from the first order onward, expect the shared pool. If the mode can't be read or the switch fails, **the order is refused** rather than placed ("Could not enable Hyperliquid unified account. No order was placed.") — treat that as a hard failure, not something to retry blindly.
 
-| | Separate spot / perps | Unified account / portfolio margin |
+What changes once the wallet is unified:
+
+| | Never-traded (split spot / perps) | Unified account (after the first order) |
 |---|---|---|
 | Balance display | `Perps Account` block — account value, margin used, withdrawable | One shared block — `USDC Balance` and `Available USDC after holds and margin` |
 | Spot → perps transfer | Moves USDC between the two accounts | Not needed — the request is declined as a no-op, nothing is submitted |
 | Funding a perps trade | May auto-transfer from spot first | Draws on the shared pool directly |
 
-Don't assume a `Perps Account` block will be present when parsing balance output, and don't script a spot-to-perps transfer as a precondition for opening a position — on a shared-collateral account it is unnecessary and won't execute.
+Parse balance output for the shared block first and treat the `Perps Account` block as the legacy shape, not the default. Never script a spot-to-perps transfer as a precondition for opening a position: on a unified account it is unnecessary and won't execute.
+
+> **Portfolio margin is not the same thing, and is not supported for trading.** A `portfolioMargin` account also reports one shared USDC pool for *balance reads*, but Bankr **refuses to place spot or perps orders** on it — "Portfolio margin accounts are not supported for this operation." Don't treat the two shared-collateral modes as interchangeable: they read alike and behave differently on writes.
 
 > **Hyperliquid requires a Bankr-managed wallet.** Signing is refused for connected/external wallets with "Hyperliquid signing is only supported for Bankr-managed wallets" — the connected wallet's settings are left untouched.
 
@@ -170,8 +174,10 @@ Hyperliquid is a trading **venue**, not a chain, so moving USDC in and out of it
 | Issue | Resolution |
 |-------|------------|
 | Insufficient USDC on HL | Deposit USDC from any supported source chain |
-| USDC in spot, not perps | Transfer spot to perps (auto-handled for perps trades). On a unified/portfolio-margin account there is nothing to transfer — the one USDC pool already backs perps |
-| "Shares its balance across spot and perps" on a transfer | Expected on a unified/portfolio-margin account; no transfer is needed and none was submitted |
+| USDC in spot, not perps | Only applies to a wallet that hasn't traded yet. On a unified account there is nothing to transfer — the one USDC pool already backs perps |
+| "Shares its balance across spot and perps" on a transfer | Expected on a unified or portfolio-margin account; no transfer is needed and none was submitted |
+| "Could not enable Hyperliquid unified account. No order was placed." | The account-mode switch failed; nothing was submitted. Don't retry blindly — check the venue is reachable first |
+| "Portfolio margin accounts are not supported for this operation." | Trading is refused on a portfolio-margin account; only balance reads work |
 | Hyperliquid signing refused | The venue needs a Bankr-managed wallet; connected/external wallets can't sign for it |
 | Asset not found | Check available assets, use correct symbol |
 | Leverage exceeds max | Each asset has its own max leverage |

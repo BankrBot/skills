@@ -74,7 +74,22 @@ bankr project delete   # Requires confirmation
 
 ## REST API Endpoints
 
-All endpoints under `/agent/profile` require API key authentication (`X-API-Key` header).
+All endpoints under `/agent/profile` require API key authentication (`X-API-Key` header) and `agentApiEnabled`.
+
+### One wallet can hold several projects
+
+The endpoints below describe the **single-profile (v2-compat) contract**, which is what you get when you send no `multi` parameter. A wallet can hold more than one project page, and the multi-profile contract is opt-in per request:
+
+| Request | Default (no `multi`) | With `?multi=true` |
+|---------|----------------------|--------------------|
+| `GET /agent/profile` | Returns one profile object | Returns an **array** of every profile on the wallet |
+| `POST /agent/profile` | Refuses a second profile with `409` | Creates an additional profile |
+
+Once a wallet holds more than one, the write endpoints take an optional slug to say which one you mean — `PUT /agent/profile/{slug}`, `DELETE /agent/profile/{slug}` and `POST /agent/profile/{slug}/update`. The slugless forms (`PUT /agent/profile`, `POST /agent/profile/update`) still work and address the single profile. On the CLI this is the `--slug` flag, required once you have more than one project.
+
+`GET /agent/profile/token-eligibility?address=0x…` checks whether a token can be linked to one of the wallet's profiles before you try to save it — same rule as the create/update path (the wallet deployed the token through Bankr, or is one of its fee beneficiaries). Eligibility is partly on-chain, so call this rather than reproducing the rule client-side; the `403` on save is still the final guard.
+
+**The [OpenAPI spec](https://docs.bankr.bot/openapi/bankr-api.yaml) is authoritative for these shapes** and documents the slug and `multi` variants in full.
 
 ### GET /agent/profile
 

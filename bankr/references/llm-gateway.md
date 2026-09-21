@@ -80,7 +80,7 @@ bankr config get llmKey
 | `grok-4.20` | xAI | Deep reasoning, largest context (2M context) |
 | `grok-4.5` | xAI | Previous balanced multimodal (500K context, image input) |
 | `grok-4.3` | xAI | Balanced performance (1M context) |
-| `grok-4.1-fast` | xAI | Fast, economical, largest context (2M) |
+| ~~`grok-4.1-fast`~~ | xAI | **Deprecated** — use `grok-4.3` |
 | `deepseek-v4.1-flash` | DeepSeek | Mid-tier Flash — agents, coding, vision (1M, image input) |
 | `deepseek-v4-pro-0813` | DeepSeek | Frontier, high-capacity reasoning (1M) |
 | `deepseek-v4-pro` | DeepSeek | Previous V4 Pro build, 0423 (1M, 384K output) |

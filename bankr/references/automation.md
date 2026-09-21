@@ -130,7 +130,9 @@ bankr agent prompt "Show my automations"
 bankr agent prompt "Cancel my ETH limit order"
 ```
 
-**An API key can create automations on its own** — no web-terminal step is required first. The automation binds to the wallet behind the API key at creation, and every later scheduled run executes against that same wallet. An answer telling you to provision the automation wallet in the web terminal is not a real precondition; retry, and report it if it persists.
+**An API key can create automations on its own** — no web-terminal step is required first. The automation binds to the wallet behind the API key at creation, and every later scheduled run executes against that same wallet.
+
+> **Creating an automation is not idempotent — never retry it blind.** The same prompt sent twice can leave two live schedules on the same wallet, so a duplicated DCA spends twice. If a create appears to fail, **list your automations first** (`bankr agent prompt "Show my automations"`) and only re-send if the automation genuinely isn't there. This applies to any failure mode, including an answer claiming the automation wallet must be provisioned in the web terminal.
 
 The `/user/automation/*` REST endpoints you may see referenced are **Bankr Terminal session endpoints**, not part of the API-key surface — an `X-API-Key` request to them will not authenticate. Use `/agent/prompt` for API-key integrations.
 

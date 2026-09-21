@@ -316,7 +316,18 @@ Fee claiming, creator vesting and the launches feed all understand `bankr_v3` to
 
 Both write paths refuse with `403` unless `account` (or the signed-in wallet) **is** the current fee recipient, and with `400` if `newRecipient` already is it. The transfer moves *future* fee rights only — the creator-vesting allocation stays with the recipient recorded at launch (see the vesting table below).
 
-> **This split is the rule across `/launch-v3/*`**, not a one-off. Every `…/build`, `…/build-claim`, `…/build-stake` and `…/build-unstake` endpoint is public and returns an unsigned transaction; the matching bare verbs (`/recipient/transfer`, `/operator/grant`, `/holders/claim`, `/holders/stake`, `/holders/unstake`) are custodial and session-authenticated. **From an API key, reach for the `build` variant and sign it yourself.** (`POST /token-launches/:tokenAddress/fees/claim` is the separate API-key-gated fee claim and is unaffected.)
+> **This split is the rule across `/launch-v3/*`**, not a one-off — each custodial, session-authenticated write has a public unsigned-transaction builder beside it:
+>
+> | Public builder | Custodial (session-only) counterpart |
+> |---|---|
+> | `POST /launch-v3/:tokenAddress/recipient/build` | `…/recipient/transfer` |
+> | `POST /launch-v3/:tokenAddress/operator/build` | `…/operator/grant` |
+> | `POST /launch-v3/:tokenAddress/holders/build-claim` | `…/holders/claim` |
+> | `POST /launch-v3/:tokenAddress/holders/build-stake` | `…/holders/stake` |
+> | `POST /launch-v3/:tokenAddress/holders/build-unstake` | `…/holders/unstake` |
+> | `POST /launch-v3/:tokenAddress/fees/build-claim` | — (see below) |
+>
+> **From an API key, reach for the builder and sign it yourself.** Note `fees/build-claim` and `holders/build-claim` are different endpoints — the first is the pool fee claim, the second the holder-vest claim. `POST /token-launches/:tokenAddress/fees/claim` is the separate API-key-gated fee claim and is unaffected by this split.
 
 ### Creator Vesting (on by default, fixed at launch)
 

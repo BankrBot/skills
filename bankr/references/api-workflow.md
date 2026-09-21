@@ -16,7 +16,9 @@ bankr agent status <jobId>                      # check a specific job
 bankr agent cancel <jobId>                      # cancel a running job
 ```
 
-**Progress trail** (`@bankr/cli` 0.3.40+): `bankr agent prompt` prints each `statusUpdates` line as the run progresses instead of just an elapsed-time counter, and `bankr agent status <jobId>` shows the same trail. Progress goes to **stderr**, so piping stays clean — `bankr agent prompt "..." > out.txt` captures only the final response.
+**Progress trail** (`@bankr/cli` 0.3.40+): `bankr agent prompt` prints each `statusUpdates` line as the run progresses, instead of just an elapsed-time counter. The live progress is drawn on **stderr**, so piping stays clean — `bankr agent prompt "..." > out.txt` captures only the final response.
+
+`bankr agent status <jobId>` shows the same trail for a job you already submitted, as part of its status output. Add `-w` / `--wait` to follow a still-running job until it finishes, printing progress as it arrives, rather than returning a single snapshot.
 
 ## Using the REST API Directly
 
