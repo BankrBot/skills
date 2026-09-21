@@ -241,41 +241,49 @@ The CLI stores keys in `~/.bankr/config.json`:
 - Use `bankr logout` to clear stored credentials when done on a shared machine
 - For CI/CD, prefer environment variables (`BANKR_API_KEY`, `BANKR_LLM_KEY`) over config files
 
-### Host-Injected Credentials (no key on disk)
+### Host-Managed Credentials (no key on disk)
 
-Sandboxed agents — cloud VMs, hosted assistants, CI runners — normally hold the
-key in the host's own credential store and inject it as an environment variable.
-Nothing is written to `~/.bankr/config.json`, and that is the correct setup: a
-key on disk outlives the task, survives into snapshots and backups, and can be
-read by anything else sharing the filesystem.
+Sandboxed agents — cloud VMs, hosted assistants, CI runners — do not keep the key
+in `~/.bankr/config.json`. The host holds it and supplies it one of two ways:
 
-`BANKR_API_KEY` takes precedence over the stored config, so an injected key works
-with no setup step at all:
+**Process injection.** The key is set as `BANKR_API_KEY` in the agent's
+environment. `BANKR_API_KEY` takes precedence over the stored config, so this
+works with no setup step:
 
 ```bash
 # The host injects BANKR_API_KEY. No `bankr login`, no config file.
 bankr whoami
-bankr portfolio
-
-# REST works the same way.
 curl -s https://api.bankr.bot/wallet/portfolio -H "X-API-Key: $BANKR_API_KEY"
 ```
 
-Rules for this mode:
+**Network-boundary injection.** The agent is handed a *surrogate* token and an
+egress proxy swaps it for the real credential on the way out, so the real key
+never enters the agent's process at all. Meta's Muse works this way: the runtime
+"only ever sees a 'surrogate' token", and the proxy will "replace any surrogate
+tokens with the real credential ... at the network boundary". The commands above
+are unchanged — the substitution is invisible to you.
 
-- **Do not run `bankr login`.** It writes the key to disk, which is the thing
-  this setup avoids. The env var already authenticates every command.
-- **Never read the key out of `~/.bankr/config.json`,** and never echo
-  `BANKR_API_KEY` into logs, transcripts or chat. Pass it by reference
-  (`$BANKR_API_KEY`, `process.env.BANKR_API_KEY`), never by value.
-- **If a key was already written to disk** — an earlier interactive login, say —
-  add it to the host's store, confirm the env var alone works, then run
-  `bankr logout` to clear the on-disk copy.
-- **A missing or rejected key is the host's to fix, not yours.** Unset means the
-  host never injected it; a `401` means the key is invalid, inactive or revoked;
-  a `403` means it is blocked by an IP allowlist or the account is suspended. Ask
-  the user to update the credential in the host's store. Do not work around it by
-  logging in, and do not mint a second key — see Rotation & Revocation below.
+Rules for both modes:
+
+- **Do not run `bankr login`.** It writes a credential to disk, which is what
+  these setups avoid. The host already authenticates every request.
+- **Treat the value you hold as opaque.** Never echo it, log it, paste it into
+  chat, or copy it elsewhere. Pass it by reference (`$BANKR_API_KEY`,
+  `process.env.BANKR_API_KEY`), never by value.
+- **Do not validate its shape.** Under network-boundary injection the value is a
+  surrogate and will not look like a `bk_...` key. That is correct and is not a
+  misconfiguration to repair.
+- **Send requests through the host's normal egress.** Reaching the API by some
+  other path — a raw socket, a different hostname, an outside relay — bypasses
+  the proxy that attaches the credential, and the call arrives unauthenticated.
+- **Never read the key out of `~/.bankr/config.json`.** If a key was written
+  there by an earlier interactive login, add it to the host's store, confirm the
+  host alone authenticates, then run `bankr logout` to clear the on-disk copy.
+- **A missing or rejected credential is the host's to fix, not yours.** A `401`
+  means invalid, inactive or revoked; a `403` means an IP allowlist or a
+  suspended account. Ask the user to update it in the host's credential store.
+  Do not work around it by logging in, and do not mint a second key — see
+  Rotation & Revocation below.
 
 ### Non-Interactive Login
 
