@@ -249,13 +249,21 @@ process**, as `BANKR_API_KEY`, or **at the network layer**, where an egress prox
 attaches it to outbound requests. Where the value is a stand-in it will not look
 like a `bk_...` key; that is correct, not a misconfiguration.
 
-You do not need to know which. Attach `BANKR_API_KEY` when it is set; when it is
-not, send the request without it and let the proxy do its job:
+**When `BANKR_API_KEY` is set**, use the CLI as normal — it reads the variable
+itself, and needs no `bankr login`:
 
 ```bash
-curl -s https://api.bankr.bot/wallet/portfolio -H "X-API-Key: $BANKR_API_KEY"
+bankr whoami
+bankr wallet portfolio
+bankr agent "swap 10 USDC for ETH"
+```
 
-# Where the proxy attaches the credential, this is the correct call.
+**When it is unset and a proxy attaches the credential**, the CLI cannot be used:
+it requires a key in the environment or on disk and exits with "Not
+authenticated" before any request leaves the process, so the proxy never sees
+one. Call the API directly and let the proxy fill the header:
+
+```bash
 curl -s https://api.bankr.bot/wallet/portfolio
 ```
 
