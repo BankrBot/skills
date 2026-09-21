@@ -244,46 +244,60 @@ The CLI stores keys in `~/.bankr/config.json`:
 ### Host-Managed Credentials (no key on disk)
 
 Sandboxed agents — cloud VMs, hosted assistants, CI runners — do not keep the key
-in `~/.bankr/config.json`. The host holds it and supplies it one of two ways:
+in `~/.bankr/config.json`. The host holds it, and supplies it in one of three
+shapes. **Find out which one you are in before concluding anything is wrong.**
 
-**Process injection.** The key is set as `BANKR_API_KEY` in the agent's
-environment. `BANKR_API_KEY` takes precedence over the stored config, so this
-works with no setup step:
+**1. Real key in the environment.** `BANKR_API_KEY` holds the actual key and you
+attach it yourself. It takes precedence over the stored config, so no setup step
+is needed:
 
 ```bash
-# The host injects BANKR_API_KEY. No `bankr login`, no config file.
 bankr whoami
 curl -s https://api.bankr.bot/wallet/portfolio -H "X-API-Key: $BANKR_API_KEY"
 ```
 
-**Network-boundary injection.** The agent is handed a *surrogate* token and an
-egress proxy swaps it for the real credential on the way out, so the real key
-never enters the agent's process at all. Meta's Muse works this way: the runtime
-"only ever sees a 'surrogate' token", and the proxy will "replace any surrogate
-tokens with the real credential ... at the network boundary". The commands above
-are unchanged — the substitution is invisible to you.
+**2. Surrogate in the environment.** The variable is set, but its value is a
+stand-in. You attach it exactly as above; an egress proxy swaps it for the real
+credential on the way out, so the real key never enters your process. Meta's Muse
+works this way — the runtime "only ever sees a 'surrogate' token", and the proxy
+will "replace any surrogate tokens with the real credential ... at the network
+boundary".
 
-Rules for both modes:
+**3. Nothing in the environment.** The proxy attaches the credential itself. The
+correct request carries **no** key at all, and the variable is legitimately
+unset:
 
-- **Do not run `bankr login`.** It writes a credential to disk, which is what
-  these setups avoid. The host already authenticates every request.
-- **Treat the value you hold as opaque.** Never echo it, log it, paste it into
-  chat, or copy it elsewhere. Pass it by reference (`$BANKR_API_KEY`,
+```bash
+# Correct in this mode. The egress proxy adds the header.
+curl -s https://api.bankr.bot/wallet/portfolio
+```
+
+Rules:
+
+- **An unset `BANKR_API_KEY` is not proof that nothing is configured.** In mode 3
+  it is the expected state. Try the call before deciding: if it succeeds, the
+  host is authenticating you and there is nothing to fix. Never respond to an
+  empty variable by running `bankr login` or asking the user to paste a key.
+- **Do not send an empty header.** `-H "X-API-Key: "` with an unset variable is
+  worse than sending nothing — some proxies will not overwrite a header that is
+  already present, so the request arrives with an empty credential and fails.
+- **Do not validate the credential's shape.** In mode 2 the value is a surrogate
+  and will not look like a `bk_...` key. That is correct, not a misconfiguration.
+- **Treat the value as opaque.** Never echo it, log it, paste it into chat, or
+  copy it elsewhere. Pass it by reference (`$BANKR_API_KEY`,
   `process.env.BANKR_API_KEY`), never by value.
-- **Do not validate its shape.** Under network-boundary injection the value is a
-  surrogate and will not look like a `bk_...` key. That is correct and is not a
-  misconfiguration to repair.
-- **Send requests through the host's normal egress.** Reaching the API by some
-  other path — a raw socket, a different hostname, an outside relay — bypasses
-  the proxy that attaches the credential, and the call arrives unauthenticated.
-- **Never read the key out of `~/.bankr/config.json`.** If a key was written
-  there by an earlier interactive login, add it to the host's store, confirm the
-  host alone authenticates, then run `bankr logout` to clear the on-disk copy.
-- **A missing or rejected credential is the host's to fix, not yours.** A `401`
-  means invalid, inactive or revoked; a `403` means an IP allowlist or a
-  suspended account. Ask the user to update it in the host's credential store.
-  Do not work around it by logging in, and do not mint a second key — see
-  Rotation & Revocation below.
+- **Send requests through the host's normal egress.** A raw socket, a different
+  hostname or an outside relay bypasses the proxy that attaches or substitutes
+  the credential, so the call arrives unauthenticated.
+- **Do not run `bankr login`.** It writes a credential to disk, which is what all
+  three modes avoid. Never read the key out of `~/.bankr/config.json` either. If
+  one was written there by an earlier interactive login, add it to the host's
+  store, confirm the host alone authenticates, then `bankr logout`.
+- **A rejected credential is the host's to fix, not yours.** A `401` means
+  invalid, inactive or revoked; a `403` means an IP allowlist or a suspended
+  account. Ask the user to update it in the host's credential store. Do not work
+  around it by logging in, and do not mint a second key — see Rotation &
+  Revocation below.
 
 ### Non-Interactive Login
 
