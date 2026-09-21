@@ -246,15 +246,12 @@ The CLI stores keys in `~/.bankr/config.json`:
 Sandboxed agents — cloud VMs, hosted assistants, CI runners — do not keep the key
 in `~/.bankr/config.json`. The host holds it and supplies it either **in the
 process**, as `BANKR_API_KEY`, or **at the network layer**, where an egress proxy
-attaches it to outbound requests. Some hosts put a stand-in value in the
-environment and substitute the real one at the boundary.
+attaches it to outbound requests.
 
-You do not need to know which. `BANKR_API_KEY` takes precedence over the stored
-config, so when it is set you attach it as usual; when it is not, send the
-request without it and let the proxy do its job:
+You do not need to know which. Attach `BANKR_API_KEY` when it is set; when it is
+not, send the request without it and let the proxy do its job:
 
 ```bash
-bankr whoami
 curl -s https://api.bankr.bot/wallet/portfolio -H "X-API-Key: $BANKR_API_KEY"
 
 # Where the proxy attaches the credential, this is the correct call.
@@ -264,29 +261,20 @@ curl -s https://api.bankr.bot/wallet/portfolio
 Rules:
 
 - **An unset `BANKR_API_KEY` is not proof that nothing is configured.** Try the
-  call first: if it succeeds, the host is authenticating you and there is nothing
-  to fix. Never respond to an empty variable by running `bankr login` or asking
-  the user to paste a key.
-- **Do not send an empty header.** `-H "X-API-Key: "` with an unset variable is
-  worse than sending nothing — a proxy that only fills absent headers will leave
-  the empty value in place and the request fails.
-- **Do not validate the credential's shape.** Where the value is a stand-in it
-  will not look like a `bk_...` key. That is correct, not a misconfiguration.
-- **Treat the value as opaque.** Never echo it, log it, paste it into chat, or
-  copy it elsewhere. Pass it by reference (`$BANKR_API_KEY`,
-  `process.env.BANKR_API_KEY`), never by value.
-- **Send requests through the host's normal egress.** A raw socket, a different
-  hostname or an outside relay bypasses the proxy that attaches or substitutes
-  the credential, so the call arrives unauthenticated.
-- **Do not run `bankr login`.** It writes a credential to disk, which is what
-  these setups avoid. Never read the key out of `~/.bankr/config.json` either. If
-  one was written there by an earlier interactive login, add it to the host's
-  store, confirm the host alone authenticates, then `bankr logout`.
+  call first: if it succeeds, the host is authenticating you. Never respond to an
+  empty variable by running `bankr login` or asking the user to paste a key — and
+  do not send `-H "X-API-Key: "`, since a proxy that only fills absent headers
+  will leave the empty value in place.
+- **Treat the value as opaque.** Never echo, log or paste it; pass it by
+  reference. Where it is a stand-in it will not look like a `bk_...` key — that
+  is correct, not a misconfiguration.
+- **Use the host's normal egress.** A raw socket, a different hostname or an
+  outside relay bypasses the proxy that attaches the credential, so the call
+  arrives unauthenticated.
 - **A rejected credential is the host's to fix, not yours.** A `401` means
   invalid, inactive or revoked; a `403` means an IP allowlist or a suspended
-  account. Ask the user to update it in the host's credential store. Do not work
-  around it by logging in, and do not mint a second key — see Rotation &
-  Revocation below.
+  account. Ask the user to update it in the host's store — do not log in, and do
+  not mint a second key.
 
 ### Non-Interactive Login
 
