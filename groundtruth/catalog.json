@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "groundtruth",
+  "provider": "GROUNDTRUTH",
+  "providerUrl": "https://groundtruths.xyz",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "groundtruth.sh",
+    "language": "bash",
+    "code": "# What happened to this coin, and who made it? ($0.01, first 5 calls a day free)\nbankr prompt \"Using the groundtruth skill, pull the record for GCyzQVvCqHvE2pgAmKamDaZwL4rnT6QyuUG96fYYpump\"\n\n# The dev's track record ($0.01)\nbankr prompt \"Using the groundtruth skill, what is this creator's record: <wallet>\"\n\n# Before you ape\nbankr prompt \"Using the groundtruth skill, check this CA and show me the creator's rug count\""
+  },
+  "setup": [
+    "No install required: two plain HTTP GET endpoints behind x402 v2 (USDC, $0.01 per call, Base or Solana)",
+    "/v1/record?ca= (coin) and /v1/flag?addr= (creator) serve 5 free calls per IP per day, then 402",
+    "Discovery document: https://api.groundtruths.xyz/.well-known/x402",
+    "Read-only. Never reports a coin as safe: GREEN is a record band, not a safety rating"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "groundtruth",
+    "command": "install the groundtruth skill from https://github.com/BankrBot/skills/tree/main/groundtruth"
+  }
+}
