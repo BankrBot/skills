@@ -246,7 +246,8 @@ The CLI stores keys in `~/.bankr/config.json`:
 Sandboxed agents — cloud VMs, hosted assistants, CI runners — do not keep the key
 in `~/.bankr/config.json`. The host holds it and supplies it either **in the
 process**, as `BANKR_API_KEY`, or **at the network layer**, where an egress proxy
-attaches it to outbound requests.
+attaches it to outbound requests. Where the value is a stand-in it will not look
+like a `bk_...` key; that is correct, not a misconfiguration.
 
 You do not need to know which. Attach `BANKR_API_KEY` when it is set; when it is
 not, send the request without it and let the proxy do its job:
@@ -258,23 +259,11 @@ curl -s https://api.bankr.bot/wallet/portfolio -H "X-API-Key: $BANKR_API_KEY"
 curl -s https://api.bankr.bot/wallet/portfolio
 ```
 
-Rules:
-
-- **An unset `BANKR_API_KEY` is not proof that nothing is configured.** Try the
-  call first: if it succeeds, the host is authenticating you. Never respond to an
-  empty variable by running `bankr login` or asking the user to paste a key — and
-  do not send `-H "X-API-Key: "`, since a proxy that only fills absent headers
-  will leave the empty value in place.
-- **Treat the value as opaque.** Never echo, log or paste it; pass it by
-  reference. Where it is a stand-in it will not look like a `bk_...` key — that
-  is correct, not a misconfiguration.
-- **Use the host's normal egress.** A raw socket, a different hostname or an
-  outside relay bypasses the proxy that attaches the credential, so the call
-  arrives unauthenticated.
-- **A rejected credential is the host's to fix, not yours.** A `401` means
-  invalid, inactive or revoked; a `403` means an IP allowlist or a suspended
-  account. Ask the user to update it in the host's store — do not log in, and do
-  not mint a second key.
+**An unset `BANKR_API_KEY` is not proof that nothing is configured.** Try the call
+first: if it succeeds, the host is authenticating you. Never respond to an empty
+variable by running `bankr login` or asking the user to paste a key — and do not
+send `-H "X-API-Key: "`, since a proxy that only fills absent headers will leave
+the empty value in place.
 
 ### Non-Interactive Login
 
