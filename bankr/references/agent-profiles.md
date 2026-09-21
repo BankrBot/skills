@@ -2,7 +2,9 @@
 
 Create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects). Profiles showcase project info, team, token data with live charts, weekly fee revenue, products, GitHub activity, Ethos credibility, and activity.
 
-> The pages used to live at `/agents`; old `/agents` and `/agents/:token` links redirect to `/terminal/projects`, so existing links keep working. The CLI (`bankr agent profile`) and the REST surfaces (`/agent/profile`, `/agent-profiles`) are unchanged.
+> The pages used to live at `/agents`; old `/agents` and `/agents/:token` links redirect to `/terminal/projects`, so existing links keep working.
+
+> **The CLI calls these projects.** `bankr project` is the canonical command, matching what the terminal already calls these pages. It sits at the top level beside `bankr club` — a project page is account-level, not an agent operation. `bankr agent profile` and the older top-level `bankr profile` still work as hidden deprecated aliases that print a warning and run the same code; prefer `bankr project` in new scripts. **The REST paths (`/agent/profile`, `/agent-profiles`), the JSON field names and the socket events keep the older "profile" wording** — the rename is CLI-surface only, so nothing you parse changes.
 
 **Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create an agent profile. The token address is verified against your deployment and beneficiary history.
 
@@ -27,18 +29,18 @@ Create and manage public **project pages** at [bankr.bot/terminal/projects](http
 ### View Profile
 
 ```bash
-bankr agent profile              # Pretty-printed view
-bankr agent profile --json       # JSON output
+bankr project              # Pretty-printed view
+bankr project --json       # JSON output
 ```
 
 ### Create Profile
 
 ```bash
 # Interactive wizard
-bankr agent profile create
+bankr project create
 
 # Non-interactive with flags
-bankr agent profile create \
+bankr project create \
   --name "My Agent" \
   --description "AI-powered trading agent on Base" \
   --token 0x1234...abcd \
@@ -48,8 +50,8 @@ bankr agent profile create \
 ### Update Profile
 
 ```bash
-bankr agent profile update --description "Updated description"
-bankr agent profile update --token 0xNEW...ADDR
+bankr project update --description "Updated description"
+bankr project update --token 0xNEW...ADDR
 ```
 
 ### Add Project Updates
@@ -58,16 +60,16 @@ Project updates appear in a timeline on the profile detail page. Capped at 50 en
 
 ```bash
 # Interactive
-bankr agent profile add-update
+bankr project add-update
 
 # Non-interactive
-bankr agent profile add-update --title "v2 Launch" --content "Shipped new swap engine and portfolio dashboard"
+bankr project add-update --title "v2 Launch" --content "Shipped new swap engine and portfolio dashboard"
 ```
 
 ### Delete Profile
 
 ```bash
-bankr agent profile delete   # Requires confirmation
+bankr project delete   # Requires confirmation
 ```
 
 ## REST API Endpoints

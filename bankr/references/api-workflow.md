@@ -16,9 +16,13 @@ bankr agent status <jobId>                      # check a specific job
 bankr agent cancel <jobId>                      # cancel a running job
 ```
 
+**Progress trail** (`@bankr/cli` 0.3.40+): `bankr agent prompt` prints each `statusUpdates` line as the run progresses instead of just an elapsed-time counter, and `bankr agent status <jobId>` shows the same trail. Progress goes to **stderr**, so piping stays clean — `bankr agent prompt "..." > out.txt` captures only the final response.
+
 ## Using the REST API Directly
 
 Call the endpoints below with `curl`, `fetch`, or any HTTP client. All requests require an `X-API-Key` header.
+
+> **OpenAPI spec**: the full public surface is published at **`https://docs.bankr.bot/openapi/bankr-api.yaml`** (OpenAPI 3.0, served raw for code generators). It spans agent, wallet, tokens, launches, creator fees, project pages, files, Bankr Club, LLM credits, x402 Cloud and Webhooks, and records which key flag gates each operation. Fetch it when you need an exact schema or a route this reference doesn't cover. Both `X-API-Key: <key>` and `Authorization: Bearer <key>` are accepted on every authenticated endpoint.
 
 ### Core Pattern: Submit-Poll-Complete
 

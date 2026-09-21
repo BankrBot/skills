@@ -75,6 +75,8 @@ Pass the bare username for social handles (no `.eth` suffix even if the user's d
 
 **Social handle resolution** (agent only): handles are resolved to a linked wallet address before sending. The user must have linked a wallet to the social platform for resolution to succeed.
 
+> **Each platform must be linked explicitly.** Linking is per-platform and deliberate — a recipient who linked Farcaster is not also reachable by their X handle just because the two are verified against each other elsewhere. If a handle doesn't resolve, the recipient has to link *that* platform to their Bankr wallet; resolving the other one won't do it. Treat a failed handle lookup as "not linked on this platform", not as a transient error to retry.
+
 ## Amount Formats
 
 | Format | Example | Description |

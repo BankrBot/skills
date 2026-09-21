@@ -19,6 +19,18 @@ Hyperliquid is a high-performance L1 DEX with an on-chain order book. It support
 
 Perps trading requires USDC in the perps account. Bankr auto-transfers from spot to perps when needed.
 
+**Unified accounts share one USDC pool.** Hyperliquid accounts in **unified account** or **portfolio margin** mode hold a single USDC collateral balance backing both spot and perps, instead of two separately funded accounts. Bankr detects the mode and adapts:
+
+| | Separate spot / perps | Unified account / portfolio margin |
+|---|---|---|
+| Balance display | `Perps Account` block — account value, margin used, withdrawable | One shared block — `USDC Balance` and `Available USDC after holds and margin` |
+| Spot → perps transfer | Moves USDC between the two accounts | Not needed — the request is declined as a no-op, nothing is submitted |
+| Funding a perps trade | May auto-transfer from spot first | Draws on the shared pool directly |
+
+Don't assume a `Perps Account` block will be present when parsing balance output, and don't script a spot-to-perps transfer as a precondition for opening a position — on a shared-collateral account it is unnecessary and won't execute.
+
+> **Hyperliquid requires a Bankr-managed wallet.** Signing is refused for connected/external wallets with "Hyperliquid signing is only supported for Bankr-managed wallets" — the connected wallet's settings are left untouched.
+
 ## Supported Assets
 
 | Category | Examples | Max Leverage |
@@ -158,7 +170,9 @@ Hyperliquid is a trading **venue**, not a chain, so moving USDC in and out of it
 | Issue | Resolution |
 |-------|------------|
 | Insufficient USDC on HL | Deposit USDC from any supported source chain |
-| USDC in spot, not perps | Transfer spot to perps (auto-handled for perps trades) |
+| USDC in spot, not perps | Transfer spot to perps (auto-handled for perps trades). On a unified/portfolio-margin account there is nothing to transfer — the one USDC pool already backs perps |
+| "Shares its balance across spot and perps" on a transfer | Expected on a unified/portfolio-margin account; no transfer is needed and none was submitted |
+| Hyperliquid signing refused | The venue needs a Bankr-managed wallet; connected/external wallets can't sign for it |
 | Asset not found | Check available assets, use correct symbol |
 | Leverage exceeds max | Each asset has its own max leverage |
 | Margin update rejected | Only works on isolated positions |
