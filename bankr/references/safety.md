@@ -241,6 +241,42 @@ The CLI stores keys in `~/.bankr/config.json`:
 - Use `bankr logout` to clear stored credentials when done on a shared machine
 - For CI/CD, prefer environment variables (`BANKR_API_KEY`, `BANKR_LLM_KEY`) over config files
 
+### Host-Injected Credentials (no key on disk)
+
+Sandboxed agents — cloud VMs, hosted assistants, CI runners — normally hold the
+key in the host's own credential store and inject it as an environment variable.
+Nothing is written to `~/.bankr/config.json`, and that is the correct setup: a
+key on disk outlives the task, survives into snapshots and backups, and can be
+read by anything else sharing the filesystem.
+
+`BANKR_API_KEY` takes precedence over the stored config, so an injected key works
+with no setup step at all:
+
+```bash
+# The host injects BANKR_API_KEY. No `bankr login`, no config file.
+bankr whoami
+bankr portfolio
+
+# REST works the same way.
+curl -s https://api.bankr.bot/wallet/portfolio -H "X-API-Key: $BANKR_API_KEY"
+```
+
+Rules for this mode:
+
+- **Do not run `bankr login`.** It writes the key to disk, which is the thing
+  this setup avoids. The env var already authenticates every command.
+- **Never read the key out of `~/.bankr/config.json`,** and never echo
+  `BANKR_API_KEY` into logs, transcripts or chat. Pass it by reference
+  (`$BANKR_API_KEY`, `process.env.BANKR_API_KEY`), never by value.
+- **If a key was already written to disk** — an earlier interactive login, say —
+  add it to the host's store, confirm the env var alone works, then run
+  `bankr logout` to clear the on-disk copy.
+- **A missing or rejected key is the host's to fix, not yours.** Unset means the
+  host never injected it; a `401` means the key is invalid, inactive or revoked;
+  a `403` means it is blocked by an IP allowlist or the account is suspended. Ask
+  the user to update the credential in the host's store. Do not work around it by
+  logging in, and do not mint a second key — see Rotation & Revocation below.
+
 ### Non-Interactive Login
 
 When running the CLI in automated scripts or AI agent environments where interactive prompts aren't possible:
@@ -371,7 +407,7 @@ Blockchain transactions are **irreversible** once confirmed. Key safety rules:
 
 ### Rotation & Revocation
 
-- **Rotate periodically** — Rotate keys via the dashboard at [bankr.bot/api-keys](https://bankr.bot/api-keys) or programmatically via the API key rotation endpoint. Rotation atomically generates a new key and deactivates the old one. After rotating, update both env vars and CLI config (`bankr login --api-key NEW_KEY`)
+- **Rotate periodically** — Rotate keys from the dashboard at [bankr.bot/api-keys](https://bankr.bot/api-keys). Rotation needs a signed-in web session and a step-up check, so **an API key cannot rotate itself** and there is no key-authenticated rotation endpoint. Rotation atomically issues the new key and deactivates the old one. Afterwards update wherever the key lives — the host's credential store, env vars, or CLI config (`bankr login --api-key NEW_KEY`)
 - **Revoke immediately** — If any key (API or LLM) is leaked, deactivate it immediately at the dashboard
 - **One key per purpose** — Use separate keys for different agents, environments, and services (Agent API vs LLM Gateway) so you can revoke individually without disrupting unrelated systems
 
