@@ -161,7 +161,7 @@ Both providers share these; the gates run on every launch path (API, web, agent 
 | Per network (IP) | About 10 successful non-partner deploys per client IP per 24 h (`429` "Too many token deployments from this network") — the ceiling a single deploying host hits first, so pace deploys |
 | Email-only wallet | Can't launch until 72 h old; linking an X, Farcaster or Telegram account lifts the wait |
 | Region | Launches are geo-gated |
-| Wallet age / minimum ETH | Runtime switches, **currently off** — keep handling `TOKEN_LAUNCH_WALLET_TOO_NEW` and `TOKEN_LAUNCH_MIN_BALANCE_REQUIRED` in case they return. Arc's 0.5 USDC minimum always applies |
+| Wallet age / minimum ETH | Runtime switches that may be on (24 h wallet age, a minimum native balance) — handle `TOKEN_LAUNCH_WALLET_TOO_NEW` and `TOKEN_LAUNCH_MIN_BALANCE_REQUIRED`. Arc's 0.5 USDC minimum always applies |
 
 - **Only launches that went out consume budget.** Quota is reserved just before metadata pinning; validation, recipient-resolution and pricing failures before that never cost a slot. A launch that may have been broadcast keeps its slot (and its name and fee-recipient allowance) — never assume a failed deploy was free.
 - **A deploy request can time out while the launch completes.** Don't resubmit: while it runs, new deploys answer `429` "Deploy already in progress"; then check your recent launches.
