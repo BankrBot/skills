@@ -332,7 +332,7 @@ For full API details (request/response schemas, job states, rich data, polling s
 
 ### `bankr project` — Project Page
 
-Create and manage your public project page (the pages listed at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects)). Top-level, beside `bankr club`, because a project page is account-level rather than an agent operation.
+Create and manage your public project page (the pages listed at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects)).
 
 | Command | Description |
 |---------|-------------|
@@ -344,7 +344,7 @@ Create and manage your public project page (the pages listed at [bankr.bot/termi
 
 A wallet can hold more than one project page — that's what `--slug` disambiguates.
 
-Formerly `bankr agent profile`. That spelling and the older top-level `bankr profile` still work as hidden deprecated aliases that print a warning. The rename moved the CLI wording only: the REST paths (`/agent/profile`, `/agent-profiles`), JSON field names and socket events are untouched by it. See [references/projects.md](references/projects.md) for the REST surface, including the slug-addressed and `multi=true` variants.
+The REST surface uses "profile" throughout — `/agent/profile`, `/agent-profiles`, and the JSON fields. See [references/projects.md](references/projects.md), including the slug-addressed and `multi=true` variants.
 
 ### `bankr tokens` — Token Discovery
 
@@ -1565,8 +1565,6 @@ bankr project add-update --title "v2 Launch" --content "Shipped new features"
 ```
 
 All commands support `--json` for structured output (enables programmatic use).
-
-`bankr agent profile` and the older top-level `bankr profile` remain as hidden deprecated aliases — same behaviour, plus a deprecation warning. Use `bankr project` in new scripts.
 
 ### REST API Endpoints
 
