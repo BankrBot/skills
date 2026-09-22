@@ -404,7 +404,7 @@ Blockchain transactions are **irreversible** once confirmed. Key safety rules:
 
 ### Rotation & Revocation
 
-- **Rotate periodically** — Rotate keys from the dashboard at [bankr.bot/api-keys](https://bankr.bot/api-keys). Rotation needs a signed-in web session and a step-up check, so **an API key cannot rotate itself** and there is no key-authenticated rotation endpoint. Rotation atomically issues the new key and deactivates the old one. Afterwards update wherever the key lives — the host's credential store, env vars, or CLI config (`bankr login --api-key NEW_KEY`)
+- **Rotate periodically** — Rotate keys from the dashboard at [bankr.bot/api-keys](https://bankr.bot/api-keys). Rotation needs a signed-in web session and a step-up check, so **an API key cannot rotate itself** and there is no key-authenticated rotation endpoint. Rotation atomically issues the new key and deactivates the old one, carrying its permissions across, so a rotated key needs no re-hardening. Afterwards update wherever the key lives — the host's credential store, env vars, or CLI config (`bankr login --api-key NEW_KEY`)
 - **Revoke immediately** — If any key (API or LLM) is leaked, deactivate it immediately at the dashboard
 - **One key per purpose** — Use separate keys for different agents, environments, and services (Agent API vs LLM Gateway) so you can revoke individually without disrupting unrelated systems
 

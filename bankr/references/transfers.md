@@ -73,7 +73,7 @@ Pass the bare username for social handles (no `.eth` suffix even if the user's d
 | Farcaster | `@dwr` | — | ✓ |
 | Telegram | `@username` | — | ✓ |
 
-**Social handle resolution** (agent only): handles are resolved to a linked wallet address before sending. The user must have linked a wallet to the social platform for resolution to succeed.
+**Social handle resolution** (agent only): handles are resolved to a linked wallet address before sending. The user must have linked a wallet to the social platform for resolution to succeed — linking is per-platform, so an X handle won't resolve off a Farcaster link.
 
 ## Amount Formats
 

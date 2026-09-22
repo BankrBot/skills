@@ -306,6 +306,31 @@ Things that will bite an integration:
 
 Fee claiming, creator vesting and the launches feed all understand `bankr_v3` tokens, and v3 tokens surface in Discover and token search like any other Bankr launch.
 
+**Transferring the fee recipient.** A v3 launch's fee recipient can be handed to another address. Two paths, and only the first is usable from an API-key integration:
+
+| Endpoint | Auth | What it does |
+|----------|------|--------------|
+| `POST /launch-v3/:tokenAddress/recipient/build` | **None** | Returns an **unsigned transaction** for `{ account, newRecipient }`. Sign and broadcast it yourself — `/wallet/sign` + `/wallet/submit`, or any external wallet |
+| `POST /launch-v3/:tokenAddress/recipient/transfer` | Bankr Terminal session | Signs and submits with the custodial Privy wallet |
+| `GET /launch-v3/:tokenAddress/recipient` | **None** | Reads the current recipient and the contract the change targets |
+
+> **These don't take an API key — they don't take any credential.** The unauthenticated endpoints need no key and don't check for one, so sending `X-API-Key` is neither required nor harmful; it's simply ignored. The session-authenticated ones read only the Privy session cookie (or `x-access-token`) and never look at `X-API-Key`, so a key-authenticated request gets `401 Authentication required` — adding a key won't unlock them. The whole `/launch-v3` tree sits outside the API-key surface; authorization for the writes comes from the transaction signature, which is why the builder path works without a key at all.
+
+Both write paths refuse with `403` unless `account` (or the signed-in wallet) **is** the current fee recipient, and with `400` if `newRecipient` already is it. The transfer moves *future* fee rights only — the creator-vesting allocation stays with the recipient recorded at launch (see the vesting table below).
+
+> **This split is the rule across `/launch-v3/*`**, not a one-off — each custodial, session-authenticated write has an unauthenticated unsigned-transaction builder beside it:
+>
+> | Builder (no auth) | Custodial (session-only) counterpart |
+> |---|---|
+> | `POST /launch-v3/:tokenAddress/recipient/build` | `…/recipient/transfer` |
+> | `POST /launch-v3/:tokenAddress/operator/build` | `…/operator/grant` |
+> | `POST /launch-v3/:tokenAddress/holders/build-claim` | `…/holders/claim` |
+> | `POST /launch-v3/:tokenAddress/holders/build-stake` | `…/holders/stake` |
+> | `POST /launch-v3/:tokenAddress/holders/build-unstake` | `…/holders/unstake` |
+> | `POST /launch-v3/:tokenAddress/fees/build-claim` | — (see below) |
+>
+> **From an API key, reach for the builder and sign it yourself.** Note `fees/build-claim` and `holders/build-claim` are different endpoints — the first is the pool fee claim, the second the holder-vest claim. `POST /token-launches/:tokenAddress/fees/claim` is the separate API-key-gated fee claim and is unaffected by this split.
+
 ### Creator Vesting (on by default, fixed at launch)
 
 Every non-partner EVM launch premints **15% of supply to the fee recipient** and vests it over **1 year with a 30-day cliff** — nothing unlocks for the first 30 days, then it vests continuously until fully unlocked at the one-year mark (the cliff sits *inside* the year, not on top of it). The remaining **85%** seeds the Uniswap V4 pool, so trading starts clean.
