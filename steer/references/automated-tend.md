@@ -4,9 +4,9 @@ Read this reference only for a current request that explicitly authorizes one un
 
 ## Required policy
 
-Before any preparation, the request must identify the curated vault and chain, state that submission may proceed without an interactive confirmation, and provide compatible CLI version requirements. It must also provide the complete range-selection policy, including exact tick alignment, position count, weights, and range-width rules. It must provide measurable inputs or thresholds for data freshness, cross-source price tolerance, maximum price impact or swap cost, gas cost, and economic benefit. It must define a durable run identifier or equivalent duplicate-run check.
+Before any preparation, the request must identify the curated vault and chain, state that submission may proceed without an interactive confirmation, and provide compatible CLI version requirements. It must also provide the complete range-selection policy, including exact tick alignment, position count, weights, and range-width rules. It must provide measurable inputs or thresholds for data freshness, cross-source price tolerance, maximum price impact or swap cost, gas cost, and economic benefit.
 
-If a required policy value, tool, source, or durable state check is absent, stop with `AUTOMATION_POLICY_INCOMPLETE`. Do not fill gaps with a heuristic.
+If a required policy value, tool, or source is absent, stop with `AUTOMATION_POLICY_INCOMPLETE`. Do not fill gaps with a heuristic.
 
 At the start of every scheduled run, run `steer --version` using Bankr's provided CLI and record the version in the run record. Stop with `CLI_UNAVAILABLE` if it cannot run, `VERSION_POLICY_CONFLICT` if it does not meet the request's version requirements, or `CLI_VERSION_UNSUPPORTED` if the required command help and schema do not support the workflow. Bankr owns installation, approved versions, upgrades, and executable resolution. Never install or upgrade the CLI from a scheduled run. Bankr must keep the same CLI version and executable available throughout quote and preparation.
 
@@ -14,16 +14,15 @@ At the start of every scheduled run, run `steer --version` using Bankr's provide
 
 1. Resolve the Bankr wallet and confirm the target vault and chain. Inspect the vault, underlying pool, canonical token order, decimals, fee, tick spacing, manager mode, current inventory, and existing positions.
 2. Run the policy's specified market-data checks. Use onchain pool facts as the authority for pool identity and price orientation. Stop on missing, stale, inconsistent, or abnormal data according to the policy thresholds.
-3. Check the durable run record and current vault state. Stop with `DUPLICATE_RUN` if an equivalent scheduled run already submitted or completed a tend.
-4. Confirm the vault manager is curated and the Bankr wallet is the direct manager. Do not run `steer vaults tend plan`; a curated vault has no strategy decision. Derive one complete replacement set only from the supplied policy.
-5. Evaluate the selected ranges and weights against current market and inventory facts. Do not prepare multiple candidates.
-6. Quote the selected complete replacement set. Stop for unacceptable swap economics, price impact, gas, inventory risk, simulation status, or any policy violation.
-7. Prepare the same complete replacement set once, against fresh state. Recheck simulation, expiry, `expectedSigner`, chain ID, target, value, calldata, positions, and price limits. The initial wallet lookup does not replace this post-preparation signer comparison.
-8. Call `submit_raw_transaction` once with the final `request.transaction` unchanged. Record the returned hash before any other action.
-9. Verify the receipt with `steer transactions verify`, re-inspect the vault and positions, and persist the outcome under the run identifier.
+3. Confirm the vault manager is curated and the Bankr wallet is the direct manager. Do not run `steer vaults tend plan`; a curated vault has no strategy decision. Derive one complete replacement set only from the supplied policy.
+4. Evaluate the selected ranges and weights against current market and inventory facts. Do not prepare multiple candidates.
+5. Quote the selected complete replacement set. Stop for unacceptable swap economics, price impact, gas, inventory risk, simulation status, or any policy violation.
+6. Prepare the same complete replacement set once, against fresh state. Recheck simulation, expiry, `expectedSigner`, chain ID, target, value, calldata, positions, and price limits. The initial wallet lookup does not replace this post-preparation signer comparison.
+7. Call `submit_raw_transaction` once with the final `request.transaction` unchanged. Record the returned hash before any other action.
+8. Verify the receipt with `steer transactions verify`, re-inspect the vault and positions, and record the outcome.
 
 ## Minimum skip reasons
 
-Report the first applicable specific reason and submit no transaction: `VERSION_POLICY_CONFLICT`, `CLI_UNAVAILABLE`, `CLI_VERSION_UNSUPPORTED`, `VAULT_CHAIN_MISMATCH`, `CAPABILITY_UNSUPPORTED`, `WALLET_UNAVAILABLE`, `AUTOMATION_POLICY_INCOMPLETE`, `RANGE_POLICY_UNSPECIFIED`, `DATA_UNAVAILABLE`, `DATA_STALE`, `PRICE_DISAGREEMENT`, `DUPLICATE_RUN`, `UNECONOMIC_TEND`, `QUOTE_UNACCEPTABLE`, `PREPARATION_INVALID`, `SIGNER_MISMATCH`, or `SIMULATION_FAILED`.
+Report the first applicable specific reason and submit no transaction: `VERSION_POLICY_CONFLICT`, `CLI_UNAVAILABLE`, `CLI_VERSION_UNSUPPORTED`, `VAULT_CHAIN_MISMATCH`, `CAPABILITY_UNSUPPORTED`, `WALLET_UNAVAILABLE`, `AUTOMATION_POLICY_INCOMPLETE`, `RANGE_POLICY_UNSPECIFIED`, `DATA_UNAVAILABLE`, `DATA_STALE`, `PRICE_DISAGREEMENT`, `UNECONOMIC_TEND`, `QUOTE_UNACCEPTABLE`, `PREPARATION_INVALID`, `SIGNER_MISMATCH`, or `SIMULATION_FAILED`.
 
 Never automatically retry a submission-side failure. Preserve the prepared artifact, Bankr response, and any hash before following the recovery procedure in [bankr-execution.md](bankr-execution.md).

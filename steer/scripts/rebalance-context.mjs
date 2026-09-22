@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFile } from "node:child_process";
+import { requestFallbackHistory, selectProtocolEndpoint } from "./subgraph-endpoint.mjs";
 
 const USAGE = `Usage:
   node scripts/rebalance-context.mjs \\
@@ -129,17 +130,7 @@ async function runVolumeUsdCompatibilityFallback(input) {
     (value) => Array.isArray(value.subgraphs),
     "subgraphs",
   );
-  const subgraph = subgraphPayload.subgraphs.find((entry) => (
-    isObject(entry)
-    && text(entry.chain?.alias) === input.chain
-    && text(entry.protocol?.alias) === input.protocol
-    && text(entry.url)
-  ));
-  const discoveredUrl = text(subgraph?.url);
-  if (!discoveredUrl) {
-    throw new Error("steer subgraphs did not return a protocol GraphQL endpoint for the requested chain and protocol.");
-  }
-  const endpoint = discoveredUrl.replace("/api//", `/api/${subgraphKey}/`);
+  const discoveredUrl = selectProtocolEndpoint(subgraphPayload.subgraphs, input);
   const endTimestamp = normalizedHour(Math.floor(Date.now() / 1000));
   const startTimestamp = endTimestamp - (26 * 3600);
   const query = `
@@ -163,33 +154,17 @@ async function runVolumeUsdCompatibilityFallback(input) {
     }
   `;
 
-  let response;
-  try {
-    const httpResponse = await fetch(endpoint, {
-      body: JSON.stringify({
-        query,
-        variables: {
-          limit: 27,
-          pool: input.poolId.toLowerCase(),
-          timestampGte: startTimestamp,
-          timestampLt: endTimestamp,
-        },
-      }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    });
-    response = await httpResponse.json();
-    if (!httpResponse.ok) {
-      throw new Error(`GraphQL endpoint returned HTTP ${httpResponse.status}.`);
-    }
-  } catch (error) {
-    throw new Error(`The market-history compatibility fallback failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
+  const response = await requestFallbackHistory(discoveredUrl, subgraphKey, {
+    query,
+    variables: {
+      limit: 27,
+      pool: input.poolId.toLowerCase(),
+      timestampGte: startTimestamp,
+      timestampLt: endTimestamp,
+    },
+  });
   if (!isObject(response) || !isObject(response.data)) {
-    const errors = isObject(response) && Array.isArray(response.errors)
-      ? response.errors.map((entry) => text(entry?.message)).filter(Boolean).join("; ")
-      : null;
-    throw new Error(`The market-history compatibility fallback returned no market data${errors ? `: ${errors}` : "."}`);
+    throw new Error("SUBGRAPH_RESPONSE_INVALID: compatibility fallback returned no market data.");
   }
 
   const buckets = (response.data.poolHourDatas ?? [])
@@ -224,7 +199,20 @@ function boundedDiagnostic(stdout, stderr) {
   if (!value) {
     return null;
   }
-  const redacted = value
+  let redacted = value;
+  for (const secret of [process.env.STEER_SUBGRAPH_STUDIO_KEY, process.env.STEER_RPC_URL]) {
+    if (!secret) continue;
+    // Sanitize before truncation, including keys reflected in Graph URL paths.
+    const encoded = encodeURIComponent(secret);
+    if (encoded !== secret) {
+      const pattern = encoded.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/%[0-9A-F]{2}/g, (escape) => escape.replace(/[A-F]/g, (hex) => `[${hex}${hex.toLowerCase()}]`));
+      redacted = redacted.replace(new RegExp(pattern, "g"), "[REDACTED]");
+    }
+    redacted = redacted.split(secret).join("[REDACTED]");
+  }
+  redacted = redacted
+    .replace(/\b(Bearer|Basic)\s+[^\s,;"}]+/gi, "$1 [REDACTED]")
     .replace(/(STEER_RPC_URL|STEER_SUBGRAPH_STUDIO_KEY|API[_-]?KEY|AUTHORIZATION|TOKEN|SECRET|PASSWORD)\s*[=:]\s*[^\s,;]+/gi, "$1=[REDACTED]")
     .replace(/https?:\/\/[^\s/:@]+:[^\s/@]+@/gi, "https://[REDACTED]@")
     .replace(/([?&](?:api[_-]?key|key|token|secret)=)[^&\s]+/gi, "$1[REDACTED]");
@@ -603,6 +591,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write(`rebalance-context: ${error.message}\n`);
+  const message = error instanceof Error ? error.message : String(error);
+  process.stderr.write(`rebalance-context: ${boundedDiagnostic(message) ?? "Request failed."}\n`);
   process.exitCode = 2;
 });

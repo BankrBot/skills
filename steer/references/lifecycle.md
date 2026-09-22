@@ -4,7 +4,7 @@ Use this reference for market work and curated vault operations. Every new Bankr
 
 The CLI intentionally uses different protocol aliases by command family. Do not transfer an alias from one family without checking help:
 
-- `<POOL_PROTOCOL>` for pool lifecycle is `uniswap`, `sushi`, or `uniswap-v4`.
+- `<POOL_PROTOCOL>` for pool lifecycle is `uniswap`, `sushi`, `uniswap-v4`, `aerodrome`, or `bittensor-univ3` in CLI 4.7.3. Confirm the installed CLI's schema and chain-specific support before using one.
 - `<VAULT_PROTOCOL>` for manifests and vault creation is `uniswap-v3`, `sushi-v3`, or `uniswap-v4`.
 - `<TEND_PROTOCOL>` is optional for an existing vault and, when used, is the vault registry alias such as `uniswap`, `sushi`, `uniswap-v4`, or a supported existing-vault adapter.
 
@@ -19,7 +19,7 @@ steer markets inspect <POOL> --chain <CHAIN> --protocol <MARKET_PROTOCOL>
 
 If the requested protocol or action is unsupported, stop and report the capability boundary. Do not send a factory transaction assembled from third-party ABI text. In particular, existing Aerodrome Slipstream pools may be inspectable and eligible existing vaults may be operable, but new infrastructure is allowed only when the installed CLI proves that preparation path is supported.
 
-For a supported pool-creation path, prepare first and save the resulting artifact:
+For a supported V3-compatible pool-creation path (`uniswap`, `sushi`, or `bittensor-univ3`), prepare first and save the resulting artifact. `--fee-tier` uses percentage units, for example `0.05` means 0.05%:
 
 ```sh
 steer pools create prepare \
@@ -28,6 +28,10 @@ steer pools create prepare \
   --chain <CHAIN> --protocol <POOL_PROTOCOL> \
   --out <POOL_PLAN.json> --format json --full-output
 ```
+
+For `uniswap-v4`, use that command with `--protocol uniswap-v4` and additionally supply `--tick-spacing <TICK_SPACING> --hooks <HOOKS_ADDRESS>`. Use the zero address only for an explicitly hookless pool.
+
+For `aerodrome`, use `--protocol aerodrome` and replace `--fee-tier <FEE>` with `--tick-spacing <FACTORY_ENABLED_TICK_SPACING>`. Do not pass `--fee-tier` for Slipstream. These option sets do not themselves establish chain or factory support; the capability gate above still applies.
 
 Review the sorted tokens, factory, fee or tick configuration, initial price, expected signer, simulation, expiry, and full request transaction. Follow the Bankr execution boundary in [bankr-execution.md](bankr-execution.md), then verify the receipt:
 
@@ -111,8 +115,10 @@ Deposit preparation may return one action at a time: exact token0 approval, exac
 If any submitted action fails, inspect rather than retry blindly:
 
 ```sh
-steer transactions verify <TX_HASH> --trace --format json --full-output
+steer transactions verify <TX_HASH> --format json --full-output
 ```
+
+Add `--trace` only when internal-call diagnostics are needed and the RPC supports `debug_traceTransaction` with `callTracer`. Receipt verification does not require tracing.
 
 The deposit gate is actual deposited amounts at or above reviewed minimums and shares delivered to the intended recipient.
 
@@ -127,7 +133,7 @@ Quote the complete replacement set, not only a changed range:
 ```sh
 steer vaults tend quote <VAULT> \
   --account <BANKR_WALLET> --protocol <TEND_PROTOCOL> \
-  --position <LOWER>:<UPPER>:<WEIGHT>,<LOWER>:<UPPER>:<WEIGHT> \
+  --position <LOWER>:<UPPER>:<WEIGHT> --position <LOWER>:<UPPER>:<WEIGHT> \
   --slippage-bps <BPS> --total-weight <TOTAL_WEIGHT> \
   --format json --full-output
 ```
@@ -138,14 +144,16 @@ For Uniswap V4, pass the exact canonical pool key as well:
 --pool-key <CURRENCY0>:<CURRENCY1>:<FEE>:<TICK_SPACING>:<HOOKS>
 ```
 
-The quote is read-only and time-sensitive. Review the pinned block, pool and protocol, current and quoted price, inventory, complete positions and weights, swap direction and amount, estimated output, slippage limit, and simulation. `--skipSwap` is valid only for an intentional zero-swap tend.
+Repeat `--position` once for each range, with no comma-joined values. Pass the same V4 pool key to both quote and preparation.
+
+The quote is read-only and time-sensitive. Review the pinned block, pool and protocol, current and quoted price, inventory, complete positions and weights, swap direction and amount, estimated output, slippage limit, and simulation. `--skip-swap` is valid only for an intentional zero-swap tend.
 
 Prepare a fresh authoritative transaction with the same complete positions:
 
 ```sh
 steer vaults tend prepare <VAULT> \
   --account <BANKR_WALLET> --protocol <TEND_PROTOCOL> \
-  --position <LOWER>:<UPPER>:<WEIGHT>,<LOWER>:<UPPER>:<WEIGHT> \
+  --position <LOWER>:<UPPER>:<WEIGHT> --position <LOWER>:<UPPER>:<WEIGHT> \
   --slippage-bps <BPS> --total-weight <TOTAL_WEIGHT> \
   --format json --full-output
 ```
@@ -155,7 +163,7 @@ Compare this fresh preparation to the reviewed quote. Stop if ranges, swap, pric
 After the receipt:
 
 ```sh
-steer transactions verify <TX_HASH> --trace --format json --full-output
+steer transactions verify <TX_HASH> --format json --full-output
 steer vaults inspect <VAULT> --chain <CHAIN>
 ```
 

@@ -33,7 +33,7 @@ For a manual action, show the user a compact confirmation that includes:
 
 For a run-scoped automated curated tend, persist the same fields in the run record and confirm that every gate in [automated-tend.md](automated-tend.md) passed. Do not request a new confirmation or substitute a prior run's authorization.
 
-After a successful response, record the hash before issuing any other command. Then verify the receipt with `steer transactions verify <TX_HASH> --trace` and inspect the relevant pool or vault state.
+After a successful response, record the hash before issuing any other command. Then verify the receipt with `steer transactions verify <TX_HASH> --format json --full-output` and inspect the relevant pool or vault state. Add `--trace` only for internal-call diagnostics when the RPC supports `debug_traceTransaction` with `callTracer`; it is not a receipt-verification prerequisite.
 
 ## Do not submit when
 

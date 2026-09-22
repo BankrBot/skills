@@ -29,7 +29,7 @@ Create, curate, deposit into, and manage LP vaults with the Steer CLI. Establish
 - A symbol is not a pool identity. Verify the canonical token addresses and decimals, token order, protocol, fee or tick spacing, hooks where applicable, factory membership, and initialized price.
 - Derive human price direction from canonical `token0`, `token1`, and decimals. Every supplied range must use that same pair ratio, not a single-asset USD price.
 - `steer pools support` and the actual preparation result are the write-capability authority. Do not infer support from a protocol listing, subgraph, or existing pool.
-- Never construct calldata, alter prepared calldata, use unlimited approvals, set deposit minimums to zero, or use `--skipSwap` to bypass a quote failure.
+- Never construct calldata, alter prepared calldata, use unlimited approvals, set deposit minimums to zero, or use `--skip-swap` to bypass a quote failure.
 - Treat `fees` as the SDK-reported cumulative fee counter, not proof of unclaimed fees, holdings, P&L, or zero historical earnings.
 - Every vault created through this Bankr skill must use `--management curated`. The Bankr wallet is its direct manager; it has no connectors, strategy scheduler, or GasVault reserve. Stop and report requests for a Steer-managed orchestrator as out of scope.
 - Read-only inspection, validation, quote, and preparation may proceed when requested. Publishing, submission, and other external writes require a fresh action-specific confirmation.
@@ -39,7 +39,7 @@ Create, curate, deposit into, and manage LP vaults with the Steer CLI. Establish
 
 When a vault is created or first introduced, use the memory tool to update the durable vault index. Keep its chain, address, canonical pair and pool, protocol, manager, manifest CID or artifact path, current status, and last verified time concise and current. Name vault-facing entries and manifest artifacts `<chain>-<token0-symbol>-<token1-symbol>-<vault-address>` using canonical token order and normalized symbols; symbols are labels only, and the full chain ID, token addresses, and vault address remain the identity.
 
-Keep a compact action log for material confirmed outcomes only: creation, funding, a completed tend, or a meaningful skipped tend. Update the existing vault entry rather than creating duplicates, and include a transaction hash only when one exists. Store a manifest artifact only when one is created or published. Do not retain quotes, simulations, retries, or debug output as durable artifacts.
+Keep a compact action log for material confirmed outcomes only: creation, funding, a completed tend, or a meaningful skipped tend. Update the existing vault entry rather than creating duplicates, and include a transaction hash only when one exists. Store a manifest artifact only when one is created or published. Do not retain quotes, simulations, retries, or debug output in this compact vault index. The separate submission records required below must retain their prepared artifacts and recovery evidence.
 
 ## Workflow routing
 
