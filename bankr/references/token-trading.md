@@ -1,80 +1,33 @@
 # Token Trading Reference
 
-Execute token trades and swaps across multiple blockchains.
+Buy, sell, swap and bridge through the agent, or swap directly with the CLI or Wallet API. Limit, stop, DCA and TWAP orders are in [automation.md](automation.md); tokenized equities in [tokenized-stocks.md](tokenized-stocks.md).
 
-## Supported Chains
+Swaps run on Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain and Solana, and across them (bridging is a cross-chain swap).
 
-| Chain | Native Token | Characteristics |
-|-------|--------------|-----------------|
-| Base | ETH | Low fees, ideal for memecoins |
-| Polygon | POL | Fast, cheap transactions |
-| Ethereum | ETH | Highest liquidity, expensive gas |
-| Unichain | ETH | Newer L2 option |
-| World Chain | ETH | Uniswap V3/V4 swaps |
-| Arbitrum | ETH | DeFi, low-cost transactions |
-| BNB Chain | BNB | BSC ecosystem trading |
-| Robinhood Chain | ETH | Tokenized stocks & ETFs (USDG stablecoin), memecoins |
-| Solana | SOL | High speed, minimal fees |
+## Agent
 
-> **Tokenized stocks & ETFs:** Bankr can buy and sell tokenized equities (spot) on Robinhood Chain, Solana (xStocks), and Base, and offers leveraged equity perps on Avantis/Hyperliquid. Robinhood-issued stocks require one-time location verification. See [tokenized-stocks.md](tokenized-stocks.md).
+```
+"Swap 0.1 ETH for USDC on Base"
+"Buy $50 of BNKR on Base"
+"Sell 50% of my PEPE"
+"Bridge 0.5 ETH from Ethereum to Base"
+"Move 100 USDC from Polygon to Solana"
+"Convert 0.1 ETH to WETH" / "Unwrap 0.5 WETH"
+"Buy $20 of BNKR and send it to @alice"
+```
 
-## Amount Formats
+- **Amounts:** exact (`0.1 ETH`), USD (`$50`) or a percentage of the balance (`50%`).
+- **Swap and send:** the output can go to another address, ENS name or X / Farcaster / Telegram handle instead of your wallet — EVM outputs only, not Solana.
+- **Chains:** name the chain for anything but the majors. A ticker that exists on several chains gets a question back rather than a guess. A pasted contract address is checked against the chain that actually hosts it, so a token on a less common chain is found even if the chain is guessed wrong.
+- **Slippage:** set automatically; ask for a specific tolerance with "with 1% slippage".
+- **Your own fee token:** selling a token you earn creator fees on is restricted; builders exit through a Glidepath — see [token-deployment.md](token-deployment.md#after-launch).
 
-| Format | Example | Description |
-|--------|---------|-------------|
-| USD | `$50` | Dollar amount to spend |
-| Percentage | `50%` | Percentage of your balance |
-| Exact | `0.1 ETH` | Specific token amount |
+## Direct swaps (CLI / Wallet API)
 
-## Prompt Examples
+```bash
+bankr wallet swap --from ETH --to USDC --amount 0.1 --chain base --quote-only   # quote only
+bankr wallet swap --from ETH --to USDC --amount 0.1 --chain base                # quote, then execute
+```
 
-**Same-chain swaps:**
-- "Swap 0.1 ETH for USDC on Base"
-- "Buy $50 of BNKR on Base"
-- "Sell 50% of my ETH holdings"
-- "Purchase 100 USDC worth of PEPE"
-
-**Cross-chain swaps:**
-- "Bridge 0.5 ETH from Ethereum to Base"
-- "Move 100 USDC from Polygon to Solana"
-
-**ETH/WETH conversion:**
-- "Convert 0.1 ETH to WETH"
-- "Unwrap 0.5 WETH to ETH"
-
-Both balances update after a wrap or unwrap, so you can check your portfolio immediately afterwards and see the result.
-
-## Chain Selection
-
-- If no chain specified, Bankr selects the most appropriate chain
-- Base is preferred for most operations due to low fees
-- Cross-chain routes are automatically optimized
-- Include chain name in prompt to specify: "Buy ETH on Polygon"
-- **Pasting a raw contract address is safe**: Bankr verifies which chain actually hosts that contract before quoting, so a token on a less common chain (e.g. Robinhood Chain) is found even if the chain isn't named or is guessed wrong
-
-## Slippage
-
-- Default slippage tolerance is applied automatically
-- For volatile tokens, Bankr adjusts slippage as needed
-- If slippage is exceeded, the transaction fails safely
-- You can specify: "with 1% slippage"
-
-**Via the Wallet API**, set it explicitly with `slippageBps` (10–2000, default 500 = 5%) on `/wallet/swap-quote` and `/wallet/swap`. It always shapes the quote's `minBuyAmount`, but only Relay-routed pairs — cross-chain, Solana, and the relay-first chains, tokenized-stock legs excepted — carry your full tolerance into the fill. On the same-chain EVM aggregator path the execution re-quote is deliberately clamped to **2% (200 bps)**; the gap between the looser quote tolerance and the tighter execution tolerance is headroom for price drift between quote and submit. A 2000 bps quote does not execute at 2000 bps there.
-
-## Common Issues
-
-| Issue | Resolution |
-|-------|------------|
-| Insufficient balance | Reduce amount or add funds |
-| Token not found | Check token symbol/address, specify chain |
-| High slippage | Try smaller amounts or use limit orders |
-| Network congestion | Wait and retry, or try L2 |
-| Gas too high | Use Base/Polygon, or wait for lower gas |
-
-## Best Practices
-
-1. **Start small** - Test with small amounts first
-2. **Specify chains** - For lesser-known tokens, always include chain
-3. **Check slippage** - Be careful with low-liquidity tokens
-4. **Monitor gas** - Ethereum mainnet can be expensive
-5. **Use L2s** - Base and Polygon offer much lower fees
+- **CLI:** same-chain swaps on one EVM chain only — no Solana, no cross-chain. `--from` / `--to` take symbols or contract addresses, `--chain` defaults to `base`, and execution uses the quote's `minBuyAmount` as its floor. The CLI sends no idempotency key, so if a swap errors or times out after submitting, check your balances before running it again.
+- **Wallet API:** `POST /wallet/swap-quote`, then `POST /wallet/swap`, with token contract addresses (a base58 mint on Solana legs); cross-chain and Solana swaps work here. Routing, the slippage clamp, `quoteId`, access rules and the error table are at https://docs.bankr.bot/wallet-api/swap (schemas: https://docs.bankr.bot/openapi/api.yaml). Code against the three rules that move money: send an `idempotencyKey` on every execution, treat `200` with `success: false` as a mined-and-reverted swap, and never blind-retry a `504` or a LaunchLab `502` — the swap may already be on-chain.

@@ -1,376 +1,60 @@
 # Error Handling Reference
 
-Resolve Bankr API errors and common issues.
-
-## Authentication Errors
-
-### Symptoms
-- HTTP 401 status code
-- "Invalid API key" or "Unauthorized" message
-- "X-API-Key header is required"
-
-### Resolution Steps
-
-**1. Install the Bankr CLI**
-```bash
-bun install -g @bankr/cli
-```
-
-**2. Authenticate** — headless email login (recommended for agents):
-```bash
-bankr login email user@example.com                                   # step 1: send OTP
-bankr login email user@example.com --code 123456 --key-name "My Agent"   # step 2 (wallet + agent + token launch, read-write by default)
-```
-
-Completing step 2 accepts the [Terms of Service](https://bankr.bot/terms) on the user's behalf (CLI 0.3.39+; older versions need `--accept-terms`) — share the link and get the user's go-ahead first; if they don't accept, don't run it. On an MFA-enabled account, step 2 prints a `bankr.bot/mfa/confirm/...` link and waits up to five minutes for the user to approve with their passkey in a browser (CLI 0.3.38+). Or, if you already have an API key from https://bankr.bot/api-keys (also the fallback when that approval expires — the CLI exits with `MFA_STEP_UP_REQUIRED` guidance):
-```bash
-bankr login --api-key bk_your_actual_key_here
-```
-
-**3. Verify Setup**
-```bash
-bankr whoami
-bankr agent "What is my balance?"
-```
-
-### Common API Key Issues
-
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| "Invalid API key" | Wrong key or revoked | Generate new key |
-| "Agent API not enabled" | Missing permission | Enable in API dashboard |
-| "API key expired" | Old/inactive key | Create new key |
-| "Rate limit exceeded" | Too many requests | Wait or upgrade plan |
-
-## Job Failures
-
-### Transaction Failures
-
-**Insufficient Balance**
-- **Error**: "Insufficient balance for trade"
-- **Cause**: Not enough tokens or gas
-- **Fix**: Add funds or reduce amount
-
-**Token Not Found**
-- **Error**: "Token not found on [chain]"
-- **Cause**: Wrong symbol, chain, or address
-- **Fix**: Verify token exists, specify chain, use contract address
-
-**Slippage Exceeded**
-- **Error**: "Slippage tolerance exceeded"
-- **Cause**: Price moved too much during execution
-- **Fix**: Retry, increase slippage, or use smaller amount
-
-**Transaction Reverted**
-- **Error**: "Transaction reverted"
-- **Cause**: On-chain failure (various reasons)
-- **Fix**: Check transaction details, verify parameters
-
-**Network Congestion**
-- **Error**: "Network congestion, transaction failed"
-- **Cause**: High network activity
-- **Fix**: Increase gas, wait, or try L2
-
-### Market/Query Failures
-
-**Market Not Found**
-- **Error**: "Polymarket market not found"
-- **Cause**: Market closed, wrong search terms
-- **Fix**: Try different search, check if market exists
-
-**NFT Not Available**
-- **Error**: "NFT listing no longer available"
-- **Cause**: NFT was sold to someone else
-- **Fix**: Try another listing, check floor price
-
-**Rate Limit**
-- **Error**: "Rate limit exceeded"
-- **Cause**: Too many requests in short time
-- **Fix**: Wait 60 seconds, implement backoff
-
-**Timeout**
-- **Error**: "Job timed out"
-- **Cause**: Operation took too long
-- **Fix**: Simplify query, retry, or check service status
-
-## HTTP Status Codes
-
-| Code | Meaning | Action |
-|------|---------|--------|
-| **400** | Bad request | Check prompt format, validate parameters |
-| **401** | Unauthorized | Fix API key (see Authentication section) |
-| **402** | Payment required | For LLM Gateway: top up via `bankr llm credits add 25` or at [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits) (`bankr llm credits` to check). For Agent API: ensure wallet has funds for fees |
-| **403** | Forbidden | Agent API access not enabled — enable at https://bankr.bot/api-keys |
-| **409** | Conflict | A request with the same `idempotencyKey` is still processing, or a pending transaction is in the way — wait, don't resubmit under a new key |
-| **429** | Rate limited | Wait and retry with exponential backoff |
-| **500** | Server error | Retry after delay |
-| **502** | Bad gateway | Temporary issue, retry after delay — **except** a LaunchLab fill, which may already be on-chain (see below) |
-| **503** | Service unavailable | Service maintenance, retry later |
-| **504** | Confirmation timeout | **Do not blind-retry** — the transaction may already be on-chain (see below) |
-
-### Retry Safety on `/wallet/swap`
-
-Not every failure is safe to retry. Sort them into three buckets:
-
-| Bucket | Codes | What to do |
-|--------|-------|------------|
-| Pre-broadcast | `400`, `401`, `403`, `429`, `503`, most `502`s | Nothing was sent. Safe to retry — reuse the same `idempotencyKey` |
-| **May be on-chain** | `504`, and a `502` on a Solana LaunchLab fill | The transaction **was broadcast**; only the confirmation is missing. Check the wallet's activity for the hash **before** retrying — an automatic retry can execute a second swap |
-| Terminal | `400` validation failures | Fix the request; retrying unchanged won't help |
-
-Sending an `idempotencyKey` (a UUID) on every execution is the cheap insurance here: a repeat POST with the same key returns the original result rather than broadcasting again, which turns an ambiguous network timeout into a safe retry.
-
-## Network/Connection Errors
-
-### Symptoms
-- "Failed to connect"
-- "Network error"
-- "Timeout"
-- "Connection refused"
-
-### Troubleshooting
-
-**Check Internet Connection**
-```bash
-ping -c 3 api.bankr.bot
-```
-
-**Verify API Endpoint**
-```bash
-curl -I https://api.bankr.bot
-```
+What Bankr's errors mean and what to do about them. Every endpoint's exact error bodies are in the OpenAPI spec (`https://docs.bankr.bot/openapi/api.yaml`).
 
-**Check DNS Resolution**
-```bash
-nslookup api.bankr.bot
-```
+## Checking a key
 
-**Test with curl**
-```bash
-curl -sf https://api.bankr.bot || echo "Connection failed"
-```
-
-## Balance/Funding Issues
+- **CLI:** `bankr whoami` shows which key is in use and where it came from (`BANKR_API_KEY` or the config file), then loads the account with it.
+- **REST:** call `GET /wallet/me` with the key. `200` means it works, `401` means it's missing, wrong or revoked, and `403` means something like an IP allowlist is blocking it. Don't test a key against `/_health`: that endpoint ignores the key and always answers `200`.
 
-### Insufficient Native Token
-**Symptoms**:
-- "Insufficient ETH for gas"
-- "Not enough MATIC for transaction"
-- "Insufficient SOL for fees"
+The CLI's `Not authenticated` means it found no key in `BANKR_API_KEY` or `~/.bankr/config.json`. To log in, follow [Get an API key](../SKILL.md#get-an-api-key) in SKILL.md. In a sandbox where the host supplies the credential, read [Host-Managed Credentials](safety.md#host-managed-credentials-no-key-on-disk) first.
 
-**Fix**:
-- Add native token to wallet
-- Amounts needed:
-  - Ethereum: 0.01-0.05 ETH
-  - Base: 0.001-0.01 ETH
-  - Polygon: 1-5 MATIC
-  - Solana: 0.01-0.1 SOL
+## Authentication and access errors
 
-### Insufficient Token Balance
-**Symptoms**:
-- "Insufficient [TOKEN] balance"
-- "Balance too low for trade"
+| Status | `error` | Cause | Fix |
+|--------|---------|-------|-----|
+| 401 | `API key required`, `Authentication required`, `No wallet associated with API key` | No key was sent, or the key isn't linked to a wallet | Send `X-API-Key` or `Authorization: Bearer`; if you did, mint a new key |
+| 401 | `Invalid API key` | The key is wrong, revoked or rotated | Use the current key, or mint one at [bankr.bot/api-keys](https://bankr.bot/api-keys) |
+| 403 | `IP address not allowed` | The request came from outside the key's `allowedIps` | Call from an allowed IP, or edit the allowlist |
+| 403 | `Agent API access not enabled`, `Wallet API access not enabled`, `LLM Gateway access not enabled` | The key lacks that capability flag | Enable it at [bankr.bot/api-keys](https://bankr.bot/api-keys) |
+| 403 | `Read-only API key` | A write on a read-only key | Use a read-write key |
+| 403 | `Restricted API key` | The key's recipient allowlist blocks raw submission, transaction or typed-data signing, or this fee recipient | Use `/agent/prompt`, or a key without an allowlist |
+| 403 | `subscription_required` | `/agent/prompt` without Bankr Club or Max Mode credit | Follow the `remediation` list in the body |
+| 403 | `Wallet paused`, `Arbitrary contract calls disabled`, or a body with `errorCode` | A wallet security setting | See [sign-submit-api.md](sign-submit-api.md#wallet-security-settings-apply) |
 
-**Fix**:
-- Check balance first
-- Reduce trade amount
-- Add more tokens
+The flags, allowlists and wallet settings behind these are explained in [safety.md](safety.md).
 
-## Configuration Issues
+Minting a key from the dashboard or `bankr login email` can fail with `400 Name already exists` when an active key already has that name (choose another `--key-name`, or omit it for a unique `CLI-<date>-<time>` name), or with `400 API key limit reached` at 30 active keys (revoke stale ones at [bankr.bot/api-keys](https://bankr.bot/api-keys)). Every mint path, `bankr login siwe` included, shares a cap of 20 attempts per hour per IP: past it you get `429 Too many API key creations`, or `503` if the counter is briefly unavailable. Wait before retrying.
 
-### CLI Not Installed
-```bash
-# Install the Bankr CLI
-bun install -g @bankr/cli
+## HTTP status codes
 
-# Or with npm
-npm install -g @bankr/cli
+| Code | On Bankr | What to do |
+|------|----------|------------|
+| 400 | An invalid request, or an operation that failed (`success: false` with `error`) | Fix the request. On `/wallet/submit`, a `400` that carries a `transactionHash` was broadcast |
+| 401, 403 | See the table above | |
+| 402 | LLM gateway credits are exhausted, or the wallet can't fund a credit top-up | Top up with `bankr llm credits add <usd>` or at [bankr.bot/terminal/llm?tab=credits](https://bankr.bot/terminal/llm?tab=credits); see [llm-gateway.md](llm-gateway.md) |
+| 404 | A job or thread that doesn't exist on this account | Check the ID and which account the key belongs to |
+| 409 | `/wallet/swap`: the same `idempotencyKey` is still in flight, or a pending transaction is in the way | Wait and check the wallet's activity; don't resubmit under a new key |
+| 429 | A rate limit, or the daily prompt quota | Back off; for the quota, wait until `resetAt`. See [safety.md](safety.md#rate-limits) |
+| 500, 503 | A server-side failure | Retry after a delay; for swaps, only with the same `idempotencyKey` |
+| 502, 504 | An upstream failure, or a confirmation that timed out | For swaps, see below |
 
-# Verify installation
-which bankr
-```
-
-### Not Authenticated
-```bash
-# Authenticate (opens browser for email/OTP flow)
-bankr login
-
-# Or set API key directly
-bankr config set apiKey bk_your_key_here
-
-# Set separate LLM key (optional, falls back to API key)
-bankr config set llmKey your_llm_key_here
-
-# Verify
-bankr whoami
-```
-
-Config is stored at `~/.bankr/config.json`. View current values with `bankr config get`.
-
-### REST API Authentication
-If using the API directly without the CLI, test your key with:
-```bash
-curl -s "https://api.bankr.bot/_health" -H "X-API-Key: $BANKR_API_KEY"
-```
-Set `BANKR_API_KEY` (and optionally `BANKR_LLM_KEY` for the LLM gateway) as environment variables.
-
-## User-Friendly Error Messages
-
-### Template
-```
-[What went wrong]
-
-This usually means: [Explanation]
-
-To fix this:
-1. [Step 1]
-2. [Step 2]
-3. [Step 3]
-
-Need help? Visit https://bankr.bot/api-keys
-```
-
-### Examples
-
-**Balance Error:**
-```
-You don't have enough ETH to complete this trade.
-
-This usually means: Your wallet balance is too low for the trade amount plus gas fees.
-
-To fix this:
-1. Check your balance: "What is my ETH balance?"
-2. Either reduce the trade amount
-3. Or add more ETH to your wallet
-
-You currently need at least $XX.XX worth of ETH.
-```
-
-**Token Not Found:**
-```
-Couldn't find the token "XYZ" on Base.
-
-This usually means: The token symbol is wrong, the token doesn't exist on this chain, or it hasn't been indexed yet.
-
-To fix this:
-1. Double-check the token symbol spelling
-2. Try specifying the chain: "Buy XYZ on Ethereum"
-3. Or use the contract address instead
-
-Try: "Search for XYZ token" to find it
-```
-
-## Debugging Checklist
-
-Before reporting an issue, check:
-
-- [ ] API key is set and correct
-- [ ] Config file exists and has valid JSON
-- [ ] Internet connection is working
-- [ ] api.bankr.bot is reachable
-- [ ] Wallet has sufficient balance (tokens + gas)
-- [ ] Token/market exists on specified chain
-- [ ] Command syntax is correct
-- [ ] No typos in token symbols or addresses
-- [ ] Recent similar operations worked
-
-## Getting Help
-
-### Check Status
-```bash
-# Verify authentication
-bankr whoami
-
-# Test with a simple query
-bankr agent "What is my balance?"
-```
-
-### Gather Information
-When reporting issues, include:
-- Error message (exact text)
-- Command that failed
-- Job ID (if available)
-- Timestamp
-- Chain and tokens involved
-- Your config (without API key)
-
-### Resources
-- **Agent API Reference**: https://www.notion.so/Agent-API-2e18e0f9661f80cb83ccfc046f8872e3
-- **API Key Management**: https://bankr.bot/api-keys
-- **Twitter**: @bankr_bot
-- **Telegram**: @bankr_ai_bot
-
-## Prevention
-
-### Before Operating
-1. **Test with small amounts** first
-2. **Verify balance** before trades
-3. **Check token exists** on chain
-4. **Confirm parameters** are correct
-5. **Have enough gas** for transactions
-
-### Best Practices
-1. Start small and test
-2. Keep some native token for gas
-3. Verify addresses/symbols
-4. Use limit orders for better prices
-5. Monitor your automations
-6. Review transactions before confirming
-7. Keep API key secure
-
-### Regular Maintenance
-1. Check balance weekly
-2. Review open orders monthly
-3. Update automation rules
-4. Monitor gas costs
-5. Keep config backed up
-
-## Common Mistake Patterns
-
-### Wrong Chain
-- **Mistake**: "Buy TOKEN" (doesn't specify chain)
-- **Result**: Token not found or wrong chain selected
-- **Fix**: "Buy TOKEN on Base"
-
-### Insufficient Gas Buffer
-- **Mistake**: Using all ETH in trade
-- **Result**: No gas for future transactions
-- **Fix**: Keep 0.01 ETH buffer
-
-### Typos in Symbols
-- **Mistake**: "ETHE" instead of "ETH"
-- **Result**: Token not found
-- **Fix**: Double-check spelling
-
-### Forgetting Decimals
-- **Mistake**: "Buy 100 ETH" (wants $100 worth)
-- **Result**: Tries to buy 100 ETH ($300,000+)
-- **Fix**: "Buy $100 of ETH"
-
-### No Stop Loss
-- **Mistake**: Opening leverage without stop loss
-- **Result**: Risk of liquidation
-- **Fix**: Always set stop loss for leverage
-
-## Error Recovery Workflow
-
-```
-1. Error occurs
-   ↓
-2. Read error message carefully
-   ↓
-3. Check this guide for known issue
-   ↓
-4. Apply suggested fix
-   ↓
-5. Test with small amount
-   ↓
-6. If still failing:
-   - Verify config
-   - Test API connectivity
-   - Report issue with details
-```
-
----
-
-**Remember**: Most errors have simple fixes. Read the error message carefully, check the basics (API key, balance, connection), and consult this guide.
+Agent jobs work differently: a job that fails still answers `200`, with `status: "failed"` and the agent's own explanation in `error`. See [api-workflow.md](api-workflow.md).
+
+## Retrying swaps safely
+
+Send an `idempotencyKey` (a UUID) with every `/wallet/swap`, and retry only with the same key. A failure before broadcast releases the key, so the retry runs normally. A failure after broadcast is recorded under the key for 24 hours, so a retry replays that response and never swaps twice. While the original request is still running, a retry gets `409 duplicate_request`.
+
+After the responses below, retrying under a **new** key can execute a second swap. Check the wallet's activity for the hash first:
+
+| Response | What happened |
+|----------|---------------|
+| `504 receipt_pending` | The swap was broadcast; only the confirmation is missing |
+| `502 fill_unconfirmed` | A Solana LaunchLab fill was broadcast but couldn't be confirmed |
+| `502 fill_failed` | A cross-chain fill failed after the origin transaction landed; the input is being returned to the wallet |
+
+Other `502`s, such as no fresh quote or a signing failure, happen before broadcast. `/wallet/submit` takes no idempotency key; see [sign-submit-api.md](sign-submit-api.md#confirmation-and-failures).
+
+## Getting help
+
+Report the job ID, the exact error text, a timestamp, and the chain and tokens involved, but never the API key (`bankr config get` masks it). Support is at [help.bankr.bot](https://help.bankr.bot) and [support@bankr.bot](mailto:support@bankr.bot). Bankr never DMs first and never asks for a seed phrase or private key.

@@ -1,6 +1,6 @@
 # File Storage Reference
 
-Every Bankr wallet has a persistent filesystem. Documents the agent generates for you, files you upload, installed CLI skills, and the agent's memory all live there — browsable, editable, and shared across every surface the agent runs on. Because state lives on your wallet, the CLI, the web terminal, the API, and the social platforms all see exactly the same files.
+Every Bankr wallet has a persistent filesystem. Documents the agent generates for you, files you upload, installed CLI skills and the agent's memory all live there, browsable, editable and shared across every surface the agent runs on. Because state lives on the wallet, the CLI, the web terminal, the API and the social platforms all see the same files. Docs: [docs.bankr.bot/agent/files](https://docs.bankr.bot/agent/files).
 
 ## Tiers
 
@@ -54,7 +54,7 @@ Your permanent files are one half of what the agent can see. The other is `/runs
 | Scope | Your wallet **and** the conversation — run files aren't visible from another thread |
 | Retention | ~14 days, refreshed on each read or write, so an active conversation's files don't lapse |
 | Per file | 10 MB |
-| Per conversation | 100 MB across all run files |
+| Per conversation | 100 MB across all run files. A write past it evicts the least recently used run files instead of failing |
 | Per sandbox call | 25 files / 10 MB synced out of `./output/` |
 | Content | **Text only.** Binary output (images, archives, PDFs) is refused — a run publishes those as artifacts instead |
 
@@ -62,7 +62,7 @@ Run outputs are deliberately not durable storage. When something matters beyond 
 
 ## Asking Questions About a File
 
-Some questions are about a file rather than its bytes — how many rows match, what the total is, which entries clear a threshold. Loading a 4 MB CSV into the conversation to count lines is slow and burns context, so the agent instead runs a small read-only pipeline against the file in a sandbox and returns only the answer. The file itself never enters the conversation.
+Some questions are about a file rather than its bytes — how many rows match, what the total is, which entries clear a threshold. Loading a 4 MB CSV into the conversation to count lines is slow and burns context, so the agent instead runs a small analysis against the file in a sandbox and returns only the answer. The file itself never enters the conversation.
 
 ```
 how many rows in /exports/portfolio-2026-04.csv have a negative pnl?
@@ -70,39 +70,36 @@ count the ERROR lines in /logs/run.log
 what's the highest score in /data/candidates.json?
 ```
 
-Available on **every wallet** — no Club subscription needed — and you don't have to ask for it by name; the agent reaches for it when a question is an aggregation rather than a read.
+Available on **every wallet** — no Club subscription needed — and you don't have to ask for it by name; the agent reaches for it when a question is an aggregation rather than a read. It can run either of two things, and neither can modify the file:
 
-**What it can run:** `jq` for JSON and JSONL, plus `grep`, `egrep`, `fgrep`, `awk`, `cut`, `sort`, `uniq`, `wc`, `head`, `tail`, `cat`, `tr`, `nl`, `rev`, `paste`, `column`, `comm`, and pipes between them. No redirection, command chaining, command substitution, or network access. It is read-only and can never modify the file.
+- **A read-only pipeline:** `jq` for JSON and JSONL, plus `grep`, `egrep`, `fgrep`, `awk`, `cut`, `sort`, `uniq`, `wc`, `head`, `tail`, `cat`, `tr`, `nl`, `rev`, `paste`, `column`, `comm`, and pipes between them. No redirection, command chaining, command substitution, or network access.
+- **A Python 3 script** (standard library, up to 20 KB) for multi-step calculations. It needs a signed-in session or a read-write API key; read-only keys get pipelines only.
 
-**Limits:** text files only (not PDFs, images, or archives), up to roughly **5 MB** per query — above that the agent falls back to reading the file in ranges. Answers are capped at ~8,000 characters and the pipeline is cut off after **10 seconds**. If you hit either, narrow the question to a count or a top-N rather than a dump.
+**Limits:** text files only (not PDFs, images, or archives), up to roughly **5 MB** per query — above that the agent falls back to reading the file in ranges. Answers are capped at ~8,000 characters and a run is cut off after **10 seconds**. If you hit either, narrow the question to a count or a top-N rather than a dump.
 
 ## CLI Commands
 
 ```bash
-bankr files ls                                  # List files
-bankr files ls --folder /research               # Scoped to one folder
+bankr files ls [--folder /research]             # List, with full paths
 bankr files upload ./report.csv --folder /data  # Upload from your machine
 bankr files download <fileId>                   # Get a download URL
-bankr files cat <fileId>                        # Print contents to stdout
+bankr files cat <fileId> [-o ./local.md]        # Print contents, or save locally
 bankr files edit <fileId> -f "old" -r "new"     # Find/replace (--all for every occurrence)
 bankr files write <fileId> --from ./new.md      # Overwrite from a local file or stdin
-bankr files search "hyperliquid" --limit 20     # Search names, extensions, descriptions
+bankr files search "hyperliquid" --limit 20     # Names, extensions, descriptions (--folder, --mime-type)
 bankr files mkdir reports --parent /            # Create a folder
+bankr files mv <fileId> /archive                # Move; also: rename <fileId> <name>, info <fileId>
 bankr files rm <fileId>                         # Delete (soft)
 bankr files storage                             # Usage and quota
 ```
 
-Listings can be scoped to a folder, and results come back with full paths — so a name that appears in several folders is unambiguous.
-
-## REST API
-
-The same filesystem is available under `/user/files/*` for programmatic access.
+CLI commands take the file ID that `ls` and `search` print, not a path. Over REST the same filesystem is under `/user/files/*` (every route is in the [OpenAPI spec](https://docs.bankr.bot/openapi/api.yaml)), and x402 endpoints you host reach it through `ctx.files` (see [x402-cloud.md](x402-cloud.md)).
 
 ## Uploads and Downloads
 
-Upload from the web at [bankr.bot](https://bankr.bot) → **Files** panel (drag and drop, or the upload button). Text (`.md`, `.txt`, `.csv`, `.json`, code files), images, and PDFs are supported; executables (`.exe`, `.sh`, `.bat`, `.com`) are blocked.
+Upload from the web at [bankr.bot](https://bankr.bot) → **Files** panel (drag and drop, or the upload button). Any file type is accepted except executables (`.exe`, `.sh`, `.bat`, `.com`).
 
-Each download counts against your monthly budget, which resets on the 1st of each month (UTC). The cap exists to stop Bankr storage becoming a free CDN — normal use never approaches it.
+Each download counts against your monthly budget, which resets on the 1st of each month (UTC); past it, download links are refused with `429` until then. The cap exists to stop Bankr storage becoming a free CDN — normal use never approaches it.
 
 ## Deletion
 

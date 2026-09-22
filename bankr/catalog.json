@@ -7,13 +7,13 @@
   "demo": {
     "title": "bankr-cli.sh",
     "language": "bash",
-    "code": "# Launch a token on Base for free\nbankr launch\n\n# Track and claim your trading fee revenue\nbankr fees\nbankr fees claim 0xYourToken\n\n# Fund your agent's intelligence\nbankr llm setup\nbankr agent prompt \"What tokens are trending on Base?\""
+    "code": "# Launch a token on Base for free\nbankr launch\n\n# Track and claim your trading fee revenue\nbankr fees\nbankr fees claim 0xYourToken\n\n# Fund your agent's intelligence\nbankr llm credits add 25\nbankr agent prompt \"What tokens are trending on Base?\""
   },
   "setup": [
     "Install CLI: `npm install -g @bankr/cli`",
     "Login: `bankr login email you@example.com`",
     "Verify: `bankr whoami`",
-    "Trade: `bankr agent prompt \"Buy $50 of ETH on Base\"`"
+    "Trade: `bankr agent prompt 'Buy $50 of ETH on Base'`"
   ],
   "install": {
     "type": "bankr",
