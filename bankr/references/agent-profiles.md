@@ -89,7 +89,7 @@ Once a wallet holds more than one, the write endpoints take an optional slug to 
 
 `GET /agent/profile/token-eligibility?address=0x…` checks whether a token can be linked to one of the wallet's profiles before you try to save it — same rule as the create/update path (the wallet deployed the token through Bankr, or is one of its fee beneficiaries). Eligibility is partly on-chain, so call this rather than reproducing the rule client-side; the `403` on save is still the final guard.
 
-**The [OpenAPI spec](https://docs.bankr.bot/openapi/bankr-api.yaml) is authoritative for these shapes** and documents the slug and `multi` variants in full.
+**The [OpenAPI spec](https://docs.bankr.bot/openapi/api.yaml) is authoritative for these shapes** and documents the slug and `multi` variants in full.
 
 ### GET /agent/profile
 
