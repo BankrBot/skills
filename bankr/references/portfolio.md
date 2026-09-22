@@ -23,7 +23,7 @@ curl -s "https://api.bankr.bot/wallet/portfolio?chains=base,solana&include=pnl,n
   -H "X-API-Key: $BANKR_API_KEY"
 ```
 
-Any active API key works, read-only keys included. PnL and NFTs are fetched only when `include` asks for them. Response schema: https://docs.bankr.bot/wallet-api/portfolio and the OpenAPI spec (https://docs.bankr.bot/openapi/api.yaml).
+Any active API key works, read-only keys included. PnL and NFTs are fetched only when `include` asks for them. Response schema: [portfolio docs](https://docs.bankr.bot/wallet-api/portfolio) and the [OpenAPI spec](https://docs.bankr.bot/openapi/api.yaml).
 
 - **Exact amounts:** `token.balance`, `nativeBalance`, `nativeUsd` and `total` are exact decimal **strings** (never rounded, never scientific notation). Parse them with a decimal-safe library before building a max-size trade.
 - **Partial-failure resilient:** a chain's native balance and its token list are fetched independently, so a token-indexer failure still returns the native balance instead of reporting the wallet empty.

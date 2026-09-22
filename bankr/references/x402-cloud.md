@@ -48,7 +48,7 @@ Handlers use the standard Fetch `Request` and `Response`, within the [limits](#l
 
 - **npm packages:** list them in `x402/<name>/package.json`, which `bankr x402 add` can scaffold. They are installed at deploy time with install scripts skipped.
 - **Response headers:** only `content-type`, `cache-control`, `etag`, `last-modified` and `x-request-id` reach the caller.
-- **Secrets:** `bankr x402 env set KEY=VALUE` makes the value available as `process.env.KEY` in every service on the wallet. Names starting with `BANKR_`, `AWS_`, `LAMBDA_` or `X402_RUNTIME_` are reserved: setting one fails, and they read as `undefined` in the handler. Store a Bankr key under another name, for example `LLM_GATEWAY_KEY` for calls to the [LLM gateway](llm-gateway.md).
+- **Secrets:** `bankr x402 env set KEY=VALUE` makes the value available as `process.env.KEY` in every service on the wallet. Names with a reserved prefix such as `BANKR_` are rejected, and read as `undefined` in the handler. Store a Bankr key under another name, for example `LLM_GATEWAY_KEY` for calls to the [LLM gateway](llm-gateway.md).
 - **Network:** outbound `fetch` to private or internal addresses is blocked.
 
 **Handler context.** Three optional bridges arrive as the handler's second argument, `ctx`, each enabled per service in `bankr.x402.json`:
@@ -113,7 +113,7 @@ bankr x402 call <url> --max-payment 0.50            # your cap in USD (default 1
 
 `--max-payment` is a hard ceiling. The price an endpoint advertises can only lower what you authorize, never raise it, and a call priced above your cap fails instead of paying. `-y` or `--ni` skips both the price check and the confirmation.
 
-**Any x402 client** (for example `x402-fetch`): an unpaid request returns `402` with the payment requirements (`x402Version: 2`, and `accepts: [{ scheme, network, amount, maxAmountRequired, asset, payTo, extra }]`), also sent base64-encoded in the `PAYMENT-REQUIRED` header. Retry with the signed payment in `PAYMENT-SIGNATURE` (v2) or `X-PAYMENT` (v1).
+**Any x402 v2 client** (for example `@x402/fetch` with `@x402/evm`): an unpaid request returns `402` with the payment requirements (`x402Version: 2`, and `accepts: [{ scheme, network, amount, maxAmountRequired, asset, payTo, extra }]`), also sent base64-encoded in the `PAYMENT-REQUIRED` header. Retry with the signed payment in `PAYMENT-SIGNATURE` (v2) or `X-PAYMENT` (v1).
 
 ### How payment is handled
 

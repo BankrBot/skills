@@ -6,7 +6,7 @@ Trade tokenized stocks and ETFs — real-world equities issued as on-chain token
 
 | Venue | What you get | Examples | Location verification |
 |-------|--------------|----------|-----------------------|
-| Robinhood Chain | Spot tokens issued by Robinhood — about 200 stocks and ETFs | NVDA, AAPL, TSLA, SPY, QQQ | **Required** |
+| Robinhood Chain | Spot tokens issued by Robinhood — 190+ stocks and ETFs | NVDA, AAPL, TSLA, SPY, QQQ | **Required** |
 | Base — B20 equities | Spot equity tokens issued by Coinbase (13 names) | NVDA, AAPL, GOOGL, META, COIN | **Required** |
 | Solana | Spot tokens from third-party issuers (e.g. xStocks) | AAPLx, TSLAx | Not required |
 | Base — third-party issuers | Spot tokens from other issuers | varies by listing | Not required |

@@ -2,7 +2,7 @@
 
 Launch ERC-20 tokens on **Base**, **Robinhood Chain** and **Arbitrum One** (Doppler, a Uniswap V4 pool) or on **Arc** (Bankr Launch v3). **Solana token launches are not supported.** Older Clanker tokens stay claimable — fee claims auto-detect Doppler, Clanker and Launch v3.
 
-The deploy, quote-token and fee endpoints are in the OpenAPI spec (https://docs.bankr.bot/openapi/api.yaml); the narrative guide is https://docs.bankr.bot/token-launching/overview.
+The deploy, quote-token and fee endpoints are in the [OpenAPI spec](https://docs.bankr.bot/openapi/api.yaml); the narrative guide is the [token launching overview](https://docs.bankr.bot/token-launching/overview).
 
 ## Chains and providers
 
@@ -14,8 +14,8 @@ The deploy, quote-token and fee endpoints are in the OpenAPI spec (https://docs.
 | Arc | Launch v3 only | USDC | — | Wallet pays (USDC; hold at least 0.5 USDC) |
 
 - **The default chain differs by surface.** `bankr launch` and the web launch form preselect **Base**; the agent and `POST /token-launches/deploy` fall back to **Robinhood Chain**. Name the chain whenever it matters.
-- `bankr launch --chain` takes `base`, `robinhood` or `arbitrum`. Launch on Arc through the agent ("launch X on arc") or the deploy API (`"chain": "arc"`).
-- No location check applies to launching — not for Robinhood Chain memecoins, not for a stock-paired pool. Only trading a tokenized stock is geo-verified.
+- `bankr launch --chain` takes `base`, `robinhood` or `arbitrum`. Launch on Arc through the agent ("launch X on arc"), the web form or the deploy API (`"chain": "arc"`).
+- Launching needs no tokenized-stock location verification — not for a Robinhood Chain memecoin, not for a stock-paired pool; only trading the stock itself does. Launches have their own region gate (see [Limits](#limits-and-eligibility)).
 
 ## Launching
 
@@ -114,7 +114,7 @@ POST /token-launches/deploy
 
 ### Five-minute balance cap
 
-For the first five minutes after a non-partner Doppler launch, no wallet may hold more than **2% of total supply** — a buy or transfer that would push a recipient over 2% fails until the cap expires. This is separate from the ~10-second anti-snipe fee decay. The expiry is encoded on-chain at launch.
+For the first five minutes after a non-partner Doppler launch, no wallet may hold more than **2% of total supply** — a buy or transfer that would push a recipient over 2% fails until the cap expires. This is separate from the 14-second anti-snipe fee decay at launch. The expiry is encoded on-chain.
 
 ## Bankr Launch v3 (Arc)
 
@@ -140,12 +140,12 @@ On a v3 launch, options go in the deploy body's `launchV3` object (the agent tak
 
 | Builder (no auth) | Custodial (session) | Does |
 |---|---|---|
-| `POST /launch-v3/{token}/recipient/build` `{ account, newRecipient }` | `…/recipient/transfer` | Hands future fee rights to another address |
+| `POST /launch-v3/{token}/recipient/build` `{ account, newRecipient }` | `…/recipient/transfer` | Hands the fee recipient role to another address |
 | `POST /launch-v3/{token}/operator/build` | `…/operator/grant` | Lets an operator claim on your behalf (payout stays yours) |
 | `POST /launch-v3/{token}/holders/build-claim` | `…/holders/claim` | Holder-reward claim |
 | `POST /launch-v3/{token}/fees/build-claim` | — | Creator fee claim |
 
-The builders take no credential (an `X-API-Key` is simply ignored); the transaction signature authorizes the write. The custodial routes never read `X-API-Key`, so a key-only request gets `401`. From an API key, use the builder — or `POST /token-launches/{tokenAddress}/fees/claim` for fees. Both recipient paths answer `403` unless the signer is the current recipient and `400` when `newRecipient` already is; the creator-vesting allocation stays with the recipient recorded at launch.
+The builders take no credential (an `X-API-Key` is simply ignored); the transaction signature authorizes the write. The custodial routes never read `X-API-Key`, so a key-only request gets `401`. From an API key, use the builder — or `POST /token-launches/{tokenAddress}/fees/claim` for fees. Both recipient paths answer `403` unless the signer is the current recipient and `400` when `newRecipient` already is. Claim accrued fees first if they should stay with the old address; the creator-vesting allocation stays with the recipient recorded at launch.
 
 ## Limits and eligibility
 
@@ -184,6 +184,6 @@ Retail launch gas is sponsored on **Base only**; on Robinhood Chain, Arbitrum an
 ## After launch
 
 - **Claim fees:** "Claim fees for my token MTK", `bankr fees` / `bankr fees claim <tokenAddress>`, or `POST /token-launches/{tokenAddress}/fees/claim` (auto-detects Doppler, Clanker or Launch v3). "Claim legacy Clanker fees" covers older tokens.
-- **Transfer fee rights (Doppler):** see https://docs.bankr.bot/token-launching/transferring-fees. Future fees only; the vesting allocation stays put.
+- **Transfer fee rights (Doppler):** see [Transferring fees](https://docs.bankr.bot/token-launching/transferring-fees). Fees not yet claimed go to whoever is the beneficiary at claim time, so claim first; the vesting allocation stays with the original recipient.
 - **Name and logo:** the fee recipient can set a Bankr-only display name and logo (Discover, the token page) from the web terminal's token drawer or `PATCH /token-launches/{tokenAddress}/metadata` with `name` and/or `imageUri` (`null` clears). The on-chain name, symbol and launch metadata are immutable. Legacy Clanker tokens can still have their image and metadata updated through the agent.
-- **Taking profit (Glidepath):** selling a token you earn creator fees on through Bankr's swap, limit, stop, DCA or TWAP tools is restricted (buying and transferring still work). Builders exit gradually with a **Glidepath** — a capped, AI-paced sell set up from the token page at [bankr.bot](https://bankr.bot) for Base and Robinhood Chain launches. It is a web feature, not a CLI/API action: https://docs.bankr.bot/token-launching/glidepath
+- **Taking profit (Glidepath):** builders exit gradually with a **Glidepath** — a capped, AI-paced sell set up from the token page at [bankr.bot](https://bankr.bot) for Base and Robinhood Chain launches; a web feature, not a CLI/API action ([Glidepath docs](https://docs.bankr.bot/token-launching/glidepath)). On Base, Bankr may refuse to sell a token you earn fees on through its swap and order tools and point you to Glidepath instead; buying and transferring are never affected.

@@ -41,7 +41,7 @@ bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base
 bankr wallet transfer --to name.base.eth --native --amount 0.01
 ```
 
-`--to` takes a 0x address or an ENS-style name (`.eth`, `.base.eth`, `.cb.id`), resolved via `/addresses/resolve` before anything is sent; handles are rejected, so use the agent for those. `--token` takes a symbol or contract address; `--native` sends the chain's gas token. `--chain` defaults to `base` and takes any EVM chain — there is no Solana support.
+`--to` takes a 0x address or an ENS-style name (`.eth`, `.base.eth`, `.cb.id`), resolved via `/addresses/resolve` before anything is sent — without a chain, so a name's Base record wins even with `--chain polygon`; pass a 0x address when that matters. Handles are rejected; use the agent for those. `--token` takes a symbol or contract address; `--native` sends the chain's gas token. `--chain` defaults to `base` and takes any EVM chain — there is no Solana support.
 
 ## Wallet API
 
@@ -52,7 +52,7 @@ curl -X POST "https://api.bankr.bot/wallet/transfer" \
   -d '{"tokenAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "recipientAddress": "0x1234...", "amount": "50", "isNativeToken": false, "chain": "base"}'
 ```
 
-- The body takes a **0x `recipientAddress` and a token contract address** — no ENS names, handles or symbols. For a native send, set `isNativeToken: true` (with the zero address as `tokenAddress`). `chain` defaults to `base`; EVM chains only. Full reference: https://docs.bankr.bot/wallet-api/transfer
+- The body takes a **0x `recipientAddress` and a token contract address** — no ENS names, handles or symbols. For a native send, set `isNativeToken: true` (with the zero address as `tokenAddress`). `chain` defaults to `base`; EVM chains only. Full reference: [transfer docs](https://docs.bankr.bot/wallet-api/transfer).
 - Needs a key with Wallet API access that isn't read-only. A key's `allowedRecipients` list and the wallet's own security settings (spend limits, permitted recipients, pause) are enforced: an allowlist or pause rejection is `403`, a spend-limit or permitted-recipient rejection comes back as `400` with the reason.
 
 **Resolving a name yourself** — `GET /addresses/resolve` is public (no API key):

@@ -69,7 +69,7 @@ Behavior that `--help` doesn't spell out:
 - **The shell expands `$`.** In `"Buy $50 of ETH"`, `$5` expands to nothing and the agent sees `Buy 0 of ETH`. Use single quotes, pipe the prompt (`echo 'Buy $50 of ETH on Base' | bankr agent prompt`), or run `bankr agent prompt` with no argument for an interactive input.
 - **Threads.** Every prompt runs in a thread. `-c`/`--continue` reuses the last thread and `--thread <id>` picks one.
 - **Progress.** While a prompt runs, the CLI prints the agent's status lines to stderr (0.3.40+), so piped stdout carries only the response. `bankr agent status <jobId> --wait` follows an existing job.
-- **Max Mode.** `-m`/`--model <id>` runs the prompt on a specific gateway model, billed from LLM credits (see [LLM gateway](#llm-gateway)).
+- **Max Mode.** `-m`/`--model <id>` runs the prompt on a model from the Max Mode lineup, billed from LLM credits. An ID outside the lineup is rejected with the accepted list (see [LLM gateway](#llm-gateway)).
 - **Non-interactive mode** (`--ni`, or `BANKR_NOT_INTERACTIVE=1`) implies `--yes` and fails fast instead of prompting. Commands that normally prompt then need their inputs as flags:
   - `login`: `--api-key`, `email … --code`, or `siwe --private-key`;
   - `launch`: `--name`;
@@ -114,7 +114,7 @@ echo "$R" | jq -r .response
 | `GET /wallet/portfolio` | Balances, with `?include=pnl,nfts` and `?chains=base,solana` |
 | `POST /wallet/swap-quote` | Quotes a swap: same-chain EVM, cross-chain or Solana |
 | `POST /wallet/swap` | Executes a swap. The output always goes to your own wallet |
-| `POST /wallet/transfer` | Sends tokens to a 0x address, an ENS-style name, or anything `/addresses/resolve` understands |
+| `POST /wallet/transfer` | Sends a token (by contract address) to a 0x address. Resolve an ENS name or social handle first with `GET /addresses/resolve` |
 | `POST /wallet/sign` | Signs a message, EIP-712 typed data or a transaction |
 | `POST /wallet/submit` | Broadcasts a raw transaction |
 
@@ -153,7 +153,7 @@ Most of these work by asking the agent (`bankr agent "..."` or `POST /agent/prom
 Capabilities without a reference file:
 
 - **Merkl rewards** on Base and Robinhood Chain: the agent can check what the user has earned, claim it (embedded Bankr wallets only), and list live campaigns by APR. For example: `bankr agent "Do I have any Merkl rewards to claim?"`.
-- **Web browsing:** the agent has a headless browser for reading pages, extracting data and working through web apps ([docs](https://docs.bankr.bot/browser/overview)).
+- **Web browsing:** for Bankr Club members, the agent can drive a headless browser from the web terminal or a private Telegram or Farcaster chat. It isn't available over the Agent API or in public posts ([docs](https://docs.bankr.bot/browser/overview)).
 - **Webhooks:** `bankr webhooks` deploys endpoints that trigger the agent from external events ([docs](https://docs.bankr.bot/webhooks/overview)).
 - **Questions about Bankr itself:** the agent answers from Bankr's own documentation (official links, channels, how features work) and abstains instead of guessing.
 
@@ -162,11 +162,10 @@ Capabilities without a reference file:
 - **Name the chain**, or paste the contract address, whenever a token exists on more than one chain. Launch defaults also differ by surface: the CLI and the web form preselect Base, while the agent and the deploy API fall back to Robinhood Chain.
 - **Spend limits are real.** Every wallet starts with a $500 daily limit and a $500 per-transaction limit. They are enforced on every path (agent, Wallet API, raw submit, x402) and fail closed when a price is unavailable. Only the user can change them, at bankr.bot → Security; an API key can't. See [safety.md](references/safety.md).
 - **Keys can be narrowed.** A read-only key keeps reads and prompts but gets `403` on every write: wallet writes, deploys and claims. A non-empty recipient allowlist also refuses anything whose recipient can't be checked: Polymarket trades, NFT buys, mints and listings, airdrops, scheduled prompts, and raw `/wallet/submit`. See [safety.md](references/safety.md).
-- **Never blind-retry a swap that timed out.** A `504`, or a `502` on a LaunchLab fill, can mean the swap is already on-chain. Send an `idempotencyKey` with every `/wallet/swap`.
+- **Never retry a swap under a new key after it may have broadcast.** Send an `idempotencyKey` with every `/wallet/swap` and retry only with the same one. After a `504 receipt_pending`, `502 fill_unconfirmed` or `502 fill_failed`, check the wallet's activity first. See [error-handling.md](references/error-handling.md#retrying-swaps-safely).
 - **Creating an automation isn't idempotent.** If a create seemed to fail, list the existing automations before sending it again.
 - **Tokenized-stock trades need a one-time location verification** in the Bankr web app, which isn't available in the US, the UK or sanctioned regions. Quotes aren't gated; execution is.
 - **LLM credits are separate from the trading wallet** and start at $0. Top up (`bankr llm credits add 25`) before using the gateway or Max Mode, or calls fail with `402`.
-- **You can't sell a token you earn creator fees on** through swaps or orders. The exit is Glidepath on the token page ([docs](https://docs.bankr.bot/token-launching/glidepath)).
 - **Token launches:** every wallet gets 3 counted launch attempts per rolling 24 hours, and Bankr Club doesn't raise that. Simulations (`--simulate` / `simulateOnly`) don't count. See [token-deployment.md](references/token-deployment.md).
 - **BNKR staking is withdraw-only.** It accepts no new deposits.
 
@@ -188,7 +187,7 @@ More in [docs.bankr.bot/getting-started/supported-chains](https://docs.bankr.bot
 - `bankr llm credits` shows the balance. `bankr llm credits add <usd> [--token <symbol-or-address>]` tops up from the wallet, and `bankr llm credits auto` configures automatic top-ups.
 - `bankr claude` (alias of `bankr llm claude`) and `bankr llm opencode` launch those tools through the gateway. `bankr llm setup openclaw|opencode|claude|cursor` prints or installs their config.
 - Requests run at a privacy tier: `standard` (the default), `zdr` (zero data retention) or `private` (TEE). If no provider can serve the requested tier, the request fails rather than falling back to a weaker one.
-- **Max Mode** runs the Bankr agent itself on a gateway model you pick, billed from the same credits (`bankr agent -m <id> "..."`, or the Max toggle in the web terminal).
+- **Max Mode** runs the Bankr agent itself on a model you pick from the frontier, flagship and balanced lines, billed from the same credits. Use `bankr agent -m <id> "..."`, or pick Max in the web terminal's mode menu.
 
 Setup paths, SDK examples, credit transfers, spend budgets and deprecations are in [references/llm-gateway.md](references/llm-gateway.md).
 

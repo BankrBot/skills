@@ -77,4 +77,4 @@ The `/user/automation/*` REST endpoints you may see referenced are **Bankr Termi
 | "The minimum allowed schedule interval is N minutes" | Schedule faster than the minimum interval |
 | "You don't hold enough [token] to place this order" | The creation-time balance check above |
 | Automated orders for a connected (external) wallet | Set up from the Bankr terminal's Trade page; the agent places orders for the Bankr wallet only |
-| Selling a token you earn creator fees on | Blocked for limit/stop/DCA/TWAP; use Glidepath from the token page instead |
+| Selling a Base launch token you earn creator fees on | Can be refused for limit/stop/DCA/TWAP; exit through Glidepath on the token page instead |
