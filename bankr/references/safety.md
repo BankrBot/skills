@@ -246,23 +246,12 @@ The CLI stores keys in `~/.bankr/config.json`:
 Sandboxed agents — cloud VMs, hosted assistants, CI runners — do not keep the key
 in `~/.bankr/config.json`. The host holds it and supplies it either **in the
 process**, as `BANKR_API_KEY`, or **at the network layer**, where an egress proxy
-attaches it to outbound requests.
+attaches it to outbound requests. Where the value is a stand-in it will not look
+like a `bk_...` key; that is correct, not a misconfiguration.
 
-**Prefer a host that never lets the agent hold the real key.** The strongest
-setups put a surrogate — a stand-in token, whatever the host calls it — in the
-environment and swap it for the real credential at the network boundary. A
-prompt-injection attack cannot extract a key the agent never had. A host that
-hands over the real `bk_...` key instead is workable but weaker: anything that
-can read the environment or run a shell can take it.
-
-Either way, **scope the key as though it will leak**: a dedicated wallet,
-`readOnly` unless the agent must trade, `allowedRecipients`, `allowedIps`. Those
-hold no matter what the host does internally, and they are the part you control.
-A host's security claims are an assertion you cannot verify from inside the box.
-
-**When `BANKR_API_KEY` is set** — surrogate or real — use the CLI as normal. It
-reads the variable itself and needs no `bankr login`. A surrogate will not look
-like a `bk_...` key; that is correct, not a misconfiguration:
+**When `BANKR_API_KEY` is set** — the real key, or a surrogate the host swaps for
+the real one at the network boundary — use the CLI as normal. It reads the
+variable itself and needs no `bankr login`:
 
 ```bash
 bankr whoami
