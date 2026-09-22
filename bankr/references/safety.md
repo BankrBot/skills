@@ -241,6 +241,39 @@ The CLI stores keys in `~/.bankr/config.json`:
 - Use `bankr logout` to clear stored credentials when done on a shared machine
 - For CI/CD, prefer environment variables (`BANKR_API_KEY`, `BANKR_LLM_KEY`) over config files
 
+### Host-Managed Credentials (no key on disk)
+
+Sandboxed agents — cloud VMs, hosted assistants, CI runners — do not keep the key
+in `~/.bankr/config.json`. The host holds it and supplies it either **in the
+process**, as `BANKR_API_KEY`, or **at the network layer**, where an egress proxy
+attaches it to outbound requests. Where the value is a stand-in it will not look
+like a `bk_...` key; that is correct, not a misconfiguration.
+
+**When `BANKR_API_KEY` is set** — the real key, or a surrogate the host swaps for
+the real one at the network boundary — use the CLI as normal. It reads the
+variable itself and needs no `bankr login`:
+
+```bash
+bankr whoami
+bankr wallet portfolio
+bankr agent "swap 10 USDC for ETH"
+```
+
+**When it is unset and a proxy attaches the credential**, the CLI cannot be used:
+it requires a key in the environment or on disk and exits with "Not
+authenticated" before any request leaves the process, so the proxy never sees
+one. Call the API directly and let the proxy fill the header:
+
+```bash
+curl -s https://api.bankr.bot/wallet/portfolio
+```
+
+**An unset `BANKR_API_KEY` is not proof that nothing is configured.** Try the call
+first: if it succeeds, the host is authenticating you. Never respond to an empty
+variable by running `bankr login` or asking the user to paste a key — and do not
+send `-H "X-API-Key: "`, since a proxy that only fills absent headers will leave
+the empty value in place.
+
 ### Non-Interactive Login
 
 When running the CLI in automated scripts or AI agent environments where interactive prompts aren't possible:
@@ -371,7 +404,7 @@ Blockchain transactions are **irreversible** once confirmed. Key safety rules:
 
 ### Rotation & Revocation
 
-- **Rotate periodically** — Rotate keys via the dashboard at [bankr.bot/api-keys](https://bankr.bot/api-keys) or programmatically via the API key rotation endpoint. Rotation atomically generates a new key and deactivates the old one. After rotating, update both env vars and CLI config (`bankr login --api-key NEW_KEY`)
+- **Rotate periodically** — Rotate keys from the dashboard at [bankr.bot/api-keys](https://bankr.bot/api-keys). Rotation needs a signed-in web session and a step-up check, so **an API key cannot rotate itself** and there is no key-authenticated rotation endpoint. Rotation atomically issues the new key and deactivates the old one. Afterwards update wherever the key lives — the host's credential store, env vars, or CLI config (`bankr login --api-key NEW_KEY`)
 - **Revoke immediately** — If any key (API or LLM) is leaked, deactivate it immediately at the dashboard
 - **One key per purpose** — Use separate keys for different agents, environments, and services (Agent API vs LLM Gateway) so you can revoke individually without disrupting unrelated systems
 
