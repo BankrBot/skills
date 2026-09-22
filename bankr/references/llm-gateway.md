@@ -60,8 +60,8 @@ bankr config get llmKey
 | ~~`gemini-3.1-flash-lite`~~ | Google | **Deprecated** — use `gemini-3.8-flash` |
 | ~~`gemini-3-pro`~~ | Google | **Deprecated** — use `gemini-3.1-pro` |
 | `gemini-3-flash` | Google | High throughput (1M) |
-| `gemini-2.5-pro` | Google | Long context, multimodal |
-| `gemini-2.5-flash` | Google | Speed, high throughput |
+| ~~`gemini-2.5-pro`~~ | Google | **Deprecated** — use `gemini-3.1-pro`. Google retires the whole 2.5 line on **2026-10-20** |
+| ~~`gemini-2.5-flash`~~ | Google | **Deprecated** — use `gemini-3.8-flash`. Retires **2026-10-20** |
 | `gemma-4-31b-it` | Google | Multimodal, cost-effective (262K) |
 | `gemma-4-26b-a4b-it` | Google | MoE, cost-effective (262K) |
 | `gpt-6-astra` | OpenAI | Latest frontier, most capable (1M context, image input) |
@@ -76,10 +76,11 @@ bankr config get llmKey
 | `gpt-5.2-codex` | OpenAI | Code generation (400K context) |
 | `gpt-5-mini` | OpenAI | Previous gen, economical (400K) |
 | `gpt-5-nano` | OpenAI | Previous gen, ultra-fast (400K) |
+| `grok-4.6` | xAI | Latest Grok, balanced multimodal (500K context, image input) |
 | `grok-4.20` | xAI | Deep reasoning, largest context (2M context) |
-| `grok-4.5` | xAI | Latest, balanced multimodal (500K context, image input) |
+| `grok-4.5` | xAI | Previous balanced multimodal (500K context, image input) |
 | `grok-4.3` | xAI | Balanced performance (1M context) |
-| `grok-4.1-fast` | xAI | Fast, economical, largest context (2M) |
+| ~~`grok-4.1-fast`~~ | xAI | **Deprecated** — use `grok-4.3` |
 | `deepseek-v4.1-flash` | DeepSeek | Mid-tier Flash — agents, coding, vision (1M, image input) |
 | `deepseek-v4-pro-0813` | DeepSeek | Frontier, high-capacity reasoning (1M) |
 | `deepseek-v4-pro` | DeepSeek | Previous V4 Pro build, 0423 (1M, 384K output) |
@@ -103,6 +104,7 @@ bankr config get llmKey
 | `minimax-m2.7-highspeed` | MiniMax | Faster variant, double throughput (204.8K) |
 | `minimax-m2.5` | MiniMax | Cost-effective (204.8K) |
 | `glm-5.3` | Z.ai | Latest flagship, long-context reasoning (1M) |
+| `glm-5.3-flashx` | Z.ai | Speed variant sold alongside GLM-5.3 Flash — faster, and priced well above it. A separate tier, **not** a Flash successor |
 | `glm-5.3-flash` | Z.ai | Efficient coding and agents (1M, image input) |
 | `glm-5.2` | Z.ai | Previous flagship, long-context reasoning (1M) |
 | `glm-5.1` | Z.ai | Advanced reasoning (202K) |

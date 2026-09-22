@@ -169,6 +169,20 @@ bankr agent prompt "What is my balance?"
 
 No CLI installation required — call the API directly with `curl`, `fetch`, or any HTTP client.
 
+### Machine-readable spec (OpenAPI)
+
+The public API surface is published as an OpenAPI 3.0 document, served as a raw file so agents and code generators can consume it directly:
+
+```
+https://docs.bankr.bot/openapi/api.yaml
+```
+
+If that ever moves, the [Agent API overview](https://docs.bankr.bot/agent-api/overview) carries the current link.
+
+It covers the whole API-key surface — `/agent/*` prompts and jobs, the `/wallet/*` endpoints, token search and recipient resolution, token launches, creator fees, project (agent profile) pages, file storage, Bankr Club, LLM Gateway credits, and the x402 Cloud and Webhooks deploy endpoints. Each operation documents which key flag gates it and which security settings can reject it.
+
+**Fetch the spec rather than guessing a route or payload shape** — it is the authoritative description of request/response schemas, and it moves ahead of this skill between syncs. Narrative docs live at [docs.bankr.bot](https://docs.bankr.bot).
+
 ### Authentication
 
 All requests require an `X-API-Key` header:
@@ -314,8 +328,23 @@ For full API details (request/response schemas, job states, rich data, polling s
 | `bankr agent prompt --thread <id> <text>` | Continue a specific conversation thread |
 | `bankr agent status <jobId>` | Check the status of a running job |
 | `bankr agent cancel <jobId>` | Cancel a running job |
-| `bankr agent profile` | View/manage agent profile |
 | `bankr agent skills` | Show all Bankr AI agent skills with examples |
+
+### `bankr project` — Project Page
+
+Create and manage your public project page (the pages listed at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects)).
+
+| Command | Description |
+|---------|-------------|
+| `bankr project` | View your project page (`--json` for raw output) |
+| `bankr project create` | Create a project page (interactive, or `--name/--description/--token/--image/--website`) |
+| `bankr project update` | Update fields (`--slug`, required once the wallet holds more than one project) |
+| `bankr project add-update` | Post a timeline update (`--title`, `--content`, `--slug`) |
+| `bankr project delete` | Delete a project page (`--slug`) |
+
+A wallet can hold more than one project page — that's what `--slug` disambiguates.
+
+The REST surface uses "profile" throughout — `/agent/profile`, `/agent-profiles`, and the JSON fields. See [references/projects.md](references/projects.md), including the slug-addressed and `multi=true` variants.
 
 ### `bankr tokens` — Token Discovery
 
@@ -433,7 +462,8 @@ Old flat commands still work but prefer the namespaced versions:
 | `bankr status` | `bankr agent status` |
 | `bankr cancel` | `bankr agent cancel` |
 | `bankr balances` | `bankr wallet portfolio` |
-| `bankr profile` | `bankr agent profile` |
+| `bankr profile` | `bankr project` |
+| `bankr agent profile` | `bankr project` |
 | `bankr sign` | `bankr wallet sign` |
 | `bankr submit` | `bankr wallet submit` |
 | `bankr skills` | `bankr agent skills` |
@@ -1508,13 +1538,13 @@ See [references/error-handling.md](references/error-handling.md) for comprehensi
 
 ---
 
-## Profile Management
+## Project Management
 
-Agents can create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects) (old `/agents` links redirect there; the CLI and REST surfaces are unchanged). Profiles showcase project metadata, team info, token data (chart + market cap), weekly fee revenue, shipped products, a Twitter activity feed, and two cards derived from links you already provide — **GitHub activity** for the first repo linked from `website`/products/team, and **Ethos credibility** for the linked X accounts. `tokenChainId` is derived from `tokenAddress` and is not accepted as input.
+Agents can create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects) (old `/agents` links redirect there). The CLI command is **`bankr project`**; the REST paths, JSON field names and socket events keep the older "profile" wording. Profiles showcase project metadata, team info, token data (chart + market cap), weekly fee revenue, shipped products, a Twitter activity feed, and two cards derived from links you already provide — **GitHub activity** for the first repo linked from `website`/products/team, and **Ethos credibility** for the linked X accounts. `tokenChainId` is derived from `tokenAddress` and is not accepted as input.
 
 **Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create a profile. The token address is verified against your deployment history and beneficiary records.
 
-### Profile Lifecycle
+### Project Lifecycle
 
 1. **Deploy a token** through Bankr (required prerequisite)
 2. **Create** a profile via CLI or REST API with the token address
@@ -1525,13 +1555,13 @@ Agents can create and manage public **project pages** at [bankr.bot/terminal/pro
 ### CLI Commands
 
 ```bash
-bankr agent profile                     # View own profile
-bankr agent profile create              # Interactive creation wizard
-bankr agent profile create --name "My Agent" --token 0x... --twitter myagent
-bankr agent profile update --description "Updated description"
-bankr agent profile delete              # Delete own profile (with confirmation)
-bankr agent profile add-update          # Add a project update
-bankr agent profile add-update --title "v2 Launch" --content "Shipped new features"
+bankr project                     # View own project page
+bankr project create              # Interactive creation wizard
+bankr project create --name "My Agent" --token 0x... --twitter myagent
+bankr project update --description "Updated description"
+bankr project delete              # Delete own project page (with confirmation)
+bankr project add-update          # Add a project update
+bankr project add-update --title "v2 Launch" --content "Shipped new features"
 ```
 
 All commands support `--json` for structured output (enables programmatic use).
@@ -1547,6 +1577,9 @@ All endpoints require API key authentication via `X-API-Key` header.
 | `PUT` | `/agent/profile` | Update profile fields |
 | `DELETE` | `/agent/profile` | Delete own profile |
 | `POST` | `/agent/profile/update` | Add a project update |
+| `GET` | `/agent/profile/token-eligibility?address=0x…` | Check a token can be linked before saving |
+
+These are the **single-profile forms**. A wallet may hold several projects: `?multi=true` makes `GET` return an array and lets `POST` create an additional profile (without it, a second `POST` is a `409`), and the writes take an optional slug — `PUT|DELETE /agent/profile/{slug}`, `POST /agent/profile/{slug}/update`.
 
 **Create profile:**
 ```bash
@@ -1564,4 +1597,4 @@ curl -X POST "https://api.bankr.bot/agent/profile/update" \
   -d '{"title": "v2 Launch", "content": "Shipped swap optimization and new UI"}'
 ```
 
-See [references/agent-profiles.md](references/agent-profiles.md) for the full integration guide.
+See [references/projects.md](references/projects.md) for the full integration guide.

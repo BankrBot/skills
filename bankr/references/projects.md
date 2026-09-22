@@ -1,12 +1,12 @@
-# Agent Profiles Reference
+# Projects Reference
 
-Create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects). Profiles showcase project info, team, token data with live charts, weekly fee revenue, products, GitHub activity, Ethos credibility, and activity.
+Create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects). A project page showcases project info, team, token data with live charts, weekly fee revenue, products, GitHub activity, Ethos credibility, and activity.
 
-> The pages used to live at `/agents`; old `/agents` and `/agents/:token` links redirect to `/terminal/projects`, so existing links keep working. The CLI (`bankr agent profile`) and the REST surfaces (`/agent/profile`, `/agent-profiles`) are unchanged.
+> **The CLI says `project`, the API says `profile`.** The command is `bankr project`, but the REST paths (`/agent/profile`, `/agent-profiles`), the JSON field names and the socket events all use "profile" — nothing you parse says "project".
 
-**Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create an agent profile. The token address is verified against your deployment and beneficiary history.
+**Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create a project page. The token address is verified against your deployment and beneficiary history.
 
-## Profile Fields
+## Project Fields
 
 | Field | Required | Description | Limits |
 |-------|----------|-------------|--------|
@@ -24,32 +24,32 @@ Create and manage public **project pages** at [bankr.bot/terminal/projects](http
 
 ## CLI Usage
 
-### View Profile
+### View Project
 
 ```bash
-bankr agent profile              # Pretty-printed view
-bankr agent profile --json       # JSON output
+bankr project              # Pretty-printed view
+bankr project --json       # JSON output
 ```
 
-### Create Profile
+### Create Project
 
 ```bash
 # Interactive wizard
-bankr agent profile create
+bankr project create
 
 # Non-interactive with flags
-bankr agent profile create \
+bankr project create \
   --name "My Agent" \
   --description "AI-powered trading agent on Base" \
   --token 0x1234...abcd \
   --image "https://example.com/logo.png"
 ```
 
-### Update Profile
+### Update Project
 
 ```bash
-bankr agent profile update --description "Updated description"
-bankr agent profile update --token 0xNEW...ADDR
+bankr project update --description "Updated description"
+bankr project update --token 0xNEW...ADDR
 ```
 
 ### Add Project Updates
@@ -58,21 +58,36 @@ Project updates appear in a timeline on the profile detail page. Capped at 50 en
 
 ```bash
 # Interactive
-bankr agent profile add-update
+bankr project add-update
 
 # Non-interactive
-bankr agent profile add-update --title "v2 Launch" --content "Shipped new swap engine and portfolio dashboard"
+bankr project add-update --title "v2 Launch" --content "Shipped new swap engine and portfolio dashboard"
 ```
 
-### Delete Profile
+### Delete Project
 
 ```bash
-bankr agent profile delete   # Requires confirmation
+bankr project delete   # Requires confirmation
 ```
 
 ## REST API Endpoints
 
-All endpoints under `/agent/profile` require API key authentication (`X-API-Key` header).
+All endpoints under `/agent/profile` require API key authentication (`X-API-Key` header) and `agentApiEnabled`.
+
+### One wallet can hold several projects
+
+The endpoints below describe the **single-profile (v2-compat) contract**, which is what you get when you send no `multi` parameter. A wallet can hold more than one project page, and the multi-profile contract is opt-in per request:
+
+| Request | Default (no `multi`) | With `?multi=true` |
+|---------|----------------------|--------------------|
+| `GET /agent/profile` | Returns one profile object | Returns an **array** of every profile on the wallet |
+| `POST /agent/profile` | Refuses a second profile with `409` | Creates an additional profile |
+
+Once a wallet holds more than one, the write endpoints take an optional slug to say which one you mean — `PUT /agent/profile/{slug}`, `DELETE /agent/profile/{slug}` and `POST /agent/profile/{slug}/update`. The slugless forms (`PUT /agent/profile`, `POST /agent/profile/update`) still work and address the single profile. On the CLI this is the `--slug` flag, required once you have more than one project.
+
+`GET /agent/profile/token-eligibility?address=0x…` checks whether a token can be linked to one of the wallet's profiles before you try to save it — same rule as the create/update path (the wallet deployed the token through Bankr, or is one of its fee beneficiaries). Eligibility is partly on-chain, so call this rather than reproducing the rule client-side; the `403` on save is still the final guard.
+
+**The [OpenAPI spec](https://docs.bankr.bot/openapi/api.yaml) is authoritative for these shapes** and documents the slug and `multi` variants in full.
 
 ### GET /agent/profile
 
