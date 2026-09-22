@@ -344,7 +344,7 @@ Create and manage your public project page (the pages listed at [bankr.bot/termi
 
 A wallet can hold more than one project page — that's what `--slug` disambiguates.
 
-Formerly `bankr agent profile`. That spelling and the older top-level `bankr profile` still work as hidden deprecated aliases that print a warning. The rename moved the CLI wording only: the REST paths (`/agent/profile`, `/agent-profiles`), JSON field names and socket events are untouched by it. See [references/agent-profiles.md](references/agent-profiles.md) for the REST surface, including the slug-addressed and `multi=true` variants.
+Formerly `bankr agent profile`. That spelling and the older top-level `bankr profile` still work as hidden deprecated aliases that print a warning. The rename moved the CLI wording only: the REST paths (`/agent/profile`, `/agent-profiles`), JSON field names and socket events are untouched by it. See [references/projects.md](references/projects.md) for the REST surface, including the slug-addressed and `multi=true` variants.
 
 ### `bankr tokens` — Token Discovery
 
@@ -1538,13 +1538,13 @@ See [references/error-handling.md](references/error-handling.md) for comprehensi
 
 ---
 
-## Profile Management
+## Project Management
 
 Agents can create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects) (old `/agents` links redirect there). The CLI command is **`bankr project`**; the REST paths, JSON field names and socket events keep the older "profile" wording. Profiles showcase project metadata, team info, token data (chart + market cap), weekly fee revenue, shipped products, a Twitter activity feed, and two cards derived from links you already provide — **GitHub activity** for the first repo linked from `website`/products/team, and **Ethos credibility** for the linked X accounts. `tokenChainId` is derived from `tokenAddress` and is not accepted as input.
 
 **Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create a profile. The token address is verified against your deployment history and beneficiary records.
 
-### Profile Lifecycle
+### Project Lifecycle
 
 1. **Deploy a token** through Bankr (required prerequisite)
 2. **Create** a profile via CLI or REST API with the token address
@@ -1599,4 +1599,4 @@ curl -X POST "https://api.bankr.bot/agent/profile/update" \
   -d '{"title": "v2 Launch", "content": "Shipped swap optimization and new UI"}'
 ```
 
-See [references/agent-profiles.md](references/agent-profiles.md) for the full integration guide.
+See [references/projects.md](references/projects.md) for the full integration guide.

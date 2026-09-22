@@ -1,14 +1,14 @@
-# Agent Profiles Reference
+# Projects Reference
 
-Create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects). Profiles showcase project info, team, token data with live charts, weekly fee revenue, products, GitHub activity, Ethos credibility, and activity.
+Create and manage public **project pages** at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects). A project page showcases project info, team, token data with live charts, weekly fee revenue, products, GitHub activity, Ethos credibility, and activity.
 
 > The pages used to live at `/agents`; old `/agents` and `/agents/:token` links redirect to `/terminal/projects`, so existing links keep working.
 
 > **The CLI calls these projects.** `bankr project` is the canonical command, matching what the terminal already calls these pages. It sits at the top level beside `bankr club` — a project page is account-level, not an agent operation. `bankr agent profile` and the older top-level `bankr profile` still work as hidden deprecated aliases that print a warning and run the same code; prefer `bankr project` in new scripts. **The REST paths (`/agent/profile`, `/agent-profiles`), the JSON field names and the socket events keep the older "profile" wording** — the rename is CLI-surface only, so nothing you parse changes.
 
-**Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create an agent profile. The token address is verified against your deployment and beneficiary history.
+**Eligibility**: You must have deployed a token through Bankr (Doppler or Clanker) or be a fee beneficiary on the token to create a project page. The token address is verified against your deployment and beneficiary history.
 
-## Profile Fields
+## Project Fields
 
 | Field | Required | Description | Limits |
 |-------|----------|-------------|--------|
@@ -26,14 +26,14 @@ Create and manage public **project pages** at [bankr.bot/terminal/projects](http
 
 ## CLI Usage
 
-### View Profile
+### View Project
 
 ```bash
 bankr project              # Pretty-printed view
 bankr project --json       # JSON output
 ```
 
-### Create Profile
+### Create Project
 
 ```bash
 # Interactive wizard
@@ -47,7 +47,7 @@ bankr project create \
   --image "https://example.com/logo.png"
 ```
 
-### Update Profile
+### Update Project
 
 ```bash
 bankr project update --description "Updated description"
@@ -66,7 +66,7 @@ bankr project add-update
 bankr project add-update --title "v2 Launch" --content "Shipped new swap engine and portfolio dashboard"
 ```
 
-### Delete Profile
+### Delete Project
 
 ```bash
 bankr project delete   # Requires confirmation
