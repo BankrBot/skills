@@ -177,7 +177,7 @@ The public API surface is published as an OpenAPI 3.0 document, served as a raw 
 https://docs.bankr.bot/openapi/api.yaml
 ```
 
-If that 404s, the file is mid-rename — try `bankr-api.yaml` in the same folder, or read the current link off [docs.bankr.bot/agent-api/overview](https://docs.bankr.bot/agent-api/overview).
+If that ever moves, the [Agent API overview](https://docs.bankr.bot/agent-api/overview) carries the current link.
 
 It covers the whole API-key surface — `/agent/*` prompts and jobs, the `/wallet/*` endpoints, token search and recipient resolution, token launches, creator fees, project (agent profile) pages, file storage, Bankr Club, LLM Gateway credits, and the x402 Cloud and Webhooks deploy endpoints. Each operation documents which key flag gates it and which security settings can reject it.
 

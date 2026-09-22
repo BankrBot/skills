@@ -24,7 +24,7 @@ bankr agent cancel <jobId>                      # cancel a running job
 
 Call the endpoints below with `curl`, `fetch`, or any HTTP client. All requests require an `X-API-Key` header.
 
-> **OpenAPI spec**: the full public surface is published at **`https://docs.bankr.bot/openapi/api.yaml`** (OpenAPI 3.0, served raw for code generators; on a 404 try `bankr-api.yaml` in the same folder, or take the current link from [the Agent API overview](https://docs.bankr.bot/agent-api/overview)). It spans agent, wallet, tokens, launches, creator fees, project pages, files, Bankr Club, LLM credits, x402 Cloud and Webhooks, and records which key flag gates each operation. Fetch it when you need an exact schema or a route this reference doesn't cover. Both `X-API-Key: <key>` and `Authorization: Bearer <key>` are accepted on every authenticated endpoint.
+> **OpenAPI spec**: the full public surface is published at **`https://docs.bankr.bot/openapi/api.yaml`** (OpenAPI 3.0, served raw for code generators; if it ever moves, [the Agent API overview](https://docs.bankr.bot/agent-api/overview) carries the current link). It spans agent, wallet, tokens, launches, creator fees, project pages, files, Bankr Club, LLM credits, x402 Cloud and Webhooks, and records which key flag gates each operation. Fetch it when you need an exact schema or a route this reference doesn't cover. Both `X-API-Key: <key>` and `Authorization: Bearer <key>` are accepted on every authenticated endpoint.
 
 ### Core Pattern: Submit-Poll-Complete
 
