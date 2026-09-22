@@ -49,7 +49,7 @@
 // Exit 0 VERIFIED / 1 REFUSED, by name.
 
 import { realpathSync } from "node:fs";
-import { LocalFileError, readFileCapped } from "./lib/local-files.mjs";
+import { LocalFileError, readFileCapped } from "@voidly/session/node-files";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import {
