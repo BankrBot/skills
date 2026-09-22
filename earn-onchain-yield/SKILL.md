@@ -45,7 +45,7 @@ Use `/api/omni/pools?lite=1` for quick address discovery, **not** fee APR: the l
 
 | User intent | Procedure |
 | --- | --- |
-| Deposit both Auto assets | Read the live vault ratio; exact approvals to that vault; simulate and submit its `deposit` call. |
+| Deposit both Auto assets | Read the live ratio; disclose that token-use minima are not minimum shares and there is no onchain expiry; stop if those protections are required. Otherwise confirm, approve exact amounts and simulate the deposit. |
 | Zap into an Auto vault | Resolve the runtime Auto executor; confirm vault registration; quote the required pair legs; simulate the complete `zap`. |
 | Deposit an Omnipool basket | Preserve onchain token order; query proportional shares; check both ERC-20 and Permit2 allowances; simulate the Router call. |
 | Zap into an Omnipool | Use ETH, WETH or USDG; verify the runtime executor's protocol wiring; query protected pool shares and simulate the complete `zap`. |
@@ -70,6 +70,6 @@ This version covers Auto and Omnipools. Leveraged LOOP, lending, pool creation a
 
 ## Integration checks
 
-From this skill's folder, run `node scripts/check.mjs` to check packaging and reference links. `node scripts/check.mjs --live` additionally performs public, read-only endpoint/chain checks. Neither command signs transactions, asks for a key or proves Bankr wallet execution end to end.
+From this skill's folder, run `node scripts/check.mjs` to check packaging and reference links, and `node --test scripts/execution-guards.test.mjs` for quote/slippage/freshness and direct-deposit protection regressions. Before preparing transactions, use [the pure execution guards](scripts/execution-guards.mjs) as directed in the protocol reference. They do not build, sign or submit transactions and do not replace complete simulation. `node scripts/check.mjs --live` additionally performs public, read-only endpoint/chain checks. None of these commands asks for a key or proves Bankr wallet execution end to end.
 
 Public interfaces: [Auto](https://earnonhood.com/auto), [Omnipools](https://earnonhood.com/omni/pools), [documentation](https://earnonhood.com/docs).

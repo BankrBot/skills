@@ -36,7 +36,13 @@ The raw automated-vault APR response can contain unresolved zero fields while st
 
 ### Rialto quote response
 
-A successful quote contains `amountIn`, `quotedAmountOut`, `minimumAmountOut`, `spender`, `target`, `data`, `quotedAt`, `platformFeeBps` and `simulationIncomplete`. Require positive integer amounts, `minimumAmountOut <= quotedAmountOut`, valid addresses and calldata, and a quote no older than 30 seconds. The EARN server validates chain ID, tokens, amount, slippage and `taker === swapper` before returning the quote; `taker` is intentionally not repeated in the public response.
+A successful quote contains `amountIn`, `quotedAmountOut`, `minimumAmountOut`, `spender`, `target`, `data`, `quotedAt`, `platformFeeBps` and `simulationIncomplete`. The EARN server validates chain ID, tokens, amount, slippage and `taker === swapper` before returning the quote; `taker` is intentionally not repeated in the public response. Independently validate each leg with `validateQuote` from [the execution guards](../scripts/execution-guards.mjs), using the exact requested raw `amountIn` and the user's approved `slippageBps`, not a tolerance inferred from the response:
+
+- Require positive decimal-string uint256 amounts and exact input equality. Using bigint, calculate `requiredMinimum = quotedAmountOut * (10000 - slippageBps) / 10000`, rounding down by less than one raw output unit. Require `requiredMinimum > 0` and `requiredMinimum <= minimumAmountOut <= quotedAmountOut`. For 10,000 quoted units and 200 bps, the minimum must be at least 9,800. Reject a weaker quote; never widen tolerance or silently change its calldata to make it pass.
+- Require `quotedAt` to be a positive safe-integer Unix timestamp in **milliseconds**. Against the local current time, require `0 <= Date.now() - quotedAt <= 30000`. Reject missing, malformed, future-dated or stale timestamps. Never replace a quote timestamp with fetch time. If clocks disagree, stop and resolve it rather than assuming freshness.
+- Check valid addresses and calldata, and carry the validated minimum unchanged into its swap leg and protected-share calculation. These helpers do not replace target/token/recipient checks or full transaction simulation. The slippage threshold is relative to the quote, not a guarantee of fair market price.
+
+Run these checks when receiving quotes, after approvals, and again immediately before submitting the final transaction **after simulation and gas estimation**. If any leg expires, rebuild and simulate the refreshed complete plan; require renewed confirmation if approved bounds weaken. Do not broadcast the old payload.
 
 `simulationIncomplete: true` can be expected because the zap executor does not hold the user's funds during quoting. It is acceptable only if the complete zap call subsequently simulates successfully from the actual user's address. Never skip that final simulation.
 
@@ -81,9 +87,11 @@ Contract interface:
 
 `deposit(uint256 amount0Desired,uint256 amount1Desired,uint256 amount0Min,uint256 amount1Min,address to) payable returns(uint256 shares,uint256 amount0Used,uint256 amount1Used)`
 
+**Protection limits:** `amount0Min` and `amount1Min` constrain underlying token amounts used; they are **not minimum receipt shares**. This direct call has no `minSharesOut` or onchain deadline argument. Label shares as an estimate and disclose both missing protections before confirmation or approvals. A client-side freshness check cannot make a pending transaction expire onchain. Run `assertAutoDirectRequirements` from [the execution guards](../scripts/execution-guards.mjs) with explicit booleans derived from the user's requirements. If they require minimum shares or onchain expiry, stop this direct-deposit flow. You may offer a separately reviewed supported zap, which has those parameters; do not switch routes without consent or invent ABI arguments.
+
 1. Read `paused()`, `getTotalAmounts()`, `totalSupply()`, user balances and allowances.
 2. Stop if paused or either requested balance is insufficient.
-3. Calculate desired token amounts using current raw `getTotalAmounts()` ratio and the user's token budgets, with integer arithmetic and matching decimals. Do not assume equal token quantities or a fixed 50/50 ratio. For user-selected `slippageBps`, set each protected minimum to `amountDesired * (10000 - slippageBps) / 10000`. Stop if a nonzero leg is too small to retain a positive minimum.
+3. Calculate desired token amounts using current raw `getTotalAmounts()` ratio and the user's token budgets, with integer arithmetic and matching decimals. Do not assume equal token quantities or a fixed 50/50 ratio. For user-selected `slippageBps`, set each minimum underlying amount used to `amountDesired * (10000 - slippageBps) / 10000`. Stop if a nonzero leg is too small to retain a positive minimum. Do not describe this ratio tolerance as a minimum-share guarantee.
 4. Approve only the required Token 0 and Token 1 amounts to the selected vault when allowances are insufficient.
 5. Simulate the exact deposit from the user's address with `to` equal to the same user.
 6. After the user confirms the reviewed action, submit through Bankr, wait for a successful receipt, and verify that vault shares increased.
