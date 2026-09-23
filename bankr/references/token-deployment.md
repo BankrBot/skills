@@ -132,7 +132,7 @@ On a v3 launch, options go in the deploy body's `launchV3` object (the agent tak
 | `holderVestPercent` | Stream part of the vested slice to holders (needs `vestPercent`, `holderSharePercent` and a `token` or `both` holder mode) |
 | `creatorFeeMode` | `quote` (default: Bankr's keeper converts the token-side fees into the quote, at most 5% price impact per fill), `both` (each leg in kind) or `token` |
 
-- **Doppler options don't apply.** On a v3 launch the deploy API ignores `pairedTokenAddress`, `pairedStockAddress`, `disableVesting`, `quoteOnlyFees` and `degenMode` (the agent rejects them). Vesting is set with `vestPercent`, and the quote with `launchV3.quoteAddress` from `GET /launch-v3/quotes?chain=<chain>` — on Arc that list is USDC only.
+- **Doppler options don't apply.** On a v3 launch the deploy API answers `400` to `disableVesting`, `quoteOnlyFees` or `degenMode` set to `true`, and ignores `pairedTokenAddress` and `pairedStockAddress` (the agent rejects all five). Vesting is set with `vestPercent`, and the quote with `launchV3.quoteAddress` from `GET /launch-v3/quotes?chain=<chain>` — on Arc that list is USDC only.
 - **Fund gas and the dev buy up front.** A wallet that can't cover them is refused before signing, with the amounts.
 - `GET /launch-v3/{tokenAddress}/fees?account=0x…` reads a v3 token's claimable fees.
 
