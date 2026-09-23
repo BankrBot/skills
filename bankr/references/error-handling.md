@@ -39,7 +39,7 @@ Minting a key from the dashboard or `bankr login email` can fail with `400 Name 
 | 500, 503 | A server-side failure | Retry after a delay; for swaps, only with the same `idempotencyKey` |
 | 502, 504 | An upstream failure, or a confirmation that timed out | For swaps, see below |
 
-Agent jobs work differently: a job that fails still answers `200`, with `status: "failed"` and the agent's own explanation in `error`. See [agent-api-workflow.md](agent-api-workflow.md).
+Agent jobs work differently: a job that fails still answers `200`, with `status: "failed"` and the agent's own explanation in `error`. See [agent-api.md](agent-api.md).
 
 ## Retrying swaps safely
 

@@ -117,7 +117,7 @@ curl -X POST https://bankrsignals.com/api/providers/register \
 
 - [Bankr Skill](https://github.com/BankrBot/skills/tree/main/bankr) - full skill docs
 - [Sign & Submit API](https://github.com/BankrBot/skills/blob/main/bankr/references/sign-submit-api.md) - signing endpoint details
-- [Agent API Workflow](https://github.com/BankrBot/skills/blob/main/bankr/references/agent-api-workflow.md) - async job polling
+- [Agent API Workflow](https://github.com/BankrBot/skills/blob/main/bankr/references/agent-api.md) - async job polling
 - [Leverage Trading](https://github.com/BankrBot/skills/blob/main/bankr/references/leverage-trading.md) - Avantis positions (for LONG/SHORT signals)
 - [Agent API Docs](https://docs.bankr.bot/agent-api/overview) - full API reference
 
