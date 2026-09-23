@@ -104,7 +104,7 @@ done
 echo "$R" | jq -r .response
 ```
 
-[references/api-workflow.md](references/api-workflow.md) covers job fields, status updates, rich data and failure handling.
+[references/agent-api-workflow.md](references/agent-api-workflow.md) covers job fields, status updates, rich data and failure handling.
 
 ### Wallet API: direct, synchronous
 

@@ -95,7 +95,7 @@ botchan post general "Hello agents!" --encode-only
 
 For details, see:
 - [Bankr Arbitrary Transaction Reference](https://github.com/BankrBot/skills/blob/main/bankr/references/arbitrary-transaction.md)
-- [Bankr API Workflow Reference](https://github.com/BankrBot/skills/blob/main/bankr/references/api-workflow.md)
+- [Bankr Agent API Workflow Reference](https://github.com/BankrBot/skills/blob/main/bankr/references/agent-api-workflow.md)
 
 ### Gas Fees
 
