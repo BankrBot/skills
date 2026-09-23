@@ -11,7 +11,7 @@ The CLI submits, polls and prints for you:
 ```bash
 bankr agent prompt "What is my ETH balance?"   # submit, poll, print the response
 bankr agent status <jobId>                      # one snapshot of a job
-bankr agent status <jobId> --wait               # follow a running job to the end
+bankr agent status <jobId> --wait               # follow a running job to the end (0.3.40+)
 bankr agent cancel <jobId>
 ```
 
@@ -29,7 +29,7 @@ curl -X POST "https://api.bankr.bot/agent/prompt" \
 - `prompt` is required, up to 10,000 characters.
 - `threadId` continues a conversation. It must be a thread on this account, or the call answers `404 Thread not found`. Omit it to start a new thread; the response returns the new `threadId`. The CLI equivalents are `--continue` (last thread) and `--thread <id>`.
 - `maxMode: { "enabled": true, "model": "<id>" }` runs this prompt on a gateway model billed from LLM credits (see [llm-gateway.md](llm-gateway.md)). A model outside the Max Mode lineup answers `400`; an unknown ID is ignored.
-- The response is `202 Accepted` with `jobId`, `threadId` and `status: "pending"`. Nothing has executed yet.
+- The response is `202 Accepted` with `jobId`, `threadId` and `status: "pending"`. Nothing has executed yet. Any other status carries no `jobId`: read the body, and don't poll.
 
 Access and quotas are covered in [safety.md](safety.md#rate-limits): without Bankr Club or Max Mode the call answers `403 subscription_required`, and an exhausted quota answers `429`. A read-only key can prompt, but the agent only gets read tools. The key's recipient allowlist and token-launch flag are enforced inside the agent.
 
@@ -49,18 +49,19 @@ The Agent API never returns raw `transactions`; the agent describes what it exec
 
 ## Polling
 
-Poll about every 2 seconds; most jobs finish within a couple of minutes. `statusUpdates` only grows, so show progress by printing the entries past the count you last saw:
+Poll about every 2 seconds, and only for a `jobId` a `202` returned: `GET /agent/job/null` answers `404 Job not found` on every call, so a loop that never checked the submit response never ends. Most jobs finish within a couple of minutes; give up after about 5 minutes (150 polls, the CLI's own cap), keep the `jobId`, and poll again later or cancel. `statusUpdates` only grows, so show progress by printing the entries past the count you last saw:
 
 ```bash
+[ -n "$JOB_ID" ] || exit 1   # set from the 202 body: jq -r '.jobId // empty'
 N=0
-while :; do
+for _ in $(seq 150); do
   R=$(curl -s "https://api.bankr.bot/agent/job/$JOB_ID" -H "X-API-Key: $BANKR_API_KEY")
   echo "$R" | jq -r ".statusUpdates // [] | .[$N:][] | .message"
   N=$(echo "$R" | jq '.statusUpdates // [] | length')
   case $(echo "$R" | jq -r .status) in completed|failed|cancelled) break ;; esac
   sleep 2
 done
-echo "$R" | jq -r '.response // .error'
+echo "$R" | jq -r '.response // .error // .status'
 ```
 
 A job ID only resolves for the account that created it; any other account gets `404 Job not found`.

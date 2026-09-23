@@ -24,7 +24,7 @@ The CLI's `Not authenticated` means it found no key in `BANKR_API_KEY` or `~/.ba
 
 The flags, allowlists and wallet settings behind these are explained in [safety.md](safety.md).
 
-Minting a key from the dashboard or `bankr login email` can fail with `400 Name already exists` when an active key already has that name (choose another `--key-name`, or omit it for a unique `CLI-<date>-<time>` name), or with `400 API key limit reached` at 30 active keys (revoke stale ones at [bankr.bot/api-keys](https://bankr.bot/api-keys)). Every mint path, `bankr login siwe` included, shares a cap of 20 attempts per hour per IP: past it you get `429 Too many API key creations`, or `503` if the counter is briefly unavailable. Wait before retrying.
+Minting a key from the dashboard or `bankr login email` can fail with `400 Name already exists` when an active key already has that name (choose another `--key-name`; from 0.3.39 an omitted name defaults to a unique `CLI-<date>-<time>`, but 0.3.38 uses `CLI-<date>`, which collides with a key created earlier that day), or with `400 API key limit reached` at 30 active keys (revoke stale ones at [bankr.bot/api-keys](https://bankr.bot/api-keys)). Every mint path, `bankr login siwe` included, shares a cap of 20 attempts per hour per IP: past it you get `429 Too many API key creations`, or `503` if the counter is briefly unavailable. Wait before retrying.
 
 ## HTTP status codes
 

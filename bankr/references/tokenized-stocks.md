@@ -33,10 +33,10 @@ Large caps (NVDA, AAPL, MSFT, AMZN), ETFs (SPY, QQQ, SOXX) and pre-IPO names.
 "sell half my AAPL on robinhood"
 "send $30 of AAPL to @friend on X"
 "DCA $50 into SPY every friday"
-"set a trailing stop on my TSLA on robinhood"
+"TWAP: buy $500 of NVDA on robinhood over the next 2 hours"
 ```
 
-Trades settle against **USDG (Global Dollar)**, Robinhood Chain's stablecoin; Bankr routes through it, so a purchase can be funded from ETH, USDG or any token on the chain in one command. Stocks have no AMM pool of their own — they fill through market makers quoting against USDG — while ordinary Robinhood Chain pairs keep their thin-pool protection. Limit, stop (including trailing), DCA and TWAP orders all work on Robinhood Chain stocks.
+Trades settle against **USDG (Global Dollar)**, Robinhood Chain's stablecoin; Bankr routes through it, so a purchase can be funded from ETH, USDG or any token on the chain in one command. Stocks have no AMM pool of their own — they fill through market makers quoting against USDG — while ordinary Robinhood Chain pairs keep their thin-pool protection. DCA and TWAP orders work on Robinhood Chain stocks. Limit and stop orders (trailing included) don't: a stock has no AMM pool to watch, so the agent declines them and offers a DCA or TWAP instead. Other Robinhood Chain tokens support all four. Stock fills go through market makers, so a DCA or TWAP run outside market hours fails and retries.
 
 ## Base B20 equities (spot)
 
