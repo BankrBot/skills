@@ -41,7 +41,7 @@ curl -X POST "https://api.bankr.bot/wallet/submit" \
 
 - `transaction` needs `to` and `chainId`: 1 (Ethereum), 8453 (Base), 137 (Polygon), 130 (Unichain), 480 (World Chain), 42161 (Arbitrum), 56 (BNB Chain), 4663 (Robinhood Chain) or 5042 (Arc). Optional fields are `value` (wei, as a decimal or `0x` hex string), `data`, `gas`, `gasPrice` and `nonce`. `maxFeePerGas` and `maxPriorityFeePerGas` are accepted but currently ignored; fees come from the network.
 - `description` is a human-readable label stored with the transaction's activity record.
-- **The wallet pays the gas.** Raw submissions aren't gas-sponsored, and a wallet short of native gas gets `400 insufficient_funds_for_gas`.
+- **The wallet pays the gas.** Raw submissions aren't gas-sponsored, and a wallet short of native gas gets a `400` with `success: false` whose `error` message names the gas shortfall (there is no stable code for it).
 
 ### Confirmation and failures
 

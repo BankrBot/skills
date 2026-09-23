@@ -16,7 +16,7 @@ Send tokens to addresses, ENS names or social handles. The agent accepts every r
 - An **X or Farcaster** username resolves to that account's Bankr wallet. If the account has never used Bankr, a wallet is created for it and its owner claims the funds by signing in with that account.
 - A **Telegram** username resolves only if that user already has a Bankr wallet with that username.
 - Resolution is per platform: an X handle resolves through the X account, never through a Farcaster link, and vice versa.
-- When you're talking to Bankr on X, Farcaster or Telegram, only that platform's handles resolve.
+- On X, Farcaster or Telegram, a bare `@handle` means a handle on that platform. Name another platform ("@bob on farcaster") to send there.
 - ENS doesn't apply to Solana sends; use a Solana address or a handle.
 
 ## Agent
@@ -31,6 +31,7 @@ bankr agent prompt "Send 1 SOL to 9xKc...abc"
 - **Amounts:** exact (`0.1 ETH`), USD (`$50`) or a percentage of the balance (`50%`, "all").
 - **Chain:** name it to be sure. Otherwise the agent sends a token from a chain where you hold it (it won't send a ticker you don't hold), and a native token from Base when that wallet has gas there, else from the chain with the largest native balance.
 - **Many recipients:** "send 5 USDC each to 0xAAA…, 0xBBB… and @carol" batches same-chain ERC-20 sends into **one atomic transaction** (every leg pays or none does); native sends and other chains go one transaction at a time. Your wallet's spend limits apply to the batch's total USD value.
+- **Burns:** "burn 1000 BNKR" sends the tokens to `0x…dead` on EVM chains. The zero address is refused, and burning isn't possible on Arc.
 - Bankr Club members can also airdrop a token, from the web terminal, X or Farcaster, to Club members who replied to a post (up to 100, with follower, repost, comment and random-sample filters) or to the top Club members by rank.
 
 ## CLI

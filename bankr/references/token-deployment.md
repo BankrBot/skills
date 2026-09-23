@@ -10,7 +10,7 @@ The deploy, quote-token and fee endpoints are in the [OpenAPI spec](https://docs
 |---|---|---|---|---|
 | Base | Doppler | WETH | BNKR, ba3Pump, cbHYPE, cbZEC, TAO; Coinbase B20 stocks | Sponsored |
 | Robinhood Chain | Doppler | WETH | BNKR, musebook; Robinhood stocks | Wallet pays (ETH) |
-| Arbitrum One | Doppler | WETH | — | Wallet pays (ETH) |
+| Arbitrum One | Doppler (a launch that names no provider may be served by Launch v3 while v3 rolls out there) | WETH | — | Wallet pays (ETH) |
 | Arc | Launch v3 only | USDC | — | Wallet pays (USDC; hold at least 0.5 USDC) |
 
 - **The default chain differs by surface.** `bankr launch` and the web launch form preselect **Base**; the agent and `POST /token-launches/deploy` fall back to **Robinhood Chain**. Name the chain whenever it matters.
@@ -35,7 +35,7 @@ bankr launch --name MOON --simulate            # dry run: predicted address and 
 | `feeRecipient` / `--fee` + `--fee-type` | `{ "type": "wallet" \| "x" \| "farcaster" \| "ens", "value": "…" }`; the CLI's type defaults to `x`. An X or Farcaster username resolves to that account's Bankr wallet, created if the account has none |
 | `simulateOnly` / `--simulate` | Dry run (see [Limits](#limits-and-eligibility)) |
 | Doppler options | `disableVesting` / `--no-vesting`, `quoteOnlyFees` / `--quote-only-fees`, `degenMode` (no CLI flag), `pairedTokenAddress` / `pairedStockAddress` (`--quote`) |
-| `provider` | Send the value `GET /token-launches/quote-tokens?chain=<chain>` reports: `doppler` on Base, Robinhood Chain and Arbitrum, `bankr_v3` on Arc |
+| `provider` | Send the value `GET /token-launches/quote-tokens?chain=<chain>` reports: `doppler` on Base, Robinhood Chain and Arbitrum, `bankr_v3` on Arc. An Arbitrum launch that names no provider may be served by `bankr_v3` while v3 rolls out there, so send `"provider": "doppler"` to keep Doppler and read `provider` in the response |
 | Launch v3 options | `launchV3` (see [Bankr Launch v3](#bankr-launch-v3-arc)) |
 
 With `--ni`, `bankr launch` needs `--name`; everything else falls back to Base, 15% vesting, in-kind fees and WETH.
@@ -118,15 +118,15 @@ For the first five minutes after a non-partner Doppler launch, no wallet may hol
 
 ## Bankr Launch v3 (Arc)
 
-Arc launches always use Bankr Launch v3 (`provider: "bankr_v3"`), quoted in USDC. A `bankr_v3` pick on a chain where v3 isn't open is refused with `400 LAUNCH_PROVIDER_UNAVAILABLE`; the deploy response's `provider` field says which provider served a launch.
+Arc launches always use Bankr Launch v3 (`provider: "bankr_v3"`), quoted in USDC, and an Arbitrum launch that names no provider may be served by v3 while it rolls out there. A `bankr_v3` pick on a chain where v3 isn't open is refused with `400 LAUNCH_PROVIDER_UNAVAILABLE`; the deploy response's `provider` field says which provider served a launch.
 
-**Economics:** one v3 pool at the 1% fee tier, LP fees split **creator 70% / Bankr 30%**, **1 billion** supply, no Bankr launch fee. **Vesting is off by default.**
+**Economics:** one v3 pool at the 1% fee tier, LP fees split **creator 70% / Bankr 30%**, **1 billion** supply, no Bankr launch fee. **Vesting is off by default on the API and agent** (omit `vestPercent` for 0); the web launch form preselects 15%, which `GET /launch-v3/quotes` reports as `defaultVestPercent`.
 
 On a v3 launch, options go in the deploy body's `launchV3` object (the agent takes them as plain fields):
 
 | Field | Meaning |
 |---|---|
-| `vestPercent` | 0–50, default **0**; 15 = the standard 15% / 1 year / 30-day cliff |
+| `vestPercent` | 0–50; omitted means **0** on the API and agent (the web form preselects 15); 15 = the standard 15% / 1 year / 30-day cliff |
 | `devBuy: { amount }` | A buy in the quote token's units (USDC on Arc), executed as the pool's first swap; `POST /launch-v3/dev-buy-quote` prices it |
 | `holderSharePercent`, `holderMode` | Stream 1–100% of the creator fee leg to token holders, paid in `token`, `paired` (the quote) or `both` |
 | `holderVestPercent` | Stream part of the vested slice to holders (needs `vestPercent`, `holderSharePercent` and a `token` or `both` holder mode) |
@@ -161,6 +161,7 @@ Both providers share these; the gates run on every launch path (API, web, agent 
 | Per network (IP) | About 10 successful non-partner deploys per client IP per 24 h (`429` "Too many token deployments from this network") — the ceiling a single deploying host hits first, so pace deploys |
 | Email-only wallet | Can't launch until 72 h old; linking an X, Farcaster or Telegram account lifts the wait |
 | Region | Launches are geo-gated |
+| Bankr Club gate | A runtime switch that may be on. When it is, a wallet without Bankr Club gets `403` "Token launches are available to Bankr Club members only."; partner deploys are exempt |
 | Wallet age / minimum ETH | Runtime switches that may be on (24 h wallet age, a minimum native balance) — handle `TOKEN_LAUNCH_WALLET_TOO_NEW` and `TOKEN_LAUNCH_MIN_BALANCE_REQUIRED`. Arc's 0.5 USDC minimum always applies |
 
 - **Only launches that went out consume budget.** Quota is reserved just before metadata pinning; validation, recipient-resolution and pricing failures before that never cost a slot. A launch that may have been broadcast keeps its slot (and its name and fee-recipient allowance) — never assume a failed deploy was free.
@@ -173,6 +174,8 @@ Both providers share these; the gates run on every launch path (API, web, agent 
 | `429` | A quota, rate, name, fee-recipient, IP, simulation or in-flight limit | Wait for the window; don't retry into it |
 | `403 TOKEN_LAUNCH_NOT_AVAILABLE` | Deliberately generic: a region block, or an email-only wallet inside its 72 h wait | Link X, Farcaster or Telegram if the wallet is email-only; otherwise treat as terminal |
 | `403 TOKEN_LAUNCH_MIN_BALANCE_REQUIRED` | Below the chain's minimum native balance | Fund the wallet |
+| `403 TOKEN_LAUNCH_WALLET_TOO_NEW` | The wallet is younger than the 24 h minimum (a runtime switch) | Wait it out, or launch from an older wallet |
+| `403` Token launches are available to Bankr Club members only | The Club-only gate is on | Launch from a Bankr Club wallet |
 | `403` Restricted API key | The key has a recipient allowlist and the fee recipient is neither the key's wallet nor on it | Use an allowed fee recipient |
 | `409` | Selected quote token not ready (cbHYPE / cbZEC) | Retry once it is `live` |
 | `503 TOKEN_LAUNCH_PRICE_UNAVAILABLE`, `TOKEN_LAUNCH_ELIGIBILITY_UNAVAILABLE`, `TOKEN_LAUNCH_MAINTENANCE` | Nothing was launched | Retry after ~60 s |
@@ -187,3 +190,4 @@ Retail launch gas is sponsored on **Base only**; on Robinhood Chain, Arbitrum an
 - **Transfer fee rights (Doppler):** see [Transferring fees](https://docs.bankr.bot/token-launching/transferring-fees). Fees not yet claimed go to whoever is the beneficiary at claim time, so claim first; the vesting allocation stays with the original recipient.
 - **Name and logo:** the fee recipient can set a Bankr-only display name and logo (Discover, the token page) from the web terminal's token drawer or `PATCH /token-launches/{tokenAddress}/metadata` with `name` and/or `imageUri` (`null` clears). The on-chain name, symbol and launch metadata are immutable. Legacy Clanker tokens can still have their image and metadata updated through the agent.
 - **Taking profit (Glidepath):** builders exit gradually with a **Glidepath** — a capped, AI-paced sell set up from the token page at [bankr.bot](https://bankr.bot) for Base and Robinhood Chain launches; a web feature, not a CLI/API action ([Glidepath docs](https://docs.bankr.bot/token-launching/glidepath)). On Base, Bankr may refuse to sell a token you earn fees on through its swap and order tools and point you to Glidepath instead; buying and transferring are never affected.
+- **Raydium CPMM lock NFTs (Solana):** "claim my Raydium CPMM fees" claims the trading fees of a Raydium CPMM locked-liquidity position whose lock NFT the wallet holds. It covers that position only, not tokens launched through Bankr, which use the fee claim above.

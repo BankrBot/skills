@@ -123,7 +123,7 @@ The `/llm/credits/*` endpoints accept a key with LLM Gateway access or a signed-
 
 Errors carry a `code`:
 
-- `400`: `self-transfer`, `amount-too-small`, `amount-too-large`, `amount-invalid`.
+- `400`: `self-transfer`. An amount outside $1–$500, or not a finite number, fails request validation first and answers `400` with `error.type` `VALIDATION_ERROR` and no `code`.
 - `402`: `insufficient-credit`.
 - `403`: `wallet-paused`, `recipient-not-permitted`.
 - `404`: `recipient-not-found`, `recipient-invalid`.

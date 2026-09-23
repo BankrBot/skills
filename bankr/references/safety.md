@@ -74,11 +74,11 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### IP allowlist
 
-`allowedIps` takes single IPs and CIDR ranges. IPv4 ranges must be `/8` or narrower and IPv6 `/16` or narrower; broader ranges are rejected. It's checked at authentication, before any endpoint runs, and a request from elsewhere gets `403 IP address not allowed`.
+`allowedIps` takes single IPs and CIDR ranges. IPv4 ranges must be `/8` or narrower and IPv6 `/16` or narrower; broader ranges are rejected. api.bankr.bot checks it at authentication, before any endpoint runs, and a request from elsewhere gets `403 IP address not allowed`. The LLM gateway (llm.bankr.bot) doesn't enforce it, so don't rely on the allowlist to fence a gateway key.
 
 ### Recipient allowlist
 
-`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer`, and a deploy's fee recipient. Your own addresses always pass. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
+`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer` (checked against the EVM list only, since the endpoint is EVM-only; a Solana-only allowlist doesn't restrict it), and a deploy's fee recipient. Your own addresses always pass. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
 
 **A non-empty allowlist on either chain also refuses operations whose recipient can't be checked:**
 
@@ -131,7 +131,7 @@ Every limit answers `429`. Back off before retrying, and see [error-handling.md]
 
 The CLI keeps keys in `~/.bankr/config.json`, which it creates readable by your user only. `bankr logout` deletes the file but doesn't revoke the key. `BANKR_API_KEY` and `BANKR_LLM_KEY` override the file, so prefer them on servers and in CI. Never commit either, and never put a key in client-side code.
 
-The controls above are enforced on the key server-side, so they apply the same way to the CLI and to direct REST calls.
+The controls above are enforced on the key server-side, so they apply the same way to the CLI and to direct REST calls (the IP allowlist on api.bankr.bot only).
 
 ### Host-Managed Credentials (no key on disk)
 
