@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "teslr",
+  "provider": "Teslr",
+  "providerUrl": "https://teslr.club",
+  "logo": "logo.png",
+  "demo": {
+    "title": "teslr.sh",
+    "language": "bash",
+    "code": "# Compare multiple vehicles in one request\nbankr prompt \"Use Teslr to tell me my Model 3 mileage and Model Y tire pressures\"\n\n# Mix commands and reads; approve the command preview\nbankr prompt \"Use Teslr to lock my Model 3 and check software updates on both cars\"\n\n# Discover connected energy products\nbankr prompt \"Use Teslr to check whether I have any connected energy sites\"\n\n# Read richer Tesla metadata\nbankr prompt \"Use Teslr to check service notices and warranty information\""
+  },
+  "setup": [
+    "Connect directly at https://teslr.club, then save the one-time token as TESLR_FLEET_TOKEN in Bankr Terminal -> Settings -> Env Vars",
+    "For direct vehicle commands, approve the Teslr virtual key for each vehicle in the Tesla app",
+    "The same skill works with other command-capable agents: keep its scripts and references together, use Node.js 22+, and supply TESLR_FLEET_TOKEN through the host's secure environment",
+    "Keep tokens private: never paste them into a prompt, chat, or public X post"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "teslr",
+    "command": "install the teslr skill from https://github.com/BankrBot/skills/tree/main/teslr"
+  }
+}
