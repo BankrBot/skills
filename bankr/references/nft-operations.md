@@ -1,147 +1,25 @@
 # NFT Operations Reference
 
-Browse, purchase, and manage NFTs across chains via OpenSea integration.
+Browse, buy, sell, mint and transfer NFTs through OpenSea on **Ethereum, Base, Polygon, Unichain, Arbitrum and Robinhood Chain**.
 
-**Supported Chains**: Base, Ethereum, Polygon
+## What the agent can do
 
-## Operations
+| Action | Prompt |
+|---|---|
+| Find collections, floors and cheapest listings (by name, contract address or OpenSea URL) | "What's the floor price for Pudgy Penguins?", "Show me trending NFT collections" |
+| Buy a specific NFT or the floor | "Buy Pudgy Penguin #1234", "Buy the cheapest Azuki", "Purchase this NFT: [OpenSea URL]" |
+| List an NFT for sale, with a price and expiry | "List my Pudgy Penguin #1234 for 12 ETH for 7 days" |
+| Cancel your listings | "Cancel my listings for Pudgy Penguin #1234" |
+| Accept the best offer on an NFT you own | "Accept the best offer on my Pudgy Penguin #1234" |
+| Make or cancel a collection-wide offer | "Offer 0.5 WETH on any Doodle", "Cancel my offers on Doodles" |
+| Review your NFTs, listings and offers | "Show my NFTs", "Show my NFT listings" |
+| Mint | "Mint from [Manifold or OpenSea drop link]" — Manifold on Base and Ethereum, SeaDrop drops on the chains above |
+| Transfer (ERC-721 and ERC-1155) | "Send my Bored Ape #123 to vitalik.eth" |
 
-- **Browse** - Search NFT collections
-- **View Listings** - Find best deals and floor prices
-- **Buy** - Purchase NFTs from marketplace listings
-- **Accept Offer** - Accept an offer on an NFT you own
-- **View Holdings** - Check your NFT portfolio
-- **Transfer** - Send NFTs to another wallet
-- **Mint** - Mint from supported platforms (Manifold, SeaDrop)
+Holdings are also in `bankr wallet portfolio --nfts` and `GET /wallet/portfolio?include=nfts`.
 
-## Prompt Examples
+## Buying
 
-**Browse NFTs:**
-- "Find NFTs from the Bored Ape collection"
-- "Show me trending NFT collections"
-- "Search for Pudgy Penguins NFTs"
-- "What are the top NFT collections on Base?"
-
-**View listings:**
-- "What's the floor price for Pudgy Penguins?"
-- "Show cheapest NFTs in Azuki collection"
-- "List all available Bored Apes under 50 ETH"
-- "Show me the rarest items in [collection]"
-
-**Buy NFTs:**
-- "Buy the cheapest Bored Ape"
-- "Purchase this NFT: [OpenSea URL]"
-- "Buy Pudgy Penguin #1234"
-- "Get the floor Azuki"
-
-Listings priced in an **ERC-20** rather than the chain's native token — for example USDG listings on Robinhood Chain — are buyable the same way. Bankr submits the token approval the marketplace conduit needs, checks your balance of the payment currency before signing, and prices the listing using that token's decimals, so the quoted amount is the amount you pay. If a listing turns out to be stale, it moves on to the next one instead of failing the whole request.
-
-**Floor buys survive being sniped.** When you ask for "the cheapest X" without naming a token ID, Bankr walks the candidate listings rather than committing to the first one it resolved. If that listing is bought out from under you mid-purchase — the order goes invalid or not-found, the marketplace rejects it, or the signer's simulation reverts — it falls back to the next-cheapest candidate, up to **three purchase attempts**. Anything that isn't snipe-shaped (a price above your cap, insufficient balance, a wallet-safety block) fails immediately without burning a candidate. The reply and the activity record name the floor picks that were taken, so a substitution is never silent, and nothing is retried after a broadcast. Naming an explicit token ID is a single attempt by design and keeps its own anti-frontrun age guard.
-
-**Accept offers:**
-- "Accept the best offer on my Pudgy Penguin #1234"
-- "What's the highest offer on my Bored Ape?"
-
-**View holdings:**
-- "Show my NFTs"
-- "What NFTs do I own on Ethereum?"
-- "My NFT collection on Base"
-- "Show all my Pudgy Penguins"
-
-**Transfer NFTs:**
-- "Send my Bored Ape #123 to 0x..."
-- "Transfer Pudgy Penguin to vitalik.eth"
-- "Send NFT to @friend"
-
-**Minting:**
-- "Mint from [Manifold link]"
-- "Mint 5 NFTs from this collection"
-
-## Collection Resolution
-
-Bankr resolves common names and abbreviations:
-
-| Input | Resolved |
-|-------|----------|
-| "Bored Apes" / "BAYC" | boredapeyachtclub |
-| "Pudgy Penguins" | pudgypenguins |
-| "CryptoPunks" / "Punks" | cryptopunks |
-| "Azuki" | azuki |
-| "Doodles" | doodles-official |
-| "Cool Cats" | cool-cats-nft |
-
-## Chain Considerations
-
-### Ethereum
-- Most valuable blue-chip collections
-- Highest liquidity
-- Expensive gas fees
-- Established marketplace
-
-### Base
-- Growing NFT ecosystem
-- Very low gas fees
-- Newer collections
-- Good for emerging artists
-
-### Polygon
-- Gaming and metaverse NFTs
-- Low gas fees
-- Good for frequent trading
-- Strong gaming communities
-
-## OpenSea Integration
-
-Bankr uses OpenSea's marketplace:
-- Real-time floor prices
-- Verified collections
-- Direct purchase links
-- Rarity data
-- Collection stats
-
-## Common Issues
-
-| Issue | Resolution |
-|-------|------------|
-| Collection not found | Try alternative names or contract address |
-| NFT already sold | Try another listing or wait for new listings |
-| Insufficient funds | Check balance including gas costs |
-| High gas | Wait for lower gas or try L2 (Base/Polygon) |
-| Unverified collection | Verify legitimacy before purchasing |
-
-## Safety Tips
-
-1. **Verify collection** - Check official links and social media
-2. **Check floor price** - Avoid overpaying, compare to floor
-3. **Verified badge** - Look for OpenSea verified collections
-4. **Gas costs** - Factor in gas, especially on Ethereum
-5. **Research** - DYOR on collection before buying
-6. **Scams** - Be wary of too-good-to-be-true deals
-7. **Contract address** - Verify it matches official contract
-
-## NFT Portfolio
-
-View your holdings:
-- Total NFT count by chain
-- Estimated floor value
-- Collection breakdown
-- Recently acquired
-- Rarest pieces
-
-## Minting
-
-For supported mint platforms:
-- Manifold mints
-- SeaDrop protocol
-- Direct contract mints (if supported)
-
-Provide the mint page URL and Bankr handles the transaction.
-
-## Best Practices
-
-1. **Start small** - Learn with cheaper NFTs first
-2. **Research collections** - Check roadmap and community
-3. **Compare prices** - Look at recent sales and floor
-4. **Gas timing** - Mint/buy during low gas periods
-5. **Hold long-term** - Most value comes from holding
-6. **Diversify** - Don't put everything in one collection
+- **ERC-20-priced listings work** — for example USDG listings on Robinhood Chain. Bankr submits the payment-token approval, checks your balance of that currency before signing, and prices the listing in its own decimals, so the quoted amount is what you pay. Collection offers are always paid in an ERC-20 — WETH (Bankr wraps any shortfall from ETH) or the collection's own currency, such as USDG on some Robinhood Chain collections.
+- **Floor buys survive being sniped.** "The cheapest X" walks the candidate listings: if the one Bankr picked is bought out mid-purchase (order invalid or not found, marketplace rejection, signer simulation revert), it moves to the next-cheapest, up to **three purchase attempts**. Anything else — a price above your cap, insufficient balance, a wallet-safety block — fails at once. The reply names any substitution, and nothing is retried after a broadcast. Naming a token ID is a single attempt.
+- **Recipient allowlists block marketplace actions.** An API key with `allowedRecipients` set can't buy, list, mint, or make or accept offers, since the counterparty can't be allowlisted; NFT transfers are checked against the list.

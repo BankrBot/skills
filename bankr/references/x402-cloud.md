@@ -1,283 +1,135 @@
 # x402 Cloud Reference
 
-x402 Cloud lets you deploy paid API endpoints that agents and developers pay for automatically using the x402 payment protocol. Write a handler, set a price, deploy with one command — callers pay per request in USDC or any supported ERC-20 token on Base.
+x402 Cloud hosts paid API endpoints. You write a `Request → Response` handler and set a price; callers pay per request on Base through the [x402 protocol](https://x402.org). Bankr runs the handler, verifies and settles each payment, and pays you directly.
 
-**Base URL:** `https://x402.bankr.bot`
-
-**Dashboard:** [bankr.bot/x402](https://bankr.bot/x402)
-
-**Docs:** [docs.bankr.bot/x402-cloud/overview](https://docs.bankr.bot/x402-cloud/overview)
+- **Endpoint URL:** `https://x402.bankr.bot/<walletAddress>/<serviceName>[/path]`, where the wallet is the deployer's and any sub-path is passed to the handler.
+- **Dashboard:** [bankr.bot/x402](https://bankr.bot/x402) for requests, logs, revenue and settings.
+- **Docs:** [docs.bankr.bot/x402-cloud/overview](https://docs.bankr.bot/x402-cloud/overview).
 
 ## Pricing
 
-| Plan | Platform Fee | Requests |
-|------|-------------|----------|
-| Free | 0% | Up to 1,000/month |
-| Pro | 5% | Unlimited |
-| Enterprise | 3% | Contact sales |
+The first 1,000 settled requests each month, across a wallet's endpoints, carry no platform fee; after that a flat 5% applies (Enterprise: 3%, contact sales). There is no subscription and no card.
 
-No credit card required. First 1,000 settled requests each month are free. Payments settle on-chain on Base — in USDC or the token your endpoint is priced in — and your share goes directly to your wallet. Revenue is accounted in USD at settlement time.
+- Only settled requests count. A 402 challenge is free, and payment settles only when the handler returns a status below 400, so failed requests are never charged.
+- The free allowance applies to endpoints priced in USDC or EURC. An endpoint priced in another token pays the 5% fee from its first request.
+- Payments settle on Base in the endpoint's token, and your share goes straight to your wallet (or the payout address set on the endpoint). Revenue is also reported in USD at the price when each payment settled.
 
-## Deploying via Agent
+## Deploying
 
-The Bankr agent can deploy x402 endpoints directly through natural language — no CLI setup required:
+**Through the agent**, with no local setup: "Deploy an x402 endpoint called price-feed that returns crypto prices for $0.001 per request". The agent writes the handler, sets the price and deploys. It can also update the code or price, pause, resume or delete an endpoint, list your endpoints with their revenue, and show recent request logs. Endpoints deployed from chat and from the CLI are the same thing and can be managed from either.
 
-```bash
-bankr agent prompt "Deploy an x402 endpoint called price-feed that returns crypto prices for $0.001 per request"
-bankr agent prompt "Create an x402 service that summarizes articles using AI"
-bankr agent prompt "Update my sentiment-analysis x402 endpoint to charge $0.005"
-```
-
-The agent handles scaffolding the handler code, configuring pricing, and deploying. You can also manage existing endpoints:
+**Through the CLI:**
 
 ```bash
-bankr agent prompt "List my x402 endpoints"
-bankr agent prompt "Delete my old weather endpoint on x402"
-bankr agent prompt "Show revenue for my x402 services"
+bankr x402 init                       # scaffold x402/ and bankr.x402.json
+bankr x402 add <name>                 # new service at x402/<name>/index.ts
+bankr x402 configure <name>           # interactive price, network and payment scheme
+bankr x402 deploy [name]              # deploy every service, or one
+bankr x402 list                       # your endpoints
+bankr x402 pause <name> | resume <name> | delete <name>
+bankr x402 revenue [name]             # earnings
+bankr x402 env set KEY=VALUE | env list | env unset KEY
 ```
 
-## CLI Commands
+The CLI has no logs command: request logs are in the dashboard, or ask the agent.
 
-All commands use the Bankr CLI (`bankr` or `bun run --cwd packages/cli start`).
-
-```bash
-bankr x402 init                     # Scaffold x402/ folder + bankr.x402.json
-bankr x402 add <name>               # Add a new service
-bankr x402 configure <name>         # Interactive pricing/description setup
-bankr x402 deploy [name]            # Deploy all or a single service
-bankr x402 list                     # List deployed services
-bankr x402 logs <name>              # View request logs
-bankr x402 pause <name>             # Pause a service
-bankr x402 resume <name>            # Resume a service
-bankr x402 delete <name>            # Delete a service
-bankr x402 revenue [name]           # View earnings
-bankr x402 env set KEY=VALUE        # Set encrypted env var
-bankr x402 env list                 # List env var names
-bankr x402 env unset KEY            # Remove env var
-```
-
-## Writing a Handler
-
-Handlers are standard `Request → Response` functions. No framework needed.
+### Writing a handler
 
 ```typescript
 // x402/<service-name>/index.ts
 export default async function handler(req: Request): Promise<Response> {
-  return Response.json({ message: "Hello from x402!" });
+  const city = new URL(req.url).searchParams.get("city");
+  const payer = req.headers.get("x-402-payer"); // verified payer address, lowercase
+  return Response.json({ city, payer });
 }
 ```
 
-### Reading Inputs
+Handlers use the standard Fetch `Request` and `Response`, within the [limits](#limits) below. The platform adds these rules:
 
-```typescript
-// Query parameters
-const url = new URL(req.url);
-const city = url.searchParams.get("city") ?? "default";
+- **npm packages:** list them in `x402/<name>/package.json`, which `bankr x402 add` can scaffold. They are installed at deploy time with install scripts skipped.
+- **Response headers:** only `content-type`, `cache-control`, `etag`, `last-modified` and `x-request-id` reach the caller.
+- **Secrets:** `bankr x402 env set KEY=VALUE` makes the value available as `process.env.KEY` in every service on the wallet. Names with a reserved prefix such as `BANKR_` are rejected, and read as `undefined` in the handler. Store a Bankr key under another name, for example `LLM_GATEWAY_KEY` for calls to the [LLM gateway](llm-gateway.md).
+- **Network:** outbound `fetch` to private or internal addresses is blocked.
 
-// Request headers
-const lang = req.headers.get("Accept-Language");
+**Handler context.** Three optional bridges arrive as the handler's second argument, `ctx`, each enabled per service in `bankr.x402.json`:
 
-// JSON body (POST)
-const body = await req.json();
+- `ctx.files` (`files` block) reads and writes the wallet's [file storage](files.md): `readText`, `readJson`, `readBytes`, `writeText`, `writeJson`, `writeBytes`, `list`, `delete` and `getDownloadUrl`. By default it is scoped to `/x402/<name>`, with read and write on and delete off.
+- `ctx.appKV` (`appKV` block) offers `get`, `set`, `list` and `delete` on the key-value store of Bankr apps owned by the same wallet.
+- `ctx.askAgent(prompt)` (`agent` block) hands a prompt to your own Bankr agent, for example to message you on Telegram after a payment. Don't await it: agent runs outlast the 30-second limit, and a timed-out request isn't charged. Runs are limited to 5 a minute per wallet. Free runs are also limited to 2 a day (5 with Bankr Club) and stop entirely after 14 days without signed-in activity on the wallet. Setting a Max Mode model on the block bills your LLM credits and lifts the daily cap.
 
-// Form data
-const form = await req.formData();
-```
-
-### Returning Responses
-
-```typescript
-// JSON (most common)
-return Response.json({ data: "value" });
-return Response.json({ error: "not found" }, { status: 404 });
-
-// HTML
-return new Response("<h1>Hello</h1>", {
-  headers: { "Content-Type": "text/html" },
-});
-
-// Image or binary
-return new Response(imageBuffer, {
-  headers: { "Content-Type": "image/png" },
-});
-
-// Plain text
-return new Response("Hello, world!");
-```
-
-### Using Environment Variables
-
-```bash
-bankr x402 env set API_KEY=sk_...
-```
-
-```typescript
-const key = process.env.API_KEY;
-```
-
-### Using the LLM Gateway
-
-x402 handlers can call the Bankr LLM Gateway for AI-powered features:
-
-```typescript
-const res = await fetch("https://llm.bankr.bot/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    Authorization: `Bearer ${process.env.BANKR_API_KEY}`,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    model: "claude-sonnet-4-6",
-    messages: [{ role: "user", content: "Analyze this text" }],
-  }),
-});
-const data = await res.json();
-```
-
-Set the API key: `bankr x402 env set BANKR_API_KEY=<your-key>`
+A deploy whose source calls a `ctx` method that doesn't exist is rejected. Worked examples: [docs.bankr.bot/x402-cloud/examples](https://docs.bankr.bot/x402-cloud/examples).
 
 ## Configuration
 
-Service config lives in `bankr.x402.json` at the project root:
+`bankr.x402.json` sits at the project root:
 
 ```json
 {
   "network": "base",
   "services": {
-    "my-service": {
-      "description": "What this service does",
+    "weather": {
+      "description": "Current weather for a city",
       "price": "0.001",
       "methods": ["GET"],
-      "schema": {
-        "input": { "query": "string" },
-        "output": { "result": "string" }
-      },
       "category": "data",
-      "tags": ["keyword1", "keyword2"]
+      "tags": ["weather", "forecast"],
+      "schema": {
+        "input": { "type": "object", "properties": { "city": { "type": "string" } }, "required": ["city"] },
+        "output": { "type": "object", "properties": { "tempC": { "type": "number" } } }
+      }
     }
   }
 }
 ```
 
-- **price**: USD per request (e.g. "0.001" = $0.001)
-- **tokenAddress** (optional): price the endpoint in a specific ERC-20 instead of USDC. Symbol and decimals are resolved server-side; revenue is still accounted in USD at settlement.
-- **methods**: HTTP methods accepted (default: all). Use `["POST"]` for body-based endpoints.
-- **schema**: Input/output schema for agent discovery. Agents use this to understand how to call your endpoint.
-- **category/tags**: Improve discoverability for agents searching for services.
+- **`price`:** the per-request price in the payment token. It is USD for the default USDC and token units otherwise, so `"100"` of a custom token means 100 tokens, not $100. The minimum is `0.000001`.
+- **`tokenAddress`** (per service or top level): price in any ERC-20 on Base instead of USDC. Symbol and decimals are resolved server-side. USDC and EURC settle gaslessly (EIP-3009); other tokens use Permit2, so a payer's first payment needs a one-time Permit2 approval. See [custom tokens](https://docs.bankr.bot/x402-cloud/custom-tokens).
+- **`paymentScheme`:** `exact` charges the price. With `upto`, the price is a cap and the handler reports the actual charge, in the token's smallest units, in an `X-402-Settle-Amount` response header; a missing or out-of-range value settles the full price. The default is `exact` for USDC and EURC and `upto` for other tokens.
+- **`methods`:** the accepted HTTP methods. The default is `["GET", "POST"]`.
+- **`schema`:** JSON Schema `input` (query parameters for GET, the JSON body for POST) and `output`. Agents use it to call the endpoint.
+- **`category`** and **`tags`:** used for discovery. Tags are lowercased, stripped to letters, digits and hyphens, and capped at 5 tags of 32 characters.
+- **`files`**, **`appKV`** and **`agent`:** the opt-in handler bridges described above.
 
-### These fields are public — they render the marketplace listing
+Every field: [config file reference](https://docs.bankr.bot/x402-cloud/config-file).
 
-Deployed endpoints are listed in the **public x402 marketplace** at [bankr.bot/terminal/x402/discover](https://bankr.bot/terminal/x402/discover), browsable by anyone with no account. A service card shows how many endpoints it exposes plus its price, network and tags; opening it shows every route — methods, description, price, request/response schema, and the live URL to call.
+### The marketplace listing is public
 
-What you put in the config file *is* what the marketplace shows:
-
-| Field | Where it shows up |
-|-------|-------------------|
-| `description` | The card body and the detail drawer |
-| `category` | The card's badge and the category filter chips |
-| `tags` | Card chips (the first four) and search matching |
-| `schema` | The request/response schema block in the drawer |
-
-The same catalogue backs agent discovery and `bankr x402 search`, so one well-described endpoint is findable from chat, the terminal and the browser alike. Treat every one of these fields as published content — don't put internal notes or hostnames in a `description` or a `tag`.
+The public marketplace at [bankr.bot/terminal/x402/discover](https://bankr.bot/terminal/x402/discover), agent discovery and `bankr x402 search` all read the same catalogue, built from `description`, `category`, `tags` (the first four show on the card) and `schema`. Treat those fields as published content, and keep internal notes and hostnames out of them. A new endpoint can be called at its URL straight away, but it appears in the catalogue only once Bankr marks it discoverable (the `discoverable` field in `GET /x402/endpoints`).
 
 ## Calling x402 Endpoints
 
-### Via Bankr Agent (recommended for agent users)
+**Through the agent:** "Find x402 endpoints for sentiment analysis", "What does the x402 weather endpoint cost?", "Call the weather endpoint on x402 with city London". The agent confirms the price before paying and caps a single call at $10. It pays in whatever token the endpoint asks for, on Base, Ethereum, Polygon or Robinhood Chain, and works with Bankr-hosted and external endpoints on x402 v1 or v2.
 
-The Bankr agent has built-in tools to discover and call x402 endpoints with automatic payment handling:
-
-```bash
-# Discover endpoints in the Bankr registry
-bankr agent prompt "Find x402 endpoints for sentiment analysis"
-
-# Call an endpoint — agent handles payment signing automatically
-bankr agent prompt "Call the sentiment analysis endpoint on x402 with text 'Bitcoin is pumping'"
-
-# Inspect an endpoint's pricing and schema before calling
-bankr agent prompt "What does the x402 weather endpoint cost?"
-```
-
-The agent pays in the token each endpoint requires (USDC or any supported ERC-20) on Base. Maximum payment per request is $10. The agent will always confirm the payment amount and token before calling.
-
-### Via the CLI
+**Through the CLI:**
 
 ```bash
-bankr x402 schema <url>                           # Inspect pricing and input/output schema
-bankr x402 call <url>                             # Call with automatic payment (GET)
-bankr x402 call <url> -X POST -d '{"text":"hi"}'  # With a method and JSON body
-bankr x402 call <url> --max-payment 0.50          # Your cap in USD (default 1, ceiling 10)
-bankr x402 call <url> -i                          # Fetch the schema and prompt for input values
-bankr x402 call <url> -y                          # Skip the payment confirmation
+bankr x402 search <query>                           # search the catalogue (no auth)
+bankr x402 schema <url>                             # price and input/output schema (no auth)
+bankr x402 call <url>                               # GET with automatic payment
+bankr x402 call <url> -X POST -d '{"text":"hi"}'    # method and JSON body
+bankr x402 call <url> -i                            # prompt for inputs from the schema
+bankr x402 call <url> --max-payment 0.50            # your cap in USD (default 1, maximum 10)
 ```
 
-**`--max-payment` is your cap, and your cap is what gets sent.** The price an endpoint advertises is display-only — it can never raise your cap, and a call whose advertised price exceeds the cap fails closed instead of paying. In non-interactive mode the price probe is skipped entirely, so `--ni` behaves the same as `-y`.
+`--max-payment` is a hard ceiling. The price an endpoint advertises can only lower what you authorize, never raise it, and a call priced above your cap fails instead of paying. `-y` or `--ni` skips both the price check and the confirmation.
 
-**Smart-contract wallets can pay.** Payment signatures are verified through an ERC-1271/6492-aware path as well as plain ECDSA recovery, so gas-sponsored and 7702-delegated wallets settle x402 payments normally rather than failing verification.
+**Any x402 v2 client** (for example `@x402/fetch` with `@x402/evm`): an unpaid request returns `402` with the payment requirements (`x402Version: 2`, and `accepts: [{ scheme, network, amount, maxAmountRequired, asset, payTo, extra }]`), also sent base64-encoded in the `PAYMENT-REQUIRED` header. Retry with the signed payment in `PAYMENT-SIGNATURE` (v2) or `X-PAYMENT` (v1).
 
-### With x402-fetch (for developers)
+### How payment is handled
 
-```typescript
-import { createWalletClient, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { base } from "viem/chains";
-import { wrapFetchWithPayment } from "x402-fetch";
-
-const account = privateKeyToAccount("0x..." as `0x${string}`);
-const wallet = createWalletClient({ account, chain: base, transport: http() });
-const paidFetch = wrapFetchWithPayment(fetch, wallet, BigInt(1_000_000));
-
-// GET
-const res = await paidFetch("https://x402.bankr.bot/0xOwner/service?param=value");
-
-// POST
-const res = await paidFetch("https://x402.bankr.bot/0xOwner/service", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ text: "hello" }),
-});
-```
-
-### Inspecting Payment Requirements
-
-```bash
-curl -s https://x402.bankr.bot/0xOwner/service | jq .
-```
-
-Returns `{ x402Version, accepts: [{ scheme, network, maxAmountRequired, asset, payTo }] }`.
-
-The Bankr agent can pay both **x402 v1 and v2** endpoints (Bankr-hosted or external), signing the payment in whichever protocol version the endpoint advertises.
-
-## Endpoint URL Format
-
-```
-https://x402.bankr.bot/<walletAddress>/<serviceName>[/path]
-```
-
-- `walletAddress`: Your Bankr wallet address (the deployer)
-- `serviceName`: Name from your config
-- `/path`: Optional sub-path passed to your handler
-
-## How Payment Works
-
-1. Client calls your endpoint — gets 402 with payment requirements (including the accepted token)
-2. Client's wallet signs a payment in the endpoint's token on Base
-3. Client retries with `X-PAYMENT` header containing the signed payment
-4. Payment is verified, your handler runs, payment settles on-chain
-5. Your share goes to your wallet, platform fee (if any) goes to Bankr
-
-Payments only settle if your handler returns a successful response (status < 400). Failed requests are never charged.
-
-**Verification and settlement are Bankr's to drive, not yours.** Steps 4 and 5 run through a dedicated facilitator service — your handler code never touches payment logic, and neither payers nor handlers call `verify`/`settle` directly. Both operations are authenticated and rate-limited: each call carries a short-lived token bound to the specific endpoint being paid for, and settlement pays out to the address on that endpoint's record rather than anything supplied in the request, so a payout target can't be swapped by a crafted request.
-
-The `facilitator` URL that comes back in a `402` response is informational — it tells payment clients which facilitator quoted the price. Don't build a flow that posts to it yourself; use the `X-PAYMENT` retry above (or a client like `x402-fetch`) and let the router handle the rest. The verified payer's wallet address reaches your handler as the `x-402-payer` header.
+- **Verification and settlement are Bankr's.** The router verifies the payment, runs the handler, and settles only on a response below 400. Neither payers nor handlers call a facilitator: the `facilitator` URL in a 402 is informational, and the payout goes to the address on the endpoint's record, not to anything in the request.
+- **Payer wallets:** plain EOAs, deployed smart accounts (ERC-1271) and EIP-7702 delegated wallets such as Bankr's all verify. Counterfactual ERC-6492 signatures from an undeployed account are rejected, so deploy the account first.
+- **Failures:** a reused payment gets `402` with `Payment already used`. A failed verification gets `402` with a machine-readable `reason` such as `permit2_allowance_required` or `insufficient_balance`. More than 60 paid requests a minute from one payer to one endpoint gets `429` with `retry-after`. A paused or deleted endpoint returns `404`.
 
 ## Limits
 
 | Resource | Limit |
 |----------|-------|
-| Bundle size | 5 MB |
-| Memory | 256 MB |
 | Execution time | 30 seconds |
-| Deploys per hour | 20 |
-| Services per account | Unlimited |
-| Env var value size | 4 KB |
+| Memory | 256 MB |
+| Handler source | 1 MB per service |
+| Services per deploy | 25 |
+| Deploys | 20 per hour per IP |
+| Env vars | 4 KB total, names and values, per wallet |
+| Service name | Up to 47 characters: letters, digits, `-` and `_` |
+| Paid requests | 60 per minute per payer per endpoint |

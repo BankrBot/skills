@@ -1,63 +1,31 @@
 # Polymarket Reference
 
-Interact with Polymarket prediction markets.
-
-## Overview
-
-Polymarket is a decentralized prediction market where users can search markets, view odds, place bets, and manage positions.
-
-**Chain**: Polygon (uses USDC.e for betting)
+Search prediction markets, check odds, place and sell bets, and redeem winnings on Polymarket (Polygon). Docs: https://docs.bankr.bot/features/polymarket
 
 ## Prompt Examples
 
-**Search markets:**
-- "Search Polymarket for election markets"
-- "What prediction markets are trending?"
-- "Find markets about crypto"
-- "Show Polymarket sports markets"
+- **Search**: "Search Polymarket for election markets" · "What prediction markets are trending?"
+- **Odds**: "What are the odds the Eagles win this weekend?" · "Polymarket odds for a Fed rate cut"
+- **Bet**: "Bet $10 on Yes for [market]" · "Put $5 on the Eagles to win tonight"
+- **Sell**: "Sell my Yes shares on [market]"
+- **Positions**: "Show my Polymarket positions" · "How did my bets go?"
+- **Redeem**: "Redeem my Polymarket winnings"
 
-**Check odds:**
-- "What are the odds Trump wins the election?"
-- "Check the odds on the Eagles game"
-- "Polymarket odds for ETF approval"
-- "What's the probability of [event]?"
+A share's price is the market's implied probability ($0.60 ≈ 60%); a winning share redeems for $1. Bets are placed in dollars, and "bet on [team] to win" means the moneyline market. When a request matches several markets or outcomes, Bankr asks which one.
 
-**Place bets:**
-- "Bet $10 on Yes for Trump winning"
-- "Place $5 on the Eagles to win"
-- "Buy $20 of Yes shares on [market]"
-- "Bet on No for [event]"
+## Placing a Bet
 
-**View positions:**
-- "Show my Polymarket positions"
-- "What bets do I have active?"
-- "My Polymarket portfolio"
+- **Collateral** is Polymarket's pUSD or USDC.e on Polygon — both count, and USDC.e is wrapped automatically. Bankr quotes balances in dollars rather than token names.
+- **Funding**: an explicit bet authorizes the funding it needs, without a separate confirmation. If collateral is short, Bankr swaps or bridges owned native tokens or USD stablecoins from any supported chain into Polygon collateral, verifies arrival, then places the bet. It never borrows, asks before selling any other holding, and respects a named source and your spending limits.
+- When spendable collateral is within 10% of the bet, the bet can be placed for the available amount rather than the exact figure — read the confirmed size in the reply.
+- A market that has already resolved is refused: "This market has already resolved, so it can no longer be bet on."
+- Polymarket requires the Bankr wallet — connected (external) wallets can't bet, sell, redeem or sweep.
 
-This lists your open bets and any resolved **winning** positions you can still redeem. Resolved **losing** positions (a market you lost settles at $0) are hidden by default and only summarized as a count — ask explicitly to see them:
+## Deposit Wallet
 
-```
-"show my losing polymarket positions too"
-```
+Bets settle through a Polymarket **deposit wallet** tied to your Bankr wallet: Bankr tops it up on Polygon when you bet and sweeps proceeds back after a sell. **It only works on Polygon — never send funds to it directly, and never on another chain**: funds sent there on Base, Ethereum or any other chain are stranded for good.
 
-You can also pull your current Polymarket positions directly over REST without going through the agent:
-
-```bash
-curl "https://api.bankr.bot/polymarket/positions" \
-  -H "X-API-Key: $BANKR_API_KEY"
-```
-
-**Redeem winnings:**
-- "Redeem my Polymarket positions"
-- "Cash out my resolved bets"
-- "Claim my winnings"
-
-Only positions worth more than $0 are redeemed — resolved losers have nothing to claim, so they're skipped rather than reported as failed redemptions.
-
-### Unspent Deposit-Wallet Collateral
-
-Betting funds flow through a transient Polymarket deposit wallet (fund → bet → sell → auto-sweep back), so a non-zero balance sitting there is always an anomaly — a bet that didn't go through, an interrupted sweep. The positions view now **reports that balance whenever it's non-zero**, including when you have no positions at all.
-
-Read it for what it is: unspent collateral, not a position and not winnings. You can bet with it, or recover it:
+A non-zero balance left in it is unspent collateral — not a position and not winnings. The positions view **reports that balance whenever it's non-zero**, including when you have no positions at all. Bet with it, or recover it:
 
 ```
 "sweep my polymarket deposit wallet"
@@ -65,146 +33,23 @@ Read it for what it is: unspent collateral, not a position and not winnings. You
 
 This matters because "$0.00 claimable" is a truthful answer that can still hide money — the collateral isn't redeemable, because it was never staked. If a balance looks unaccounted for, check here before concluding the funds are gone.
 
-## How Betting Works
+## Positions and Redemption
 
-### Share-Based System
-- You buy shares of "Yes" or "No" outcomes
-- Share price reflects market probability
-  - $0.60 = 60% chance according to market
-  - $0.20 = 20% chance
-- If your outcome wins, shares pay $1.00 each
-- Profit = $1.00 - purchase price (per share)
+"Show my Polymarket positions" lists open bets, claimable winnings, and losing bets resolved in the last 48 hours. Older resolved losses (a lost market settles at $0) are hidden and only counted — ask explicitly to see them:
 
-### Example
-**Bet $10 on "Yes" at $0.60 price:**
-- Receive: ~16.67 shares
-- If Yes wins: Get $16.67 (profit: $6.67)
-- If No wins: Lose $10
+```
+"show all my losing polymarket bets"
+```
 
-### Return on Investment
-- Better odds (lower price) = higher potential return
-- Price $0.10 → 10x return if wins
-- Price $0.90 → 1.11x return if wins
+Redeeming only claims positions worth more than $0 — resolved losers have nothing to claim, so they're skipped rather than reported as failed redemptions.
 
-## Auto-Bridging
-
-If you don't have USDC on Polygon:
-- Bankr automatically bridges from another chain
-- Uses your available stablecoins (USDC/USDT)
-- Optimizes for lowest fees
-- Typically completes in minutes
-
-## Market Types
-
-| Category | Examples |
-|----------|----------|
-| Politics | Elections, legislation, appointments |
-| Sports | Game outcomes, championships, player stats |
-| Crypto | Price predictions, ETF approvals, launches |
-| Culture | Awards shows, entertainment events |
-| Business | Company earnings, acquisitions, product launches |
-| World Events | Geopolitics, natural events, social trends |
-
-## Market Phases
-
-### Active Markets
-- Open for betting
-- Prices fluctuate with news
-- Can buy or sell shares
-
-### Closed Markets
-- No new bets accepted
-- Outcome determined
-- Awaiting resolution
-
-### Resolved Markets
-- Outcome confirmed
-- Winners can redeem
-- Losers get nothing
+Positions are read through the agent (`/agent/prompt` or `bankr agent prompt`); there is no API-key REST endpoint for them.
 
 ## Common Issues
 
 | Issue | Resolution |
 |-------|------------|
-| Market not found | Try different search terms, check spelling |
-| Insufficient USDC | Add USDC or let auto-bridge handle it |
-| Market closed | Can't bet on closed/resolved markets |
-| Low liquidity | May get worse prices on small markets |
-| Slippage | Large bets may move price against you |
-| "not supported when trusted-recipient restrictions are configured" | The API key carries a recipient allowlist. Polymarket trades pay an exchange contract that can't be validated against it, so buys and sells are refused outright — see [safety.md](safety.md). Use a key without an allowlist for this workflow |
-
-## Tips for Success
-
-### Research
-1. Read market details carefully
-2. Check resolution criteria
-3. Review similar past markets
-4. Follow news about the event
-
-### Strategy
-1. **Start small** - Test with small amounts
-2. **Diversify** - Spread risk across markets
-3. **Think probability** - If you think real odds > market odds, bet Yes
-4. **Sell early** - Can sell shares before resolution
-5. **Compound** - Reinvest winnings
-
-### Timing
-1. **Early bets** - Better odds before news breaks
-2. **React fast** - Odds change quickly with news
-3. **Redeem promptly** - Claim winnings soon after resolution
-
-### Risk Management
-1. Never bet more than you can afford to lose
-2. Understand the outcome criteria
-3. Consider worst-case scenarios
-4. Don't let emotions drive decisions
-5. Set a budget and stick to it
-
-## Market Liquidity
-
-- **High liquidity** - Easy to buy/sell, stable prices
-- **Low liquidity** - Harder to exit, price slippage
-- Check volume before large bets
-- Popular markets have better liquidity
-
-## Resolution Process
-
-1. **Event occurs** - Real-world outcome determined
-2. **Market closes** - No more betting
-3. **Resolution** - Polymarket resolves via UMA oracle based on outcome criteria
-4. **Winners paid** - Shares worth $1 each
-5. **Losers** - Shares become worthless
-
-## Advanced Features
-
-### Selling Shares
-- Can sell before resolution
-- Lock in profits or cut losses
-- Price depends on current odds
-
-### Partial Positions
-- Don't have to go all-in
-- Can build position over time
-- Average your entry price
-
-### Market Making
-- Provide liquidity to earn fees
-- Advanced strategy
-- Requires understanding of odds
-
-## Responsible Betting
-
-- Set limits before you start
-- Don't chase losses
-- Take breaks
-- Betting is not guaranteed profit
-- Only use money you can afford to lose
-
-## Best Practices
-
-1. **Read carefully** - Understand resolution criteria
-2. **Check sources** - Official resolution sources
-3. **Start small** - Learn with small bets
-4. **Track record** - Keep notes on your bets
-5. **Stay informed** - Follow news about your markets
-6. **Redeem quickly** - Don't leave money on table
+| Market not found | Try different search terms, or give the Polymarket URL |
+| "Insufficient Polymarket collateral" | Nothing eligible covered the shortfall; fund the wallet or name a source to swap from |
+| Low liquidity / slippage | Large bets on thin markets fill at worse prices |
+| "… not supported when trusted-recipient restrictions are configured" | The API key carries a recipient allowlist. Polymarket trades pay an exchange contract that can't be validated against it, so buys and sells are refused outright — see [safety.md](safety.md). Use a key without an allowlist for this workflow |

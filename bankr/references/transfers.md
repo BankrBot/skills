@@ -1,149 +1,66 @@
 # Transfers Reference
 
-Send tokens to a 0x address or ENS name directly via the CLI / Wallet API, or to social handles via the AI agent.
+Send tokens to addresses, ENS names or social handles. The agent accepts every recipient format; the CLI and Wallet API take addresses (the CLI also resolves ENS).
 
-## CLI Command
+## Recipient formats
+
+| Format | Example | Agent | `bankr wallet transfer` | `POST /wallet/transfer` |
+|--------|---------|:-----:|:-----------------------:|:-----------------------:|
+| EVM address | `0x1234…abcd` | ✓ | ✓ | ✓ |
+| Solana address | `9xKc…abc` | ✓ | — | — |
+| ENS / Basename / cb.id | `vitalik.eth`, `name.base.eth`, `name.cb.id` | ✓ | ✓ (resolved first) | — (resolve first) |
+| X / Farcaster / Telegram | `@handle` | ✓ | — | — |
+
+**Social handles** (agent): pass the bare username — no `.eth` suffix, even if the display name has one.
+
+- An **X or Farcaster** username resolves to that account's Bankr wallet. If the account has never used Bankr, a wallet is created for it and its owner claims the funds by signing in with that account.
+- A **Telegram** username resolves only if that user already has a Bankr wallet with that username.
+- Resolution is per platform: an X handle resolves through the X account, never through a Farcaster link, and vice versa.
+- On X, Farcaster or Telegram, a bare `@handle` means a handle on that platform. Name another platform ("@bob on farcaster") to send there.
+- ENS doesn't apply to Solana sends; use a Solana address or a handle.
+
+## Agent
 
 ```bash
-# Transfer with token symbol resolution
-bankr wallet transfer --to <recipient> --token <symbol> --amount <amount>
-bankr wallet transfer --to <recipient> --token <symbol> --amount <amount> --chain <chain>
+bankr agent prompt "Send 0.5 ETH to 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb on base"
+bankr agent prompt "Send \$20 of USDC to vitalik.eth"
+bankr agent prompt "Send 10% of my BNKR to @friend on Farcaster"
+bankr agent prompt "Send 1 SOL to 9xKc...abc"
+```
 
-# Examples — recipient may be a 0x address or ENS-style name (.eth, .base.eth, .cb.id)
-bankr wallet transfer --to 0x1234... --token ETH --amount 0.1
+- **Amounts:** exact (`0.1 ETH`), USD (`$50`) or a percentage of the balance (`50%`, "all").
+- **Chain:** name it to be sure. Otherwise the agent sends a token from a chain where you hold it (it won't send a ticker you don't hold), and a native token from Base when that wallet has gas there, else from the chain with the largest native balance.
+- **Many recipients:** "send 5 USDC each to 0xAAA…, 0xBBB… and @carol" batches same-chain ERC-20 sends into **one atomic transaction** (every leg pays or none does); native sends and other chains go one transaction at a time. Your wallet's spend limits apply to the batch's total USD value.
+- **Burns:** "burn 1000 BNKR" sends the tokens to `0x…dead` on EVM chains. The zero address is refused, and burning isn't possible on Arc.
+- Bankr Club members can also airdrop a token, from the web terminal, X or Farcaster, to Club members who replied to a post (up to 100, with follower, repost, comment and random-sample filters) or to the top Club members by rank.
+
+## CLI
+
+```bash
+bankr wallet transfer --to 0x1234... --token USDC --amount 50
 bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base
 bankr wallet transfer --to name.base.eth --native --amount 0.01
 ```
 
-`--to` accepts a 0x address or an ENS-style name; ENS names (`.eth`, `.base.eth`, `.cb.id`) are resolved to an address via `/addresses/resolve` before the transfer is submitted, so the call fails fast with a clear error if the name doesn't resolve. To send to social handles (Twitter, Farcaster, Telegram), use the AI agent (`bankr agent ...`) instead — the CLI's direct `transfer` command intentionally does not accept handles to keep money-moving inputs unambiguous.
+`--to` takes a 0x address or an ENS-style name (`.eth`, `.base.eth`, `.cb.id`), resolved via `/addresses/resolve` before anything is sent — without a chain, so a name's Base record wins even with `--chain polygon`; pass a 0x address when that matters. Handles are rejected; use the agent for those. `--token` takes a symbol or contract address; `--native` sends the chain's gas token. `--chain` defaults to `base` and takes any EVM chain — there is no Solana support.
 
-The `--token` flag resolves token symbols (e.g. `USDC`) to contract addresses via the search API.
-
-## REST API
+## Wallet API
 
 ```bash
-# Direct transfer via Wallet API
 curl -X POST "https://api.bankr.bot/wallet/transfer" \
-  -H "X-API-Key: $API_KEY" \
+  -H "X-API-Key: $BANKR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"to": "vitalik.eth", "token": "USDC", "amount": "50", "chain": "base"}'
+  -d '{"tokenAddress": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", "recipientAddress": "0x1234...", "amount": "50", "isNativeToken": false, "chain": "base"}'
 ```
 
-The `/wallet/transfer` endpoint is a write endpoint — requires `walletApiEnabled`, `readOnly: false`, and is subject to `allowedRecipients` enforcement and IP allowlist.
+- The body takes a **0x `recipientAddress` and a token contract address** — no ENS names, handles or symbols. For a native send, set `isNativeToken: true` (with the zero address as `tokenAddress`). `chain` defaults to `base`; EVM chains only. Full reference: [transfer docs](https://docs.bankr.bot/wallet-api/transfer).
+- Needs a key with Wallet API access that isn't read-only. A key's `allowedRecipients` list and the wallet's own security settings (spend limits, permitted recipients, pause) are enforced: an allowlist or pause rejection is `403`, a spend-limit or permitted-recipient rejection comes back as `400` with the reason.
 
-### Recipient Resolution Helper
-
-If you need to resolve an ENS-style name to a 0x address yourself (without submitting a transfer), use the structured `/addresses/resolve` endpoint. It is public — no API key required.
+**Resolving a name yourself** — `GET /addresses/resolve` is public (no API key):
 
 ```bash
-curl "https://api.bankr.bot/addresses/resolve?value=vitalik.eth&type=ens"
+curl "https://api.bankr.bot/addresses/resolve?value=vitalik.eth&type=ens&chain=polygon"
 # → { "resolved": true, "address": "0x...", "displayName": "vitalik.eth" }
 ```
 
-`type` is one of `address`, `ens`, `twitter`, `farcaster`. The legacy `/public/resolve-recipient` endpoint still works as a backward-compat alias but is marked deprecated (Sunset: 2026-06-03). Migrate to `/addresses/resolve`. A parallel `/users/search` endpoint is available for Twitter/Farcaster username lookup (legacy alias: `/public/search-users`, same deprecation timeline).
-
-## Supported Transfers
-
-- **EVM Chains**: Base, Polygon, Ethereum (mainnet), Unichain, World Chain, Arbitrum, BNB Chain
-  - Native tokens: ETH, POL, BNB
-  - ERC20 tokens: USDC, USDT, WETH, etc.
-- **Solana**: SOL and SPL tokens (via AI agent — the CLI's `bankr wallet transfer` is EVM-only)
-
-## Bulk / Multi-Recipient Transfers
-
-Through the AI agent you can send to many recipients in one request (e.g. an airdrop or payroll run). Same-chain ERC-20 transfers to multiple recipients are batched into a **single on-chain transaction** (one set of gas) rather than one transaction per recipient; native-token sends are submitted individually. Each recipient's outcome is reported back so you can see exactly which legs succeeded.
-
-```bash
-bankr agent prompt "Send 5 USDC to 0xAAA..., 0xBBB..., and 0xCCC... on Base"
-bankr agent prompt "Airdrop 10 USDC each to @alice, @bob, and @carol"
-```
-
-## Recipient Formats
-
-Pass the bare username for social handles (no `.eth` suffix even if the user's display name has one) — the resolver only matches by exact Farcaster/Twitter username.
-
-| Format | Example | `bankr wallet transfer` | AI agent (`bankr agent`) |
-|--------|---------|:-----------------------:|:------------------------:|
-| EVM address | `0x1234...abcd` | ✓ | ✓ |
-| Solana address | `9xKc...abc` | — | ✓ |
-| ENS | `vitalik.eth` | ✓ (resolved client-side) | ✓ |
-| Basename | `name.base.eth` | ✓ (resolved client-side) | ✓ |
-| Coinbase ID | `name.cb.id` | ✓ (resolved client-side) | ✓ |
-| Twitter | `@elonmusk` | — | ✓ |
-| Farcaster | `@dwr` | — | ✓ |
-| Telegram | `@username` | — | ✓ |
-
-**Social handle resolution** (agent only): handles are resolved to a linked wallet address before sending. The user must have linked a wallet to the social platform for resolution to succeed — linking is per-platform, so an X handle won't resolve off a Farcaster link.
-
-## Amount Formats
-
-| Format | Example | Description |
-|--------|---------|-------------|
-| USD | `$50` | Dollar amount |
-| Percentage | `50%` | Percentage of balance |
-| Exact | `0.1 ETH` | Specific amount |
-
-## Prompt Examples
-
-**To addresses:**
-- "Send 0.5 ETH to 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
-- "Transfer 100 USDC to 9xKc...abc"
-- "Send $20 of ETH to 0x1234..."
-
-**To ENS / Basenames:**
-- "Send 1 ETH to vitalik.eth"
-- "Transfer $50 of USDC to mydomain.eth"
-- "Send 10 USDC to friend.base.eth"
-
-**To social handles:**
-- "Send $20 of ETH to @friend on Twitter"
-- "Transfer 0.1 ETH to @user on Farcaster"
-- "Send 50 USDC to @buddy on Telegram"
-
-**Bulk / multi-recipient:**
-- "Send 5 USDC to 0xAAA..., 0xBBB..., and 0xCCC..."
-- "Airdrop 10 USDC each to @alice, @bob, and @carol"
-
-**With chain specified:**
-- "Send ETH on Base to vitalik.eth"
-- "Send 10% of my ETH to @friend"
-- "Transfer USDC on Polygon to 0x..."
-
-## Chain Selection
-
-If not specified, Bankr selects automatically based on:
-- Recipient activity patterns
-- Gas costs
-- Token availability
-- Liquidity
-
-Specify chain in prompt if you need a specific network. The CLI's `bankr wallet transfer` defaults to `base`; pass `--chain <name>` to override.
-
-## Common Issues
-
-| Issue | Resolution |
-|-------|------------|
-| ENS not found | Verify the ENS name exists and is registered |
-| `--to` rejected as invalid | The CLI accepts only 0x addresses and ENS-style names (`.eth`, `.base.eth`, `.cb.id`). For social handles use the AI agent. |
-| Social handle not found | Check username spelling and platform |
-| No linked wallet | User hasn't linked wallet to their social account |
-| Insufficient balance | Reduce amount or ensure enough funds |
-| Wrong chain | Specify chain explicitly in prompt |
-| Gas required | Ensure you have native token for gas |
-
-## Security Notes
-
-- **Verify recipient** - Always double-check before confirming
-- **Address preview** - Social handle resolution shows the resolved address
-- **Irreversible** - Blockchain transactions cannot be undone
-- **Large transfers** - May require additional confirmation
-- **Test first** - Send small amount first for new recipients
-
-## Best Practices
-
-1. **Start small** - Test with small amounts for new recipients
-2. **Verify address** - Double-check resolved addresses
-3. **Check chain** - Ensure recipient uses the same chain
-4. **Gas buffer** - Keep some native token for future transactions
-5. **ENS preferred** - More reliable than social handles
-6. **Screenshot** - Save transaction hash for records
+`type` is `address`, `ens`, `twitter` or `farcaster`. Pass the destination `chain` for ENS — records are chain-aware, and a name's Base record can be a Base-only smart wallet; without it, the Base record wins. X and Farcaster lookups resolve (and create) the account's Bankr wallet, as above. A miss answers `200` with `resolved: false`. `GET /users/search?query=<prefix>` autocompletes Bankr users by X or Farcaster username.
