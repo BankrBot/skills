@@ -78,7 +78,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### Recipient allowlist
 
-`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer` (checked against the EVM list only, since the endpoint is EVM-only; a Solana-only allowlist doesn't restrict it), and a deploy's fee recipient. Your own addresses always pass. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
+`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer` and a deploy's fee recipient. A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the EVM list, so a Solana-only allowlist refuses every transfer there. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
 
 **A non-empty allowlist on either chain also refuses operations whose recipient can't be checked:**
 

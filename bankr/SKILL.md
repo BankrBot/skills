@@ -124,7 +124,7 @@ Never poll without a `jobId`: `GET /agent/job/null` answers `404 Job not found` 
 
 - Reads (`me`, `portfolio`, `swap-quote`) work with read-only keys. `swap-quote` still needs `walletApiEnabled`.
 - Writes (`swap`, `transfer`, `sign`, `submit`) need `walletApiEnabled` on a read-write key.
-- `transfer` enforces the key's EVM recipient allowlist (the endpoint is EVM-only, so a key whose allowlist holds only Solana addresses doesn't restrict it). `swap` has no recipient to check, because its output returns to you.
+- Once a key has a recipient allowlist on either chain, `transfer` only sends to addresses on its EVM list, so a Solana-only allowlist refuses every transfer. `swap` has no recipient to check, because its output returns to you.
 - `submit` is also checked against the wallet's security settings: spend limits, permitted recipients and the arbitrary-contract-calls switch. Its `403` comes either with a machine-readable `errorCode` or with a plain message and no code, so handle both shapes.
 - These endpoints need no key: `GET /addresses/resolve`, `GET /users/search`, `GET /token-launches` and `GET /token-launches/quote-tokens?chain=<chain>`.
 
