@@ -14,9 +14,9 @@ Only `projectName` is required, and a wallet can hold several projects.
 
 ## Review and Visibility
 
-A new project is a **draft** (`isPublished: false`) that only its owner can see. Publishing it (`isPublished: true`, or the Publish toggle in the web form) submits it for review, and Bankr approves projects for the public listing. An unpublished project can't be approved. The owner's view of a project carries `reviewStatus`: `draft`, `pending`, `approved` or `declined`. A declined project stays unlisted; the owner has to contact the Bankr team for another review.
+A new project is a **draft** (`isPublished: false`) that only its owner can see. Publishing it (`isPublished: true`, or the Publish toggle in the web form) submits it for review, and Bankr approves projects for the public listing. An unpublished project can't be approved, and unpublishing an approved project hides it from every public surface until it's published again. The owner's view of a project carries `reviewStatus`: `draft`, `pending`, `approved` or `declined`. A declined project stays unlisted; the owner has to contact the Bankr team for another review.
 
-Approved projects appear in the listing and get their market cap refreshed every 5 minutes and their weekly fee revenue every 30 minutes.
+Approved, published projects appear in the listing and get their market cap refreshed every 5 minutes and their weekly fee revenue every 30 minutes.
 
 ## CLI
 
@@ -55,8 +55,8 @@ curl -X POST "https://api.bankr.bot/agent/profile?multi=true" \
 
 | Method | Path | Returns |
 |--------|------|---------|
-| `GET` | `/agent-profiles` | Approved projects. Query: `limit` (1-100, default 20), `offset`, `sort` (`marketCap` or `newest`), `q` (matches name, token symbol and tags), and `includeFeatured=1`, which adds every featured project to the first unfiltered page, so that page can run past `limit` |
-| `GET` | `/agent-profiles/{identifier}` | Detail by token address or slug. An unapproved project is shown only to its owner's API key |
+| `GET` | `/agent-profiles` | Approved, published projects. Query: `limit` (1-100, default 20), `offset`, `sort` (`marketCap` or `newest`), `q` (matches name, token symbol and tags), and `includeFeatured=1`, which adds every featured project to the first unfiltered page, so that page can run past `limit` |
+| `GET` | `/agent-profiles/{identifier}` | Detail by token address or slug. An unapproved or unpublished project is shown only to its owner's API key |
 | `GET` | `/agent-profiles/{identifier}/market-cap` | Live market cap |
 | `GET` | `/agent-profiles/{identifier}/llm-usage` | LLM gateway usage over `days` (1-90, default 30): `totals`, `byModel`, `daily`. No cost data. Cached 5 minutes |
 | `GET` | `/agent-profiles/{identifier}/x402-revenue` | Revenue and request totals of the wallet's live x402 endpoints |
@@ -69,14 +69,14 @@ Field-level response shapes: [REST API reference](https://docs.bankr.bot/project
 
 ### Derived cards
 
-Both cards come from links the project already has; there is nothing extra to configure. They are served for approved projects only, cached, and rate-limited per IP.
+Both cards come from links the project already has; there is nothing extra to configure. They are served for approved, published projects only, cached, and rate-limited per IP.
 
 - **GitHub activity** uses the first `github.com/{owner}/{repo}` URL found in `website`, then the product URLs, then team-member links, so put the repo you want in `website`. `activity` is `null` when no repo is linked. `stats` is `null` when GitHub was unreachable or rate-limited, and the repo link still resolves, so a null `stats` doesn't mean "no repo". `commits` covers the last 52 weeks and `pullRequests` / `releases` the last 12 months; each can be `null` while GitHub is still computing it. `repo.verified` means the owner's linked GitHub account owns or maintains the repo, and `weekly` holds up to 52 buckets, oldest first.
 - **Ethos** returns a card for the project's linked X account first, then for up to five team members whose links include an X profile, deduplicated by Ethos username. Accounts without an Ethos profile are left out, so an empty `cards` array isn't an error. `reviews.positivePercent` is `null` until there is at least one review, and `reviews.items` holds at most three, newest first.
 
 ## Real-Time Updates
 
-The `/agent-profiles` Socket.IO namespace on `api.bankr.bot` pushes changes to approved projects:
+The `/agent-profiles` Socket.IO namespace on `api.bankr.bot` pushes changes to approved, published projects:
 
 - `AGENT_PROFILE_UPDATE` carries listing changes such as market cap and revenue.
 - `AGENT_PROFILE_DETAIL_UPDATE` carries detail-page changes. Subscribe with `socket.emit("subscribe", key)`, where `key` is the project's **token address**, or its slug if it has no token. Leave with `unsubscribe`.

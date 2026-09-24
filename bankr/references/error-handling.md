@@ -32,7 +32,7 @@ Minting a key from the dashboard or `bankr login email` can fail with `400 Name 
 |------|----------|------------|
 | 400 | An invalid request, or an operation that failed (`success: false` with `error`) | Fix the request. On `/wallet/submit`, a `400` that carries a `transactionHash` was broadcast |
 | 401, 403 | See the table above | |
-| 402 | LLM gateway credits are exhausted, or the wallet can't fund a credit top-up | Top up with `bankr llm credits add <usd>` or at [bankr.bot/terminal/llm?tab=credits](https://bankr.bot/terminal/llm?tab=credits); see [llm-gateway.md](llm-gateway.md) |
+| 402 | LLM gateway credits are exhausted or can't cover a request's worst-case cost (lower `max_tokens`), or the wallet can't fund a credit top-up | Top up with `bankr llm credits add <usd>` or at [bankr.bot/terminal/llm?tab=credits](https://bankr.bot/terminal/llm?tab=credits); see [llm-gateway.md](llm-gateway.md) |
 | 404 | A job or thread that doesn't exist on this account | Check the ID and which account the key belongs to |
 | 409 | `/wallet/swap`: the same `idempotencyKey` is still in flight, or a pending transaction is in the way | Wait and check the wallet's activity; don't resubmit under a new key |
 | 429 | A rate limit, or the daily prompt quota | Back off; for the quota, wait until `resetAt`. See [safety.md](safety.md#rate-limits) |

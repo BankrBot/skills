@@ -83,7 +83,7 @@ Max Mode runs the Bankr agent itself on a gateway model instead of its default (
 
 ## Credits
 
-LLM credits are a USD balance (1 credit = $1), separate from the trading wallet: holding crypto gives you no credits. **New wallets start at $0**, and every gateway request, reads included, returns `402 insufficient_credits` until you top up.
+LLM credits are a USD balance (1 credit = $1), separate from the trading wallet: holding crypto gives you no credits. **New wallets start at $0**, and every gateway request, reads included, returns `402 insufficient_credits` until you top up. A chat or messages request also gets that `402` when its worst-case cost (the prompt plus `max_tokens`, or the model's maximum output if unset) is more than the balance left after your other in-flight requests; a lower `max_tokens` lets it through.
 
 ```bash
 bankr llm credits                          # balance
