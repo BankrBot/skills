@@ -45,8 +45,8 @@ AgentHub never holds funds. The user's wallet signs one delegation that lets a t
   1. `POST /api/sign/delegate/prepare` with `{}` → EIP-712 `{domain, types, primaryType, message}`.
   2. Sign it with `POST https://api.bankr.bot/wallet/sign`, `signatureType: "eth_signTypedData_v4"`, `typedData` = that object unchanged.
   3. `POST /api/sign/delegate/submit` with `{"signature": "0x…"}` → `{"tx"}`. Valid 30 days; repeat to renew.
-- **Any `allowance` below what the user wants to trade** → `GET /api/approvals?amount=<usdc>` → `transactions`. Send each with `POST https://api.bankr.bot/wallet/submit` (`to`, `data`, `value`, `chainId` 8453). These are USDC `approve()` calls to Veranta's trading contract and fee registry only.
-- **`referralCode` non-empty and `referred: false`** → optionally the same prepare/sign/submit flow with `kind` `referral` (`/api/sign/referral/prepare` then `/submit`) for a Veranta fee discount.
+- **Any `allowance` below what the user wants to trade** → `GET /api/approvals?amount=<usdc>` → `transactions`. Send each `purpose: "approve"` one with `POST https://api.bankr.bot/wallet/submit` (`to`, `data`, `value`, `chainId` 8453). These are USDC `approve()` calls to Veranta's trading contract and fee registry only.
+- **Optional fee discount:** if `transactions` also has a `purpose: "referral"` entry, the user can send it the same way to link AgentHub's Veranta referral code, then `POST /api/referral/linked` with `{}`.
 
 ## Step 3 — Quote, confirm, execute
 
