@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "0xinsider",
+  "provider": "0xinsider",
+  "providerUrl": "https://0xinsider.com",
+  "logo": "logo.png",
+  "demo": {
+    "title": "0xinsider.sh",
+    "language": "bash",
+    "code": "# No key needed: the sandbox answers every documented operation with example data\ncurl -s https://0xinsider.com/sandbox/api/v1/leaderboard | jq '.data[0] | {address, grade, realized_pnl}'\n\n# Live: the largest recent Polymarket trades and the grade of the wallet behind each\ncurl -s 'https://api.0xinsider.com/api/v1/whale-trades?limit=10' \\\n  -H \"Authorization: Bearer $OXINSIDER_API_KEY\"\n\n# Live: one wallet's grade and settled P&L, with trust metadata\ncurl -s 'https://api.0xinsider.com/api/v1/trader/0xYourPolymarketWallet?expand=trust' \\\n  -H \"Authorization: Bearer $OXINSIDER_API_KEY\""
+  },
+  "setup": [
+    "Install curl and jq.",
+    "Try it with no key against the sandbox at https://0xinsider.com/sandbox/api/v1 (example data, nothing stored).",
+    "For live data, create an API key at https://0xinsider.com/developers (live keys need an active Pro subscription) and export it as OXINSIDER_API_KEY. Never write it into a file.",
+    "Optional: point an MCP client at https://api.0xinsider.com/api/v1/mcp (Streamable HTTP, Authorization: Bearer)."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "0xinsider",
+    "command": "install the 0xinsider skill from https://github.com/BankrBot/skills/tree/main/0xinsider"
+  }
+}
