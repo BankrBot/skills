@@ -42,9 +42,9 @@ AgentHub never holds funds. The user's wallet signs one delegation that lets a t
 `GET /api/me` → `active` (delegation live), `balance` (USDC on Base), `approvals` (`allowance` per spender), `policy` (limits), `positions`, `orders`.
 
 - **`active: false`** → enable trading (gasless, one signature):
-  1. `POST /api/sign/delegate/prepare` with `{}` → EIP-712 `{domain, types, primaryType, message}`.
-  2. Sign it with `POST https://api.bankr.bot/wallet/sign`, `signatureType: "eth_signTypedData_v4"`, `typedData` = that object unchanged.
-  3. `POST /api/sign/delegate/submit` with `{"signature": "0x…"}` → `{"tx"}`. Valid 30 days; repeat to renew.
+  1. `POST /api/delegate/prepare` with `{}` → `{"ref", "typedData"}` (EIP-712 `{domain, types, primaryType, message}`).
+  2. Sign `typedData` with `POST https://api.bankr.bot/wallet/sign`, `signatureType: "eth_signTypedData_v4"`, passing it unchanged.
+  3. `POST /api/delegate/submit` with `{"ref": "<ref>", "signature": "0x…"}` → `{"tx"}`. Valid 30 days; repeat to renew.
 - **Any `allowance` below what the user wants to trade** → `GET /api/approvals?amount=<usdc>` → `transactions`. Send each `purpose: "approve"` one with `POST https://api.bankr.bot/wallet/submit` (`to`, `data`, `value`, `chainId` 8453). These are USDC `approve()` calls to Veranta's trading contract and fee registry only.
 - **Optional fee discount:** if `transactions` also has a `purpose: "referral"` entry, the user can send it the same way to link AgentHub's Veranta referral code, then `POST /api/referral/linked` with `{}`.
 
