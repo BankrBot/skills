@@ -3,9 +3,11 @@ name: send-stock
 description: >
   Send tokenized stocks through Basemate (AAPL, AMZN, GOOGL, META, MSFT, MSTR,
   NVDA, SNDK, SPCX, TSLA). Use when the user wants to send stock to someone.
-  Resolve the recipient from Muse Contacts to one real phone number, start the
-  send, and hand them the Apple Pay link. No API key. Money moves only when
-  that user pays on Basemate. Poll until it lands, then confirm in the chat.
+  Resolve the recipient from Muse Contacts to one real phone number. If that
+  number already has a country code, use it as-is. If it doesn't, ask — never
+  assume +1. Then start the send and hand them the Apple Pay link. No API key.
+  Money moves only when that user pays on Basemate. Poll until it lands, then
+  confirm in the chat.
 metadata:
   clawdbot:
     emoji: "📈"
@@ -35,7 +37,7 @@ Anyone can start a send. Money only moves when **that user** Apple Pays on Basem
 You must use **Muse Contacts**. “Mom” / “Sarah” is not a destination.
 
 1. Open this user’s contacts. If you cannot, ask them to allow Muse Contacts (or paste the number). Do not POST until you have a real mobile.
-2. Resolve the person to one E.164 (`+1…`). Two matches → ask which number. No mobile → stop. Never invent a number.
+2. Resolve the person to one E.164 number. If it already has a country code (`+380…`, `+44…`, `+1…`), use that number exactly and move on. If it has no country code, ask which code before you POST. Never assume `+1`. Two matches → ask which number. No mobile → stop. Never invent a number.
 3. Show the user the **name and number you found** before or with the pay link. Example: Mom (+15551234567). Never say “your mom” without the number.
 
 **Payer** = this user’s mobile (their contact card / their Basemate phone). Include `payer.name` (this Muse user’s name) so the recipient text isn’t a raw phone number. Optional: `payer.email`. Ask once if missing.
