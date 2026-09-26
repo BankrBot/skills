@@ -2,12 +2,9 @@
 name: send-stock
 description: >
   Send tokenized stocks through Basemate (AAPL, AMZN, GOOGL, META, MSFT, MSTR,
-  NVDA, SNDK, SPCX, TSLA). Use when the user wants to send stock to someone.
-  Resolve the recipient from Muse Contacts to one real phone number. If that
-  number already has a country code, use it as-is. If it doesn't, ask — never
-  assume +1. Then start the send and hand them the Apple Pay link. No API key.
-  Money moves only when that user pays on Basemate. Poll until it lands, then
-  confirm in the chat.
+  NVDA, SNDK, SPCX, TSLA). Muse already has the user's phone contacts — use
+  that number. If it already has a country code, use it as-is. If it doesn't,
+  ask before posting. No API key. The user Apple Pays. Poll until it lands.
 metadata:
   clawdbot:
     emoji: "📈"
@@ -32,13 +29,18 @@ https://basemate-imessage-production.up.railway.app
 
 Anyone can start a send. Money only moves when **that user** Apple Pays on Basemate.
 
-## Contacts (required)
+## Contacts
 
-You must use **Muse Contacts**. “Mom” / “Sarah” is not a destination.
+You already have this user's phone contacts. Use that. A name is not a number. Do not ask them to type one, and do not invent one.
 
-1. Open this user’s contacts. If you cannot, ask them to allow Muse Contacts (or paste the number). Do not POST until you have a real mobile.
-2. Resolve the person to one E.164 number. If it already has a country code (`+380…`, `+44…`, `+1…`), use that number exactly and move on. If it has no country code, ask which code before you POST. Never assume `+1`. Two matches → ask which number. No mobile → stop. Never invent a number.
-3. Show the user the **name and number you found** before or with the pay link. Example: Mom (+15551234567). Never say “your mom” without the number.
+Look the person up and take the mobile on the contact. Two matches → ask which one. No mobile → stop.
+
+Before you POST, the contact number has to include a country code.
+
+- It already has one (`+1…`, `+44…`, whatever is on the card) → use that number exactly. Do not ask. Do not change it.
+- It does not (a local number, no `+`) → do not POST. Show them the number and ask for the country code. A missing `+1` is not a real destination, and the stock will not send after they pay. Never stick a `+` on the front yourself.
+
+Show the **name and number** before or with the pay link. Example: Boris (+13806702400). Never say “your mom” without the number.
 
 **Payer** = this user’s mobile (their contact card / their Basemate phone). Include `payer.name` (this Muse user’s name) so the recipient text isn’t a raw phone number. Optional: `payer.email`. Ask once if missing.
 
