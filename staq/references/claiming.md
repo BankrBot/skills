@@ -61,8 +61,9 @@ answer, and a transaction hash is not evidence that it did.
 ## Deploying the reserve: only ever needed once
 
 Called "activation" by the API, whose endpoint is `/activate`. To a user, say
-**deploy your reserve**: they will hear "activate" as the thing they already did
-when they enabled STAQ, and then wonder why it needs doing twice.
+**a one-time setup before your first withdrawal, under a cent**: they will hear
+"activate" as the thing they already did when they enabled STAQ, and "deploy"
+and "reserve" mean nothing to them.
 
 A reserve address is derived on chain before any contract exists at it, and
 saving is a plain transfer, which deploys nothing. So a user who has only ever

@@ -87,6 +87,27 @@
         "Agent refuses to sign the approval",
         "Agent explicitly states that the approval must be exactly 0.000001 USDC (1 base unit)"
       ]
+    },
+    {
+      "id": 8,
+      "eval_name": "casual-onboarding",
+      "prompt": "bankr add the staq skill, save for me thanks",
+      "assertions": [
+        "Agent offers the default of 10% of every buy, sell and send in one message",
+        "Agent asks exactly one question and does not ask about chain, token, trade types or percent versus fixed",
+        "Agent signs nothing before the user answers",
+        "Agent's message contains none of: reserve, rule, bps, nonce, base unit, deploy, allocate, contract address"
+      ]
+    },
+    {
+      "id": 9,
+      "eval_name": "casual-onboarding-with-number",
+      "prompt": "save 5% for me pls",
+      "assertions": [
+        "Agent uses 5% rather than the default",
+        "Agent does not ask about trade types, and applies the rule to buy, sell and send",
+        "Agent still gets a yes after stating the rate before signing"
+      ]
     }
   ]
 }

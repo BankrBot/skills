@@ -1,6 +1,6 @@
 ---
 name: staq
-description: Automatically save a slice of every buy, sell or send into your own STAQ reserve, where it earns yield on Morpho. Use when the user mentions STAQ, asks to enable or change automatic savings, asks how much they have saved, or asks to claim their savings; and after the agent completes a successful buy, sell or send.
+description: Automatically save a slice of every buy, sell or send into your own STAQ reserve, where it earns yield on Morpho. Use when the user mentions STAQ, asks you to save for them or to start saving, asks to enable or change automatic savings, asks how much they have saved, or asks to claim their savings; and after the agent completes a successful buy, sell or send.
 tags: [savings, defi, base, morpho, yield, automation]
 version: 1
 visibility: public
@@ -18,6 +18,55 @@ and puts it to work on Morpho.
 Your job is narrow: report a transaction you just made to the STAQ API, and send
 exactly the transfer it returns. You never decide how much to save, and you
 never decide where it goes.
+
+---
+
+## Most users say one line
+
+Expect "add the staq skill, save for me thanks". Not a rate, not a list of trade
+types, and never words like reserve or rule. Do the work yourself and ask **one**
+question.
+
+When a user asks you to save and has no rule yet:
+
+1. **Set up quietly.** Derive their reserve and create your `/.staq/` records
+   without narrating any of it.
+2. **Offer the default in one message**, and ask for one yes:
+
+   > I'll put 10% of every buy, sell and send into savings only you can
+   > withdraw. STAQ keeps 10% of any interest it earns and nothing else.
+   > Sound good?
+
+3. **Any clear yes is the explicit yes**: "yes", "ok", "sure", "go", "do it".
+   Sign and submit the rule, then confirm in one line: "Done. From now on I'll
+   save 10% of your trades."
+4. **If they gave a number, use it.** "Save 5%" or "$1 a trade" replaces the
+   default; do not ask about trade types as well. Above 25% still takes the
+   second confirmation.
+
+"Save for me" is a request to be offered something, not agreement to 10%. The
+yes has to come after they have seen the rate. If the answer is anything other
+than a yes, ask what they would like instead and sign nothing.
+
+**Do not ask** which chain, which token, which trade types, percent or fixed, or
+whether to earn interest now. **Do not mention** deploying the reserve at setup:
+it is only needed the first time they withdraw, and it is covered there.
+
+**Use their words, not ours.** None of the left column belongs in a message to a
+user:
+
+| Not this | This |
+|---|---|
+| reserve, clone, contract, `0xE03b…` | your savings |
+| rule, bps, version, types | 10% of your trades |
+| sign a message, nonce | nothing. If the wallet shows a prompt: "this confirms your savings setting and moves no money" |
+| base unit, `1` | 0.000001 USDC |
+| deploy or activate the reserve | a one-time setup, under a cent |
+| allocate, quote, save transaction | saving |
+| Morpho vault, ERC-4626, deposit | earning interest |
+| arbitrary contract calls window | "Bankr needs you to allow this for a few minutes in your wallet settings" |
+
+Give an address only when they ask for one.
 
 ---
 
@@ -204,6 +253,7 @@ ordinary skip; say so when a check actually failed.
 
 | The user says | What you do |
 |---|---|
+| "Save for me" / "Add STAQ" / "Start saving" | Offer the default (10% of buy, sell and send), get one yes, sign. See "Most users say one line" |
 | "Enable STAQ" / "Save 10% of my trades" | Echo the rule in plain words, get an explicit yes, then sign it |
 | "Change my STAQ to 15%" | Same flow, a new signed rule version |
 | "Pause STAQ" / "Turn STAQ off" | A signed rule with `Enabled: false`. Savings and yield untouched |
@@ -446,8 +496,9 @@ what a user means.** Keep them apart when you talk to them:
 | **Deploying** the reserve | puts the contract at the reserve address so it can pay out | about a cent of gas, and 0.000001 USDC |
 
 The endpoint for the third is named `/activate`, which is why this section used to
-be called activation. Say "deploy your reserve" to a user, because "activate"
-sounds like the thing they already did when they enabled.
+be called activation. To a user, call it "a one-time setup before your first
+withdrawal": "activate" sounds like the thing they already did when they
+enabled, and "deploy" and "reserve" mean nothing to them.
 
 A first claim may need the reserve to be deployed first. A reserve address
 is derived on chain before any contract exists at it, and saving is a plain
