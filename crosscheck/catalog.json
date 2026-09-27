@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "crosscheck",
+  "provider": "crosscheck",
+  "providerUrl": "https://crosscheckapi.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "crosscheck.sh",
+    "language": "bash",
+    "code": "# Free: code finds wrong sums and weekdays before you pay\ncurl -s https://crosscheckapi.com/v1/quote -H 'content-type: application/json' \\\n  -d '{\"draft\":\"The invoices come to $1,240 + $860 + $400 = $2,400, due Friday, October 3, 2026.\"}'\n\n# Paid ($0.02 USDC on Base): full independent review + signed receipt\nbankr x402 call https://crosscheckapi.com/v1/check -X POST \\\n  -d \"$(jq -n --arg d \"$DRAFT\" '{draft: $d}')\" --max-payment 0.10\n\n# Check another agent's work before you pay it ($0.03)\nbankr x402 call https://crosscheckapi.com/v1/accept -X POST \\\n  -d \"$(jq -n --arg t \"$TASK\" --arg d \"$DELIVERABLE\" '{task: $t, deliverable: $d}')\" --max-payment 0.10"
+  },
+  "setup": [
+    "No account or API key: each check is paid per call in USDC on Base over x402",
+    "Free price and code-only precheck: POST https://crosscheckapi.com/v1/quote",
+    "Paid review: bankr x402 call https://crosscheckapi.com/v1/check -X POST -d '{\"draft\":\"...\"}' --max-payment 0.10",
+    "Full docs for agents: https://crosscheckapi.com/llms.txt"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "crosscheck",
+    "command": "install the crosscheck skill from https://github.com/BankrBot/skills/tree/main/crosscheck"
+  }
+}
