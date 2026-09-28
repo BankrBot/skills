@@ -212,6 +212,10 @@ Club needs an embedded Bankr wallet. Max Mode, paid per request from LLM credits
 
 This skill teaches your agent to use Bankr. It also works the other way: users can install skills **into** their Bankr agent by pasting a GitHub link to a `SKILL.md`, or a bankr.bot Discover or partner link. Reinstalling from the same source updates the skill. See [docs.bankr.bot/skills/overview](https://docs.bankr.bot/skills/overview).
 
+## Branding
+
+Before generating anything with Bankr branding (graphics, slides, web pages, social posts, UI), follow the official brand guidelines at [bankr-brand.vercel.app](https://bankr-brand.vercel.app) for the logo, colors, typography and style rather than guessing.
+
 ## Troubleshooting
 
 - `bankr whoami` checks CLI auth. Over REST, call `GET /wallet/me` with the key: a `401` means the key is wrong or revoked.
