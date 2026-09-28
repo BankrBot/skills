@@ -165,6 +165,21 @@ Service config lives in `bankr.x402.json` at the project root:
 - **schema**: Input/output schema for agent discovery. Agents use this to understand how to call your endpoint.
 - **category/tags**: Improve discoverability for agents searching for services.
 
+### These fields are public — they render the marketplace listing
+
+Deployed endpoints are listed in the **public x402 marketplace** at [bankr.bot/terminal/x402/discover](https://bankr.bot/terminal/x402/discover), browsable by anyone with no account. A service card shows how many endpoints it exposes plus its price, network and tags; opening it shows every route — methods, description, price, request/response schema, and the live URL to call.
+
+What you put in the config file *is* what the marketplace shows:
+
+| Field | Where it shows up |
+|-------|-------------------|
+| `description` | The card body and the detail drawer |
+| `category` | The card's badge and the category filter chips |
+| `tags` | Card chips (the first four) and search matching |
+| `schema` | The request/response schema block in the drawer |
+
+The same catalogue backs agent discovery and `bankr x402 search`, so one well-described endpoint is findable from chat, the terminal and the browser alike. Treat every one of these fields as published content — don't put internal notes or hostnames in a `description` or a `tag`.
+
 ## Calling x402 Endpoints
 
 ### Via Bankr Agent (recommended for agent users)
