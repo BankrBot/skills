@@ -30,6 +30,7 @@ bankr agent prompt "Send 1 SOL to 9xKc...abc"
 
 - **Amounts:** exact (`0.1 ETH`), USD (`$50`) or a percentage of the balance (`50%`, "all").
 - **Chain:** name it to be sure. Otherwise the agent sends a token from a chain where you hold it (it won't send a ticker you don't hold), and a native token from Base when that wallet has gas there, else from the chain with the largest native balance.
+- **Short balance:** when a native token or USD stablecoin send is short on that chain, the agent swaps in the difference from stablecoins or native tokens on the same chain, then sends the named token — only in a Bankr wallet whose gas Bankr is sponsoring. Otherwise, or for other tokens, the insufficient-balance error lists what could be swapped from.
 - **Many recipients:** "send 5 USDC each to 0xAAA…, 0xBBB… and @carol" batches same-chain ERC-20 sends into **one atomic transaction** (every leg pays or none does); native sends and other chains go one transaction at a time. Your wallet's spend limits apply to the batch's total USD value.
 - **Burns:** "burn 1000 BNKR" sends the tokens to `0x…dead` on EVM chains. The zero address is refused, and burning isn't possible on Arc.
 - Bankr Club members can also airdrop a token, from the web terminal, X or Farcaster, to Club members who replied to a post (up to 100, with follower, repost, comment and random-sample filters) or to the top Club members by rank.

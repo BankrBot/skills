@@ -171,6 +171,7 @@ Capabilities without a reference file:
 - **Tokenized-stock trades need a one-time location verification** in the Bankr web app, which isn't available in the US, the UK or sanctioned regions. Quotes aren't gated; execution is.
 - **LLM credits are separate from the trading wallet** and start at $0. Top up (`bankr llm credits add 25`) before using the gateway or Max Mode, or calls fail with `402`.
 - **Token launches:** every wallet gets 3 counted launch attempts per rolling 24 hours, and Bankr Club doesn't raise that. Simulations (`--simulate` / `simulateOnly`) don't count. See [token-deployment.md](references/token-deployment.md).
+- **App building needs the user's own "I agree".** The first time the agent builds, edits, runs or forks an app, or deploys or manages an x402 endpoint through chat, it replies with the App Building Terms and does nothing until the user replies exactly `I agree`. Show the notice to the user and let them answer; never send `I agree` for them. `bankr x402 deploy` isn't gated.
 - **BNKR staking is withdraw-only.** It accepts no new deposits.
 
 ## Chains
