@@ -19,6 +19,8 @@ Bankr is an AI crypto agent that holds its own wallets. Two ways in, both using 
 - **Bankr CLI** (`@bankr/cli`, recommended). It handles login, job polling and confirmations for you.
 - **REST API** at `https://api.bankr.bot`. Use `/agent/*` for natural-language prompts (async jobs) and `/wallet/*` for direct, synchronous wallet operations.
 
+**Installing this skill means downloading the whole `bankr/` folder: this `SKILL.md` plus every file in [references/](references/).** A copy of `SKILL.md` alone leaves every reference link below dead.
+
 This file is the entry point. Topic detail lives in [references/](references/) (read the one for your task before acting), in the docs at [docs.bankr.bot](https://docs.bankr.bot), and in the OpenAPI spec at `https://docs.bankr.bot/openapi/api.yaml`. **Fetch the spec instead of guessing a route or payload.** It is the authoritative request/response schema and can be newer than this skill.
 
 ## Get an API key
