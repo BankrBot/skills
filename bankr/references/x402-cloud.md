@@ -8,7 +8,7 @@ x402 Cloud hosts paid API endpoints. You write a `Request → Response` handler 
 
 ## Pricing
 
-The first 1,000 settled requests each month, across a wallet's endpoints, carry no platform fee; after that a flat 5% applies (Enterprise: 3%, contact sales). There is no subscription and no card.
+The first 1,000 settled requests each month, across a wallet's endpoints, carry no platform fee; after that a flat 5% applies (Enterprise: 3%, contact sales at support@bankr.bot or through the Bankr Help Center at help.bankr.bot). There is no subscription and no card.
 
 - Only settled requests count. A 402 challenge is free, and payment settles only when the handler returns a status below 400, so failed requests are never charged.
 - The free allowance applies to endpoints priced in USDC or EURC. An endpoint priced in another token pays the 5% fee from its first request.
