@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "liquid-agent",
+  "provider": "Liquid Agent",
+  "providerUrl": "https://api.liquidagent.ai",
+  "logo": "logo.png",
+  "demo": {
+    "title": "liquid-agent.sh",
+    "language": "bash",
+    "code": "# Official Polymarket price to beat, live BTC 5m window ($0.004)\nbankr x402 call \"https://api.liquidagent.ai/v1/polymarket/btc-5m\" --max-payment 0.008\n\n# Free quote: receive exactly 5 USDC on Arbitrum from Base\ncurl -s \"https://api.liquidagent.ai/v1/bridge/quote?from=base&to=arbitrum&amount=5\"\n\n# Bridge with one signature, capped just above the quote\nbankr x402 call \"https://api.liquidagent.ai/v1/bridge?from=base&to=arbitrum&amount=5\" --max-payment 5.20\n\n# Free: status of any Circle CCTP transfer\ncurl -s \"https://api.liquidagent.ai/v1/bridge/cctp/0xYourBurnTx\""
+  },
+  "setup": [
+    "Log in to the Bankr CLI and hold USDC on Base (Polygon and Arc also work for the Polymarket and signals routes).",
+    "Install jq.",
+    "Always pass --max-payment: 2x the published price for fixed routes, the free quote's pay x 1.02 for a bridge.",
+    "Only pay https://api.liquidagent.ai. The runtime 402 challenge is the authoritative price."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "liquid-agent",
+    "command": "install the liquid-agent skill from https://github.com/BankrBot/skills/tree/main/liquid-agent"
+  }
+}
