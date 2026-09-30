@@ -7,7 +7,11 @@ description: |
   excerpt from that page, when it was retrieved, and n-of-m source
   agreement. Conflicting sources are returned, not hidden. A field that
   cannot be evidenced comes back UNKNOWN rather than guessed, and a
-  company that cannot be resolved is not charged for.
+  company that cannot be resolved is STILL CHARGED FOR. That is a defect
+  measured 2026-09-30, not a policy: settlement cancellation does not work
+  under the x402 `exact` scheme, and a fix is in progress. It affects only
+  the no-evidence cases; every other call is charged once at the listed
+  price. This text is dated: if it still says a fix is in progress after 2026-10-14, the fix has stalled and this sentence is the stale one.
 
   Triggers: "what is the legal name of X", "verify this company",
   "enrich this domain with sources", "who runs X and where is it based".
@@ -73,7 +77,8 @@ preflight above — read live on 2026-09-13:
 - excerpts are **verified against the fetched document** before return
 - conflicting sources are **returned, not hidden**
 - fields that cannot be evidenced are returned **UNKNOWN, never guessed**
-- an unresolvable company is **not charged for**
+- an unresolvable company is **still charged for** — a defect measured 2026-09-30
+  with a fix in progress, affecting only the no-evidence cases. This text is dated: if it still says a fix is in progress after 2026-10-14, the fix has stalled and this sentence is the stale one.
 
 ## Honest limits
 

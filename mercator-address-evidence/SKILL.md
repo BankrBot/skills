@@ -158,8 +158,11 @@ states the chain and address that were returned.
 | asset | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (USDC on Base) |
 | payTo | `0xEFc22716066C1092b12d12ca9377f00bA2ffA7A8` |
 
-**An answer that evidences no target is `billable: false` and settlement
-is cancelled.** You are charged for an answer, not for a lookup.
+**An answer that evidences no target is `billable: false` and IS STILL CHARGED
+FOR.** Settlement cancellation does not work under the x402 `exact` scheme (measured
+2026-09-30), so the waiver this line used to promise could not be performed. It is a
+defect with a fix in progress, not a policy, and it affects only the no-evidence case.
+This text is dated: if it still says a fix is in progress after 2026-10-14, the fix has stalled and this sentence is the stale one.
 
 Prices, network, asset and payee above were read from the live `402`
 challenge on 2026-09-13, not from documentation.
