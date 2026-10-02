@@ -6,6 +6,7 @@ The Bankr LLM Gateway is one OpenAI- and Anthropic-compatible API for Claude, GP
 - **Endpoints:** `POST /v1/chat/completions` (OpenAI), `POST /v1/messages` (Anthropic), `POST /v1/images/generations`, `GET /v1/models`, `GET /v1/credits`, `GET /v1/usage`.
 - **Auth:** a Bankr API key with the **LLM Gateway** capability, sent as `X-API-Key` or `Authorization: Bearer`.
 - **Dashboard:** [bankr.bot/llm](https://bankr.bot/llm) for usage, models, credits and settings. Keys live at [bankr.bot/api-keys](https://bankr.bot/api-keys).
+- **Usage from the CLI:** `bankr llm usage` (0.3.45+) prints the gateway key's requests, tokens and cost over the last 30 days (`--days` 1 to 90), per model, plus what discounts saved off list price. `GET /v1/usage` returns the same summary.
 
 ## Keys
 
