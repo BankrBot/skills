@@ -30,3 +30,10 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+
+# Local review reports
+/reports/
+
+# Local Steer tests and fixtures
+/steer/scripts/*.test.mjs
+/steer/scripts/fixtures/
