@@ -31,7 +31,7 @@ Signing up provisions an EVM wallet (one address on every EVM chain) and a Solan
 
 ### Headless email login (recommended for agents)
 
-Run `bankr update` first. The flow below works on @bankr/cli 0.3.38 and later. Pass `--accept-terms` and `--key-name` explicitly: from 0.3.39 a headless login accepts the Terms by itself and picks a unique key name, but on 0.3.38 a headless login without `--accept-terms` fails after the one-time code has been used, and an omitted key name defaults to `CLI-<date>`, which collides with a key created earlier that day.
+Run `bankr update` first. The flow below works on @bankr/cli 0.3.38 and later. Pass `--accept-terms` and `--key-name` explicitly: from 0.3.43 a headless login accepts the Terms by itself and picks a unique key name, but on 0.3.38 a headless login without `--accept-terms` fails after the one-time code has been used, and an omitted key name defaults to `CLI-<date>`, which collides with a key created earlier that day.
 
 1. `bankr login email <email>` sends a one-time code.
 2. Ask the user for everything in **one** message:
@@ -50,7 +50,7 @@ Run `bankr update` first. The flow below works on @bankr/cli 0.3.38 and later. P
 
 Optional hardening flags: `--allowed-ips <ips>` (IP/CIDR allowlist) and `--allowed-recipients <addresses>` (EVM/Solana send allowlist). After login, the `Features:` line shows what the key actually got.
 
-- **The code is single-use.** From 0.3.39 the CLI retries dropped connections during login by itself. If step 3 fails, restart from step 1 for a fresh code; never re-run it with the same code.
+- **The code is single-use.** From 0.3.43 the CLI retries dropped connections during login by itself. If step 3 fails, restart from step 1 for a fresh code; never re-run it with the same code.
 - **Accounts with MFA on:** step 3 prints a `https://bankr.bot/mfa/confirm/...` link and waits up to five minutes for the user to approve with their passkey in a browser. Show the user the link, keep the command running and don't retry. If the link expires, fall back to an existing key (below).
 
 ### Other ways in
@@ -63,14 +63,14 @@ Optional hardening flags: `--allowed-ips <ips>` (IP/CIDR allowlist) and `--allow
 
 Install with `bun install -g @bankr/cli` (or `npm install -g @bankr/cli`), and update with `bankr update`.
 
-**`bankr --help` and `bankr <command> --help` are the command reference**, and [docs.bankr.bot/cli](https://docs.bankr.bot/cli) has the full guide. Command groups: `wallet` (portfolio, transfer, swap, sign, submit), `agent` (prompt, status, cancel, skills), `tokens`, `launch`, `fees`, `project` (0.3.39+), `files`, `club`, `llm`, `x402`, `webhooks`, `config`, plus `login`, `logout` and `whoami`.
+**`bankr --help` and `bankr <command> --help` are the command reference**, and [docs.bankr.bot/cli](https://docs.bankr.bot/cli) has the full guide. Command groups: `wallet` (portfolio, transfer, swap, sign, submit), `agent` (prompt, status, cancel, skills), `tokens`, `launch`, `fees`, `project` (0.3.43+), `files`, `club`, `llm`, `x402`, `webhooks`, `config`, plus `login`, `logout` and `whoami`.
 
 Behavior that `--help` doesn't spell out:
 
 - **Anything that isn't a command is a prompt.** `bankr what is the price of ETH?` is the same as `bankr agent "what is the price of ETH?"`. Named commands take precedence, so a prompt that starts with a command word (`claude`, `launch`, …) has to go through `bankr agent "..."`.
 - **The shell expands `$`.** In `"Buy $50 of ETH"`, `$5` expands to nothing and the agent sees `Buy 0 of ETH`. Use single quotes, pipe the prompt (`echo 'Buy $50 of ETH on Base' | bankr agent prompt`), or run `bankr agent prompt` with no argument for an interactive input.
 - **Threads.** Every prompt runs in a thread. `-c`/`--continue` reuses the last thread and `--thread <id>` picks one.
-- **Progress.** While a prompt runs, the CLI prints the agent's status lines to stderr (0.3.40+), so piped stdout carries only the response. `bankr agent status <jobId> --wait` (0.3.40+) follows an existing job.
+- **Progress.** While a prompt runs, the CLI prints the agent's status lines to stderr (0.3.43+), so piped stdout carries only the response. `bankr agent status <jobId> --wait` (0.3.43+) follows an existing job.
 - **Max Mode.** `-m`/`--model <id>` runs the prompt on a model from the Max Mode lineup, billed from LLM credits. An ID outside the lineup is rejected with the accepted list (see [LLM gateway](#llm-gateway)).
 - **Non-interactive mode** (`--ni`, or `BANKR_NOT_INTERACTIVE=1`) implies `--yes` and fails fast instead of prompting. Commands that normally prompt then need their inputs as flags:
   - `login`: `--api-key`, `email … --code`, or `siwe --private-key`;
@@ -78,7 +78,7 @@ Behavior that `--help` doesn't spell out:
   - `fees claim-wallet`: `--all`, plus `--private-key` or `BANKR_PRIVATE_KEY`;
   - `agent`: the prompt as an argument or on stdin.
 - **Config** lives in `~/.bankr/config.json`; override the path with `--config <path>` or `BANKR_CONFIG`. Environment variables win over the file: `BANKR_API_KEY`, `BANKR_API_URL`, `BANKR_LLM_KEY` (falls back to the API key) and `BANKR_LLM_URL`. Read and write values with `bankr config get|set apiKey|apiUrl|llmKey|llmUrl`.
-- **Deprecated aliases** still work but print a warning: `prompt`, `status`, `cancel`, `balances`, `sign`, `submit`, and `profile` / `agent profile` (now `bankr project`, 0.3.39+). On older versions `bankr project …` isn't a command, so the prompt fallthrough sends it to the agent as text; use `bankr agent profile` there.
+- **Deprecated aliases** still work but print a warning: `prompt`, `status`, `cancel`, `balances`, `sign`, `submit`, and `profile` / `agent profile` (now `bankr project`, 0.3.43+). On older versions `bankr project …` isn't a command, so the prompt fallthrough sends it to the agent as text; use `bankr agent profile` there.
 
 ## REST API
 
@@ -148,7 +148,7 @@ Most of these work by asking the agent (`bankr agent "..."` or `POST /agent/prom
 | Perps on Hyperliquid and Avantis | [hyperliquid.md](references/hyperliquid.md), [leverage-trading.md](references/leverage-trading.md) | [Hyperliquid](https://docs.bankr.bot/features/hyperliquid) |
 | Polymarket | [polymarket.md](references/polymarket.md) | [Polymarket](https://docs.bankr.bot/features/polymarket) |
 | Token launches, creator fees, vesting | [token-deployment.md](references/token-deployment.md) | [Token launching](https://docs.bankr.bot/token-launching/overview) |
-| Project pages (`bankr project`, 0.3.39+) | [projects.md](references/projects.md) | [Projects](https://docs.bankr.bot/projects/overview) |
+| Project pages (`bankr project`, 0.3.43+) | [projects.md](references/projects.md) | [Projects](https://docs.bankr.bot/projects/overview) |
 | Wallet file storage and run outputs | [files.md](references/files.md) | [Files](https://docs.bankr.bot/agent/files) |
 | x402: calling and deploying paid endpoints | [x402-cloud.md](references/x402-cloud.md) | [x402 Cloud](https://docs.bankr.bot/x402-cloud/overview) |
 | LLM gateway, credits, Max Mode | [llm-gateway.md](references/llm-gateway.md) | [LLM gateway](https://docs.bankr.bot/llm-gateway/overview) |
