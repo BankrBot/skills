@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "slug": "bankrns",
+  "provider": "BankrNS",
+  "providerUrl": "https://bankrns.store",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "bankrns.sh",
+    "language": "bash",
+    "code": "# Send tokens to a .bankr name\nbankr prompt \"Using the bankrns skill, send 10 USDC to alice.bankr\"\n\n# Buy a name (two steps, ~60s apart; you approve each)\nbankr prompt \"Using the bankrns skill, buy me satoshi.bankr for 2 years\"\nbankr prompt \"Using the bankrns skill, register bob.bankr and point it to 0xABC...\"\n\n# Look up\nbankr prompt \"Using the bankrns skill, is alice.bankr available and how much?\"\nbankr prompt \"Using the bankrns skill, what is my .bankr name?\"\n\n# Renew\nbankr prompt \"Using the bankrns skill, renew alice.bankr for 1 year\""
+  },
+  "setup": [
+    "Chain: Base (8453). Names are ERC-721 NFTs from BankrNS, an ENS-architecture name service",
+    "Install script dependencies once: cd scripts && npm install (Node 18+, viem)",
+    "Sending: the skill resolves the name, shows the address, and sends with Bankr's own transfer tool after you confirm; expired, unregistered or unset names never resolve",
+    "Buying: commit + register (>= 60s apart) to the RegistrarController 0x1C8b3a9062a8Aae65105519B394d7ec73C108ee9; every write is previewed with its ETH price and needs your explicit approval",
+    "Prices in ETH at the live Chainlink rate: $5/yr (5+ chars), $80/yr (4 chars), $320/yr (3 chars); overpayment is refunded on-chain",
+    "Inside bankrbot the scripts only build transactions (--build-only) and bankrbot submits them; standalone use submits via the Bankr Wallet API with BANKR_API_KEY",
+    "Official token $BNS: 0x3A23C04dc7b5b6859B68050dB2fcDfFd30793Ba3 (always by address, never by ticker)",
+    "Contracts and addresses: references/addresses.md. Source, tests and SDK: https://github.com/0xleventis/bankrns-skill"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "bankrns",
+    "command": "install the bankrns skill from https://github.com/BankrBot/skills/tree/main/bankrns"
+  }
+}

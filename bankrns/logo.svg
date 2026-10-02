@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 16 90 68" role="img" aria-label="BankrNS">
+  <title>BankrNS</title>
+  <defs>
+    <mask id="bankrns-b" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <rect width="100" height="100" fill="#fff"/>
+      <rect x="44" y="31" width="8" height="38" rx="2" fill="#000"/>
+      <circle cx="61" cy="56" r="9" fill="none" stroke="#000" stroke-width="8"/>
+    </mask>
+  </defs>
+  <path mask="url(#bankrns-b)" fill="#FF6B2C" fill-rule="evenodd" d="M34 22H82Q90 22 90 30V70Q90 78 82 78H34Q30 78 27 75L10 54Q7 50 10 46L27 25Q30 22 34 22ZM22 45A5 5 0 1 0 22 55A5 5 0 1 0 22 45Z"/>
+</svg>
