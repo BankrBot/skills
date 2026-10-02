@@ -74,11 +74,11 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### IP allowlist
 
-`allowedIps` takes single IPs and CIDR ranges. IPv4 ranges must be `/8` or narrower and IPv6 `/16` or narrower; broader ranges are rejected. api.bankr.bot checks it at authentication, before any endpoint runs, and a request from elsewhere gets `403 IP address not allowed`. The LLM gateway (llm.bankr.bot) doesn't enforce it, so don't rely on the allowlist to fence a gateway key.
+`allowedIps` takes single IPs and CIDR ranges. IPv4 ranges must be `/8` or narrower and IPv6 `/16` or narrower; broader ranges are rejected. api.bankr.bot and the LLM gateway (llm.bankr.bot) both check it at authentication, before any endpoint runs, and a request from elsewhere gets `403 IP address not allowed`.
 
 ### Recipient allowlist
 
-`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer` and a deploy's fee recipient. A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the EVM list, so a Solana-only allowlist refuses every transfer there. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
+`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer`, x402 payments, LLM credit transfers and a deploy's fee recipient. A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the EVM list, so a Solana-only allowlist refuses every transfer there. x402 payments and credit transfers pay EVM addresses, so a Solana-only allowlist refuses those too. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
 
 **A non-empty allowlist on either chain also refuses operations whose recipient can't be checked:**
 
@@ -131,7 +131,7 @@ Every limit answers `429`. Back off before retrying, and see [error-handling.md]
 
 The CLI keeps keys in `~/.bankr/config.json`, which it creates readable by your user only. `bankr logout` deletes the file but doesn't revoke the key. `BANKR_API_KEY` and `BANKR_LLM_KEY` override the file, so prefer them on servers and in CI. Never commit either, and never put a key in client-side code.
 
-The controls above are enforced on the key server-side, so they apply the same way to the CLI and to direct REST calls (the IP allowlist on api.bankr.bot only).
+The controls above are enforced on the key server-side, so they apply the same way to the CLI and to direct REST calls (the IP allowlist on the LLM gateway too).
 
 ### Host-Managed Credentials (no key on disk)
 

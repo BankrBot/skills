@@ -159,7 +159,7 @@ Most of these work by asking the agent (`bankr agent "..."` or `POST /agent/prom
 Capabilities without a reference file:
 
 - **Merkl rewards** on Base and Robinhood Chain: the agent can check what the user has earned, claim it (embedded Bankr wallets only), and list live campaigns by APR. For example: `bankr agent "Do I have any Merkl rewards to claim?"`.
-- **Web browsing:** for Bankr Club members, the agent can drive a headless browser from the web terminal or a Farcaster direct cast. It isn't available over the Agent API (so not from the CLI), in Telegram, or in public posts ([docs](https://docs.bankr.bot/browser/overview)).
+- **Web browsing:** for Bankr Club members, the agent can drive a headless browser from the web terminal, a Farcaster direct cast or a Telegram DM. It isn't available over the Agent API (so not from the CLI), in Telegram groups, or in public posts ([docs](https://docs.bankr.bot/browser/overview)).
 - **Webhooks:** `bankr webhooks` deploys endpoints that trigger the agent from external events ([docs](https://docs.bankr.bot/webhooks/overview)).
 - **Questions about Bankr itself:** the agent answers from Bankr's own documentation (official links, channels, how features work) and abstains instead of guessing.
 
