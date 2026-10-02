@@ -11,11 +11,11 @@ The CLI submits, polls and prints for you:
 ```bash
 bankr agent prompt "What is my ETH balance?"   # submit, poll, print the response
 bankr agent status <jobId>                      # one snapshot of a job
-bankr agent status <jobId> --wait               # follow a running job to the end (0.3.40+)
+bankr agent status <jobId> --wait               # follow a running job to the end (0.3.43+)
 bankr agent cancel <jobId>
 ```
 
-From `@bankr/cli` 0.3.40, `bankr agent prompt` prints each status update as the run progresses. The progress goes to **stderr**, so `bankr agent prompt "..." > out.txt` captures only the final response. The CLI stops polling after 5 minutes; the job keeps running, and `bankr agent status <jobId> --wait` picks it back up.
+From `@bankr/cli` 0.3.43, `bankr agent prompt` prints each status update as the run progresses. The progress goes to **stderr**, so `bankr agent prompt "..." > out.txt` captures only the final response. The CLI stops polling after 5 minutes; the job keeps running, and `bankr agent status <jobId> --wait` picks it back up.
 
 ## Submitting a prompt
 
