@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "mercator-address-evidence",
+  "provider": "MERCATOR",
+  "providerUrl": "https://mercator-entity-evidence.fly.dev",
+  "logo": null,
+  "demo": {
+    "title": "address-evidence.sh",
+    "language": "bash",
+    "code": "# Free preflight — what will be checked and what the answer will mean\nbankr prompt \"Using the mercator-address-evidence skill, preflight lido.fi on ethereum \"\\\n  \"for 0x73b047fe6337183A454c5217241D780a932777bD as an emergency multisig\"\n\n# Paid answer — $0.25 USDC on Base over x402\nbankr prompt \"Using the mercator-address-evidence skill, is \"\\\n  \"0x73b047fe6337183A454c5217241D780a932777bD the emergency multisig lido.fi publishes on ethereum\"\n\n# Direct HTTP, free preflight\ncurl -sS -X POST https://mercator-entity-evidence.fly.dev/v1/address-evidence/validate \\\n  -H 'content-type: application/json' \\\n  -d '{\"domain\":\"lido.fi\",\"chain\":\"ethereum\",\"address\":\"0x73b047fe6337183A454c5217241D780a932777bD\",\"purpose\":\"emergency multisig\"}'\n\n# Direct HTTP, paid — x402 exact, Base, USDC\ncurl -sS -X POST https://mercator-entity-evidence.fly.dev/v1/address-evidence \\\n  -H 'content-type: application/json' -H \"X-PAYMENT: $X_PAYMENT\" \\\n  -d '{\"domain\":\"lido.fi\",\"chain\":\"ethereum\",\"address\":\"0x73b047fe6337183A454c5217241D780a932777bD\",\"purpose\":\"emergency multisig\"}'"
+  },
+  "setup": [
+    "Install: `npx skills add mercator-address-evidence`",
+    "Requires a Base mainnet wallet (chain ID `8453`) that can sign x402 `exact` payments in USDC — the Bankr wallet, Coinbase x402 SDK, or vanilla viem/ethers all work. No signup and no API key.",
+    "Optional: set `MERCATOR_BASE_URL` to override the API origin (defaults to https://mercator-entity-evidence.fly.dev).",
+    "Optional: set `X_PAYMENT` when your agent platform does not auto-sign the 402.",
+    "Source: https://github.com/BankrBot/skills/tree/main/mercator-address-evidence"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "mercator-address-evidence",
+    "command": "install the mercator-address-evidence skill from https://github.com/BankrBot/skills/tree/main/mercator-address-evidence"
+  }
+}

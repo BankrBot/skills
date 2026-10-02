@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "mercator-entity-evidence",
+  "provider": "MERCATOR",
+  "providerUrl": "https://mercator-entity-evidence.fly.dev",
+  "logo": null,
+  "demo": {
+    "title": "entity-evidence.sh",
+    "language": "bash",
+    "code": "# Free preflight — which fields will be attempted, and the price if you buy\nbankr prompt \"Using the mercator-entity-evidence skill, preflight legal_name and \"\\\n  \"headquarters for lido.fi\"\n\n# Paid answer — $0.10 USDC on Base over x402\nbankr prompt \"Using the mercator-entity-evidence skill, what is the legal name and \"\\\n  \"headquarters of stripe.com, with sources\"\n\n# Direct HTTP, free preflight\ncurl -sS -X POST https://mercator-entity-evidence.fly.dev/v1/entity-evidence/validate \\\n  -H 'content-type: application/json' \\\n  -d '{\"domain\":\"lido.fi\",\"fields\":[\"legal_name\",\"primary_domain\"]}'\n\n# Direct HTTP, paid — x402 exact, Base, USDC\ncurl -sS -X POST https://mercator-entity-evidence.fly.dev/v1/entity-evidence \\\n  -H 'content-type: application/json' -H \"X-PAYMENT: $X_PAYMENT\" \\\n  -d '{\"domain\":\"stripe.com\",\"fields\":[\"legal_name\",\"headquarters\",\"founded_year\"]}'"
+  },
+  "setup": [
+    "Install: `npx skills add mercator-entity-evidence`",
+    "Requires a Base mainnet wallet (chain ID `8453`) that can sign x402 `exact` payments in USDC. No signup and no API key.",
+    "Optional: set `MERCATOR_BASE_URL` to override the API origin (defaults to https://mercator-entity-evidence.fly.dev).",
+    "Optional: set `X_PAYMENT` when your agent platform does not auto-sign the 402.",
+    "Source: https://github.com/BankrBot/skills/tree/main/mercator-entity-evidence"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "mercator-entity-evidence",
+    "command": "install the mercator-entity-evidence skill from https://github.com/BankrBot/skills/tree/main/mercator-entity-evidence"
+  }
+}
