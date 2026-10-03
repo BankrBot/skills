@@ -56,6 +56,12 @@ places, so money never passes through a float.
 
 ## Flow
 
+**Before step 1, on a first enable: the reserve must already have code.** Derive
+it (below), `eth_getCode` it, and if it is empty run the one-time setup in
+`claiming.md` first, then read `owner()`. If the setup does not complete, sign
+nothing: an enabled rule with no contract behind it would only send savings
+somewhere they cannot yet come back from.
+
 ```bash
 # 1. Challenge
 NONCE=$(curl -s -X POST "https://api.agentstaq.xyz/v1/auth/nonce" \
@@ -90,8 +96,9 @@ curl -s -X POST https://mainnet.base.org \
 
 Take the last 40 hex characters of the result. Persist it in
 **`/.staq/reserve.json`** on the wallet's permanent filesystem, together with the
-wallet, the chain id and the hub address it came from, so a later save can tell
-whose reserve it is and which hub produced it. Compare case-insensitively.
+wallet, the chain id, the hub address it came from, and the `owner()` you read
+once it had code, so a later save can tell whose reserve it is and that it is
+ready to receive. Compare case-insensitively.
 
 Also persist **the rule itself** in **`/.staq/rule.json`**: the exact message
 text, the signature, the version, and the terms. Every later quote is checked

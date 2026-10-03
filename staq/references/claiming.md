@@ -29,7 +29,7 @@ The user asks. You confirm. Their own wallet signs.
 1. User: "Claim my STAQ"
 2. Echo what they are about to claim and get an explicit yes
 3. Derive the reserve from the pinned hub. eth_getCode it:
-   no code -> it needs activating first (below)
+   no code -> it needs its one-time setup first (below)
    code    -> owner() must be the user's wallet
 4. POST /v1/wallets/:addr/claim with a signed STAQ claim v1 message
 5. Rebuild the expected calldata and compare. Mismatch -> STOP, tell the user
@@ -58,21 +58,25 @@ curl -s -X POST https://mainnet.base.org \
 again **after** activating: the point of activating is that it changes this
 answer, and a transaction hash is not evidence that it did.
 
-## Deploying the reserve: only ever needed once
+## Setting up the reserve: once, before the first save
 
 Called "activation" by the API, whose endpoint is `/activate`. To a user, say
-**a one-time setup before your first withdrawal, under a cent**: they will hear
-"activate" as the thing they already did when they enabled STAQ, and "deploy"
-and "reserve" mean nothing to them.
+**a one-time setup, under a cent**: "activate", "deploy" and "reserve" mean
+nothing to them.
 
-A reserve address is derived on chain before any contract exists at it, and
-saving is a plain transfer, which deploys nothing. So a user who has only ever
-saved holds real money at an address with **no contract**, and a call to it
-would succeed and do nothing at all.
+A reserve address is derived on chain before any contract exists at it, and a
+save is a plain transfer, which deploys nothing. Saving first would put real
+money at an address with **no contract**, where a call succeeds and does nothing
+at all. So the setup runs at enable time, before the rule is signed, and no save
+goes into a reserve without code. STAQ enforces the same thing from its side: a
+quote for an undeployed reserve is a `not_deployed` skip, and so is a claim.
 
-The API refuses a claim in that state with `not_deployed` rather than handing
-back calldata that would quietly no-op. The remedy is two calls, once per
-reserve, ever:
+If the setup is refused, by the user, by a revert, or by Bankr's security
+scanner, saving does not start: sign no rule and send nothing.
+
+A reserve funded before this ordering existed can still hold savings with no
+code. Run the setup before its claim, in the same contract-call window. The
+remedy is two calls, once per reserve, ever:
 
 ```bash
 curl -s -X POST "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/activate" \
@@ -81,9 +85,9 @@ curl -s -X POST "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/activate" \
 ```
 
 It returns `steps`, in order: an approval for **0.000001 USDC** of that token,
-then `allocate`, which deploys the reserve. Run them in the same contract-call
-window as the claim. `token` should be one the user actually holds a little of,
-since the approval is spent by the allocate.
+then `allocate`, which deploys the reserve. `token` is the pinned USDC, which the
+user needs a millionth of a dollar of, since the approval is spent by the
+allocate.
 
 Only the owner can do this. The hub derives the reserve from `msg.sender`, so
 nobody, STAQ included, can deploy a reserve for someone else.

@@ -24,8 +24,16 @@ curl -s -X POST "https://api.agentstaq.xyz/v1/quotes" \
 ```
 
 `amount` is a decimal string in USDC **base units**, already converted. 20000000
-is $20, because USDC has six decimals. Pass it through untouched. Never parse it
+is $20, because USDC has six decimals. Check it as an integer. Never parse it
 into a float, and never re-derive it from `allocUsdMicros` yourself.
+
+**It is not the number you hand to Bankr.** `POST /wallet/transfer` takes a
+human-readable amount, where `"100"` means 100 USDC, so `"20000000"` passed
+through unchanged asks for twenty million dollars. Convert once, at the
+transfer, with string arithmetic: pad to at least 7 digits, put the point before
+the last 6, drop trailing zeros. `"20000000"` is `"20"`, `"10000"` is `"0.01"`,
+`"1"` is `"0.000001"`. Convert it back and require the same integer before you
+send. `SKILL.md` has the exact request.
 
 Both fields are checked before anything moves, and they check each other.
 USDC has six decimals and micro-dollars have six decimals, so for a stablecoin at
@@ -66,7 +74,7 @@ Every skip is silent. None of them is an error, and none is retried.
 | `not_wallet_tx` | The sender is not this wallet | No |
 | `staq_tx` | This was a STAQ transaction, not a trade | No |
 | `unsupported_chain` | Not Base | No |
-| `not_deployed` | The reserve holds funds but its contract is not deployed | **Yes**, on a claim: it needs activating first |
+| `not_deployed` | The reserve has no contract yet, so nothing is saved into it | **Yes**, once: saving resumes after the one-time setup |
 
 For `insufficient_balance`, say something specific and useful: "your wallet
 doesn't have enough USDC for this save", not "something went wrong".
@@ -75,10 +83,12 @@ The save itself is always USDC, so `insufficient_balance` means exactly one
 thing: not enough USDC to cover the whole save. There is no second asset to fall
 back to, which is what makes this skip worth mentioning to the user.
 
-`not_deployed` never appears on a save, only on a claim or a deposit: saving is
-a plain transfer and works whether or not the contract exists. It means the
-money is there and the contract that pays it out is not, which is fixed once
-per reserve by `POST /v1/wallets/:addr/activate`. See `claiming.md`.
+`not_deployed` on a save means STAQ will not quote a save into a reserve that
+cannot yet pay out. A plain transfer would arrive there happily, which is
+exactly the problem: the money would sit behind a contract that does not exist.
+Say it once, not on every trade: "Your savings need their one-time setup before
+they can continue. Want me to do it now?" On a claim or a deposit it means the
+same thing. The fix is `POST /v1/wallets/:addr/activate`; see `claiming.md`.
 
 ## Idempotency: the quote is idempotent, the money is not
 
@@ -96,22 +106,29 @@ repeated completion event, two workers, or a restart part-way through is
 therefore enough to save twice, and "do not retry a reverted transaction" does
 not address any of those.
 
-So the record has to be yours, and it has to exist before the transfer does:
+So there are two records, and both exist before the transfer does:
 
-1. **Before broadcasting**, write a durable record at
-   **`/.staq/saves/<chainId>-<sourceTxHash>.json`**, marked `attempted`. The
-   wallet's root filesystem is permanent and shared across every surface the
-   agent runs on, so a record written by one run is visible to the next and to a
-   concurrent one. Not `/runs`, which is scoped to a conversation and expires.
-2. Broadcast, then update it to `pending` with the save's own transaction hash,
-   and to `confirmed` or `failed` when you know.
-3. **Any existing record refuses a new attempt**, `failed` included. A save is
+1. **Your own record.** Write
+   **`/.staq/saves/<chainId>-<sourceTxHash>.json`**, marked `claiming`, with a
+   fresh claimant (32 random lowercase hex characters). The wallet's root
+   filesystem is permanent and shared across every surface the agent runs on, so
+   the next run sees it. Not `/runs`, which is scoped to a conversation and
+   expires.
+2. **The claim.** A file is not a compare-and-swap: two concurrent runs can both
+   find nothing and both write. So claim the save with a signed `STAQ save v1`
+   message at `POST /v1/wallets/:addr/saves`. It is one database row per source
+   transaction, so exactly one run gets `200`; every other run gets `409
+   save_claimed` and stops. Only the holder goes on. If the endpoint cannot be
+   reached, save nothing.
+3. Mark your record `attempted`, broadcast, then update it to `pending` with the
+   save's own transaction hash, and to `confirmed` or `failed` when you know.
+4. **Any existing record refuses a new attempt**, `failed` included. A save is
    never retried and never collected later, so a record existing at all is the
    answer.
-4. **On an ambiguous result**, a timeout or a lost receipt, reconcile the record
+5. **On an ambiguous result**, a timeout or a lost receipt, reconcile the record
    you already have. Look up the hash you stored, or look for the transfer on
    chain. Never resolve uncertainty by sending a second one.
-5. **If you cannot keep such a record, do not save automatically.** Saving with
+6. **If you cannot keep such a record, do not save automatically.** Saving with
    no memory of what you already sent is the one failure mode here that costs the
    user money twice.
 

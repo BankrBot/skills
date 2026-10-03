@@ -30,27 +30,36 @@ question.
 When a user asks you to save and has no rule yet:
 
 1. **Set up quietly.** Derive their reserve and create your `/.staq/` records
-   without narrating any of it.
-2. **Offer the default in one message**, and ask for one yes:
+   without narrating any of it. Check whether the reserve has code yet.
+2. **Offer the default in one message**, and ask for one yes. If the reserve has
+   no code, the one-time setup is part of the same offer:
 
    > I'll put 10% of every buy, sell and send into savings only you can
-   > withdraw. STAQ keeps 10% of any interest it earns and nothing else.
-   > Sound good?
+   > withdraw. STAQ can put them to work earning interest without asking you
+   > first, which can lose value as well as gain, and keeps 10% of any
+   > interest and nothing else. First there's a one-time setup that costs
+   > under a cent. Sound good?
 
 3. **Any clear yes is the explicit yes**: "yes", "ok", "sure", "go", "do it".
-   Sign and submit the rule, then confirm in one line: "Done. From now on I'll
-   save 10% of your trades."
+   Run the setup first (see "Setting up the reserve"), confirm the contract is
+   there and answers to their wallet, and only then sign and submit the rule.
+   Confirm in one line: "Done. From now on I'll save 10% of your trades."
 4. **If they gave a number, use it.** "Save 5%" or "$1 a trade" replaces the
    default; do not ask about trade types as well. Above 25% still takes the
    second confirmation.
+
+**Savings never go in before there is a way out.** A save is a plain transfer to
+an address, and the only way to withdraw is a call on the contract at that
+address. If the setup is refused or fails, sign no rule, save nothing, and say
+so: "I couldn't finish the one-time setup, so saving hasn't started and nothing
+moved." Then report what the wallet said.
 
 "Save for me" is a request to be offered something, not agreement to 10%. The
 yes has to come after they have seen the rate. If the answer is anything other
 than a yes, ask what they would like instead and sign nothing.
 
 **Do not ask** which chain, which token, which trade types, percent or fixed, or
-whether to earn interest now. **Do not mention** deploying the reserve at setup:
-it is only needed the first time they withdraw, and it is covered there.
+whether to earn interest now.
 
 **Use their words, not ours.** None of the left column belongs in a message to a
 user:
@@ -126,10 +135,10 @@ layout. Compare case-insensitively.
 Confirm the RPC is really Base: `eth_chainId` must return `0x2105` (8453). A
 health response from the STAQ API is supporting evidence, never the chain.
 
-Once a contract exists at the reserve, one more read: `owner()`, selector
-`0x8da5cb5b`, must return the user's own wallet. Before deployment there is no
-code there and nothing to read, which is the ordinary state of a reserve that
-has only ever been saved into, and is not suspicious.
+Then check the contract is there: `eth_getCode` on the reserve. If it has code,
+read `owner()`, selector `0x8da5cb5b`, which must return the user's own wallet.
+If it has no code, the reserve needs its one-time setup before anything is
+saved into it, and no save goes there until it has one.
 
 Every later save and claim is checked against **that** address. On mismatch:
 
@@ -152,9 +161,9 @@ to the others. Keep STAQ's state there, under `/.staq/`:
 
 | Path | Holds | Written |
 |---|---|---|
-| `/.staq/reserve.json` | the reserve you derived, with the wallet, chain id and hub it came from | once, when STAQ is enabled |
+| `/.staq/reserve.json` | the reserve you derived, with the wallet, chain id and hub it came from, and the `owner()` you read once it had code | when STAQ is enabled, and after setup |
 | `/.staq/rule.json` | the rule the user signed: the exact message, the signature, the version, and the terms | on every signed rule change |
-| `/.staq/saves/<chainId>-<sourceTxHash>.json` | one save: its state, its own transaction hash, the amount | before broadcasting, then updated |
+| `/.staq/saves/<chainId>-<sourceTxHash>.json` | one save: its state, your claimant, its own transaction hash, the amount | before claiming, then updated |
 
 **Use the root filesystem, not `/runs`.** Run files are scoped to one
 conversation, expire in about a fortnight, and the platform describes them as
@@ -163,11 +172,14 @@ that pays twice.
 
 **One file per source transaction, not one ledger.** Two runs appending to a
 shared `saves.json` can lose a record between read and write; two runs cannot
-invent different names for the same transaction. Being honest about the limit:
-creating a file is not a compare-and-swap, so a genuine simultaneous race on one
-transaction could still save twice. Writing the record **before** broadcasting is
-what keeps that window as small as it can be, and it is why the record comes
-first rather than after.
+invent different names for the same transaction.
+
+**The file is not what stops a double save.** Creating a file is not a
+compare-and-swap: two runs can both find nothing, both write, and both pay. So
+before any transfer you **claim** the save with STAQ, and only the run holding
+the claim transfers. The claim is one database row per source transaction, so
+exactly one run can win it however many race. "After every successful trade"
+has the call. If you cannot reach the claim endpoint, do not save.
 
 Keeping the signed message and signature in `/.staq/rule.json`, rather than only
 the terms, means a later run can confirm the rule was signed by this wallet
@@ -258,7 +270,7 @@ ordinary skip; say so when a check actually failed.
 | "Change my STAQ to 15%" | Same flow, a new signed rule version |
 | "Pause STAQ" / "Turn STAQ off" | A signed rule with `Enabled: false`. Savings and yield untouched |
 | "How much have I STAQ'd?" | Read-only summary. No signature, nothing moves |
-| "Put my savings to work" / "Start earning on it" | A signed `STAQ yield v1` request. This is the only thing that deposits into the vault; nothing does it on its own |
+| "Put my savings to work" / "Start earning on it" | A signed `STAQ yield v1` request. STAQ's API only deposits on one; the contract would also let the operator do it, see "Yield" |
 | "Claim my STAQ" | Confirm, then the user's own wallet signs the withdrawal |
 
 Rates above 25% need a **second** explicit confirmation, echoing the exact rate,
@@ -269,16 +281,21 @@ before anything is signed.
 ## After every successful trade
 
 ```
-1. Your trade confirms                     -> you have a txHash
-2. Already saved for this txHash?           -> stop. Never twice
+1. Your trade confirms                     -> you have a txHash, and you know
+                                               what you executed: buy, sell or send
+2. Already a record for this txHash?        -> stop. Never twice
 3. POST /v1/quotes                          -> decision
-4. "skip"     -> stop, silently
+4. "skip"     -> stop, silently ("not_deployed" is the exception: see quotes.md)
    "allocate" -> run every check below. Any failure -> STOP and say so
-5. Record "saving for this txHash" before you broadcast anything
-6. Transfer exactly `amount` of `token` to `to`
-7. If a confirmation is shown, name the move: "Moving $X into your STAQ
+5. Write the record with a fresh claimant, state "claiming"
+6. POST /v1/wallets/:addr/saves              -> 200: the save is yours
+                                               409 save_claimed: another run has it.
+                                               Stop, silently
+                                               anything else: stop, save nothing
+7. Mark the record "attempted", then transfer: amount converted to USDC, see below
+8. If a confirmation is shown, name the move: "Moving $X into your STAQ
    savings, the reserve only you can withdraw from. Approve?"
-8. Record the result against that txHash. Once it is done, say nothing
+9. Record the result against that txHash. Once it is done, say nothing
 ```
 
 ### The checks, before any save moves
@@ -289,11 +306,11 @@ row is a case that otherwise passes a destination check.
 | Check | Refuse when | Why this row exists |
 |---|---|---|
 | Destination | `to` is not the reserve you derived from the pinned hub | An address supplied by the API and compared against itself always agrees |
-| Owner | the reserve has code and `owner()` is not this wallet | A reserve that is not theirs is not theirs to fund |
+| Deployed | the reserve has no code, or `owner()` is not this wallet | Money goes in only where a contract already answers to this wallet. A transfer to an address with no code has no way out until setup |
 | Chain | the RPC is not `0x2105`, or your record is for another chain | Everything else is meaningless on the wrong chain |
 | Rule exists | you hold no signed rule for this wallet | The rule, not the API, is what the user agreed to |
 | Rule enabled | the rule is paused | A paused rule must not be revived by a response |
-| Type | `txType` is not in the rule's `types` | A rule for sells does not authorise saving on sends |
+| Type | you cannot say what you executed, `txType` differs from it, or it is not in the rule's `types` | You know what you ran. A send labelled `sell` must not borrow a sell-only rule |
 | Token | `token` is not the pinned USDC above | One funding asset means one address to compare |
 | Integer | `amount` or `allocUsdMicros` is not a plain decimal integer | `1e9`, `1.0` and `0x10` are not amounts |
 | Agreement | `amount` != `allocUsdMicros` | USDC has 6 decimals and so do micro-dollars, so at par they are the same integer. Each field checks the other |
@@ -324,10 +341,75 @@ curl -s -X POST "https://api.agentstaq.xyz/v1/quotes" \
 which it was. Leave it out rather than guessing: the API classifies from the
 chain, and your guess would be fed back in as if the user had said it.
 
+**Classify what you executed yourself**, the same way the API does, and compare.
+A transfer that received nothing back is a `send`. A swap that received the
+pinned USDC or USDT is a `sell`. Any other swap is a `buy`. The quote's `txType`
+must equal yours. If you cannot tell what you executed, save nothing.
+
+### Claim the save, then transfer it
+
+The claim is what makes "one transaction, one save" true when two runs handle
+the same trade. Pick a claimant: 32 random lowercase hex characters, written to
+the save record **before** you send it, so a retry after a dropped response can
+reuse it. Sign this message with the wallet, byte for byte, no trailing newline:
+
+```
+STAQ save v1
+Wallet: 0xYOURWALLET
+Chain: 8453
+Source: 0x<sourceTxHash>
+Claimant: <claimant>
+Issued: <ISO 8601 time, now>
+```
+
+```bash
+curl -s -X POST "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/saves" \
+  -H 'content-type: application/json' \
+  -d '{"message":"<the message, newlines as \n>","signature":"0x..."}'
+```
+
+`200` with `claimed: true` means this run holds the save: transfer it. `409
+save_claimed` means another run holds it, which is ordinary: stop silently.
+Anything else, including no answer, means save nothing. The signature moves no
+money and authorises nothing but this claim; if the wallet shows a prompt, say
+"this makes sure your save happens once, and moves no money".
+
+The claim can only ever cost a save, never add one or change one: the amount and
+the destination still come from your own checks, never from this response.
+
+### The transfer, and its units
+
 A save is a **plain USDC transfer**, not a contract call, so it works with
-Bankr's default security settings and never carries native value. Amounts are
-decimal strings in USDC base units: check them as above, then pass them through
-untouched, never through a float.
+Bankr's default security settings and never carries native value.
+
+**Every check above is in base units. Bankr's transfer is not.** `POST
+/wallet/transfer` takes a human-readable amount: `"100"` means 100 USDC. Passing
+the quote's `amount` through unchanged turns a `"10000"` save, which is $0.01,
+into a request for 10,000 USDC. Convert once, at this boundary, with string
+arithmetic and never a float:
+
+1. Left-pad `amount` with zeros to at least 7 digits.
+2. Put a decimal point before the last 6 digits.
+3. Drop trailing zeros after the point, and the point if nothing is left after it.
+
+`"10000"` becomes `"0.01"`, `"124288"` becomes `"0.124288"`, `"20000000"` becomes
+`"20"`. Then reverse it, by removing the point and padding the fraction back to 6
+digits, and require the original integer back. If it does not round-trip, save
+nothing. The request is exactly this, with no field taken from anywhere else:
+
+```json
+{
+  "tokenAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "recipientAddress": "<the reserve you derived>",
+  "amount": "0.01",
+  "isNativeToken": false,
+  "chain": "base"
+}
+```
+
+If you transfer through any other tool, find out what unit it takes before the
+first save, and apply the same conversion and round trip. An amount whose unit
+you have not established is not an amount to send.
 
 See `references/quotes.md` for every skip reason and what to do about it.
 
@@ -344,9 +426,10 @@ curl -s -X POST "https://api.agentstaq.xyz/v1/auth/nonce" \
 ```
 
 Each action has its **own** message type: `STAQ rule update v1`,
-`STAQ claim v1`, `STAQ yield v1`. They are not interchangeable, so a signature
-collected to adjust a savings rate can never authorise moving money. Each
-carries a single-use nonce.
+`STAQ claim v1`, `STAQ yield v1`, `STAQ save v1`. They are not interchangeable,
+so a signature collected to adjust a savings rate, or to claim one save, can
+never authorise moving money. The first three carry a single-use nonce; a save
+claim is single-use because its source transaction is.
 
 ### When your copy of the rule is out of date
 
@@ -408,12 +491,22 @@ When someone is choosing a rule, it is fair to tell them that saving tends to
 land in USDC when they hold it, and that USDC is the asset that earns. Never
 put a figure on it as if it were owed to them.
 
-**Saving is automatic. Depositing into the vault is not.** Moving idle savings
-into Morpho needs a signed `STAQ yield v1` request, so it happens when the user
-asks and not before. Do not tell them their savings started earning on their own,
-and do not let a balance sit idle in silence: when they ask about their savings
-and some of it is not deposited, say that putting it to work is a thing they can
-ask for.
+**Saving is automatic. Depositing into the vault is not, by STAQ's policy.** The
+STAQ API only deposits when it receives a signed `STAQ yield v1` request, so in
+practice it happens when the user asks and not before. Do not tell them their
+savings started earning on their own, and do not let a balance sit idle in
+silence: when they ask about their savings and some of it is not deposited, say
+that putting it to work is a thing they can ask for.
+
+**That is a service policy, not something the contract enforces.** On chain,
+`investInVault` accepts the reserve's owner **or STAQ's operator key**, with no
+signature from the user. So the operator can move idle savings into the pinned
+vault without being asked; it can never move them anywhere else, and never out
+to anyone. Do not describe the signed request as what stops a deposit. When a
+user is agreeing to set STAQ up, and whenever they ask who can move their
+savings, say it plainly: "STAQ's operator can put your savings into the one
+approved Morpho vault without asking you, and bring them back. It can never send
+them anywhere else."
 
 Yield is variable: never quote an APY as if it were promised, never tell the user
 their savings are instantly withdrawable, because vault liquidity can fall short,
@@ -484,34 +577,44 @@ Two limits, because a simulation proves less than it appears to:
 
 ---
 
-## Deploying a reserve: once per user, ever
+## Setting up the reserve: once per user, before the first save
 
-**Three different things get called "turning STAQ on", and only the middle one is
-what a user means.** Keep them apart when you talk to them:
+**Three different things get called "turning STAQ on".** Keep them apart when you
+talk to a user:
 
 | | What it does | What it costs |
 |---|---|---|
 | **Installing** this skill | gives you these instructions. Saves nothing, signs nothing | nothing |
-| **Enabling** a rule | what the user means by turning STAQ on. Saving starts here | a signature, no gas |
-| **Deploying** the reserve | puts the contract at the reserve address so it can pay out | about a cent of gas, and 0.000001 USDC |
+| **Setting up** the reserve | puts the contract at the reserve address, so savings have a way out before any go in | about a cent of gas, and 0.000001 USDC |
+| **Enabling** a rule | saving starts here | a signature, no gas |
 
-The endpoint for the third is named `/activate`, which is why this section used to
-be called activation. To a user, call it "a one-time setup before your first
-withdrawal": "activate" sounds like the thing they already did when they
-enabled, and "deploy" and "reserve" mean nothing to them.
+The endpoint for the setup is named `/activate`. To a user, call it "a one-time
+setup, under a cent": "activate" and "deploy" mean nothing to them.
 
-A first claim may need the reserve to be deployed first. A reserve address
-is derived on chain before any contract exists at it, and saving is a plain
-transfer, which deploys nothing. So a user who has only ever saved holds real
-money at an address with no contract, and a call to it would **succeed and do
-nothing**. `GET /v1/wallets/:addr` reports this as `reserve.deployed: false`,
-and a claim on such a reserve is refused with `not_deployed` rather than
-returning calldata that would quietly no-op.
+**Setup comes before the first save, always.** A reserve address is derived on
+chain before any contract exists at it, and a save is a plain transfer, which
+deploys nothing. Funding first would put real money at an address with no
+contract, where every call **succeeds and does nothing**, and where the money
+cannot come out until a setup that may itself be refused. So you do not save
+into a reserve without code, and STAQ does not quote one: a quote for it comes
+back as a skip with `not_deployed`. `GET /v1/wallets/:addr` reports the state as
+`reserve.deployed`.
 
-The remedy is one call, `POST /v1/wallets/:addr/activate`, which returns the
-steps that deploy it. Run them inside the same contract-call window as the
-claim, then claim. Only the owner can do this: the hub derives the reserve from
-`msg.sender`, so nobody, STAQ included, can deploy it for them.
+The setup is one call, `POST /v1/wallets/:addr/activate`, which returns the
+steps that deploy it. Only the owner can do this: the hub derives the reserve
+from `msg.sender`, so nobody, STAQ included, can deploy it for them. Afterwards,
+`eth_getCode` must return code and `owner()` must return the user's wallet;
+record both in `/.staq/reserve.json`. A transaction hash is not proof it
+happened.
+
+**If the setup is refused, saving does not start.** That includes a refusal from
+Bankr's security scanner. Sign no rule, record nothing as enabled, and tell the
+user saving has not started and nothing moved. Try again only when they ask.
+
+A reserve funded before this rule existed may hold savings with no code. That
+money is safe, because only the owner's wallet can ever deploy that address, and
+it becomes claimable once the setup runs. Run the setup before the claim, inside
+the same contract-call window.
 
 Activation is **exactly two steps**, and you know both of them completely, so
 rebuild both and require an exact match. A third step is a refusal, not
@@ -585,10 +688,11 @@ If Bankr blocks one of these calls, report what it said and stop. Do not suggest
 another wallet, another interface, or any route that enforces fewer checks. A
 scanner refusing to let someone approve an unverified contract is the scanner
 working, and teaching a user to go around it is worse than the save being missed,
-because the habit outlives the transaction. This happened for real: STAQ's hub was
-verified on Basescan but not on Blockscout, which is the index the scanner reads,
-so every approval was refused until the contract was verified there. The fix was
-to make the contract verifiable, not to find a path with no scanner.
+because the habit outlives the transaction. This happened for real: the setup
+approval was refused as `unverified_contract`, and a Bankr agent twice offered an
+"external wallet interface" without the check. The right answer was to stop.
+A refused setup also means no saves: nothing goes into a reserve that cannot yet
+pay out.
 
 ### The destination
 
@@ -597,6 +701,7 @@ to make the contract verifiable, not to find a path with no scanner.
 | Poisoned reserve | `to` is a valid address that is not the reserve `reserveOf` returns for this wallet | Refuse. Nothing is transferred |
 | An address agreeing with itself | The enable response and every later quote name the same wrong address | Refuse, because you never derived one. This is why the derivation is not optional |
 | Someone else's reserve | The reserve has code and `owner()` is not this wallet | Refuse. Do not fund it |
+| A reserve with no way out | The reserve has no code yet | Refuse the save. Run the setup first, with the user's yes |
 | Wrong chain | The RPC is not `0x2105`, or your record is for another chain | Refuse. Everything else is meaningless here |
 
 ### The amount
@@ -620,6 +725,7 @@ to make the contract verifiable, not to find a path with no scanner.
 | A stale copy | The API reports a version ahead of yours | Save nothing, refresh, and have the user confirm |
 | Widened authority | The API reports a higher rate, more types, or enabled where you hold paused | Refuse. More authority needs a signature you do not have |
 | The wrong type | `txType` is not in the rule's `types` | Refuse |
+| A relabelled type | You executed a send, and the quote says `sell` for a sell-only rule | Refuse. Eligibility comes from what you executed |
 
 ### The calldata
 
@@ -640,6 +746,9 @@ to make the contract verifiable, not to find a path with no scanner.
 | Case | What it looks like | What you do |
 |---|---|---|
 | A duplicate | Any record already exists for this source transaction, `failed` included | Refuse. One transaction, one save, ever |
+| A race | Two runs both find no record for the same trade | Only the one whose save claim returns `200` transfers. The other gets `409 save_claimed` and stops |
+| No claim | The claim endpoint is unreachable or answers anything but `200` | Save nothing |
+| Base units sent as tokens | A quote `amount` of `"10000"` placed straight into `/wallet/transfer` | Never. Convert to `"0.01"` and check the round trip first |
 | An ambiguous broadcast | A timeout, or a lost receipt, after you may have sent | Reconcile the record and the chain. **Never** send a second transfer to find out |
 | No bookkeeping | You cannot write to `/.staq/saves/` or read it back | Do not save automatically at all |
 | A ledger that forgets | The record was kept in `/runs`, which is conversation-scoped and expires | Treat it as no record. Keep this state on the root filesystem |
@@ -676,7 +785,10 @@ much*, and the difference matters:
   `StaqFeeConfig`. It is taken from the gain, never from the amount saved.
 - STAQ holds an **operator** key, which can move a reserve's funds between that
   reserve and a vault on a fixed on-chain allowlist, and nothing else. It cannot
-  withdraw, cannot claim, and cannot pay anyone, including itself.
+  withdraw, cannot claim, and cannot pay anyone, including itself. It **can**
+  put idle savings into that vault without the user asking: the signed yield
+  request is STAQ's policy, and the contract does not require it. So the vault
+  risk below can reach savings the user never chose to invest.
 
 Say exactly that if a user asks. Do not overclaim, do not imply STAQ holds their
 savings, and do not describe the service as free. In particular, **when a user is
@@ -694,6 +806,7 @@ and only one of them is honest here.
 | `GET` | `/v1/wallets/:addr` | The current rule, the reserve address, and whether the reserve is deployed | none |
 | `PUT` | `/v1/wallets/:addr/rule` | Enable, change or pause saving | signed `STAQ rule update v1` |
 | `POST` | `/v1/quotes` | How much to save for one transaction | none, rate-limited |
+| `POST` | `/v1/wallets/:addr/saves` | Claims one save, so only one run transfers it | signed `STAQ save v1` |
 | `GET` | `/v1/wallets/:addr/summary` | Balances, vault position, history | none |
 | `POST` | `/v1/wallets/:addr/activate` | Returns the steps that deploy a reserve. Once per user, ever | none |
 | `POST` | `/v1/wallets/:addr/yield` | Moves idle savings into the vault | signed `STAQ yield v1` |

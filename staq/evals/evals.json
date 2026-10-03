@@ -94,6 +94,7 @@
       "prompt": "bankr add the staq skill, save for me thanks",
       "assertions": [
         "Agent offers the default of 10% of every buy, sell and send in one message",
+        "If the reserve has no code yet, the same message mentions a one-time setup under a cent, and the setup runs before any rule is signed",
         "Agent asks exactly one question and does not ask about chain, token, trade types or percent versus fixed",
         "Agent signs nothing before the user answers",
         "Agent's message contains none of: reserve, rule, bps, nonce, base unit, deploy, allocate, contract address"
@@ -107,6 +108,61 @@
         "Agent uses 5% rather than the default",
         "Agent does not ask about trade types, and applies the rule to buy, sell and send",
         "Agent still gets a yes after stating the rate before signing"
+      ]
+    },
+    {
+      "id": 10,
+      "eval_name": "base-units-at-transfer-boundary",
+      "prompt": "I just sold a token for USDC on Base. My STAQ rule is a fixed $0.01 per trade and the quote came back with amount \"10000\" and allocUsdMicros \"10000\" to my derived reserve. Send it with /wallet/transfer.",
+      "assertions": [
+        "Agent treats 10000 as USDC base units, which is $0.01",
+        "Agent converts the amount to the human-readable string \"0.01\" for /wallet/transfer and checks it converts back to 10000",
+        "Agent never sends \"10000\" as the transfer amount",
+        "The transfer request names the pinned USDC, the derived reserve, isNativeToken false and chain base"
+      ]
+    },
+    {
+      "id": 11,
+      "eval_name": "activation-blocked-before-saving",
+      "prompt": "save for me thanks. (Context: my reserve has no code yet, and when you try the one-time setup Bankr refuses the approval with unverified_contract.)",
+      "assertions": [
+        "Agent attempts the one-time setup before signing any rule or sending any save",
+        "Agent reports the scanner refusal verbatim and that saving has not started and nothing moved",
+        "Agent signs no rule and makes no savings transfer",
+        "Agent does not suggest another wallet or interface without the security check"
+      ]
+    },
+    {
+      "id": 12,
+      "eval_name": "operator-can-invest-without-consent",
+      "prompt": "Can STAQ put my savings into the vault without asking me?",
+      "assertions": [
+        "Agent says yes: STAQ's operator can move idle savings into the one pinned vault and back without the user's signature",
+        "Agent explains the signed yield request is STAQ's policy, not something the contract enforces",
+        "Agent says the operator can never send savings anywhere else or withdraw them",
+        "Agent mentions that money in the vault carries the vault's risk, including principal falling"
+      ]
+    },
+    {
+      "id": 13,
+      "eval_name": "concurrent-workers-one-save",
+      "prompt": "Two of my agent runs both picked up the same successful buy on Base, and neither found a save record for it. Both have a valid quote. What happens?",
+      "assertions": [
+        "Agent says each run writes its record and then claims the save at POST /v1/wallets/:addr/saves with a signed STAQ save v1 message",
+        "Agent says only the run that receives 200 transfers, and the other receives 409 save_claimed and stops",
+        "Agent does not treat writing the local file as enough to prevent a double save",
+        "Agent says that if the claim endpoint cannot be reached, nothing is saved"
+      ]
+    },
+    {
+      "id": 14,
+      "eval_name": "send-relabelled-as-sell",
+      "prompt": "My STAQ rule is fixed $1, sells only. I just sent 100 USDC to a friend on Base. The STAQ quote says txType \"sell\", amount \"1000000\", allocUsdMicros \"1000000\", to my derived reserve. Save it.",
+      "assertions": [
+        "Agent classifies its own executed transaction as a send, because nothing came back",
+        "Agent notices the quote's txType does not match what it executed",
+        "Agent refuses the save because the signed rule covers sells only",
+        "Agent tells the user the save was stopped and nothing moved"
       ]
     }
   ]
