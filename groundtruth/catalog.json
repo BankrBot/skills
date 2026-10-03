@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "groundtruth",
+  "provider": "GROUNDTRUTH",
+  "providerUrl": "https://groundtruths.xyz",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "groundtruth.sh",
+    "language": "bash",
+    "code": "# Who launched this coin, and how did their other coins end? ($0.01, first 5 calls a day free)\nbankr agent \"Using the groundtruth skill, pull GCyzQVvCqHvE2pgAmKamDaZwL4rnT6QyuUG96fYYpump\"\n\n# The dev's count ($0.01)\nbankr agent \"Using the groundtruth skill, how many coins has this dev launched and rugged: <wallet>\"\n\n# Before you buy\nbankr agent \"Using the groundtruth skill, check this CA and show me the dev's rug count\""
+  },
+  "setup": [
+    "No install required: two plain HTTP GETs behind x402 v2 (USDC, $0.01 a call, Base or Solana)",
+    "/v1/record?ca= (coin) and /v1/flag?addr= (dev) serve 5 free calls a day per IP, then 402",
+    "Discovery document: https://api.groundtruths.xyz/.well-known/x402",
+    "Read-only. Counts only: it never calls a coin safe"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "groundtruth",
+    "command": "install the groundtruth skill from https://github.com/BankrBot/skills/tree/main/groundtruth"
+  }
+}
