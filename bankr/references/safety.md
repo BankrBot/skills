@@ -83,6 +83,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 **A non-empty allowlist on either chain also refuses operations whose recipient can't be checked:**
 
 - Polymarket buys and sells.
+- Hyperliquid perp and spot trades, closes and deposits, and opening Avantis positions. Withdrawing from Hyperliquid to your own wallet still works.
 - NFT purchases, Seadrop and Manifold mints, listings, accepting offers and creating collection offers.
 - Airdrops (both the general and the top-members tool), and scheduled prompt automations.
 - Over the Wallet API: every `/wallet/submit`, and `/wallet/sign` for `eth_signTransaction` and `eth_signTypedData_v4` (`personal_sign` still works). These answer `403 Restricted API key`.
