@@ -51,7 +51,7 @@ Run `bankr update` first. The flow below works on @bankr/cli 0.3.38 and later. P
 Optional hardening flags: `--allowed-ips <ips>` (IP/CIDR allowlist) and `--allowed-recipients <addresses>` (EVM/Solana send allowlist). After login, the `Features:` line shows what the key actually got.
 
 - **The code is single-use.** From 0.3.43 the CLI retries dropped connections during login by itself. If step 3 fails, restart from step 1 for a fresh code; never re-run it with the same code.
-- **Accounts with MFA on:** step 3 prints a `https://bankr.bot/mfa/confirm/...` link and waits up to five minutes for the user to approve with their passkey in a browser. Show the user the link, keep the command running and don't retry. If the link expires, fall back to an existing key (below).
+- **Accounts with MFA on:** step 3 prints a `https://bankr.bot/mfa/confirm/...` link and waits up to five minutes for the user to approve in a browser with their passkey or authenticator app. Show the user the link, keep the command running and don't retry. If the link expires, fall back to an existing key (below). A headless login never asks for the authenticator code in the terminal; only an interactive `bankr login email` does (0.3.45+).
 
 ### Other ways in
 
@@ -63,7 +63,7 @@ Optional hardening flags: `--allowed-ips <ips>` (IP/CIDR allowlist) and `--allow
 
 Install with `bun install -g @bankr/cli` (or `npm install -g @bankr/cli`), and update with `bankr update`.
 
-**`bankr --help` and `bankr <command> --help` are the command reference**, and [docs.bankr.bot/cli](https://docs.bankr.bot/cli) has the full guide. Command groups: `wallet` (portfolio, transfer, swap, sign, submit), `agent` (prompt, status, cancel, skills), `tokens`, `launch`, `fees`, `project` (0.3.43+), `files`, `club`, `llm`, `x402`, `webhooks`, `config`, plus `login`, `logout` and `whoami`.
+**`bankr --help` and `bankr <command> --help` are the command reference**, [docs.bankr.bot/cli](https://docs.bankr.bot/cli) has the full guide, and the [changelog](https://docs.bankr.bot/cli-changelog) lists what changed in each published version. Command groups: `wallet` (portfolio, transfer, swap, sign, submit), `agent` (prompt, status, cancel, skills), `tokens`, `launch`, `fees`, `project` (0.3.43+), `files`, `club`, `llm`, `x402`, `webhooks`, `config`, plus `login`, `logout` and `whoami`.
 
 Behavior that `--help` doesn't spell out:
 
