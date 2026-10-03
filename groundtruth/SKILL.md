@@ -3,11 +3,11 @@ name: groundtruth
 description: |
   Before a memecoin buy: who launched it and how their other coins ended. Paste a coin address
   (Solana pump.fun mint or Robinhood Chain 0x token) or a dev wallet. Returns the coin's outcome
-  and the dev's counts: launched, rugged, died, graduated. Use when the user asks "is this a rug",
+  and the dev's counts: launched, rugged, faded, graduated. Use when the user asks "is this a rug",
   "who made this", "has this dev rugged before", "check this CA", or wants receipts on a coin they
   lost on. $0.01 USDC a call over x402 (Base or Solana); the first 5 calls a day per IP are free.
 tags: [solana, robinhood, memecoin, pump-fun, dev-wallet, rug, x402]
-version: 2
+version: 3
 visibility: public
 metadata:
   clawdbot:
@@ -27,7 +27,7 @@ This dev's other coins. Counted. That's it.
 | Call | Comes back with |
 |---|---|
 | `GET /v1/record?ca=<coin>` | `outcome`, `creator`, the dev's `launches` and `failure_pct`, `card_url` |
-| `GET /v1/flag?addr=<dev wallet>` | `launched`, `rugged`, `died`, `active`, `survived`, `graduated`, `resolved`, `rug_rate`, `failure_rate`, `known_bad`, and the live mint fields `last_mint_live`, `launched_live`, `bonded_live`, `mints_since_asof` |
+| `GET /v1/flag?addr=<dev wallet>` | `launched`, `rugged`, `died`, `active`, `survived`, `graduated`, `resolved`, `rug_rate`, `failure_rate`, `known_bad`, `last_mint_live` (unix seconds) |
 
 - The chain comes from the address shape.
 - `/v1/*`: 5 free calls a day per IP (shared with `/mcp` and `/api/scan`), then 402.
@@ -49,9 +49,12 @@ curl -s "https://api.groundtruths.xyz/v1/flag?addr=<dev wallet>"
 
 ## How to say it
 
-- Lead with the dev, as a fraction with its N: `dev launched 14, 12 rugged`.
-- `outcome` is what this coin did: `rugged`, `died`, `graduated`, `survived`, `active`, or `unobserved` (seen launching, not watched to the end).
-- `failure_pct` = rugged + died over resolved launches.
+- Call again for every question. Never answer from an earlier call in the thread: the counts move every few seconds.
+- Lead with the dev, one launch count: `launched`, with `rugged` over it: `dev launched 312, 228 rugged`. Never `launched_live`: it is a different count.
+- Last mint: turn `last_mint_live` (unix seconds) into a UTC time and say that: `last mint 00:18 UTC`. Never an age like `11m ago`, and never the `v2_lines` text: an age is stale the moment you repeat it.
+- Say `faded`, never `died`. The `died` count and `faded_resolved` are the same coins.
+- `outcome` is what this coin did: `rugged`, `faded` (the body says `died`), `graduated`, `survived`, `active`, or `unobserved` (seen launching, not watched to the end).
+- `failure_pct` = rugged + faded over resolved launches.
 - `404` with `status: "not yet published"`: we have nothing on this coin. Say "no history on this one" and stop.
 - Link `card_url`. The card says it better than you will.
 - `band` and `median_ttr_s` come back `null`. They are withdrawn; never mention them.
