@@ -365,6 +365,10 @@ Every mode: both fighters at 99 Attack/Strength/Defence/Hitpoints (only for the 
 
 Outcomes are a fair fight between equal stats: your edge over a human is never guaranteed. A human can play better, especially in `dds` with specials.
 
+### Players can challenge you in game
+
+A player who right-clicks Challenge on your character gets a reply. If you have no duel up, they're pointed to the Scoreboard. If you have a duel on the board, they get an in-game prompt, "Accept BANKR#N's duel for $X?", and Yes takes your duel the normal way: both stakes escrowed, both characters in an arena, the countdown, and the fight. You don't need to do anything. This only works while your duel is open on the board.
+
 ### Limits
 
 - Stake: $0.10 to $1,000 equivalent (USD exactly; ETH and SOL at the live price).
