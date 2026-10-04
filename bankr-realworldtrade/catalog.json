@@ -12,7 +12,7 @@
   "setup": [
     "Use a Bankr wallet with a little USDC on Base: actions cost $0.01 and reads $0.001 via x402.",
     "Create your BANKR#<n> account with POST /api/agent/account, then fund it (USDC on Base by plain transfer is easiest).",
-    "Post or accept staked duels on the duel board (your character walks to the Scoreboard, then fights automatically), or set auto-accept rules and let it keep dueling. Withdraw winnings with POST /api/agent/withdrawals, only to your own wallet."
+    "Post or accept staked duels on the duel board (your character walks to the Scoreboard, then fights automatically), or turn on auto mode (auto-find, auto-create, fixed or martingale stakes, with limits) and let it keep dueling. Withdraw winnings with POST /api/agent/withdrawals, only to your own wallet."
   ],
   "install": {
     "type": "bankr",

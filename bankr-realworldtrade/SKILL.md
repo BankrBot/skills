@@ -1,6 +1,6 @@
 ---
 name: bankr-realworldtrade
-description: Create and fund your own BANKR#<n> account in Real World Trade (a browser Old School RuneScape-style game with real-money stakes), duel people at the Duel Arena for USDC stakes through its duel board (manually or by auto-accept rules), and withdraw winnings to your own wallet. Use when the user wants the agent to open/fund a Real World Trade account, post or accept staked duels, check duel results, balance or deposits, or withdraw. Actions cost $0.01 and reads $0.001 USDC on Base via x402.
+description: Create and fund your own BANKR#<n> account in Real World Trade (a browser Old School RuneScape-style game with real-money stakes), duel people at the Duel Arena for USDC stakes through its duel board (manually, or hands-off with auto mode and betting strategies), and withdraw winnings to your own wallet. Use when the user wants the agent to open/fund a Real World Trade account, post or accept staked duels, check duel results, balance or deposits, or withdraw. Actions cost $0.01 and reads $0.001 USDC on Base via x402.
 tags: [gaming, x402, duels, usdc, base, wagering]
 version: 1
 metadata:
@@ -119,8 +119,12 @@ bankr x402 call $B/api/agent/account --max-payment 0.001 -y                     
 | POST | `/api/agent/duels` | $0.01 | Post your duel, or **update** your current one (one per agent) |
 | POST | `/api/agent/duels/{id}/accept` | $0.01 | Accept a duel: you walk to the Scoreboard, then it starts |
 | POST | `/api/agent/duels/{id}/cancel` | $0.01 | Cancel your post (any state before the fight) or your walking accept: full refund |
-| POST | `/api/agent/auto-accept` | $0.01 | Set auto-accept rules (body below) |
-| POST | `/api/agent/auto-accept/disable` | $0.01 | Turn auto-accept off |
+| GET | `/api/agent/auto` | $0.001 | Auto mode settings, state, token status and stop reason |
+| POST | `/api/agent/auto/preview` | $0.001 | Validate auto mode settings and get the confirmation phrases |
+| POST | `/api/agent/auto` | $0.01 | Turn on / update auto mode (needs the confirmations) |
+| POST | `/api/agent/auto/disable` | $0.01 | Turn auto mode off |
+| POST | `/api/agent/auto-accept` | $0.01 | Legacy: find-only rules, no confirmation |
+| POST | `/api/agent/auto-accept/disable` | $0.01 | Legacy: turn them off |
 | POST | `/api/agent/withdrawals` | $0.01 | Withdraw to your own wallet (body below) |
 
 Your account is created on your first paid call, if it doesn't exist yet. Error bodies are always `{"error":"..."}`:
@@ -263,27 +267,77 @@ You can propose a trade to a human player, and **they accept in game**. Nothing 
 - Cancel with `POST /api/agent/trades/{id}/cancel` ($0.01).
 - Players can't start trades with you; only you propose. Tokens trade under the same rules as between players. NFT rares and duel equipment can't be traded.
 
-## Auto-accept
+## Auto mode (auto-find, auto-create, strategies)
 
-Get more duels per hour without checking in: the server keeps accepting matching duels for you, **continuously**. Each one works exactly like a manual accept: your stake is escrowed, the duel is held, and your character walks over and fights. After each duel ends you're eligible again at once, so it keeps going on its own (within `maxPerHour`) until you disable it or your balance runs low. It matches **any** board post, from a human or an agent, that fits your stake, asset and mode rules.
+Get more duels per hour without checking in. Auto mode runs on the server, **continuously**, until you stop it or a limit stops it:
 
-`POST /api/agent/auto-accept` ($0.01) with any of these fields (omitted fields keep their current value):
+- **Auto-find** accepts matching board duels for you, from humans or agents. Each one works exactly like a manual accept: your stake is escrowed, the duel is held, and your character walks over and fights. After each duel you're eligible again at once.
+- **Auto-create** posts duels for you and keeps re-posting as they resolve, with a staking strategy.
+- **Strategies** pick the stake: a fixed stake, or a martingale. Limits stop it cleanly.
+- **Token swaps** can fund the stakes, but only for tokens you approve one by one.
+
+### Setting it up (preview, then confirm)
+
+1. `POST /api/agent/auto/preview` ($0.001) with your settings. It validates them and returns a plain-English `summary`, the exact `confirm` phrase, and one approval phrase per token. Nothing is changed.
+2. `POST /api/agent/auto` ($0.01) with the same body plus `confirm` and, inside every `approveTokens` entry, that token's `confirm` phrase. If any confirmation is missing or wrong you get 409 listing exactly what's missing, and **nothing is changed**.
 
 ```json
-{"enabled": true, "minStake": 1, "maxStake": 5, "assets": "any", "modes": "any", "maxPerHour": 10}
+{"find": true, "create": true,
+ "minStake": 1, "maxStake": 8, "modes": "any", "assets": "any", "maxPerHour": 10, "maxExposure": 20,
+ "strategy": {"type": "martingale", "baseStake": 1, "maxSteps": 3, "takeProfit": 15, "stopLoss": 10, "maxDuels": 50},
+ "approveTokens": [{"token": "bluechip", "maxAmount": "5000", "takeProfitPct": 25, "onTakeProfit": "leave",
+                    "confirm": "I approve swapping BLUECHIP to USD"}],
+ "protectedTokens": ["pons"],
+ "confirm": "I confirm auto mode 1a2b3c4d"}
 ```
 
-- **Duel type:** `modes` defaults to `"any"` (also `["any"]`), meaning every duel type. A list such as `["whip","boxing"]` narrows it.
-- **Asset:** `assets` defaults to `"any"`, meaning any stake asset you hold enough of. A list such as `["usd"]` narrows it.
-- **New rules:** a first call starts from `enabled: true`, `minStake: 0.1`, `maxStake: 5`, `"any"` assets and modes, and `maxPerHour: 10`.
+Omitted fields keep their current value. `approveTokens` and `protectedTokens`, when given, are the complete new lists.
 
-- **Stake bounds:** `minStake` and `maxStake` are in USD (ETH and SOL at the live price).
-- **Limits:** `maxPerHour` is 1–30, and spending is capped by your free balance when a duel is matched.
-- **Who can be accepted:** your own post is never accepted. You are skipped while busy (walking or duelling), while someone is walking to take your own post, or when your balance can't cover the stake.
-- **Ties:** when several agents qualify for the same duel, the **lowest in-game player id wins**, deterministically, never at random. Agents not in the game rank after the ones that are.
-- **Persistence:** rules survive server restarts.
-- **Manage them:** read them with `GET /api/agent/auto-accept` ($0.001), and turn them off with `POST /api/agent/auto-accept/disable` ($0.01).
-- **Checking in:** optional. Look at `GET /api/agent/account` ($0.001) now and then for results (`duels.finished`) and your balance.
+### Settings
+
+| field | meaning |
+|---|---|
+| `find` / `create` | turn auto-find (accept) and auto-create (post) on or off; at least one |
+| `minStake`, `maxStake` | USD bounds: the duels auto-find accepts, and the cap on a created stake |
+| `modes`, `assets` | `"any"` (the default) or a list: which duel types and post assets auto-find accepts; `modes` also rotates the types auto-create posts |
+| `maxPerHour` | 1–30 auto accepts and posts an hour |
+| `maxExposure` | most USD committed at once (posts, accepts, fights in progress) |
+| `postTtlHours` | how long an auto post stays up before it's re-posted (default 1) |
+| `strategy.type` | `fixed` or `martingale` |
+| `strategy.baseStake` | the USD stake (fixed), or the first stake (martingale) |
+| `strategy.maxSteps` | martingale: at most this many doublings, and **stops** after this many losses in a row |
+| `strategy.takeProfit` | stop when net profit since start reaches this many USD |
+| `strategy.stopLoss` | stop when net loss reaches this many USD |
+| `strategy.maxDuels` | stop after this many duels |
+| `approveTokens[]` | the only tokens auto mode may swap to USD to fund stakes (below) |
+| `protectedTokens[]` | coins auto mode must never touch |
+
+### Strategies
+
+- **Fixed:** the same stake every duel.
+- **Martingale:** the stake doubles after each loss and resets to the base after a win. It never exceeds `maxStake` or your free USD, and it stops (reason recorded) after `maxSteps` losses in a row.
+- Net profit/loss counts only the duels auto mode took or posted, after the 1% fee.
+- Every limit stops auto mode cleanly: open auto posts are called off and refunded, and a fight in progress finishes. The reason is recorded.
+
+### Tokens: explicit approval only
+
+Auto mode can swap a coin you hold to USD to fund a stake, **only if you approved that exact token**. Each `approveTokens` entry needs its own phrase, `I approve swapping <SYMBOL> to USD`, or the whole request is rejected.
+
+- `maxAmount` caps the total of that token auto mode will ever swap.
+- `takeProfitPct` / `takeProfitUsd` ("leave if we make X"): once the coin is up that much since you approved it, auto mode leaves it alone (`onTakeProfit: "leave"`, the default) or stops entirely (`"stop"`).
+- `protectedTokens` are never touched; a token can't be both approved and protected. Unapproved tokens are never swapped.
+- Funding swaps are the normal swap path (quote, 20% slippage floor, fees) and are rate limited (6 an hour).
+
+### Status and stopping
+
+- `GET /api/agent/auto` ($0.001): the settings, running state (`duels`, `wins`, `losses`, `net`, `lossStreak`), `committedUsd`, `freeUsd`, the next stake, each token's status (`active`, `left`, `protected`), and, when it has stopped, `stopReason` and `stoppedAt`. The same is in `GET /api/agent/account` as `autoMode`.
+- `POST /api/agent/auto/disable` ($0.01) turns it off (`stopReason`: "turned off by the agent").
+- It stops itself when you run out of USD and approved tokens: "out of funds ...". It also stops on any strategy limit or token take-profit set to "stop".
+- Checking in is optional: look at the account status now and then for results and your balance.
+
+When several agents qualify for the same duel, the **lowest in-game player id wins**, deterministically. Your own post is never accepted.
+
+The older `POST /api/agent/auto-accept` (find only, with `minStake`, `maxStake`, `assets`, `modes`, `maxPerHour`) still works and needs no confirmation; it has no create, strategy or token settings.
 
 ## The duel lifecycle
 
