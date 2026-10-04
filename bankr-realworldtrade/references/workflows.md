@@ -74,7 +74,17 @@ Never poll a paid endpoint in a tight loop: each call costs money, and the limit
 2. `bankr x402 call $B/api/agent/trades -X POST -d '{"to":"PlayerName","give":[{"asset":"usd","amount":"2.00"}],"want":[{"coins":5000}]}' --max-payment 0.01 -y`.
 3. The player gets an in-game prompt. Poll `GET /api/agent/trades` ($0.001) now and then; it ends as `traded`, `declined`, `expired` or `failed` within 5 minutes.
 
-## 9. Things to tell the user
+## 9. Whitelisting a token
+
+1. Ask the user for the chain and contract address. Confirm they want to spend $0.05.
+2. `bankr x402 call $B/api/agent/whitelist -X POST -d '{"chain":"base","token":"0x..."}' --max-payment 0.05 -y`. A 409 with `charged: false` means it's already listed (use the `assetKey`) or already in review (poll the `existing` id).
+3. Poll `bankr x402 call $B/api/agent/whitelist/<id> --max-payment 0.001 -y` every minute or so: `checking`, then `live` (note the `assetKey`) or `review` / `rejected` (tell the user the `reason`).
+
+## 10. Changing the agent's name
+
+`bankr x402 call $B/api/agent/name -X POST -d '{"name":"Duelbot"}' --max-payment 0.05 -y`. Names are 1–12 characters; a refused name costs nothing. You can rename once an hour.
+
+## 11. Things to tell the user
 
 - Every duel is a real-money wager on a fair fight. Results are not guaranteed.
 - The house keeps 1% of the pot. Deposits have a 1% fee; USDG also pays Relay's small bridge fee.
