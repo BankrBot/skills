@@ -102,11 +102,14 @@ bankr x402 call $B/api/agent/account --max-payment 0.001 -y                     
 | GET | `/api/agent/board?mode=&asset=` | free | Duels that can be taken right now |
 | GET | `/api/agent/duels/{id}?wallet=0x...` | free | One duel's (or accept's) status; add your wallet for `won`/`lost`/`draw` from your side |
 | GET | `/api/agent/deposit-routes` | free | Every deposit route, machine-readable |
+| GET | `/api/agent/tokens?chain=&q=` | free | The live token registry: deposit and withdraw routes per token |
 | GET | `/api/agent/deposits/{id}` | free | One of your deposits' status |
 | GET | `/api/agent/withdrawals/{id}` | free | One withdrawal's status |
 | GET | `/api/agent/account` | $0.001 | Balance, walking / open / in-progress / finished / refunded duels, deposits, auto-accept rules |
 | GET | `/api/agent/history` | $0.001 | Full history: duels, deposits, bank events |
 | GET | `/api/agent/auto-accept` | $0.001 | Your auto-accept rules |
+| POST | `/api/agent/solana/nonce` | $0.001 | The message to sign to link a Solana wallet |
+| POST | `/api/agent/solana/link` | $0.01 | Link a Solana wallet (needed for Solana withdrawals) |
 | GET | `/api/agent/inventory` | $0.001 | Everything you hold, with amounts and USD values |
 | POST | `/api/agent/swaps/quote` | $0.001 | Quote a swap (body below) |
 | GET | `/api/agent/swaps/{id}` | free | One swap's status |
@@ -419,7 +422,42 @@ Every deposit credits **your** BANKR account, attributed through a deposit you c
 | `base-eth` (body `amount`) | native ETH on Base | `eth` | A plain value transfer from your agent wallet to custody. Report the tx hash. |
 | `x402-base-usdc` (body `amount`) | USDC on Base via x402 | `usd` | Pay the returned `payUrl` with x402: `bankr x402 call <payUrl> --max-payment <amount> -y`. Bankr's x402 client caps one payment at $10. |
 | `x402-robinhood-usdg` (body `amount`) | USDG on Robinhood via x402 | `usd` | Like `x402-base-usdc`, then bridged to Base. |
+| `token-transfer` (body `token`) | any whitelisted token, on Base, Robinhood or Solana | the token's own asset key | see "Depositing a memecoin" below |
 | `solana-sol` (body `amount`, `solanaFrom`) | native SOL | `sol` | Send from `solanaFrom` to the custody address **with a Memo instruction whose text is the deposit id**, then report the signature. Only if your wallet can attach a memo; otherwise swap to USDC on Base and use `base-usdc-transfer`. |
+
+### Depositing a memecoin (any whitelisted token)
+
+**Whitelist first.** Only listed tokens can be deposited. If the token isn't listed yet, ask for a review (`POST /api/agent/whitelist`, $0.05, see "Whitelist a token") and wait for `live`. Then use the **token-transfer** route, on any chain:
+
+1. **Find the token.** `GET /api/agent/tokens?q=<ticker or address>` (free) returns its asset `key`, chain, contract, decimals, `canDeposit`, and `probation.holdRoomUsd`. `GET /api/agent/deposit-routes` lists every depositable token per chain.
+2. **Create the deposit intent** ($0.01): `POST /api/agent/deposits` with `{"route":"token-transfer","token":"<asset key, ticker or contract address>"}`. The response gives the custody address (`sendTo`), the token contract, the exact steps, and `holdRoomUsd` (how much more a new listing may hold).
+3. **Send the token**, then **report the tx hash** (`POST /api/agent/deposits/{id}/tx`, $0.01) within 30 minutes. The transfer is measured on-chain and credited once.
+4. **Poll** `GET /api/agent/deposits/{id}` (free): `awaiting_payment`, `verifying`, `processing`, `credited` (with `credited.amount`), or `failed` / `held` with a `reason`.
+
+How it works per chain:
+
+| chain | send | where | what attributes it to you |
+|---|---|---|---|
+| **Base** | the token (an ERC-20 transfer) | `sendTo` = the custody EVM address | the transfer must come **from your agent wallet** (the x402 payer). Bankr: `POST https://api.bankr.bot/wallet/transfer` with `{"tokenAddress":"<contract>","recipientAddress":"<sendTo>","amount":"<tokens>","isNativeToken":false,"chain":"base"}`. |
+| **Robinhood** (4663) | the token (an ERC-20 transfer) | `sendTo` = the same custody EVM address | same, with `"chain":"robinhood"`. |
+| **Solana** | the SPL token | `sendTo` = the custody Solana address (the transfer creates its token account) | one transaction that includes a **Memo** instruction whose text is exactly the deposit id (`memo` in the response). The memo, not the sender, binds it to your account, so any wallet can send it. If your wallet can't attach a memo, swap into the token instead. |
+
+Rules:
+- A fee of 1% is taken. The smallest credit is one in-game unit after the fee (`itemDecimals`); below it the deposit is **held** for an administrator, and nothing is lost.
+- Each transfer is credited once. A transfer from a different wallet (Base/Robinhood), without the memo (Solana), of another token, or never reported before the intent expires is not credited.
+- **Tokens with a transfer tax** can't be deposited by transfer on Base or Robinhood (the amount received can't be told from what was sent): swap into them instead. Solana tokens with a transfer fee are fine; the amount that arrives is credited.
+- **New listings are on probation**: the game may hold only a capped USD value of each until it has traded cleanly (`holdRoomUsd`). A deposit that would pass the cap is **held** (nothing is lost, an administrator releases it).
+- BLUECHIP and PONS have no deposit rail (they come in by swap), and USD, ETH and SOL have their own routes above.
+
+Example, depositing 1,000 of a Base memecoin:
+
+```bash
+bankr x402 call $B/api/agent/deposits -X POST -d '{"route":"token-transfer","token":"BASECAT"}' --max-payment 0.01 -y
+# -> deposit.id "dep-...", sendTo "0xCUSTODY", token.contract "0x..."
+bankr wallet transfer --to 0xCUSTODY --amount 1000 --token 0xTOKENCONTRACT --chain base      # or the Wallet API body
+bankr x402 call $B/api/agent/deposits/dep-.../tx -X POST -d '{"txHash":"0x..."}' --max-payment 0.01 -y
+curl -s $B/api/agent/deposits/dep-...                                                       # poll until credited
+```
 
 ### Transfer deposit, step by step (USDC on Base)
 
@@ -447,23 +485,50 @@ Rules for transfers:
 
 ## Withdrawals
 
-`POST /api/agent/withdrawals` with `{"asset":"usd","amount":"5.00","chain":"base"}`.
+**Any token can be withdrawn**, USD and memecoins alike, **only to your own wallet**.
 
-- **Where it goes:** always your own wallet, the x402 payer. You can't name another address (a `to` that isn't your wallet gets 403), and there are no Solana destinations.
-- **What you can withdraw:**
+`POST /api/agent/withdrawals` with `{"asset":"usd","amount":"5.00","chain":"base"}`. `asset` is `usd`, `eth`, `sol` or **any token's asset key** (`GET /api/agent/tokens`, free, shows each token's `canWithdraw` and `withdrawChains` from the live registry). Examples:
 
-  | asset | chain | arrives as |
-  |---|---|---|
-  | `usd` | `base` (default) | USDC on Base |
-  | `usd` | `robinhood` | USDG on Robinhood, via Relay |
-  | `eth` | `base` (default) | ETH on Base |
-  | `eth` | `robinhood` | ETH on Robinhood, via Relay |
-  | `sol` | `base` | Relay's wrapped SOL on Base |
+```bash
+# USD (USDC) to your wallet on Base
+bankr x402 call $B/api/agent/withdrawals -X POST -d '{"asset":"usd","amount":"25.00","chain":"base"}' --max-payment 0.01 -y
+# a Base memecoin to your wallet on Base (the chain is the token's own)
+bankr x402 call $B/api/agent/withdrawals -X POST -d '{"asset":"basecat","amount":"500"}' --max-payment 0.01 -y
+# a Robinhood memecoin to your wallet on Robinhood Chain
+bankr x402 call $B/api/agent/withdrawals -X POST -d '{"asset":"woof","amount":"1000"}' --max-payment 0.01 -y
+# USD to Robinhood (arrives as USDG)
+bankr x402 call $B/api/agent/withdrawals -X POST -d '{"asset":"usd","amount":"10.00","chain":"robinhood"}' --max-payment 0.01 -y
+# a Solana memecoin to your LINKED Solana wallet
+bankr x402 call $B/api/agent/withdrawals -X POST -d '{"asset":"bonk","amount":"100000"}' --max-payment 0.01 -y
+```
 
-- **Fees:** the same as for players: 1% plus the network cost, taken from the withdrawn token (USD covers it when the token can't). Relay's fee applies on Robinhood/SOL routes.
-- **What's withdrawable:** only your balance. Stakes on the board or in a live duel can't be withdrawn: cancel the post first or wait for the duel to end.
-- **Pauses:** withdrawals are refused during a bank lock, a system update countdown, or about 20 seconds after another money movement.
-- **The response** is 201 `{"withdrawal": Withdrawal, "quote": {...}}`. Poll `GET /api/agent/withdrawals/{id}` (free). `status` goes `processing`, then `completed` (with `tx`), or `refunding`, then `refunded` if the payout failed. A failed payout comes back automatically, less any network fee really spent.
+- **Base and Robinhood:** the destination is always your agent wallet, the x402 payer. Naming any other address gets 403.
+- **Solana:** the destination is only a Solana wallet you have **proved you control**. Solana tokens, SOL, and USD or ETH to Solana all go there. See "Linking a Solana wallet" below. Without a linked wallet the request is refused with the instructions.
+- Base and Robinhood tokens withdraw on their own chain; USD and ETH can also go to Robinhood (via Relay), and SOL can go to Base as Relay's wrapped SOL.
+- **Fees:** the same as for players: 1% plus the network cost, taken from the withdrawn token (USD covers it when the token can't), and Relay's fee on cross-chain routes.
+- **What's withdrawable:** only your balance. Stakes on the board or in a live duel can't be withdrawn.
+- **Pauses:** withdrawals are refused during a bank lock, a system update countdown, or about 20 seconds after another money movement. A newly listed token is capped per withdrawal while on probation.
+- **The response** is 201 `{"withdrawal": Withdrawal, "quote": {...}}`. Poll `GET /api/agent/withdrawals/{id}` (free): `processing`, then `completed` (with `tx`), or `refunding`, then `refunded` if the payout failed. A failed payout comes back automatically, less any network fee really spent.
+
+### Linking a Solana wallet
+
+Solana withdrawals could otherwise go to a stranger's address, so the game pays Solana **only to an address you prove you control** with a signature. Your account's identity is an EVM wallet, so the proof is an ed25519 signature from the Solana wallet's key:
+
+1. `POST /api/agent/solana/nonce` ($0.001) with `{"solana":"<your Solana address>"}`. You get a `message` to sign.
+2. Sign that exact message (UTF-8) with the Solana wallet's key and base58-encode the 64-byte signature.
+3. `POST /api/agent/solana/link` ($0.01) with `{"solana":"<address>","signature":"<base58>"}` within 10 minutes. It's journaled; `GET /api/agent/account` then shows `linkedSolana`.
+
+Re-linking replaces the old address. **If your Bankr wallet can't sign Solana messages** (Bankr's Wallet API signs EVM messages), you can't link, and Solana withdrawals aren't available to you. The alternative: withdraw to Base or Robinhood instead (USD and ETH as USDC/ETH, SOL as wrapped SOL on Base, tokens on their home chain), or move value into a token on Base/Robinhood with a swap and withdraw that.
+
+### Tokens that can be withdrawn today
+
+Authoritative: `GET /api/agent/tokens` (the live registry; this list was taken on 2026-10-04):
+
+- **Base:** USD, ETH, BLUECHIP, BASECAT, XDP, DRB, BOAR, STONKEX, BNKR.
+- **Robinhood Chain:** PONS, BUN, ROBINPEPE, ORBIO, ROO, SGT, HARMONIC, WOOF, SI (key `si_rob`), HOODCATS, PRIORS, FABLE, CRADLE (USD and ETH also arrive here via Relay).
+- **Solana** (to your linked Solana wallet): SOL, GP, GLDx, AMETHYST, SANTA, SI (`si_sol`), AJAX, MICRO, JANE, WWW, BONK, JIANCO, PARASITE, SOCKET, PAID, HOTBOT, STONK, PENGU, SWORDCAT, HOOKED, CATE, EACC (`eacc_sol`), MASK, AGENCY, JEANPHIL, CACKLE, CLAUDIA, CRAWL, ABU, TERMINAL, FONE.
+
+New listings appear as soon as they go live.
 
 ## Rules and safety
 
@@ -472,7 +537,7 @@ Rules for transfers:
   - Cancel and expiry refund it.
   - If the server restarts mid-fight, the higher hitpoints win, and equal hitpoints are a draw.
 - Other players can't trade with or challenge your account outside the board.
-- BANKR accounts are excluded from the game's prizes and hiscores.
+- BANKR accounts count as normal players on the Duel Arena scoreboard (your name, wins and losses), and are excluded from the game's first-to prizes, hiscores and wealth leaderboard.
 - Always confirm with the user before:
   - posting or accepting a duel (they are real-money wagers);
   - depositing more than they asked for;
