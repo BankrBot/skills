@@ -2,7 +2,7 @@
 
 Base URL: `https://game.realworldtrade.app`. Every request and response body is JSON.
 
-- **Paid** = USDC on Base through x402 v2 `exact`: **$0.01** for actions, **$0.005** for reads (`GET /api/agent/account`, `/history`, `/auto-accept`). The 402's `accepts[0].amount` says which: `"10000"` or `"5000"`.
+- **Paid** = USDC on Base through x402 v2 `exact`: **$0.01** for actions, **$0.001** for reads (`GET /api/agent/account`, `/history`, `/auto-accept`). The 402's `accepts[0].amount` says which: `"10000"` or `"1000"`.
 - **Free** = no payment, limited to 60 a minute per IP.
 
 ## The x402 exchange (paid calls)
@@ -282,6 +282,33 @@ The response is `{"withdrawal": Withdrawal}`. `status` is one of:
 - `held` (an administrator must look; nothing is lost);
 - `cancelled`.
 
+### GET /api/agent/inventory ($0.001)
+
+The response is `{"inventory": {"items": [Item], "totalUsd": n, "totalUsdText": "$205.00", "unpriced": n}, "online": bool}`. An Item is `{kind: "token"|"coins"|"rare"|"item", obj, asset?, name, ticker?, amount, units, where: "inventory"|"bank"|"pending"|"board escrow", usd, usdText}`. `units` is the in-game unit count (hundredths for USD).
+
+### POST /api/agent/swaps/quote ($0.001) and POST /api/agent/swaps ($0.01)
+
+Quote body: `{"from":"bluechip","to":"usd","amount":"5000"}`. The 200 response is `{"quote": {"id","from","to","amount","expiresIn", ...expected, minimum, fees, route}}`. 409 means no route, a bad pair, too small to cover the network fee, a paused token, or a busy character.
+
+Confirm body: `{"quoteId":"wq/tq-..."}`. The 202 response is `{"swap": {"id","state","status","from","to","amount","expected","minimum","received","refunded","reason"}}`. 409 means the quote is gone or expired, the balance changed, the cooldown, or a pause. Poll `GET /api/agent/swaps/{id}` (free): `status` is `processing`, `completing`, `completed`, `refunding`, `refunded` or `failed`.
+
+### POST /api/agent/trades ($0.01), GET /api/agent/trades ($0.001), POST /api/agent/trades/{id}/cancel ($0.01)
+
+Propose body: `{"to":"<player name>","give":[Item],"want":[Item],"note":"optional (80 chars)"}`, where an Item is `{"asset","amount"}`, `{"coins":n}` or `{"item":id,"count":n}`.
+
+The response is 202 `{"trade": {"id","state":"offered","to","give":[...],"want":[...],"expiresAt"}}`. The 409 errors:
+- `that player isn't online`
+- `only wallet players can trade tokens`
+- `you can only propose trades to human players`
+- `you don't hold ...`
+- `<name> doesn't hold ...`
+- `you already have 3 open proposals`
+- `you already have an open proposal to that player`
+- `<name> was just sent an offer; try again in a minute`
+- `<name> is in a duel`
+
+`GET` returns `{"trades":[...]}`. `state` is `offered`, `traded`, `declined`, `expired`, `failed` or `cancelled`, with a `reason` when it failed.
+
 ### Auto-accept
 
 `POST /api/agent/auto-accept` ($0.01): `{"enabled": true, "minStake": 1, "maxStake": 5, "assets": "any", "modes": "any", "maxPerHour": 10}`. Omitted fields keep their current value.
@@ -292,7 +319,7 @@ The response is `{"withdrawal": Withdrawal}`. `status` is one of:
 
 The response is 200 `{"autoAccept": Rules}`.
 
-`GET /api/agent/auto-accept` ($0.005) returns `{"autoAccept": Rules | null, "usedThisHour": n}`. `POST /api/agent/auto-accept/disable` ($0.01) turns it off.
+`GET /api/agent/auto-accept` ($0.001) returns `{"autoAccept": Rules | null, "usedThisHour": n}`. `POST /api/agent/auto-accept/disable` ($0.01) turns it off.
 
 How matching works:
 

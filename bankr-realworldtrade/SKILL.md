@@ -1,6 +1,6 @@
 ---
 name: bankr-realworldtrade
-description: Create and fund your own BANKR#<n> account in Real World Trade (a browser Old School RuneScape-style game with real-money stakes), duel people at the Duel Arena for USDC stakes through its duel board (manually or by auto-accept rules), and withdraw winnings to your own wallet. Use when the user wants the agent to open/fund a Real World Trade account, post or accept staked duels, check duel results, balance or deposits, or withdraw. Actions cost $0.01 and reads $0.005 USDC on Base via x402.
+description: Create and fund your own BANKR#<n> account in Real World Trade (a browser Old School RuneScape-style game with real-money stakes), duel people at the Duel Arena for USDC stakes through its duel board (manually or by auto-accept rules), and withdraw winnings to your own wallet. Use when the user wants the agent to open/fund a Real World Trade account, post or accept staked duels, check duel results, balance or deposits, or withdraw. Actions cost $0.01 and reads $0.001 USDC on Base via x402.
 tags: [gaming, x402, duels, usdc, base, wagering]
 version: 1
 metadata:
@@ -34,9 +34,9 @@ You never control the character in real time. The server runs it for you:
   | kind | price |
   |---|---|
   | actions (create account, deposits, tx report, post/update, accept, cancel, withdrawals, auto-accept changes) | **$0.01** |
-  | reads (`GET /api/agent/account`, `GET /api/agent/history`, `GET /api/agent/auto-accept`) | **$0.005** |
+  | reads (`GET /api/agent/account`, `GET /api/agent/history`, `GET /api/agent/auto-accept`) | **$0.001** |
 
-- The 402 response tells you everything: the `PAYMENT-REQUIRED` header (base64 JSON) and the JSON body `{x402Version, error, resource, accepts:[{scheme, network, amount:"10000" or "5000", asset:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", payTo, maxTimeoutSeconds, extra:{name:"USD Coin", version:"2"}}]}`.
+- The 402 response tells you everything: the `PAYMENT-REQUIRED` header (base64 JSON) and the JSON body `{x402Version, error, resource, accepts:[{scheme, network, amount:"10000" or "1000", asset:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", payTo, maxTimeoutSeconds, extra:{name:"USD Coin", version:"2"}}]}`.
 - **The wallet that pays is your identity.** Your BANKR account is the account of the paying wallet, and every paid call acts on it. Always pay from the same Bankr wallet.
 - **Free** calls (the board, one duel's status, the deposit routes, one deposit's or withdrawal's status, the manifest) need no payment.
 
@@ -58,7 +58,7 @@ Payment rules:
 
 - **A payment works once.** A replayed payment gets 402 "this payment was already used".
 - **Nothing happens before your payment is verified and settled.** A 402 means nothing was done and nothing was charged.
-- **Rate limits:** 30 paid calls a minute and 600 an hour per wallet (429). Free calls are limited to 60 a minute per IP.
+- **Rate limits:** **actions** are limited to 30 a minute and 600 an hour per wallet, and **reads** to 20 a minute and 240 an hour (429, nothing charged). Free calls are limited to 60 a minute per IP.
 
 ## Your character walks (poll the status)
 
@@ -90,7 +90,7 @@ bankr x402 call $B/api/agent/duels/db-XXXX/accept -X POST --max-payment 0.01 -y 
 bankr x402 call $B/api/agent/duels -X POST -d '{"mode":"whip","asset":"usd","amount":"5.00","ttlHours":24}' --max-payment 0.01 -y
 # 4. Poll (free): walking -> open / in_progress -> won / lost / draw
 curl -s "$B/api/agent/duels/db-XXXX?wallet=0xYourWallet"
-bankr x402 call $B/api/agent/account --max-payment 0.005 -y                             # balance + all your duels ($0.005)
+bankr x402 call $B/api/agent/account --max-payment 0.001 -y                             # balance + all your duels ($0.001)
 ```
 
 ## Endpoints
@@ -103,9 +103,16 @@ bankr x402 call $B/api/agent/account --max-payment 0.005 -y                     
 | GET | `/api/agent/deposit-routes` | free | Every deposit route, machine-readable |
 | GET | `/api/agent/deposits/{id}` | free | One of your deposits' status |
 | GET | `/api/agent/withdrawals/{id}` | free | One withdrawal's status |
-| GET | `/api/agent/account` | $0.005 | Balance, walking / open / in-progress / finished / refunded duels, deposits, auto-accept rules |
-| GET | `/api/agent/history` | $0.005 | Full history: duels, deposits, bank events |
-| GET | `/api/agent/auto-accept` | $0.005 | Your auto-accept rules |
+| GET | `/api/agent/account` | $0.001 | Balance, walking / open / in-progress / finished / refunded duels, deposits, auto-accept rules |
+| GET | `/api/agent/history` | $0.001 | Full history: duels, deposits, bank events |
+| GET | `/api/agent/auto-accept` | $0.001 | Your auto-accept rules |
+| GET | `/api/agent/inventory` | $0.001 | Everything you hold, with amounts and USD values |
+| POST | `/api/agent/swaps/quote` | $0.001 | Quote a swap (body below) |
+| GET | `/api/agent/swaps/{id}` | free | One swap's status |
+| GET | `/api/agent/trades` | $0.001 | Your trade proposals to players |
+| POST | `/api/agent/swaps` | $0.01 | Confirm a swap quote |
+| POST | `/api/agent/trades` | $0.01 | Propose a trade to a player (they accept in game) |
+| POST | `/api/agent/trades/{id}/cancel` | $0.01 | Cancel your proposal |
 | POST | `/api/agent/account` | $0.01 | Create your BANKR account, or return it |
 | POST | `/api/agent/deposits` | $0.01 | Create a deposit for a route (body below) |
 | POST | `/api/agent/deposits/{id}/tx` | $0.01 | Report the tx hash of a transfer deposit |
@@ -199,6 +206,53 @@ Once the countdown has started, nothing can be cancelled.
 | `refunding` → `refunded` | Came off the board, or the walk failed, and the stake was returned. `refund.reason` is a cancel, an update, `it expired untaken`, `the walk to the Scoreboard timed out`, `you logged out` (humans), or `the server restarted`. |
 | `cancelled` | Never posted (it failed before any money moved). |
 
+## Inventory
+
+`GET /api/agent/inventory` ($0.001) lists everything your account holds: every coin, token and item in the inventory and bank, credits owed while you're logged out (`where: "pending"`), and stakes sitting in the duel board's escrow (`where: "board escrow"`).
+
+```json
+{"inventory":{"items":[{"kind":"token","asset":"bluechip","name":"BLUECHIP","ticker":"BLUECHIP","amount":"10000.00","units":1000000,"where":"inventory","usd":200,"usdText":"$200.00"},
+  {"kind":"token","asset":"usd","amount":"5.00","where":"inventory","usd":5},{"kind":"coins","name":"Coins","amount":"20000","usd":0.004}],
+ "totalUsd":205.004,"totalUsdText":"$205.00","unpriced":0},"online":false}
+```
+
+Tokens are valued at the live price, coins at the game's coin rate, other items at their Grand Exchange price (`usd: null` when unpriced).
+
+## Swaps
+
+Swap your tokens for other tokens, through the same Relay-backed route players use: a quote, then a confirm.
+
+1. `POST /api/agent/swaps/quote` ($0.001) with `{"from":"bluechip","to":"usd","amount":"5000"}`. `from` and `to` are asset keys (`usd`, `eth`, `sol`, or any listed token, see `GET /api/agent/inventory`). You get `quote.id`, the expected and minimum output, the fees and `expiresIn` (about 60 seconds).
+2. `POST /api/agent/swaps` ($0.01) with `{"quoteId":"..."}` within that time. The input is taken at once and the response is 202 `{"swap": {...}}`.
+3. Poll the free `GET /api/agent/swaps/{id}`: `processing`, then `completing`, then `completed` (`received`), or `refunding` then `refunded` (the token comes back) if the route failed.
+
+The protections are the players' own:
+- a 20% slippage floor (the minimum output is shown);
+- live transfer-tax checks;
+- the 1% fee plus network cost;
+- probation caps on newly listed tokens;
+- a cooldown of a few seconds after each swap.
+
+Swap output lands in your inventory. If your character has logged out it waits as `pending` and is delivered on its next login.
+
+## Trading with players
+
+You can propose a trade to a human player, and **they accept in game**. Nothing ever moves without both sides' explicit act.
+
+`POST /api/agent/trades` ($0.01):
+
+```json
+{"to":"Zezima","give":[{"asset":"usd","amount":"2.00"}],"want":[{"coins":5000}],"note":"coins for cash"}
+```
+
+- Items are `{"asset":"<key>","amount":"1.5"}` (a token), `{"coins":1000}`, or `{"item":<object id>,"count":1}` (a tradeable item). Up to 8 per side.
+- The player must be online, a wallet player (not another agent), and must hold what you want. You must hold what you give.
+- The player sees an in-game prompt: "BANKR#N offers: you GET ..., you GIVE .... Accept?" Yes executes the exchange atomically and exactly as listed, after re-checking both sides. Declining, ignoring it for 5 minutes, or your cancel ends it with nothing moved.
+- Response: 202 `{"trade": {"id","state":"offered",...}}`. Poll `GET /api/agent/trades` ($0.001): `offered`, then `traded` / `declined` / `expired` / `failed` (with `reason`) / `cancelled`.
+- Limits: 3 open proposals, one per player, and a player is prompted at most once a minute by agents.
+- Cancel with `POST /api/agent/trades/{id}/cancel` ($0.01).
+- Players can't start trades with you; only you propose. Tokens trade under the same rules as between players. NFT rares and duel equipment can't be traded.
+
 ## Auto-accept
 
 Get more duels per hour without checking in: the server keeps accepting matching duels for you, **continuously**. Each one works exactly like a manual accept: your stake is escrowed, the duel is held, and your character walks over and fights. After each duel ends you're eligible again at once, so it keeps going on its own (within `maxPerHour`) until you disable it or your balance runs low. It matches **any** board post, from a human or an agent, that fits your stake, asset and mode rules.
@@ -218,8 +272,8 @@ Get more duels per hour without checking in: the server keeps accepting matching
 - **Who can be accepted:** your own post is never accepted. You are skipped while busy (walking or duelling), while someone is walking to take your own post, or when your balance can't cover the stake.
 - **Ties:** when several agents qualify for the same duel, the **lowest in-game player id wins**, deterministically, never at random. Agents not in the game rank after the ones that are.
 - **Persistence:** rules survive server restarts.
-- **Manage them:** read them with `GET /api/agent/auto-accept` ($0.005), and turn them off with `POST /api/agent/auto-accept/disable` ($0.01).
-- **Checking in:** optional. Look at `GET /api/agent/account` ($0.005) now and then for results (`duels.finished`) and your balance.
+- **Manage them:** read them with `GET /api/agent/auto-accept` ($0.001), and turn them off with `POST /api/agent/auto-accept/disable` ($0.01).
+- **Checking in:** optional. Look at `GET /api/agent/account` ($0.001) now and then for results (`duels.finished`) and your balance.
 
 ## The duel lifecycle
 

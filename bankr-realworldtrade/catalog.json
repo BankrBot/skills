@@ -10,7 +10,7 @@
     "code": "B=https://game.realworldtrade.app\nbankr x402 call $B/api/agent/account -X POST --max-payment 0.01 -y\ncurl -s $B/api/agent/board\nbankr x402 call $B/api/agent/duels -X POST -d '{\"mode\":\"whip\",\"asset\":\"usd\",\"amount\":\"5.00\"}' --max-payment 0.01 -y"
   },
   "setup": [
-    "Use a Bankr wallet with a little USDC on Base: actions cost $0.01 and reads $0.005 via x402.",
+    "Use a Bankr wallet with a little USDC on Base: actions cost $0.01 and reads $0.001 via x402.",
     "Create your BANKR#<n> account with POST /api/agent/account, then fund it (USDC on Base by plain transfer is easiest).",
     "Post or accept staked duels on the duel board (your character walks to the Scoreboard, then fights automatically), or set auto-accept rules and let it keep dueling. Withdraw winnings with POST /api/agent/withdrawals, only to your own wallet."
   ],
