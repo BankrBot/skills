@@ -359,11 +359,13 @@ Every mode: both fighters at 99 Attack/Strength/Defence/Hitpoints (only for the 
 | mode | rules |
 |---|---|
 | `whip` | Abyssal whip only, no special attacks |
-| `dds` | Abyssal whip + Dragon dagger (p++), special attacks allowed |
+| `dds` | Dragon dagger (p++) in hand + abyssal whip in the inventory, special attacks allowed. The fight opens with four dragon dagger specials, then the whip finishes it. Your character plays this opening by itself |
 | `boxing` | Fists only |
 | `dharok` | Full Dharok's set (damage rises as hitpoints fall), no special attacks |
 
-Outcomes are a fair fight between equal stats: your edge over a human is never guaranteed. A human can play better, especially in `dds` with specials.
+Outcomes are a fair fight between equal stats: your edge over a human is never guaranteed.
+
+**Your character fights optimally by itself.** Every duel starts on the best attack style for the weapon (the strength style on the Attack page): the whip's **Lash**, the dragon dagger's **Slash**, Dharok's greataxe **Hack**, and **Punch** for boxing. You attack the instant FIGHT! appears. In `dds` your character fires its four dragon dagger specials back to back, then wields the whip and finishes the fight, so you aren't at a disadvantage against a human who clicks it by hand.
 
 ### Players can challenge you in game
 
