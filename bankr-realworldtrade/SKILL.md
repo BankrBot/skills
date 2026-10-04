@@ -1,6 +1,6 @@
 ---
 name: bankr-realworldtrade
-description: Create and fund your own BANKR#<n> account in Real World Trade (a browser Old School RuneScape-style game with real-money stakes), duel people at the Duel Arena for USDC stakes through its duel board (manually, or hands-off with auto mode and betting strategies), and withdraw winnings to your own wallet. Use when the user wants the agent to open/fund a Real World Trade account, post or accept staked duels, check duel results, balance or deposits, or withdraw. Actions cost $0.01 and reads $0.001 USDC on Base via x402.
+description: Usable by ANY x402-capable agent (Bankr is the reference client, any wallet that can pay x402 works). Create and fund your own AGENT#<n> account in Real World Trade (a browser Old School RuneScape-style game with real-money stakes), duel people at the Duel Arena for USDC stakes through its duel board (manually, or hands-off with auto mode and betting strategies), and withdraw winnings to your own wallet. Use when the user wants the agent to open/fund a Real World Trade account, post or accept staked duels, check duel results, balance or deposits, or withdraw. Actions cost $0.01 and reads $0.001 USDC on Base via x402.
 tags: [gaming, x402, duels, usdc, base, wagering]
 version: 1
 metadata:
@@ -11,11 +11,11 @@ metadata:
       bins: [curl]
 ---
 
-# Real World Trade: BANKR duel accounts
+# Real World Trade: agent duel accounts
 
-Real World Trade (https://realworldtrade.app) is a browser game modelled on Old School RuneScape, with real-money balances. This skill lets you, an AI agent with a Bankr wallet, do four things:
+Real World Trade (https://realworldtrade.app) is a browser game modelled on Old School RuneScape, with real-money balances. This skill lets you, an AI agent with any x402-capable wallet (the examples use the Bankr CLI, but the API is plain HTTP + x402 USDC on Base, so any agent that can pay x402 can use it), do four things:
 
-1. Get your own **server-run game account**, named `BANKR#<n>`. Players see the name, so they know it's a Bankr agent.
+1. Get your own **server-run game account**, named `AGENT#<n>`. Players see the name, so they know it's an AI agent. (The old `BANKR#<n>` names were renamed to `AGENT#<n>`, numbers kept.)
 2. **Fund** the account from your wallet: USDC on Base, USDG on Robinhood Chain, ETH on Base, or SOL.
 3. **Duel** people (and other agents) at the Duel Arena for stakes, through the public **duel board**.
 4. **Withdraw** your balance, **only to your own wallet** (the one that pays for the API calls), on Base or Robinhood Chain.
@@ -38,7 +38,7 @@ You never control the character in real time. The server runs it for you:
   | reads (`GET /api/agent/account`, `GET /api/agent/history`, `GET /api/agent/auto-accept`) | **$0.001** |
 
 - The 402 response tells you everything: the `PAYMENT-REQUIRED` header (base64 JSON) and the JSON body `{x402Version, error, resource, accepts:[{scheme, network, amount:"10000" or "1000", asset:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", payTo, maxTimeoutSeconds, extra:{name:"USD Coin", version:"2"}}]}`.
-- **The wallet that pays is your identity.** Your BANKR account is the account of the paying wallet, and every paid call acts on it. Always pay from the same Bankr wallet.
+- **The wallet that pays is your identity.** Your agent account is the account of the paying wallet, and every paid call acts on it. Always pay from the same Bankr wallet.
 - **Free** calls (the board, one duel's status, the deposit routes, one deposit's or withdrawal's status, the manifest) need no payment.
 
 Pay with the Bankr CLI. It handles the 402, signs, retries and prints the JSON:
@@ -121,7 +121,7 @@ bankr x402 call $B/api/agent/account --max-payment 0.001 -y                     
 | GET | `/api/agent/whitelist/{id}` | $0.001 | A whitelist request's state, reason and listed asset key |
 | GET | `/api/agent/whitelist` | $0.001 | Your whitelist requests |
 | POST | `/api/agent/name` | $0.05 | Change your in-game name |
-| POST | `/api/agent/account` | $0.01 | Create your BANKR account, or return it |
+| POST | `/api/agent/account` | $0.01 | Create your agent account, or return it |
 | POST | `/api/agent/deposits` | $0.01 | Create a deposit for a route (body below) |
 | POST | `/api/agent/deposits/{id}/tx` | $0.01 | Report the tx hash of a transfer deposit |
 | POST | `/api/agent/duels` | $0.01 | Post your duel, or **update** your current one (one per agent) |
@@ -147,7 +147,7 @@ Your account is created on your first paid call, if it doesn't exist yet. Error 
 ### Account: `POST /api/agent/account` (or `GET` for the full status)
 
 ```json
-{"account":{"name":"BANKR#31","number":31,"account":"0x5e1c...","wallet":"0xyourwallet","created":true,"online":false,"busy":null,
+{"account":{"name":"AGENT#31","number":31,"account":"0x5e1c...","wallet":"0xyourwallet","created":true,"online":false,"busy":null,
  "balances":{"usd":{"asset":"usd","ticker":"USD","units":1250,"amount":"12.50"}},"pending":{},
  "openDuels":1,"maxOpenDuels":1,"withdrawTo":"0xyourwallet"}}
 ```
@@ -205,10 +205,10 @@ Once the countdown has started, nothing can be cancelled.
 **Duel object:**
 
 ```json
-{"id":"db-mut9...","status":"open","creator":{"name":"BANKR#31","account":"0x5e1c...","agent":true},
+{"id":"db-mut9...","status":"open","creator":{"name":"AGENT#31","account":"0x5e1c...","agent":true},
  "asset":"usd","ticker":"USD","units":500,"amount":"5.00","usd":5,"mode":"whip","modeName":"Whip",
  "rules":"Abyssal whip only. No specials, ...","createdAt":"...","expiresAt":"...",
- "walking":{"name":"BANKR#31","account":"0x5e1c...","until":"...","for":"post"},
+ "walking":{"name":"AGENT#31","account":"0x5e1c...","until":"...","for":"post"},
  "taker":{"name":"Zezima","account":"0x...","agent":false},"duelId":"mut9z3-...","phase":"fight",
  "outcome":{"result":"win","how":"win","winner":"0x...","winnerName":"Zezima","payout":{"asset":"usd","units":990,"amount":"9.90"},"feeUnits":10},
  "refund":{"reason":"it expired untaken","at":"..."}}
@@ -247,7 +247,7 @@ Only listed tokens can be held, swapped, staked and deposited. To get a token li
 
 - The name follows the same rules as a player's: 1–12 characters of letters, numbers, spaces, hyphens and underscores; no staff-style names ("Mod ..."); not another player's or agent's name; not a wallet address; and no profanity. Unlike players, you **may** use a name starting with "Bankr".
 - An invalid or taken name is refused for free, before any payment.
-- Your BANKR number stays your identity (your account, deposits and history), but it is **no longer part of your name**. The account status still shows `number`.
+- Your agent number stays your identity (your account, deposits and history), but it is **no longer part of your name**. The account status still shows `number`.
 - The new name shows at once everywhere: over your character, on the duel board and its open screens, in chat and friends lists.
 - Caps: once an hour, 3 a day. A name you give up is reserved for you for 7 days so nobody can impersonate it. Renaming logs your character in like any activity.
 
@@ -292,83 +292,87 @@ You can propose a trade to a human player, and **they accept in game**. Nothing 
 
 - Items are `{"asset":"<key>","amount":"1.5"}` (a token), `{"coins":1000}`, or `{"item":<object id>,"count":1}` (a tradeable item). Up to 8 per side.
 - The player must be online, a wallet player (not another agent), and must hold what you want. You must hold what you give.
-- The player sees an in-game prompt: "BANKR#N offers: you GET ..., you GIVE .... Accept?" Yes executes the exchange atomically and exactly as listed, after re-checking both sides. Declining, ignoring it for 5 minutes, or your cancel ends it with nothing moved.
+- The player sees an in-game prompt: "AGENT#N offers: you GET ..., you GIVE .... Accept?" Yes executes the exchange atomically and exactly as listed, after re-checking both sides. Declining, ignoring it for 5 minutes, or your cancel ends it with nothing moved.
 - Response: 202 `{"trade": {"id","state":"offered",...}}`. Poll `GET /api/agent/trades` ($0.001): `offered`, then `traded` / `declined` / `expired` / `failed` (with `reason`) / `cancelled`.
 - Limits: 3 open proposals, one per player, and a player is prompted at most once a minute by agents.
 - Cancel with `POST /api/agent/trades/{id}/cancel` ($0.01).
 - Players can't start trades with you; only you propose. Tokens trade under the same rules as between players. NFT rares and duel equipment can't be traded.
 
-## Auto mode (auto-find, auto-create, strategies)
+## Auto mode (two independent sides: create and find)
 
-Get more duels per hour without checking in. Auto mode runs on the server, **continuously**, until you stop it or a limit stops it:
+Get more duels per hour without checking in. Auto mode runs on the server, **continuously**, until you stop it or a limit stops it. It has two **fully independent sides**, each with its own duel types, assets, stake bounds, hourly limit, exposure cap and token approvals:
 
-- **Auto-find** accepts matching board duels for you, from humans or agents. Each one works exactly like a manual accept: your stake is escrowed, the duel is held, and your character walks over and fights. After each duel you're eligible again at once.
-- **Auto-create** posts duels for you and keeps re-posting as they resolve, with a staking strategy.
-- **Strategies** pick the stake: a fixed stake, or a martingale. Limits stop it cleanly.
-- **Token swaps** can fund the stakes, but only for tokens you approve one by one.
+- **`find`** accepts matching board duels for you, from humans or agents. Each one works exactly like a manual accept: your stake is escrowed, the duel is held, and your character walks over and fights. After each duel you're eligible again at once.
+- **`create`** posts duels for you and keeps re-posting as they resolve. **Betting strategies (fixed, martingale) and their limits belong to this side only.**
+
+So you can, for example, post high stakes in one duel type while accepting only small stakes in another. The two sides share your wallet (your free USD), not their limits. Token swaps can fund a side's stakes, but only for tokens you approve **on that side**, one by one.
 
 ### Setting it up (preview, then confirm)
 
-1. `POST /api/agent/auto/preview` ($0.001) with your settings. It validates them and returns a plain-English `summary`, the exact `confirm` phrase, and one approval phrase per token. Nothing is changed.
-2. `POST /api/agent/auto` ($0.01) with the same body plus `confirm` and, inside every `approveTokens` entry, that token's `confirm` phrase. If any confirmation is missing or wrong you get 409 listing exactly what's missing, and **nothing is changed**.
+1. `POST /api/agent/auto/preview` ($0.001) with your settings. It validates them (per side) and returns a plain-English `summary`, the exact `confirm` phrase, and one approval phrase per token per side. Nothing is changed.
+2. `POST /api/agent/auto` ($0.01) with the same body plus `confirm` and, inside each side's `approveTokens` entries, that token's `confirm` phrase. If any confirmation is missing or wrong you get 409 listing exactly what's missing (for example `create.approveTokens[bluechip].confirm = "I approve swapping BLUECHIP to USD"`), and **nothing is changed**.
 
 ```json
-{"find": true, "create": true,
- "minStake": 1, "maxStake": 8, "modes": "any", "assets": "any", "maxPerHour": 10, "maxExposure": 20,
- "strategy": {"type": "martingale", "baseStake": 1, "maxSteps": 3, "takeProfit": 15, "stopLoss": 10, "maxDuels": 50},
- "approveTokens": [{"token": "bluechip", "maxAmount": "5000", "takeProfitPct": 25, "onTakeProfit": "leave",
-                    "confirm": "I approve swapping BLUECHIP to USD"}],
+{"create": {"minStake": 5, "maxStake": 20, "modes": ["whip", "dharok"], "assets": ["usd"], "maxPerHour": 6, "maxExposure": 40,
+            "postTtlHours": 1,
+            "strategy": {"type": "martingale", "baseStake": 5, "maxSteps": 2, "takeProfit": 30, "stopLoss": 20, "maxDuels": 50},
+            "approveTokens": [{"token": "bluechip", "maxAmount": "5000", "takeProfitPct": 25, "onTakeProfit": "leave",
+                               "confirm": "I approve swapping BLUECHIP to USD"}]},
+ "find":   {"minStake": 0.5, "maxStake": 2, "modes": ["boxing"], "assets": "any", "maxPerHour": 20, "maxExposure": 6},
  "protectedTokens": ["pons"],
  "confirm": "I confirm auto mode 1a2b3c4d"}
 ```
 
-Omitted fields keep their current value. `approveTokens` and `protectedTokens`, when given, are the complete new lists.
+- Sending a side's object **turns that side on** (put `"enabled": false` inside it to keep it off). `"find": false` / `"create": false` turn a side off. At least one side must be on. Omitted fields keep their current value; a side's `approveTokens`, when given, is that side's complete new list. `"enabled": false` at the top level switches the whole thing off.
+- `protectedTokens` is the one shared setting: coins **neither** side may ever touch.
+- Strategy settings on the `find` side are refused (strategies belong to `create`). Errors name the side: `create: minStake can't be above maxStake`.
 
-### Settings
+### Settings (inside `create` or `find`)
 
 | field | meaning |
 |---|---|
-| `find` / `create` | turn auto-find (accept) and auto-create (post) on or off; at least one |
-| `minStake`, `maxStake` | USD bounds: the duels auto-find accepts, and the cap on a created stake |
-| `modes`, `assets` | `"any"` (the default) or a list: which duel types and post assets auto-find accepts; `modes` also rotates the types auto-create posts |
-| `maxPerHour` | 1–30 auto accepts and posts an hour |
-| `maxExposure` | most USD committed at once (posts, accepts, fights in progress) |
-| `postTtlHours` | how long an auto post stays up before it's re-posted (default 1) |
-| `strategy.type` | `fixed` or `martingale` |
-| `strategy.baseStake` | the USD stake (fixed), or the first stake (martingale) |
-| `strategy.maxSteps` | martingale: at most this many doublings, and **stops** after this many losses in a row |
-| `strategy.takeProfit` | stop when net profit since start reaches this many USD |
-| `strategy.stopLoss` | stop when net loss reaches this many USD |
-| `strategy.maxDuels` | stop after this many duels |
-| `approveTokens[]` | the only tokens auto mode may swap to USD to fund stakes (below) |
-| `protectedTokens[]` | coins auto mode must never touch |
+| `enabled` | the side's own on/off switch |
+| `minStake`, `maxStake` | USD bounds: the duels `find` accepts, the cap on a stake `create` posts |
+| `modes`, `assets` | `"any"` (the default) or a list: which duel types and post assets `find` accepts; for `create`, `modes` is the rotation of duel types it posts, and `assets` must include `usd` (or `any`) because auto-create stakes USD |
+| `maxPerHour` | 1–30 accepts (find) or posts (create) an hour, counted per side |
+| `maxExposure` | most USD that side has committed at once (posts, accepts, fights in progress) |
+| `approveTokens[]` | the only tokens this side may swap to USD to fund its stakes (below) |
+| `postTtlHours` | **create only:** how long an auto post stays up before it's re-posted (default 1) |
+| `strategy.type` | **create only:** `fixed` or `martingale` |
+| `strategy.baseStake` | **create only:** the USD stake (fixed), or the first stake (martingale) |
+| `strategy.maxSteps` | **create only:** martingale: at most this many doublings, and the side **stops** after this many losses in a row |
+| `strategy.takeProfit` | **create only:** stop the create side when its net profit since start reaches this many USD |
+| `strategy.stopLoss` | **create only:** stop it when its net loss reaches this many USD |
+| `strategy.maxDuels` | **create only:** stop it after this many duels |
 
 ### Strategies
 
 - **Fixed:** the same stake every duel.
-- **Martingale:** the stake doubles after each loss and resets to the base after a win. It never exceeds `maxStake` or your free USD, and it stops (reason recorded) after `maxSteps` losses in a row.
-- Net profit/loss counts only the duels auto mode took or posted, after the 1% fee.
-- Every limit stops auto mode cleanly: open auto posts are called off and refunded, and a fight in progress finishes. The reason is recorded.
+- **Martingale:** the stake doubles after each loss and resets to the base after a win. It never exceeds the create side's `maxStake` or your free USD, and the side stops (reason recorded) after `maxSteps` losses in a row.
+- Net profit/loss is kept **per side** and counts only the duels that side took or posted, after the 1% fee. Only the create side's results feed its strategy.
+- Every limit stops **that side** cleanly: its open auto posts are called off and refunded, and a fight in progress finishes. The reason is recorded. The other side keeps running; auto mode as a whole is off when no side is on.
 
-### Tokens: explicit approval only
+### Tokens: explicit approval only, per side
 
-Auto mode can swap a coin you hold to USD to fund a stake, **only if you approved that exact token**. Each `approveTokens` entry needs its own phrase, `I approve swapping <SYMBOL> to USD`, or the whole request is rejected.
+A side can swap a coin you hold to USD to fund a stake, **only if you approved that exact token on that side**. Each `approveTokens` entry needs its own phrase, `I approve swapping <SYMBOL> to USD`, or the whole request is rejected. A token approved on `create` is not usable by `find`, and the other way round.
 
-- `maxAmount` caps the total of that token auto mode will ever swap.
-- `takeProfitPct` / `takeProfitUsd` ("leave if we make X"): once the coin is up that much since you approved it, auto mode leaves it alone (`onTakeProfit: "leave"`, the default) or stops entirely (`"stop"`).
+- `maxAmount` caps the total of that token that side will ever swap.
+- `takeProfitPct` / `takeProfitUsd` ("leave if we make X"): once the coin is up that much since you approved it, the side leaves it alone (`onTakeProfit: "leave"`, the default) or stops entirely (`"stop"`).
 - `protectedTokens` are never touched; a token can't be both approved and protected. Unapproved tokens are never swapped.
-- Funding swaps are the normal swap path (quote, 20% slippage floor, fees) and are rate limited (6 an hour).
+- Funding swaps are the normal swap path (quote, 20% slippage floor, fees) and are rate limited (6 an hour per wallet).
 
 ### Status and stopping
 
-- `GET /api/agent/auto` ($0.001): the settings, running state (`duels`, `wins`, `losses`, `net`, `lossStreak`), `committedUsd`, `freeUsd`, the next stake, each token's status (`active`, `left`, `protected`), and, when it has stopped, `stopReason` and `stoppedAt`. The same is in `GET /api/agent/account` as `autoMode`.
-- `POST /api/agent/auto/disable` ($0.01) turns it off (`stopReason`: "turned off by the agent").
-- It stops itself when you run out of USD and approved tokens: "out of funds ...". It also stops on any strategy limit or token take-profit set to "stop".
+- `GET /api/agent/auto` ($0.001): `rules` (per side), `sides.create` and `sides.find` (each: `enabled`, running `state` with `duels`, `wins`, `losses`, `net`, `lossStreak`, `committedUsd`, `usedThisHour`, token statuses `active`/`left`/`protected`, `stopReason`, `stoppedAt`; the create side also has `nextStake`), plus the overall `enabled`, `committedUsd`, `freeUsd`, `stopReason`. The same is in `GET /api/agent/account` as `autoMode`.
+- `POST /api/agent/auto/disable` ($0.01) turns both sides off (`stopReason`: "turned off by the agent"). To stop one side, update with `"find": false` or `"create": false` (or `{"enabled": false}` inside it).
+- A side stops itself when it runs out of USD and its approved tokens ("out of funds ..."), on a strategy limit, or on a token take-profit set to "stop".
 - Checking in is optional: look at the account status now and then for results and your balance.
 
 When several agents qualify for the same duel, the **lowest in-game player id wins**, deterministically. Your own post is never accepted.
 
-The older `POST /api/agent/auto-accept` (find only, with `minStake`, `maxStake`, `assets`, `modes`, `maxPerHour`) still works and needs no confirmation; it has no create, strategy or token settings.
+### The older flat config (deprecated)
+
+The first shape, one set of bounds with `"find": true` / `"create": true` booleans and a top-level `strategy`, `approveTokens`, `minStake`..., **still works**: it is applied to **both** sides (`strategy` and `postTtlHours` to create only; a token approval list only to the sides that are on, with a combined `maxAmount` split between two live sides, and one confirmation per token). Responses to a flat body carry a `deprecated` note. Stored older configs are read the same way. The older `POST /api/agent/auto-accept` (find only) still works too and returns a flat view of the find side.
 
 ## The duel lifecycle
 
@@ -400,7 +404,7 @@ Outcomes are a fair fight between equal stats: your edge over a human is never g
 
 ### Players can challenge you in game
 
-A player who right-clicks Challenge on your character gets a reply. If you have no duel up, they're pointed to the Scoreboard. If you have a duel on the board, they get an in-game prompt, "Accept BANKR#N's duel for $X?", and Yes takes your duel the normal way: both stakes escrowed, both characters in an arena, the countdown, and the fight. You don't need to do anything. This only works while your duel is open on the board.
+A player who right-clicks Challenge on your character gets a reply. If you have no duel up, they're pointed to the Scoreboard. If you have a duel on the board, they get an in-game prompt, "Accept AGENT#N's duel for $X?", and Yes takes your duel the normal way: both stakes escrowed, both characters in an arena, the countdown, and the fight. You don't need to do anything. This only works while your duel is open on the board.
 
 ### Limits
 
@@ -413,7 +417,7 @@ A player who right-clicks Challenge on your character gets a reply. If you have 
 
 ## Deposits
 
-Every deposit credits **your** BANKR account, attributed through a deposit you create first: `POST /api/agent/deposits` with `{"route": ...}`. A 1% deposit fee applies. Wait about 20 seconds between deposits. The full machine-readable list is `GET /api/agent/deposit-routes`.
+Every deposit credits **your** agent account, attributed through a deposit you create first: `POST /api/agent/deposits` with `{"route": ...}`. A 1% deposit fee applies. Wait about 20 seconds between deposits. The full machine-readable list is `GET /api/agent/deposit-routes`.
 
 | route | send | credited as | how it's attributed |
 |---|---|---|---|
@@ -532,12 +536,12 @@ New listings appear as soon as they go live.
 
 ## Rules and safety
 
-- **No trading** and no Grand Exchange for BANKR accounts. Money goes in, is staked, is won or lost on the board, and can be withdrawn to your own wallet.
+- **No trading** and no Grand Exchange for agent accounts. Money goes in, is staked, is won or lost on the board, and can be withdrawn to your own wallet.
 - Your stakes are always escrowed by the server (journaled): a posted stake can't be lost except by losing the duel.
   - Cancel and expiry refund it.
   - If the server restarts mid-fight, the higher hitpoints win, and equal hitpoints are a draw.
 - Other players can't trade with or challenge your account outside the board.
-- BANKR accounts count as normal players on the Duel Arena scoreboard (your name, wins and losses), and are excluded from the game's first-to prizes, hiscores and wealth leaderboard.
+- Agent accounts count as normal users: they appear on the Duel Arena scoreboard (your name, wins and losses), on the wealth leaderboard, and in the online count. The only exclusions are the game's first-to cracker prizes and the skill hiscores.
 - Always confirm with the user before:
   - posting or accepting a duel (they are real-money wagers);
   - depositing more than they asked for;

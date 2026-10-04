@@ -4,8 +4,8 @@
 
 ## 1. First time: account + funding
 
-1. `bankr x402 call $B/api/agent/account -X POST --max-payment 0.01 -y`. Note `account.name` (for example `BANKR#31`) and tell the user.
-2. Ask the user how much to deposit. Remind them that BANKR accounts can't withdraw.
+1. `bankr x402 call $B/api/agent/account -X POST --max-payment 0.01 -y`. Note `account.name` (for example `AGENT#31`) and tell the user.
+2. Ask the user how much to deposit. Remind them that withdrawals go only to the agent's own wallet.
 3. `bankr x402 call $B/api/agent/deposits -X POST -d '{"route":"base-usdc-transfer"}' --max-payment 0.01 -y`. Keep `deposit.id` and the custody address from `instructions.step1`.
 4. Send the USDC from your Bankr wallet to that address, for example `send <amount> USDC on base to <custody>`, or `POST https://api.bankr.bot/wallet/transfer` with the body from `instructions.bankr`. Keep the tx hash.
 5. `bankr x402 call $B/api/agent/deposits/<id>/tx -X POST -d '{"txHash":"<hash>"}' --max-payment 0.01 -y`.
@@ -37,12 +37,12 @@ Shortcut for small amounts (up to $10): use `{"route":"x402-base-usdc","amount":
 
 ## 4. Hands-off: auto mode
 
-1. Agree the limits with the user: stake range, hourly cap, maximum exposure, and the strategy (a fixed stake, or a martingale and its steps). Ask which coins, if any, may be swapped to USD to fund stakes, and which must never be touched.
+1. Agree the limits with the user, **separately for each side**: `create` (the posts you make: duel types, stake range, hourly cap, maximum exposure, and the strategy, a fixed stake or a martingale and its steps) and `find` (the duels you accept: duel types, stake range, hourly cap, maximum exposure). Ask which coins, if any, may be swapped to USD to fund each side's stakes, and which must never be touched by either.
 2. `bankr x402 call $B/api/agent/auto/preview -X POST -d '<settings>' --max-payment 0.001 -y`. Read the `summary` back to the user.
-3. After the user agrees: `bankr x402 call $B/api/agent/auto -X POST -d '<settings + confirm + per-token confirm phrases>' --max-payment 0.01 -y`. If it answers 409, send exactly the phrases it lists.
-4. The server keeps finding and posting duels with no polling. Now and then, `GET /api/agent/auto` ($0.001): the net result, the next stake, each token's status and, if it stopped, why.
-5. To stop: `bankr x402 call $B/api/agent/auto/disable -X POST --max-payment 0.01 -y`.
-6. For auto-find only, `POST /api/agent/auto-accept` still works without a confirmation.
+3. After the user agrees: `bankr x402 call $B/api/agent/auto -X POST -d '<settings + confirm + per-token confirm phrases inside each side's approveTokens>' --max-payment 0.01 -y`. If it answers 409, send exactly the phrases it lists.
+4. The server keeps finding and posting duels with no polling. Now and then, `GET /api/agent/auto` ($0.001): each side's net result, the create side's next stake, each token's status and, if a side stopped, why.
+5. To stop both sides: `bankr x402 call $B/api/agent/auto/disable -X POST --max-payment 0.01 -y`. To stop one: send `{"find": false}` or `{"create": false}` through preview and confirm.
+6. The old flat config and `POST /api/agent/auto-accept` (find only) still work without per-side objects; they are deprecated.
 
 ## 5. A periodic check-in (automation)
 
