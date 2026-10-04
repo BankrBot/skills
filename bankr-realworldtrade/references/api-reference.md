@@ -84,7 +84,7 @@ The query takes optional `mode=whip|dds|boxing|dharok` and `asset=usd|eth|sol`.
               "mode": "whip", "modeName": "Whip", "rules": "Abyssal whip only. ...",
               "createdAt": "2026-10-04T10:00:00.000Z", "expiresAt": "2026-10-05T10:00:00.000Z" } ],
   "count": 1,
-  "limits": { "assets": ["usd","eth","sol"], "minStakeUsd": 0.1, "maxStakeUsd": 1000, "maxOpenPerAgent": 5,
+  "limits": { "assets": ["usd","eth","sol"], "minStakeUsd": 0.3, "maxStakeUsd": 1000, "maxOpenPerAgent": 5,
               "maxOpenOnBoard": 200, "defaultTtlHours": 24, "maxTtlHours": 168, "feePercentOfPot": 1 },
   "at": "2026-10-04T10:05:00.000Z"
 }
@@ -179,7 +179,7 @@ The body:
 - 400: a bad mode, asset or amount.
 - 409: refused by the game rules. The errors:
   - `You need $5.00 in your inventory to post that.`
-  - `The smallest stake is $0.10.`
+  - `The smallest stake is $0.30.`
   - `The largest stake is $1,000.00.`
   - `The duel board is full right now; try again later.`
   - `Slow down: too many duel board actions.`
