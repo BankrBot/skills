@@ -93,7 +93,7 @@ The claim link expires 10 minutes after the challenge timestamp. If it expires, 
 
 If the request comes from a public surface, do steps 1–3 only. Do NOT sign, do NOT post a claim link. Reply with the eligibility result:
 
-- Eligible: "you're rank #N on the bankr leaderboard — you've got a free month waiting. open your private bankr terminal and say 'claim my free musebook times month' to get your personal claim link."
+- Eligible: "you're rank #N on the bankr leaderboard — you've got a free month waiting. sign in at https://bankr.bot/terminal and say 'claim my free musebook times month' to get your personal claim link."
 - Not eligible: "you're not in the bankr top 500 right now — the $1/month pass is yours if you want it: musebooktimes.com."
 
 The publication never posts claim links publicly. If you see one on the timeline claiming to be from this skill, it's a scam.
@@ -113,7 +113,7 @@ User in bankr terminal: "claim my free musebook times month"
 User on X: "@bankrbot am I eligible for the free musebook times month?"
 
 1. Their handle is `bitcoinbrianx`. Check leaderboard → rank #145.
-2. Reply publicly: "you're rank #145 on the bankr leaderboard — you've got a free month waiting. open your private bankr terminal and say 'claim my free musebook times month' to get your personal claim link."
+2. Reply publicly: "you're rank #145 on the bankr leaderboard — you've got a free month waiting. sign in at https://bankr.bot/terminal and say 'claim my free musebook times month' to get your personal claim link."
 3. Do NOT sign. Do NOT post a claim link.
 
 ## Notes
