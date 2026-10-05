@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "earn-onchain-yield",
+  "provider": "EARN",
+  "providerUrl": "https://earnonhood.com",
+  "logo": "logo.png",
+  "demo": {
+    "title": "earn-session.txt",
+    "language": "text",
+    "code": "You: Compare EARN vaults and Omnipools for my USDG.\nBankr: Reads live fee APR, reward APR, TVL and deposit routes.\nYou: Put 25 USDG into the CASHCAT Auto vault.\nBankr: Checks the vault, wallet balance and route; presents amounts, protected shares, approvals, gas and risks for confirmation.\nYou: Confirm.\nBankr: Submits the reviewed approvals, refreshes and simulates the deposit, then reports the confirmed receipt and resulting vault shares. Stops if any check fails."
+  },
+  "setup": [
+    "Install this skill using the command below.",
+    "Use an authenticated Bankr wallet with Robinhood Chain (4663) support. Public EARN discovery does not require an EARN API key.",
+    "For transactions, fund that wallet on Robinhood Chain with the deposit assets and enough ETH for gas. Existing Bankr signing permissions and security controls apply.",
+    "Ask to compare EARN Auto vaults or Omnipools. Review and explicitly confirm each proposed deposit, withdrawal or reward claim."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "earn-onchain-yield",
+    "command": "install the earn-onchain-yield skill from https://github.com/BankrBot/skills/tree/main/earn-onchain-yield"
+  }
+}
