@@ -1,8 +1,8 @@
 ---
 name: agent-town
-description: Simulate many individual agents living through a user-defined scenario day by day, with auditable actions, interactions, and outcomes.
+description: Simulate persistent people in an Earth-based scenario day by day, with needs, emotions, relationships, choices, interactions, and auditable outcomes.
 tags: [simulation, multi-agent, scenarios, agent-based-modeling]
-version: 4
+version: 5
 visibility: public
 ---
 
@@ -20,6 +20,14 @@ Before execution, write a compact model specification. Define the question, time
 
 Write **scenario-specific causal rules**, not a generic opinion poll. Each agent chooses an action from its own state, goals, information, contacts, and current world conditions. Actions have explicit effects on the agent and world. Interactions pass information or resources between identified agents and may change future decisions. World rules apply capacity, scarcity, costs, competition, delays, thresholds, or other constraints relevant to the question. For example, a free-bus scenario needs actual trip choices, vehicle capacity, waiting/crowding, operating cost, funding, and possible spillovers; a support score alone cannot answer what happens to transit.
 
+### Earth life and individual agency
+
+Place the simulation on Earth by default. If the user names a real place and date, use them; otherwise choose a plausible Earth location and calendar, label them assumed, and avoid claiming live weather or local facts without sources. Model homes, workplaces or schools, travel time, sleep/wake cycles, public spaces, and relevant institutions at the resolution the scenario needs. A bus policy, for example, occurs amid jobs, family schedules, money, fatigue, and social ties—not in a population that exists only to rate the bus.
+
+Each agent carries individual needs (such as food, rest, safety, money, belonging), goals, habits, health or energy, beliefs, emotional state (such as joy, fear, stress, anger, hope), trust, relationships, and episodic memory. Events and interactions update these variables; they influence choices on later days. Emotional variables are **simulated proxies for behavior**, not evidence that software experiences human feelings. Keep meaningful differences within each role and preserve personal history rather than assigning everyone the same scripted arc.
+
+Let agents choose among broad, extensible actions grounded in their current place, time, abilities, resources, knowledge, and goals. They may work, travel, rest, buy, help, argue, organize, create, change plans, form or break relationships, or attempt a novel action. Resolve proposed actions through the world's physical, social, time, and resource constraints; log success, failure, or an unsupported action. Do not force every person to support the scenario, follow a predetermined plot, or take only a fixed set of opinion-changing actions. No model can literally represent every possible human action: disclose any consequential behavior the implementation cannot simulate.
+
 Use user facts or cited evidence when supplied. Otherwise label every numerical starting value and rule an **illustrative assumption**. Never call an assumed event "verified", "observed", or a real outcome. Exogenous shocks may occur only if supplied by the user or explicitly declared as hypothetical in the model specification. Endogenous events must be triggered by recorded state and rules; log the trigger.
 
 ## Execute and retain evidence
@@ -28,9 +36,9 @@ Use Bankr's `execute_cli` sandbox to write and run code for the model. Do not pr
 
 For **each day**:
 
-1. Give every active agent at least one recorded action. Record agent ID, role, prior state, chosen action, reason inputs, and state changes.
+1. Give every active agent a daily schedule and at least one recorded decision/action. Record agent ID, place/time, prior needs and emotions, goal, perceived options, chosen action, reason inputs, and resulting state changes.
 2. Process actual identified agent-to-agent interactions, normally at least one per active agent. Record both IDs, topic or exchanged item, state before/after, and any trust or resource change. A conversation may be generated from templates tied to this record. Label such lines **synthetic dialogue derived from simulated actions**, not an LLM transcript or real human speech.
-3. Apply world constraints and scheduled or rule-triggered events, then calculate the complete daily world state. Record counts, flows, costs, successes/failures, and outcome measures relevant to the scenario.
+3. Apply world constraints and scheduled or rule-triggered events, then calculate the complete daily world state. Record counts, flows, costs, successes/failures, emotion and relationship changes, and outcome measures relevant to the scenario.
 4. Append the day's individual actions, interactions, triggered events, and aggregate state to a JSONL or JSON audit file. Save a separate daily-story index with at least two agent IDs and their exact source record IDs for **every** day. Do not fill gaps later with imagined details.
 
 At the end of each day, assert that the set of active IDs matches the carried-forward roster after any explicitly logged entries/exits, with no duplicates or unexplained replacements. Persist each agent's updated state for the next day and record an ID-linked state transition from day N to day N+1. Verify that every reported agent story follows that same ID through time; a fresh sample of role archetypes each day is not an agent-based run.
