@@ -11,7 +11,7 @@
   },
   "setup": [
     "Install: `install the agent-town skill from https://github.com/BankrBot/skills/tree/main/agent-town`",
-    "Ask: `Start Agent Town: <your question>` — defaults to 1,000 simulated agents and 30 days",
+    "Ask: `Start Agent Town: <your question>` — defaults to the same 1,000 simulated agents carried through 30 days",
     "Optional: add `with 2500 agents for 45 days` to choose the scale",
     "Requires Bankr's code sandbox for a verified multi-agent run; no wallet transaction is needed"
   ],
