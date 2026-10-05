@@ -1,0 +1,17 @@
+{
+  "name": "bankrns-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Register, renew and look up .bankr names on Base with your own Bankr wallet.",
+  "type": "module",
+  "bin": { "bankrns": "./bankrns.mjs" },
+  "scripts": {
+    "bankrns": "node bankrns.mjs",
+    "test": "node test/e2e-fork.mjs",
+    "test:note": "start a fork first: anvil --fork-url https://mainnet.base.org --port 8545 --block-time 1"
+  },
+  "dependencies": {
+    "viem": "^2.21.0"
+  },
+  "engines": { "node": ">=18" }
+}
