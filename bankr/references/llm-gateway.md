@@ -96,7 +96,7 @@ bankr llm credits auto --enable --amount 25 --threshold 5 --tokens USDC,USDT
 bankr llm credits auto --disable
 ```
 
-- The CLI pays on Base, Polygon, Ethereum, Arbitrum or BNB Chain. USDC and USDT are sent directly where the chain accepts them. Any other token is swapped to the chain's preferred stablecoin (USDC, or USDT on BNB) with a 5% slippage floor.
+- The CLI pays on Base, Polygon, Ethereum, Arbitrum or BNB Chain. USDC and USDT are sent directly where the chain accepts them. Any other token is swapped to the chain's preferred stablecoin (USDC, or USDT on BNB), normally for exactly the top-up amount while spending at most 5% more than quoted. Where an exact buy isn't available, the swap can deliver up to 5% less and you're credited what arrives.
 - The agent can do the same in chat ("Top up my LLM credits with $25 using USDT on Polygon") and reports the balance, including grants and when they expire ("How many LLM credits do I have left?"). On the web, use [bankr.bot/terminal/llm?tab=credits](https://bankr.bot/terminal/llm?tab=credits).
 - **Expiring grants:** promotional or developer grants can carry an expiry. What you can spend is the purchased pool plus unexpired grants. Usage draws on grants first, soonest-expiring first, then the pool, and expired grants drop off on their own.
 
@@ -221,8 +221,12 @@ curl -X POST https://llm.bankr.bot/v1/images/generations \
 | `402 insufficient_credits` | The balance, after unsettled usage, is $0. Run `bankr llm credits add 25` or enable auto top-up. |
 | `402 daily_budget_exceeded` | The daily spend budget is used up. Wait for the window or raise the cap; a top-up won't help. |
 | `400 unsupported_model` | Unknown model ID. Check `bankr llm models`. |
+| `400 context_length_exceeded` | The prompt is too long for the model's context window. Trim it or pick a model with a larger window; other providers aren't tried. |
+| `400 content_filter` | The provider's content policy refused the request. |
 | `410 model_removed` | Switch to the replacement named in the message. |
 | `429 rate_limit_error` | More than 60 requests a minute from one key or one IP. |
+| `429 rate_limit_exceeded` | The upstream provider is rate limiting. Wait the `Retry-After` seconds (at most 60). |
+| `502 provider_error` | The upstream provider failed or rejected the gateway's credentials. Retry, or use another model. |
 | `503 provider_unavailable` | No provider is serving the model right now. Retry, or use another model. |
 
 Privacy-tier errors are listed under [Privacy Tiers](#privacy-tiers).
