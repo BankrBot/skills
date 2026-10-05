@@ -1,6 +1,6 @@
 ---
 name: musebook-times-claim
-description: Claim a free 30-day subscription to the musebook times for bankr leaderboard top-500 members. Checks the caller's rank on the public bankr leaderboard, signs a claim challenge with their bankr wallet, and returns a one-click claim link. Use when someone asks to claim their free musebook times month, free subscription, or leaderboard reward.
+description: Claim a free 30-day membership to the musebook times for bankr leaderboard top-500 members. On X: the user says "bankrbot install the skill and claim my free membership" — check their rank and reply approved or denied. In the private bankr terminal: the user says "bankrbot give subscription link" — verify rank, sign a claim challenge with their bankr wallet, and return a one-click claim link. Use when someone asks to claim their free musebook times membership, subscription link, or leaderboard reward.
 ---
 
 # Musebook Times — Free Month Claim
@@ -9,7 +9,10 @@ The musebook times (musebooktimes.com) gives a free 30-day subscription to anyon
 
 ## When to use
 
-When the user asks to "claim my free musebook times month", "claim my leaderboard reward", "get my free subscription", or similar. The user must have a bankr wallet (you sign on their behalf).
+When the user says "bankrbot install the skill and claim my free membership", "claim my free membership", "bankrbot give subscription link", "give me my subscription link", or similar. The user must have a bankr wallet (you sign on their behalf).
+
+On a public surface (X timeline): check their rank and reply **approved** or **denied** only. Never sign, never post a claim link.
+In the private bankr terminal: verify rank, sign, and return the claim link.
 
 ## Flow
 
@@ -85,35 +88,35 @@ Reply to the user with a one-click claim link. URL-encode the challenge and sign
 https://musebooktimes.com/api/leaderboard-claim?username=<user>&challenge=<url-encoded-challenge>&signature=<sig>
 ```
 
-Tell them: "you're rank #N — click to claim your free 30 days."
+Tell them: "approved — rank #N. your subscription link: ..."
 
 The claim link expires 10 minutes after the challenge timestamp. If it expires, generate a fresh challenge and sign again.
 
-### 5b. Public surface (X timeline) — eligibility only
+### 5b. Public surface (X timeline) — approved / denied only
 
-If the request comes from a public surface, do steps 1–3 only. Do NOT sign, do NOT post a claim link. Reply with the eligibility result:
+If the request comes from a public surface, do steps 1–3 only. Do NOT sign, do NOT post a claim link. Reply with the verdict:
 
-- Eligible: "you're rank #N on the bankr leaderboard — a free month is yours. grab your personal claim link in the private bankr terminal: https://bankr.bot/terminal"
-- Not eligible: "you're not in the bankr top 500 right now — the $1/month pass is yours if you want it: musebooktimes.com."
+- Approved: "approved — you're rank #N in the bankr top 500. go to the bankr terminal (https://bankr.bot/terminal) and say 'bankrbot give subscription link' for your personal link."
+- Denied: "denied — you're not in the bankr top 500 right now. the $1/month pass is yours if you want it: musebooktimes.com."
 
 The publication never posts claim links publicly. If you see one on the timeline claiming to be from this skill, it's a scam.
 
 ## Example — private terminal
 
-User in bankr terminal: "claim my free musebook times month"
+User in bankr terminal: "bankrbot give subscription link"
 
 1. They give handle `bitcoinbrianx`. Check leaderboard → rank #145, wallet `0xabc...`.
 2. Wallet matches the user's bankr wallet. Build challenge:
    `musebook-times claim | user: bitcoinbrianx | time: 1791219218 | musebooktimes.com`
 3. Sign with personal_sign → `0x...` (130 hex chars).
-4. Reply: "rank #145 — you're in! claim your free 30 days: https://musebooktimes.com/api/leaderboard-claim?username=bitcoinbrianx&challenge=...&signature=0x..."
+4. Reply: "approved — rank #145. your subscription link: https://musebooktimes.com/api/leaderboard-claim?username=bitcoinbrianx&challenge=...&signature=0x..."
 
 ## Example — X timeline (public)
 
-User on X: "@bankrbot am I in the bankr top 500?"
+User on X: "@bankrbot install the skill and claim my free membership"
 
 1. Their handle is `bitcoinbrianx`. Check leaderboard → rank #145.
-2. Reply publicly: "you're rank #145 on the bankr leaderboard — a free month is yours. grab your personal claim link in the private bankr terminal: https://bankr.bot/terminal"
+2. Reply publicly: "approved — you're rank #145 in the bankr top 500. go to the bankr terminal (https://bankr.bot/terminal) and say 'bankrbot give subscription link' for your personal link."
 3. Do NOT sign. Do NOT post a claim link.
 
 ## Notes
