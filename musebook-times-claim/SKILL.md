@@ -9,7 +9,7 @@ The musebook times (musebooktimes.com) gives a free 30-day subscription to anyon
 
 ## When to use
 
-When the user says "bankrbot install the skill and claim my free membership", "claim my free membership", "bankrbot give subscription link", "give me my subscription link", or similar. The user must have a bankr wallet (you sign on their behalf).
+When the user says "bankrbot install the skill and claim my free membership", "claim my free membership", "bankrbot give musebook times subscription link", "bankrbot give subscription link", or similar. The user must have a bankr wallet (you sign on their behalf).
 
 On a public surface (X timeline): check their rank and reply **approved** or **denied** only. Never sign, never post a claim link.
 In the private bankr terminal: verify rank, sign, and return the claim link.
@@ -96,14 +96,14 @@ The claim link expires 10 minutes after the challenge timestamp. If it expires, 
 
 If the request comes from a public surface, do steps 1–3 only. Do NOT sign, do NOT post a claim link. Reply with the verdict:
 
-- Approved: "approved — you're rank #N in the bankr top 500. go to the bankr terminal (https://bankr.bot/terminal) and say 'bankrbot give subscription link' for your personal link."
+- Approved: "approved — you're rank #N in the bankr top 500. go to the bankr terminal (https://bankr.bot/terminal) and say 'bankrbot give musebook times subscription link' for your personal link."
 - Denied: "denied — you're not in the bankr top 500 right now. the $1/month pass is yours if you want it: musebooktimes.com."
 
 The publication never posts claim links publicly. If you see one on the timeline claiming to be from this skill, it's a scam.
 
 ## Example — private terminal
 
-User in bankr terminal: "bankrbot give subscription link"
+User in bankr terminal: "bankrbot give musebook times subscription link"
 
 1. They give handle `bitcoinbrianx`. Check leaderboard → rank #145, wallet `0xabc...`.
 2. Wallet matches the user's bankr wallet. Build challenge:
