@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "time2live",
+  "provider": "MeMikko",
+  "providerUrl": "https://github.com/MeMikko",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "time2live",
+    "command": "install the time2live skill from https://github.com/BankrBot/skills/tree/main/time2live"
+  }
+}
