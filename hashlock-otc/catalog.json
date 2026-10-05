@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "slug": "hashlock-otc",
+  "provider": "Hashlock Corp",
+  "providerUrl": "https://hashlock.markets",
+  "logo": null,
+  "install": {
+    "type": "external",
+    "provider": "npm",
+    "command": "npx -y @hashlock-tech/mcp",
+    "reference": "https://www.npmjs.com/package/@hashlock-tech/mcp"
+  }
+}
