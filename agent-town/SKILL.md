@@ -2,7 +2,7 @@
 name: agent-town
 description: Simulate persistent people in an Earth-based scenario day by day, with needs, emotions, relationships, choices, interactions, and auditable outcomes.
 tags: [simulation, multi-agent, scenarios, agent-based-modeling]
-version: 5
+version: 6
 visibility: public
 ---
 
@@ -39,23 +39,18 @@ For **each day**:
 1. Give every active agent a daily schedule and at least one recorded decision/action. Record agent ID, place/time, prior needs and emotions, goal, perceived options, chosen action, reason inputs, and resulting state changes.
 2. Process actual identified agent-to-agent interactions, normally at least one per active agent. Record both IDs, topic or exchanged item, state before/after, and any trust or resource change. A conversation may be generated from templates tied to this record. Label such lines **synthetic dialogue derived from simulated actions**, not an LLM transcript or real human speech.
 3. Apply world constraints and scheduled or rule-triggered events, then calculate the complete daily world state. Record counts, flows, costs, successes/failures, emotion and relationship changes, and outcome measures relevant to the scenario.
-4. Append the day's individual actions, interactions, triggered events, and aggregate state to a JSONL or JSON audit file. Save a separate daily-story index with at least two agent IDs and their exact source record IDs for **every** day. Do not fill gaps later with imagined details.
+4. Append the day's individual actions, interactions, triggered events, and aggregate state to a JSONL or JSON audit file. Save a daily-highlights index with the most consequential changes and their exact source record IDs. Include agent IDs when a person's decision or interaction explains the day's outcome. Do not fill gaps later with imagined details.
 
 At the end of each day, assert that the set of active IDs matches the carried-forward roster after any explicitly logged entries/exits, with no duplicates or unexplained replacements. Persist each agent's updated state for the next day and record an ID-linked state transition from day N to day N+1. Verify that every reported agent story follows that same ID through time; a fresh sample of role archetypes each day is not an agent-based run.
 
-**Persist the evidence during the same `execute_cli` call that runs the model.** Bankr may start a new sandbox on the next call; files left only in a temporary `/tmp/sandbox-*` directory are not a durable deliverable. Write the script, configuration, daily summaries, daily-story index, and complete audit into the run's persistent `/runs/.../output/` directory before that call returns. Compress or split a large audit log within the same call so every persisted file is below the platform's per-file limit. Verify the saved files can be read there and that action/interaction counts reconcile. If persistence fails, say the run has no durable full log; do not promise that a later message can retrieve it. A seed alone cannot reproduce a run unless the exact script, configuration, and runtime are also saved.
+**Persist the evidence during the same `execute_cli` call that runs the model.** Bankr may start a new sandbox on the next call; files left only in a temporary `/tmp/sandbox-*` directory are not a durable deliverable. Write the script, configuration, daily summaries, daily-highlights index, and complete audit into the run's persistent `/runs/.../output/` directory before that call returns. Compress or split a large audit log within the same call so every persisted file is below the platform's per-file limit. Verify the saved files can be read there and that action/interaction counts reconcile. If persistence fails, say the run has no durable full log; do not promise that a later message can retrieve it. A seed alone cannot reproduce a run unless the exact script, configuration, and runtime are also saved.
 
 Print a machine-readable execution summary from the code with `requestedAgents`, `completedAgents`, `requestedDays`, `completedDays`, `seed`, `executedAgentDays`, `recordedActions`, `recordedInteractions`, `dailySummary`, and **verified persistent** audit/script/config paths. `executedAgentDays` must be the sum of agents actually processed each day. Inspect the tool result before responding. If only one LLM generated the model and code, say so; **1,000 code-simulated agents are not 1,000 independent LLM calls**. Never claim otherwise. Do not use autonomous wallet actions, trades, or transfers in a simulation.
 
 ## Answer day by day
 
-Give the user the complete timeline for **every simulated day**, in order; do not skip days or replace them with a few milestone rounds. For each day show:
+Give the user a timeline for **every simulated day**, in order; do not skip days or replace them with a few milestone rounds. Keep each day concise: state the one or two developments that mattered most, the causal reason, and the key number or state change. If no important event occurred, say the day was routine and show the main trend rather than inventing drama. Mention a specific agent only when that person's logged decision or interaction illustrates a consequential change. Label any quoted dialogue synthetic and trace it to the log.
 
-- Starting conditions, key agent decisions and interactions, and any rule-triggered event.
-- Counts and measurable changes: who did what, what resources moved, what bottleneck appeared, and how the outcomes changed from the prior day.
-- Two or more named or ID-linked agent stories grounded in that day's audit records. Include short synthetic dialogue only when it can be traced to specific recorded interactions. Mark it as synthetic.
-- An end-of-day state and the causal reason for the change.
-
-For a long run, use a compact but complete line or table row for every day, then give the two record-grounded agent stories for **each** day. Split the answer into numbered parts if needed. Expose verified persistent audit paths or shareable files; a temporary path does not count. Do not say "full detail" when only a summary or a few sample days were returned. Let the user request `Show Agent Town day 7` or `Show agent 42` and answer from the saved audit records, not invented recollection.
+Use one compact line or table row per day, followed by a short overall interpretation. Keep full per-agent actions and interactions in the verified persistent audit for drill-down; do not paste thousands of routine records into the main answer. Expose verified persistent audit paths or shareable files; a temporary path does not count. Let the user request `Show Agent Town day 7` or `Show agent 42` for detailed histories from saved records, not invented recollection.
 
 Conclude with the final outcome, the rules and assumptions most responsible, and one or two alternative assumptions. Distinguish model outcomes from real-world forecasts. For high-stakes questions, use current evidence for factual claims and identify missing data. If you cannot inspect the complete audit file, disclose that limitation instead of asserting detail you did not verify.

@@ -13,6 +13,7 @@
     "Install: `install the agent-town skill from https://github.com/BankrBot/skills/tree/main/agent-town`",
     "Ask: `Start Agent Town: <your question>` — defaults to the same 1,000 Earth-based agents, with persistent needs, emotions, and relationships, carried through 30 days",
     "Optional: add `with 2500 agents for 45 days` to choose the scale",
+    "The answer shows the important change on every day; full agent records remain in the audit file for drill-down",
     "Requires Bankr's code sandbox for a verified multi-agent run; no wallet transaction is needed"
   ],
   "install": {
