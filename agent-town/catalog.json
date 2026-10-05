@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "agent-town",
+  "provider": "Agent Town",
+  "providerUrl": null,
+  "logo": null,
+  "demo": {
+    "title": "agent-town.sh",
+    "language": "bash",
+    "code": "# Run a 1,000-agent simulation of any question\nbankr prompt \"Start Agent Town: What happens if our city makes buses free?\"\n\n# Choose the population and duration\nbankr prompt \"Start Agent Town: Will XYZ crypto project succeed? with 2500 agents for 30 rounds\""
+  },
+  "setup": [
+    "Install: `install the agent-town skill from https://github.com/BankrBot/skills/tree/main/agent-town`",
+    "Ask: `Start Agent Town: <your question>` — defaults to 1,000 simulated agents and 20 rounds",
+    "Optional: add `with 2500 agents for 30 rounds` to choose the scale",
+    "Requires Bankr's code sandbox for a verified multi-agent run; no wallet transaction is needed"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "agent-town",
+    "command": "install the agent-town skill from https://github.com/BankrBot/skills/tree/main/agent-town"
+  }
+}
