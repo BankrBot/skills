@@ -13,6 +13,8 @@ When the user asks to "claim my free musebook times month", "claim my leaderboar
 
 ## Flow
 
+**Public vs private — read this first.** The signed claim link is a bearer voucher: anyone who opens it within 10 minutes gets the free month. NEVER post the claim link in a public reply (X timeline, public chat, quote-post). On a public surface, check eligibility only and send the user to their private bankr terminal for the link. In the private bankr terminal, return the claim link directly.
+
 ### 1. Identify the user
 
 You need their X/Twitter username (without @) or their wallet address (0x...).
@@ -73,7 +75,9 @@ curl -X POST "https://api.bankr.bot/wallet/sign" \
 
 Signing moves no funds. It only proves wallet ownership.
 
-### 5. Return the claim link
+### 5. Return the claim link — PRIVATE SURFACES ONLY
+
+**Only do this step in the private bankr terminal.** Never in a public reply.
 
 Reply to the user with a one-click claim link. URL-encode the challenge and signature:
 
@@ -85,15 +89,32 @@ Tell them: "you're rank #N — click to claim your free 30 days."
 
 The claim link expires 10 minutes after the challenge timestamp. If it expires, generate a fresh challenge and sign again.
 
-## Example
+### 5b. Public surface (X timeline) — eligibility only
 
-User on X: "@bankrbot claim my free musebook times month"
+If the request comes from a public surface, do steps 1–3 only. Do NOT sign, do NOT post a claim link. Reply with the eligibility result:
 
-1. Their handle is `bitcoinbrianx`. Check leaderboard → rank #145, wallet `0xabc...`.
+- Eligible: "you're rank #N on the bankr leaderboard — you've got a free month waiting. open your private bankr terminal and say 'claim my free musebook times month' to get your personal claim link."
+- Not eligible: "you're not in the bankr top 500 right now — the $1/month pass is yours if you want it: musebooktimes.com."
+
+The publication never posts claim links publicly. If you see one on the timeline claiming to be from this skill, it's a scam.
+
+## Example — private terminal
+
+User in bankr terminal: "claim my free musebook times month"
+
+1. They give handle `bitcoinbrianx`. Check leaderboard → rank #145, wallet `0xabc...`.
 2. Wallet matches the user's bankr wallet. Build challenge:
    `musebook-times claim | user: bitcoinbrianx | time: 1791219218 | musebooktimes.com`
 3. Sign with personal_sign → `0x...` (130 hex chars).
 4. Reply: "rank #145 — you're in! claim your free 30 days: https://musebooktimes.com/api/leaderboard-claim?username=bitcoinbrianx&challenge=...&signature=0x..."
+
+## Example — X timeline (public)
+
+User on X: "@bankrbot am I eligible for the free musebook times month?"
+
+1. Their handle is `bitcoinbrianx`. Check leaderboard → rank #145.
+2. Reply publicly: "you're rank #145 on the bankr leaderboard — you've got a free month waiting. open your private bankr terminal and say 'claim my free musebook times month' to get your personal claim link."
+3. Do NOT sign. Do NOT post a claim link.
 
 ## Notes
 
