@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "affixio",
+  "provider": "AffixIO",
+  "providerUrl": "https://www.affix-io.com",
+  "logo": null,
+  "demo": {
+    "title": "affixio-x402.sh",
+    "language": "bash",
+    "code": "# Before bankr x402 deploy or a paid call, attest the host action\nnpx -y @affixio/mcp@0.1.0 probe\n\n# Or via SDK in the handler / agent loop\n# import { AffixIO } from '@affixio/sdk'\n# await affixio.attest({ action: 'bankr.x402.deploy' })\n\nbankr x402 deploy weather"
+  },
+  "setup": [
+    "Install AffixIO MCP: `npx -y @affixio/mcp@0.1.0 probe` (or `npm i affixio` / `@affixio/sdk` for scripts)",
+    "Set `AFFIX_API_KEY` (use `local_operator` for offline host-side proofs)",
+    "Attest before `bankr x402 deploy`, `bankr x402 call`, or any paid x402 spend",
+    "Fail closed on deny or verify failure — do not send PII or raw keys to AffixIO"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "affixio",
+    "command": "install the affixio skill from https://github.com/BankrBot/skills/tree/main/affixio"
+  }
+}
