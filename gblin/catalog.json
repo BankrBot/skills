@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "gblin",
+  "provider": "GBLIN Protocol",
+  "providerUrl": "https://gblin.digital",
+  "logo": "logo.png",
+  "demo": {
+    "title": "gblin.sh",
+    "language": "bash",
+    "code": "# Read the vault: NAV, basket weights, crash shield state\nbankr agent \"Using the gblin skill, what is GBLIN worth right now?\"\n\n# Plan a treasury: operating cash, surplus, mint simulation with live fees\nbankr agent \"Using the gblin skill, plan my wallet: keep 7 days of a 5 USDC daily burn, show what I could park\"\n\n# Mint 25 USDC into GBLIN (two transactions, confirmed one by one)\nbankr agent \"Using the gblin skill, mint GBLIN with 25 USDC\"\n\n# Redeem in kind: ETH, cbBTC and USDC back, no fee\nbankr agent \"Using the gblin skill, redeem all my GBLIN in kind\""
+  },
+  "setup": [
+    "Install: `install the gblin skill from https://github.com/BankrBot/skills/tree/main/gblin`",
+    "Reads are free and need no key: https://gblin.digital/api/x402/treasury-state",
+    "Minting and redeeming send raw transactions on Base (chain ID 8453): enable arbitrary contract calls in the Bankr wallet's Security settings",
+    "The wallet pays its own gas in ETH on Base",
+    "Source and review record: https://github.com/gblinproject/GBLIN-Protocol"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "gblin",
+    "command": "install the gblin skill from https://github.com/BankrBot/skills/tree/main/gblin"
+  }
+}
