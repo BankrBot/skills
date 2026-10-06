@@ -38,7 +38,8 @@ This dev's other coins. Counted. That's it.
 - On Bankr x402 Cloud, the same three calls:
   `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/coin-record`,
   `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/creator-record` and
-  `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/coin-basket` (`upto` $0.10: settles $0.01 a coin asked).
+  `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/coin-basket` ($0.10 a call for up to 10 coins: one cent a coin
+  for a full basket; for fewer coins `/x402/v1/basket` charges exactly $0.01 a coin asked).
 
 ## Paying from the Bankr wallet
 
