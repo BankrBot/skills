@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "panda-financial",
+  "provider": "Panda Financial",
+  "providerUrl": "https://pandafinancial.org",
+  "logo": "logo.png",
+  "demo": {
+    "title": "deposit.sh",
+    "language": "bash",
+    "code": "# What Panda is, what it costs, the vaults\ncurl -s -X POST https://pandafinancial.org/api/agent/tools/get_panda_overview\n\n# Build a $25 vault deposit for your wallet: unsigned, pre-simulated transactions come back\ncurl -s -X POST https://pandafinancial.org/api/agent/tools/build_vault_deposit \\\n  -H 'content-type: application/json' \\\n  -d '{\"wallet\":\"0xYOUR_WALLET\",\"amount_usdc\":\"25\"}'\n# -> steps: [{to, data, value, chainId: 8453}, ...]  sign and send them in order\n\n# Check the position afterwards\ncurl -s -X POST https://pandafinancial.org/api/agent/tools/get_wallet_positions \\\n  -H 'content-type: application/json' -d '{\"wallet\":\"0xYOUR_WALLET\"}'"
+  },
+  "setup": [
+    "Install the skill with the button below (no key, no sign-up)",
+    "Fund your Bankr wallet with USDC and a little ETH for gas on Base",
+    "Say: \"deposit $25 into a Panda vault\" - the skill builds the transactions, you sign them",
+    "Say \"check my Panda positions\" any time; \"earn interest on Morpho\", \"swap\", \"bridge\" and \"my Panda referral code\" also work",
+    "The same tools are an MCP server at https://pandafinancial.org/mcp"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "panda-financial",
+    "command": "install the panda-financial skill from https://github.com/BankrBot/skills/tree/main/panda-financial"
+  }
+}
