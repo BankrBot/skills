@@ -11,11 +11,12 @@
   },
   "setup": [
     "Install: `install the usdctofiat skill from https://github.com/BankrBot/skills/tree/main/usdctofiat`",
-    "Run `npm install` inside the installed skill directory",
+    "Run `npm ci` inside the installed skill directory (pins @usdctofiat/offramp 9.0.0)",
     "Set a Bankr API key with Wallet API write access as `BANKR_API_KEY`; never share a private key",
     "Keep a small Base ETH balance for gas and Base USDC for the cash-out",
     "Every write requires a deterministic preview followed by explicit confirmation in a later turn",
-    "Choose mode explicitly: Fast (0% spread) or Best (Delegate, 10 bps)"
+    "Choose mode explicitly: Fast (0% spread) or Best (Delegate, 10 bps)",
+    "Discover the selected mode with `capabilities`; Cash App is disabled and Wise is excluded by provider policy"
   ],
   "install": {
     "type": "bankr",

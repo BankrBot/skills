@@ -7,10 +7,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "smoke": "node scripts/usdctofiat.mjs capabilities"
+    "smoke": "node scripts/usdctofiat.mjs capabilities",
+    "test": "node --test scripts/usdctofiat.test.mjs"
   },
   "dependencies": {
-    "@usdctofiat/offramp": "7.0.1",
+    "@usdctofiat/offramp": "9.0.0",
     "viem": "^2.38.5"
   }
 }
