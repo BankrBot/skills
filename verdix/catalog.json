@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "verdix",
+  "provider": "Verdix",
+  "providerUrl": "https://api.verdixapi.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "verdix.sh",
+    "language": "bash",
+    "code": "# Check a recipient before sending ($0.02)\nbankr prompt \"Check 0xRECIPIENT with Verdix quick, then send 25 USDC only if it is safe\"\n\n# Same check from the CLI\nbankr x402 call https://api.verdixapi.com/risk/address/quick -X POST -d '{\"address\":\"0xRECIPIENT\"}' --max-payment 0.02\n\n# List screen only, for micro-payments ($0.01, never answers safe)\nbankr x402 call https://api.verdixapi.com/risk/address/lite -X POST -d '{\"address\":\"0xRECIPIENT\"}' --max-payment 0.01\n\n# Before a large or first-time transfer ($0.50)\nbankr prompt \"Run a Verdix deep check on 0xRECIPIENT\""
+  },
+  "setup": [
+    "Install the verdix skill (command below)",
+    "Keep a little USDC on Base in your Bankr wallet: $0.01 to $0.50 per check",
+    "Before a send, say: Check 0x... with Verdix first",
+    "danger means don't send; caution means look at the reasons first; a 503 is never charged"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "verdix",
+    "command": "install the verdix skill from https://github.com/BankrBot/skills/tree/main/verdix"
+  }
+}
