@@ -1,10 +1,9 @@
 # Leg 3 — proving a settlement, and the exact limits of the proof
 
-`verify-settlement.mjs` needs no npm package: include its Node-only
-`scripts/lib/pins.mjs` and `scripts/lib/local-files.mjs` helpers and run it
-before approving any install. The separate payment-preview helper needs the
-approved locked dependencies for cryptographic recovery. A local signature check is
-not evidence of settlement, Bankr policy permission, submission or delivery.
+`verify-settlement.mjs` requires the approved locked `@voidly/session@1.3.0`
+installation (`npm ci --ignore-scripts`). It delegates receipt verification and
+bounded file reads to that public SDK. A local signature check is not evidence
+of settlement, Bankr policy permission, submission or delivery.
 
 ## The nonce-binding rule
 
@@ -62,7 +61,7 @@ bound applies to bytes actually read, not only a prior pathname size check.
    No script here used to read `transactionHash` at all, so an operator
    handing back a valid-but-unrelated receipt got a PROVEN block printing a
    transaction hash that appeared nowhere in the evidence actually checked.
-4. **Unanimity.** Every operator must return a byte-identical receipt, hashed
+4. **Unanimity.** Every operator must return the same canonical receipt document, hashed
    over a fully recursive, key-sorted canonicalization (logs included). An
    unanswered endpoint fails the whole run — an unanswered operator is a
    divergent operator. Unanimity or nothing.
@@ -183,7 +182,7 @@ line and in its exit code:
 $ … --rpc https://base.gateway.tenderly.co --rpc https://developer-access-mainnet.base.org --allow-unpinned-rpc
 PROVEN-UNPINNED  (exit 2 — operators you chose, not the reviewed allowlist)
   …
-  quorum:        2/2 agreed — base.gateway.tenderly.co + developer-access-mainnet.base.org, receipts byte-identical
+  quorum:        2/2 agreed — base.gateway.tenderly.co + developer-access-mainnet.base.org, canonical receipt documents agree
   caution:       developer-access-mainnet.base.org — NOT on the reviewed allowlist (--allow-unpinned-rpc); this proof is only as strong as those operators
 ```
 
@@ -242,9 +241,7 @@ and bodies over 4 MiB.
 
 - **Not the grant's terms — unless you pass `--grant`.** The nonce binds the
   transaction to the grant HASH. With `--grant ./keep.grant.json` the script
-  recomputes that hash from the envelope (byte-for-byte the SDK's
-  `envelopeHash`, pinned by a test that compares the two over random
-  envelopes), reads payer and payee off the grant — the `from` and `to` the
+  uses the SDK to recompute that hash from the complete envelope, reads payer and payee off the grant — the `from` and `to` the
   SDK's authorization builders sign — and requires the settled amount to sit
   inside the grant's price band `price_min_amount..price_max_amount` (the
   builders sign the floor; the SDK's provider-side binding accepts the whole
