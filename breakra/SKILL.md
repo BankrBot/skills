@@ -7,7 +7,7 @@ description: Check whether an OpenAPI 3.0 change breaks API consumers. Send the 
 
 Breakra compares two OpenAPI 3.0 JSON contracts and tells you which changes may break existing callers, where they are, and what to do about them. Results are deterministic: the same two contracts always give the same `analysis_id` and the same findings.
 
-- **Endpoint:** `POST https://x402.bankr.bot/0xb98f0de777eea8c481b64e33d3e0066cea38fa91/breakra-analyze`
+- **Endpoint:** `POST https://x402.bankr.bot/0xb98f0de777eea8c481b64e33d3e0066cea38fa91/breakra-analyze` (also `POST https://breakra.dev/api/analyze`, which forwards to it: same terms, same result)
 - **Price:** $0.02 USDC on Base (x402 v2, scheme `exact`, network `eip155:8453`, amount `20000`). **Only a 200 is charged.** Every error (4xx/5xx) is free.
 - **Contract:** [`openapi.json`](https://breakra.dev/openapi.json). Example request and response: [`examples/`](https://github.com/danbuildss/breakra/tree/main/examples).
 
