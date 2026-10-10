@@ -15,9 +15,12 @@ gas there.
 **It is real money.** "Paper" is the brand, not a practice mode. USDC
 deposited to Papertrade is real, and a liquidation loses it. If the user
 says "paper trade" or "practice" and means a simulation, tell them
-Papertrade uses real USDC and open nothing. If they ask for a leveraged
-BTC or ETH trade without naming a venue, don't pick Papertrade on your
-own — ask which venue they mean.
+Papertrade uses real USDC and open nothing.
+
+Use Papertrade only when the user names it. A leveraged BTC or ETH
+order that names no venue follows Bankr's usual perps routing; if it
+asks for more than 50x, ask which venue they mean. Never pick
+Papertrade on your own.
 
 ## The one hard rule: native tools only
 
@@ -73,8 +76,8 @@ enabled for this wallet yet: say so in one line and stop.
   2. An impact haircut on the gain. It's largest on small moves and
      shrinks as the move grows.
   3. A 2% win fee on what's left.
-- The preview from the open and close tools shows these. Quote the
-  tool's numbers; don't recompute them.
+- The open tool's preview and the close tool's result show these.
+  Quote the tool's numbers; don't recompute them.
 
 ## Liquidation
 
@@ -144,8 +147,9 @@ comes back and follow its instruction.
 
 ## When it isn't available
 
-- Papertrade actions are refused from X, Farcaster and Telegram replies,
-  and from automations. Point the user to Bankr chat on the web.
+- Papertrade writes (opens, closes, deposits, withdrawals and staking)
+  are refused from X, Farcaster and Telegram replies, and from
+  automations. Point the user to Bankr's terminal chat.
 - Wallets connected from outside Bankr (wallet mode) can't use it.
 - Papertrade can pause deposits, opens or other actions at any time.
   The tools report the pause; relay it. When Bankr itself stops new
