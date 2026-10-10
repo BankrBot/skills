@@ -14,7 +14,7 @@ These are enforced where transactions are signed, so they cover chat, the agent,
 | Per-transaction limit | $500 | Rejects any single transaction priced above the limit |
 | Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%) |
 | Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown |
-| Allow NFT transfers | On, 5 per rolling 24h | Off blocks every NFT transfer; on allows a set count (1–1,000). Raw calls that directly transfer an ERC-721 or ERC-1155 count too. No timer |
+| Allow NFT transfers | On, 5 per rolling 24h | Off blocks NFT sends and direct ERC-721/1155 transfer calls, raw ones included; on allows a set count (1–1,000). Sales and NFTs moved inside another contract call aren't counted. No timer |
 | Response channels | All on | Per channel (X, Farcaster, Telegram). Bankr stops replying on a disabled channel; Telegram `/start` and wallet linking stay live |
 
 USD limits accept `1` to `1,000,000`. `0` is rejected, so disable the limit instead. The recipient cooldown is `0` to `168` hours (default 24), and re-adding a removed recipient restarts it.
