@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "onchainhoodies",
+  "provider": "OnChainHoodies",
+  "providerUrl": "https://onchainhoodies.xyz",
+  "demo": {
+    "title": "Activate a Hoodie",
+    "language": "text",
+    "code": "@bankrbot activate my Hoodie #351"
+  },
+  "setup": [
+    "Own an OnChainHoodie on Robinhood Chain.",
+    "Use your Bankr wallet to inspect or activate your Hoodie.",
+    "Activation costs 2,500 OCH at the current contract setting. Bankr can attempt to acquire missing OCH using available ETH, subject to its security controls."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "onchainhoodies",
+    "command": "install the onchainhoodies skill from https://github.com/BankrBot/skills/tree/main/onchainhoodies"
+  }
+}
