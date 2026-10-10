@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">Signalbound Neon Visor Logo</title>
+  <desc id="desc">A premium neon agent visor logo for Signalbound.</desc>
+  <defs>
+    <radialGradient id="logoBg" cx="50%" cy="44%" r="70%">
+      <stop offset="0" stop-color="#151949"/>
+      <stop offset="0.45" stop-color="#05060d"/>
+      <stop offset="1" stop-color="#000000"/>
+    </radialGradient>
+    <linearGradient id="logoShell" x1="250" y1="180" x2="1350" y2="540" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff28c9"/>
+      <stop offset="0.22" stop-color="#902aff"/>
+      <stop offset="0.5" stop-color="#1531ff"/>
+      <stop offset="0.78" stop-color="#8f2dff"/>
+      <stop offset="1" stop-color="#ff2678"/>
+    </linearGradient>
+    <linearGradient id="logoEyes" x1="420" y1="340" x2="1180" y2="418" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8dffff"/>
+      <stop offset="0.48" stop-color="#00d9ff"/>
+      <stop offset="1" stop-color="#00fff0"/>
+    </linearGradient>
+    <linearGradient id="logoLower" x1="340" y1="475" x2="1260" y2="625" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#812bff"/>
+      <stop offset="0.5" stop-color="#224aff"/>
+      <stop offset="1" stop-color="#e02fff"/>
+    </linearGradient>
+    <filter id="logoPinkGlow" x="-18%" y="-30%" width="136%" height="160%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1 0 0 0 0 .05 0 0 0 0 .72 0 0 0 .7 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="logoCyanGlow" x="-35%" y="-90%" width="170%" height="280%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .02 0 0 0 0 .86 0 0 0 0 1 0 0 0 .86 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="760" fill="url(#logoBg)"/>
+  <path d="M282 317c0-72 58-130 130-130h776c72 0 130 58 130 130v151c0 72-58 130-130 130H412c-72 0-130-58-130-130V317Z" fill="#010206"/>
+
+  <g filter="url(#logoPinkGlow)">
+    <path d="M197 245c0-52 42-94 94-94h151v148H279c-16 0-29 13-29 29v132c0 17 13 30 29 30h163v148H291c-52 0-94-42-94-94V245Z" fill="#ff24b8"/>
+    <path d="M1158 151h151c52 0 94 42 94 94v299c0 52-42 94-94 94h-151V490h163c16 0 29-13 29-30V328c0-16-13-29-29-29h-163V151Z" fill="#ff248f"/>
+  </g>
+
+  <path d="M419 151h740v148H419V151Z" fill="url(#logoShell)"/>
+  <path d="M423 151h730l-24 54H448l-25-54Z" fill="#ff77e2" opacity=".4"/>
+  <path d="M425 491h276l-82 112H492L376 491h49Z" fill="url(#logoLower)"/>
+  <path d="M899 491h325L1108 603H981l-82-112Z" fill="url(#logoLower)"/>
+
+  <path d="M278 299h1044v166c0 37-30 67-67 67H345c-37 0-67-30-67-67V299Z" fill="#010102"/>
+  <path d="M306 298h988v18H306v-18Z" fill="#3b2cff" opacity=".72"/>
+  <path d="M328 532h356l-31 47H378l-50-47Zm588 0h356l-50 47H947l-31-47Z" fill="#000000" opacity=".32"/>
+
+  <g filter="url(#logoCyanGlow)">
+    <path d="M426 369h302l20 38-20 38H454l-48-38 20-38Z" fill="url(#logoEyes)"/>
+    <path d="M872 369h302l20 38-48 38H872l-20-38 20-38Z" fill="url(#logoEyes)"/>
+  </g>
+  <path d="M443 382h268l10 19H431l12-19Zm446 0h268l12 19H879l10-19Z" fill="#ffffff" opacity=".24"/>
+
+  <path d="M151 356h46v75h-46v-75Zm1252 0h46v75h-46v-75Z" fill="#00dbff"/>
+  <path d="M151 460h46v72h-46v-72Zm1252 0h46v72h-46v-72Z" fill="#ff205d"/>
+</svg>

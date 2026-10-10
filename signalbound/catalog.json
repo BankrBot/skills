@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "signalbound",
+  "provider": "Signalbound",
+  "providerUrl": "https://signalbound.art",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "deploy-collection.sh",
+    "language": "bash",
+    "code": "# Describe the collection once - free, no key, nothing signed yet.\ncurl -s -X POST https://api.signalbound.art/collections/prepare \\\n  -H 'content-type: application/json' \\\n  -d '{\"name\":\"Nova Nodes\",\"owner\":\"0xYOUR_WALLET\",\"chainId\":8453,\"maxSupply\":2222,\"mintPriceEth\":\"0.001\",\"maxMintPerWallet\":20,\"maxCreatorMints\":20,\"artStyle\":\"creature\",\"agentBaseURI\":\"https://agents.example.com/nova/\"}'\n\n# The reply hands back creationBytecode, constructorArgs, params and verify.\n# Send them as one creation transaction: no 'to', no value, on the chainId it\n# echoed. Then read owner() back and verify with the reply's verify block.\n# Every token resolves to an ERC-8004 registration whose RESTAP endpoint is\n# <agentBaseURI><id> - or an honest empty services list when none was given.\n# Each token also answers ERC-8048 metadata(id, key) reads on-chain, and\n# traits(id) publishes the trait values each token's art was drawn from."
+  },
+  "setup": [
+    "Install: `install the signalbound skill from https://github.com/BankrBot/skills/tree/main/signalbound`",
+    "Ask for name, supply, mint price, per-wallet cap, creator reserve and chain - and the wallet that will own the collection",
+    "Optional: `agentBaseURI`, where each token's agent is served; every token ships an ERC-8004 registration with an optional RESTAP endpoint, plus an ERC-8048 (ERC-721T) agent profile readable on-chain",
+    "Deploy the pack's creation bytecode with no `to` and no value, read `owner()` back, then verify with the pack's `verify` fields"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "signalbound",
+    "command": "install the signalbound skill from https://github.com/BankrBot/skills/tree/main/signalbound"
+  }
+}
