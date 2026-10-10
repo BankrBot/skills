@@ -4,9 +4,9 @@ description: |
   The Signalbound NFT collection skill. Deploy a fixed-supply ERC-721 collection — name,
   symbol, mint price, max supply, mints per wallet, creator reserve, royalties, hosted
   or on-chain art — from compiled bytecode on any EVM chain, then verify the contract on
-  the explorer, mint from it, and read its state back. Every token is an agent NFT: an
-  ERC-8004 registration document with an optional RESTAP endpoint, plus an ERC-8048
-  (ERC-721T) agent profile readable on-chain, and every token publishes the traits its art
+  the explorer, mint from it, and read its state back. Every token is an agent NFT: ERC-721
+  metadata carrying an optional RESTAP service entry, plus an ERC-8048 (ERC-721T) agent
+  profile readable on-chain, and every token publishes the traits its art
   was drawn from. Use when a user asks to create or launch an NFT collection, verify a
   deployed contract, mint from a collection, or read what a collection contract says.
 version: 2.2.0
@@ -27,8 +27,8 @@ metadata:
 You can deploy a real ERC-721 collection for someone else: their name, their supply, their
 mint price, their wallet owning it. You never compile anything — Signalbound publishes the
 compiled contract, and you describe the collection and sign the deploy it hands back.
-Every token is also an agent NFT: an ERC-8004 registration document with an optional
-RESTAP endpoint, plus an ERC-8048 (ERC-721T) agent profile readable straight from the
+Every token is also an agent NFT: ERC-721 metadata carrying an optional RESTAP service
+entry, plus an ERC-8048 (ERC-721T) agent profile readable straight from the
 contract, so the collection deploys ready for agents to reach and for indexers to read.
 
 This file is canonical at `https://signalbound.art/skill.md`. A copy in the source
@@ -75,7 +75,7 @@ back to you before you sign.
 | `contractURI` | collection-level metadata (OpenSea reads it); optional |
 | `royaltyReceiver` + `royaltyBps` | EIP-2981, ≤ 10000 bps; defaults to the owner, `0` = off |
 | `artStyle` + `artSeed` | on-chain art mode: `0` creature, `1` mosaic, `2` horizon |
-| `description` | optional; what every token's agent registration says, see *Agent NFTs* |
+| `description` | optional; what every token's agent document says, see *Agent NFTs* |
 | `agentBaseURI` | optional; where each token's agent is served, see *Agent NFTs* |
 | `chainId` | not a constructor argument — prepare echoes it so you deploy on the right chain |
 
@@ -106,14 +106,14 @@ art, say so instead of inventing a URL.
 
 **Hosted metadata (`baseURI` given).** `tokenURI(id)` becomes `<baseURI><id>.json`, so the
 files must be named `1.json`, `2.json`, … under the base URL — and each file must be the
-registration document described in *Agent NFTs*, because that is what a marketplace or an
+document described in *Agent NFTs*, because that is what a marketplace or an
 agent fetches from that URL. Any host works: your own storage, IPFS (`ipfs://…/` is
 accepted), a static site. Use this mode when you can generate or upload images. The base
 URI may be empty at deploy and set later with `setBaseURI` — that is the reveal.
 
 **On-chain art (no `baseURI`).** The contract renders the token itself: a 16×16 mirrored
 pixel image, deterministic from `artSeed` and the token id, carried as the `image` field
-of the token's registration document. Three styles: `0` creature (body, eyes, one of four
+of the token's metadata document. Three styles: `0` creature (body, eyes, one of four
 extras, a pattern), `1` mosaic, `2` horizon (gradient sky, sun, stars, hills). No hosting,
 no images to upload, works immediately — and it is what you fall back to when the
 description ("high-resolution portraits with a painted backdrop for every token") is
@@ -123,18 +123,16 @@ Honesty rule: if you are deploying in on-chain mode, tell the user the art is th
 contract's generative render and that `setBaseURI` swaps in their own art later. A
 baseURI that 404s is worse than an honest fallback.
 
-## Agent NFTs: ERC-8004 registration, RESTAP endpoints
+## Agent NFTs: RESTAP endpoints, ERC-8048 profiles
 
 Every token this contract mints is an agent identity, not only a picture. In on-chain
-mode `tokenURI(id)` answers with `data:application/json;base64,<document>` — an ERC-8004
-registration the contract writes itself:
+mode `tokenURI(id)` answers with `data:application/json;base64,<document>` — ordinary
+ERC-721 metadata the contract writes itself, carrying the token's service entry:
 
 ```json
 {
-  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Nova Nodes #7",
   "description": "Nova Nodes — agent NFT collection.",
-  "image": "data:image/svg+xml;base64,…",
   "attributes": [
     { "trait_type": "style", "value": "creature" },
     { "trait_type": "background", "value": "azure" },
@@ -144,12 +142,24 @@ registration the contract writes itself:
     { "trait_type": "mouth", "value": "small" },
     { "trait_type": "accessory", "value": "antenna" }
   ],
+  "image": "data:image/svg+xml;base64,…",
   "services": [
     { "name": "RESTAP", "endpoint": "https://agents.example.com/nova/7", "version": "0.1.4-beta" }
   ]
 }
 ```
 
+- **The document carries no ERC-8004 `type` field, on purpose.** A marketplace that sees
+  `#registration-v1` treats the token as an agent registration and renders that
+  document's own status flags — whether it is active, whether it takes paid requests —
+  *in place of* `attributes`, so every art trait is then read but never listed. An
+  ERC-8004 agent NFT with visible traits has to keep the registration out of `tokenURI`,
+  which is exactly what the agent collections on marketplaces do. The agent layer is the
+  ERC-8048 profile below, read straight from the contract instead of inferred from this
+  document. Do not add `type` back to hosted files either: it costs the traits and buys
+  nothing.
+- **`attributes` is written before `image`.** The SVG data URI is the largest thing in
+  the document, so a reader that caps a response still reaches the traits.
 - **`agentBaseURI`** is where each token's agent is served: token `7`'s endpoint is
   `<agentBaseURI><id>`. A [RESTAP](https://github.com/nxt3d/restap) client takes it from
   there — `/.well-known/restap.json` for discovery, `POST /talk` to converse,
@@ -158,21 +168,21 @@ registration the contract writes itself:
   with `setAgentBaseURI`.
 - **No `agentBaseURI` ⇒ `"services": []`.** An endpoint that does not answer is worse
   than none: pass a base URL only where the user's agent is actually served.
-- **`description`** is the registration's `description` — optional prepare field and
+- **`description`** is the document's `description` — optional prepare field and
   constructor argument, `setAgentDescription` later. Left empty at deploy, the contract
   writes `An AI agent in the <name> collection.`, so a collection described with a name
-  alone still ships a complete registration.
+  alone still ships a complete document.
 - The document is built from the name, the description and the base URI, so `"`, `\` and
   control characters are refused before anything is signed: prepare answers `400` naming
   the field, and the contract reverts with `InvalidMetadataString`.
 - Hosted mode serves the creator's `1.json` files instead, and each file must carry this
-  same document — same `type`, same `services` entry, same version. RESTAP compatibility
+  same document — same keys, same `services` entry, same version. RESTAP compatibility
   is the metadata format; running a live `/talk` endpoint is the agent owner's job, not
   the contract's.
 
 ### The agent profile: ERC-8048 (ERC-721T)
 
-The registration document is what a marketplace fetches; the agent profile is what a
+The metadata document is what a marketplace fetches; the agent profile is what a
 contract reader sees without fetching anything — an [ERC-8048](https://eips.ethereum.org/EIPS/eip-8048)
 key/value surface per token, [ERC-721T](https://github.com/nxt3d/721t)'s reserved keys and
 all:
@@ -185,7 +195,7 @@ all:
   written per token, so every minted token already carries a profile with no per-token
   write and no extra gas at mint:
   - `metadata(id, "context")` — the agent's description (`agentDescription`, or the same
-    `An AI agent in the <name> collection.` the registration document writes);
+    `An AI agent in the <name> collection.` the metadata document writes);
   - `metadata(id, "endpoint[restap]")` — `<agentBaseURI><id>`, empty when no base was set.
 - **Writes:** `setMetadata(id, key, value)` stores raw bytes and emits `MetadataSet`.
   Keys are lowercase and case-sensitive; the reserved ones are `context`,
@@ -205,7 +215,7 @@ marketplace-ready `attributes`, from the same hash, so the two cannot disagree.
 
 - **`traits(id)`** answers `(string[] names, uint8[] values)` and reverts with
   `ERC721NonexistentToken` for a token that was never minted.
-- **`attributes`** in the registration spells those numbers out in words — `"azure"`,
+- **`attributes`** in that document spells those numbers out in words — `"azure"`,
   not `7` — with `style` first so a reader always knows which table the rest came from.
 - The tables differ per style because the styles genuinely vary: **creature** has
   `background`, `body`, `pattern`, `eyes`, `mouth`, `accessory`; **mosaic** has
@@ -373,7 +383,7 @@ mintPriceEth:"0.001", maxMintPerWallet:20, maxCreatorMints:20, artStyle:"creatur
 agentBaseURI:"https://agents.example.com/nova/"}` (symbol derived `NOVA`, description
 defaulted to `Nova Nodes — agent NFT collection.`, owner = the signing wallet) → deploy
 with no value → read back the rules → verify with the pack's fields → report the address,
-the explorer link, and that token `1`'s registration points RESTAP clients at
+the explorer link, and that token `1`'s document points RESTAP clients at
 `https://agents.example.com/nova/1`.
 
 | What a user says | What you do |
@@ -383,7 +393,7 @@ the explorer link, and that token `1`'s registration points RESTAP clients at
 | "Mint 3 for me" | `mint(3)` with exactly 3 × mint price attached |
 | "What has minted so far?" | read `totalSupply()` and `minted(<address>)` |
 | "Art is ready now, hosted at https://cdn.example.com/nova/" | owner calls `setBaseURI("https://cdn.example.com/nova/")`; files must be `1.json`, `2.json`, … |
-| "The agents are served at https://agents.example.com/nova/" | owner calls `setAgentBaseURI("https://agents.example.com/nova/")`; token `1`'s registration points there |
+| "The agents are served at https://agents.example.com/nova/" | owner calls `setAgentBaseURI("https://agents.example.com/nova/")`; token `1`'s document points there |
 | "Make it 0.002 ETH now" | owner calls `setMintPrice`; the supply caps cannot change |
 | "Pause minting while we fix the site" | owner calls `setMintPaused(true)` |
 | "Who owns it?" | read `owner()` — if it is not the user's wallet, say so plainly |
