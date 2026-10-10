@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "papertrade",
+  "provider": "Papertrade",
+  "providerUrl": "https://papertrade.xyz",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "papertrade-session.txt",
+    "language": "text",
+    "code": "You:   long BTC 100x with $150 on papertrade\nBankr: Long BTC on Papertrade (real USDC): $150 margin at 100x = $15,000\n       position. Entry ~$112,840, liquidation ~$111,770 (-0.95%).\n       No open fee, no funding; a win pays a 2% fee plus an impact\n       haircut. Funded with ~152.40 USDC from Base (1 USDC first-time\n       activation). A liquidation loses the whole $150. Reply yes to place it.\nYou:   yes\nBankr: Opened a long on BTC at 100x. Margin $150, entry $112,846,\n       liquidation $111,774. Ask me to close it any time.\n\n— later —\nYou:   close my papertrade BTC and stake the PAPER\nBankr: Closed at -$40. That loss minted PAPER, now staked; claimed\n       rewards land in your Papertrade balance as USDC."
+  },
+  "setup": [
+    "Install the skill with the button below — Bankr's Papertrade tools work without it; the skill adds the venue's rules",
+    "Hold USDC on Base, Arbitrum, Polygon or Ethereum in your Bankr wallet (first deposit 11.20 USDC or more)",
+    "Say: \"long BTC 100x with $150 on papertrade\" — you get a preview with the liquidation price, then reply yes",
+    "Papertrade is real money: a liquidation loses the full margin, and Bankr caps leverage at 100x"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "papertrade",
+    "command": "install the papertrade skill from https://github.com/BankrBot/skills/tree/main/papertrade"
+  }
+}
