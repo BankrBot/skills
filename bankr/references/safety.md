@@ -14,13 +14,14 @@ These are enforced where transactions are signed, so they cover chat, the agent,
 | Per-transaction limit | $500 | Rejects any single transaction priced above the limit |
 | Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%) |
 | Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown |
+| Allow NFT transfers | On, 5 per rolling 24h | Off blocks every NFT transfer; on allows a set count (1–1,000). Raw calls that directly transfer an ERC-721 or ERC-1155 count too. No timer |
 | Response channels | All on | Per channel (X, Farcaster, Telegram). Bankr stops replying on a disabled channel; Telegram `/start` and wallet linking stay live |
 
 USD limits accept `1` to `1,000,000`. `0` is rejected, so disable the limit instead. The recipient cooldown is `0` to `168` hours (default 24), and re-adding a removed recipient restarts it.
 
 ### Spend limits are enforced everywhere
 
-A wallet that has never opened the Security page is still capped at **$500 a day and $500 per transaction**, on every signing path: agent tools, Wallet API swaps (the sell side is priced, cross-chain and Solana legs included) and transfers, raw `/wallet/submit`, x402 paid calls, and direct signer callers. If an integration needs to move more, raise the limit deliberately.
+A wallet that has never opened the Security page is still capped at **$500 a day and $500 per transaction**, on every signing path: agent tools, limit/stop/DCA/TWAP order fills, Wallet API swaps (the sell side is priced, cross-chain and Solana legs included) and transfers, raw `/wallet/submit`, x402 paid calls, and direct signer callers. If an integration needs to move more, raise the limit deliberately.
 
 - Each transaction is priced at submission from on-chain quotes (0x on EVM, Jupiter on Solana). If pricing fails while a USD limit is on, the transaction is **rejected**, not waved through.
 - Successful transactions count toward the rolling 24h total. The spend log is keyed on transaction hash, so retries can't inflate it.
