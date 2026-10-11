@@ -57,7 +57,7 @@ For deep, set `--max-payment 0.50`. The CLI default cap of $1 covers every tier.
 
 ```json
 {
-  "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "address": "0x71b749F58f63008672eEd55396151DC0C7493A78",
   "chain": "base",
   "tier": "quick",
   "price_usd": 0.02,
@@ -71,6 +71,8 @@ For deep, set `--max-payment 0.50`. The CLI default cap of $1 covers every tier.
 
 - `verdict` — act on this, as below.
 - `reasons` — why. Show them to the user on `caution` or `danger`.
+  - `unverified_contract` (caution): a contract whose source code isn't verified, so what it does can't be read. Not proof of a scam.
+  - `recipient_is_token_contract` (caution): the address is an ERC-20 token contract, e.g. the USDC contract itself. Tokens sent there are almost always lost; ask the user for the wallet they meant.
 - `checked` — which checks actually ran.
 - Lite answers also carry `limited_checks: true`, `checks_performed`, `not_checked` and `full_check` (a pointer to quick).
 
