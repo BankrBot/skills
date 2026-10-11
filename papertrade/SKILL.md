@@ -1,6 +1,6 @@
 ---
 name: papertrade
-description: Trade Papertrade's synthetic BTC and ETH perps on Hyperliquid (HyperEVM) from a Bankr wallet, with REAL USDC — open a long or short with a market order (Bankr caps leverage at 100x), close a position, deposit and withdraw USDC, check the account, and stake the PAPER that losing trades mint to earn USDC. Use when the user names Papertrade or PAPER, asks about their Papertrade positions, balance, payouts or PAPER staking, or asks how Papertrade works. Every action goes through Bankr's built-in Papertrade tools; this skill adds the venue's rules and how to talk about them. NOT a practice or simulated "paper trading" mode, NOT Hyperliquid's own perps (use the Hyperliquid tools), and NOT for limit, TP/SL, partial-close or add-margin orders — Papertrade has none.
+description: Trade Papertrade's synthetic BTC and ETH perps on Hyperliquid (HyperEVM) from a Bankr wallet, with REAL USDC — open a long or short with a market order (Bankr caps leverage at 100x), close a position, deposit and withdraw USDC, check the account, stake the PAPER that losing trades mint to earn USDC, and schedule routines that auto-stake PAPER or run a hedged long+short PAPER farm. Use when the user names Papertrade or PAPER, asks about their Papertrade positions, balance, payouts or PAPER staking, or asks how Papertrade works. Every action goes through Bankr's built-in Papertrade tools; this skill adds the venue's rules and how to talk about them. NOT a practice or simulated "paper trading" mode, NOT Hyperliquid's own perps (use the Hyperliquid tools), and NOT for limit, TP/SL, partial-close or add-margin orders — Papertrade has none.
 ---
 
 # Papertrade — synthetic BTC and ETH perps, from chat
@@ -117,6 +117,79 @@ before a close or a withdrawal.
 - PAPER has no price, so there is no honest APR. Never quote one. Quote
   what the staking tool reports: USDC paid per 1M staked PAPER over the
   last 24 hours.
+- The staking tool's `paperFarming` block says whether Papertrade's LP
+  is at its cap (`lpAtCap`). Only then do stakers get traders' losses
+  above the cap; otherwise they get just the fee share, which is far
+  smaller. It also shows PAPER minted per $1 lost.
+
+## Scheduled routines
+
+Two routines run on Bankr's scheduled agent commands
+(`automate_agent_command`). Inside a scheduled run, opens and stakes
+skip the preview because the user approved the routine when they set
+it up. Deposits and withdrawals never run on a schedule, so fund the
+Papertrade balance in chat first.
+
+**Before creating either routine:** show the user the exact routine
+text, the interval and what it can put at risk, and wait for their
+"yes". Fill in the bracketed values and keep the rest word for word.
+Users outside Bankr Club get one automation with 5 runs, which is
+enough to try a routine but not to keep a farm running. Club members
+get up to 100 runs a day and 1,000 per automation; recreate the
+routine when it runs out. To stop, cancel the automation with
+`cancel_automations`. Open positions stay open until closed.
+
+### Auto-stake (every 1–6 hours)
+
+> Papertrade auto-stake. Call view_papertrade_staking. If paperBalance
+> is at least 1,000, stake all unstaked PAPER with
+> manage_papertrade_staking (action stake, all true). If claimableUsdc
+> is at least 1, claim it. Do nothing else. Reply in one line.
+
+### PAPER farm (every 15 minutes)
+
+A hedged long and short on the same market at the same leverage. Price
+moves make one leg win and the other lose. The losing leg mints PAPER
+and the routine stakes it. **It's a way to buy PAPER, not a yield.**
+Each cycle costs the winning leg's impact haircut, the 2% win fee and
+Bankr's 1% of profit. At 50x that's about 5% of the pair's margin per
+cycle, or about 8% when a leg is liquidated first. The routine only pays back while
+staking rewards outweigh that cost, which in practice means while
+`lpAtCap` is true. That's why it opens nothing when the LP is below its
+cap. Never promise a return.
+
+Set-up rules:
+- Default BTC at 50x. The user picks the margin per leg: at least the
+  minimum position ($10,000 ÷ leverage, so $200 at 50x) and at most
+  Bankr's $1,000 per trade. Each cycle opens two legs, and Bankr's
+  $5,000 of margin per 24 hours caps how many cycles run in a day.
+- The farm treats every open position on its market at its leverage as
+  one of its legs. If the user already has a position there, ask them
+  to close it or pick the other market or another leverage.
+- The interval must be at least 10 minutes; 15 suits Club's daily run
+  limit. Between runs a leg can be liquidated. That still mints PAPER,
+  but the other leg is left alone until the next run closes it.
+
+> Papertrade PAPER farm step: [BTC], [50]x, $[250] margin per leg, keep
+> $[0] free. Follow exactly and do nothing else.
+> 1. Call get_papertrade_account. Farm legs are the open [BTC] positions
+> at [50]x.
+> 2. If a long leg and a short leg are both open: if either leg's
+> distanceToLiquidationPct is 0.4 or less, close all farm legs together
+> with smart_papertrade_close by their positionIds; otherwise go to
+> step 5.
+> 3. If only long legs or only short legs are open, close them now with
+> smart_papertrade_close by their positionIds.
+> 4. If no farm leg is open: call view_papertrade_staking. Only if
+> paperFarming.lpAtCap is true, paperFarming.payoutQueueUsd is 0 and the
+> free Papertrade balance is at least 2 × $[250] + $[0], open a [BTC]
+> long at [50]x with $[250], then a [BTC] short at [50]x with $[250],
+> with smart_papertrade_open. If the short doesn't open, close the long.
+> Otherwise open nothing and say why.
+> 5. If paperBalance is at least 1,000, stake all of it; if
+> claimableUsdc is at least 1, claim it.
+> Never deposit, withdraw, change the size or leverage, or touch any
+> other position. Reply in one line with what happened.
 
 ## Money in and out
 
@@ -144,12 +217,15 @@ comes back and follow its instruction.
 - Close, unstake and claim run straight away.
 - A "yes" counts only as the reply to a preview. A request that says
   "and confirm" up front doesn't skip the preview.
+- On X, the user's "yes" reply to the preview tweet confirms it.
+- Scheduled routines skip previews for opens and stakes; see above.
 
 ## When it isn't available
 
-- Papertrade writes (opens, closes, deposits, withdrawals and staking)
-  are refused from X, Farcaster and Telegram replies, and from
-  automations. Point the user to Bankr's terminal chat.
+- Papertrade runs in Bankr's terminal chat, on X (replies and DMs),
+  through the Agent API, and in the user's own scheduled routines.
+  Writes are refused from Farcaster and Telegram; point the user to
+  Bankr's terminal chat or X. Scheduled runs never deposit or withdraw.
 - Wallets connected from outside Bankr (wallet mode) can't use it.
 - Papertrade can pause deposits, opens or other actions at any time.
   The tools report the pause; relay it. When Bankr itself stops new
