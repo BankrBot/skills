@@ -106,18 +106,58 @@ The sale itself:
 The user's art description decides which mode you use — and if you cannot produce the
 art, say so instead of inventing a URL.
 
-**Hosted metadata (`baseURI` given).** `tokenURI(id)` becomes `<baseURI><id>.json`, so the
-files must be named `1.json`, `2.json`, … under the base URL — and each file must be the
-document described in *Agent NFTs*, because that is what a marketplace or an
-agent fetches from that URL. Any host works: your own storage, IPFS (`ipfs://…/` is
-accepted), a static site. Use this mode when you can generate or upload images. The base
-URI may be empty at deploy and set later with `setBaseURI` — that is the reveal.
+There are three ways a token can end up with artwork. **When the request names a subject,
+you use the first one.** The other two are what you fall back to.
 
-**On-chain art (no `baseURI`).** The contract renders the token itself: a 16×16 mirrored
-pixel image, deterministic from `artSeed` and the token id, carried as the `image` field
-of the token's metadata document. No hosting, no images to upload, works immediately —
-and it is what you fall back to when the description ("high-resolution portraits with a
-painted backdrop for every token") is beyond what you can render.
+### 1. Art you draw, stored on-chain (`mintWithArt`)
+
+This is the answer to "deploy a collection of rabbits" — the pixels come back as rabbits,
+because you drew them and the chain kept them.
+
+```
+mintWithArt(address to, bytes svg) → uint256 tokenId      // onlyOwner, creator reserve rules
+```
+
+You compose the SVG the user asked for, pass it as raw SVG bytes, and the contract stores
+them on that token. `tokenURI` serves the stored bytes straight back out, base64-wrapped
+as a data URI. **Nothing is hosted**: no file host, no CDN, no URL to 404, nothing left
+running after the deploy. The token's artwork is in the token's own storage.
+
+Rules that matter:
+
+- Pass **raw SVG**, not base64 and not a `data:` URI. The contract wraps it.
+- Include `xmlns="http://www.w3.org/2000/svg"` or nothing renders it in a browser.
+- Keep `shape-rendering="crispEdges"` for pixel art, so the edges stay sharp.
+- Quotes and newlines in the SVG are fine — the bytes are base64-encoded into the JSON,
+  so there is nothing to escape.
+- Keep it small. Roughly 900 bytes costs about 0.003 ETH of storage; a 3 KB drawing is
+  about 0.011 ETH. Storage is permanent and paid per token, so draw tight pixels rather
+  than a detailed illustration.
+- One call mints one token. A 20-token reserve is 20 calls, each its own transaction.
+
+It follows the same creator reserve rules as `mintToCreator`: free, `onlyOwner`, capped
+by `maxCreatorMints` over the life of the contract, drawing from the same supply as the
+public sale. Any token you do not draw falls back to the built-in render, so set
+`artForm` deliberately as well — it is what the undrawn tokens look like.
+
+The holder can redraw later with `setMetadata(id, "image", svg)`; the art is an ordinary
+profile value, not something frozen at mint.
+
+### 2. Hosted metadata (`baseURI` given)
+
+`tokenURI(id)` becomes `<baseURI><id>.json`, so the files must be named `1.json`, `2.json`,
+… under the base URL — and each file must be the document described in *Agent NFTs*,
+because that is what a marketplace or an agent fetches from that URL. Any host works:
+your own storage, IPFS (`ipfs://…/` is accepted), a static site. Use this when you are
+handling full-resolution images rather than inline pixel art. The base URI may be empty
+at deploy and set later with `setBaseURI` — that is the reveal.
+
+### 3. The contract's own render (no `baseURI`, no drawn art)
+
+A 16×16 mirrored pixel image, deterministic from `artSeed` and the token id. No hosting,
+no drawing, works immediately — and it is genuinely limited: six silhouettes and seven
+trait rows. It cannot draw a rabbit, a bird, or anything else the user named, which is
+exactly why mode 1 exists. Say so when you use it.
 
 Two knobs, and they answer different questions:
 
@@ -128,9 +168,9 @@ Two knobs, and they answer different questions:
   `4` diamond (a rhombus), `5` arch (a domed top over a flat foot). It has no effect on
   `mosaic` or `horizon`, which compose a scene rather than a body.
 
-**Read the request before you pick them.** Every creature token shares one face — same
-eyes, same mouth, one of four extras — so the silhouette is the only thing that tells
-two collections apart. A request that names a subject therefore has to reach `artForm`:
+Use these two only for the tokens you are **not** drawing yourself. Every creature token
+that falls back shares one face — same eyes, same mouth, one of four extras — so the
+silhouette is the only thing that tells two such collections apart:
 
 | The user asks for | Set |
 | --- | --- |
@@ -149,9 +189,10 @@ why** before you deploy, so the user can correct you while it is still free. Nev
 quietly fall back to `creature`/`blob` because it is the first row — that is exactly
 how a collection comes back as a face the user never asked for.
 
-Honesty rule: if you are deploying in on-chain mode, tell the user the art is the
-contract's generative render and that `setBaseURI` swaps in their own art later. A
-baseURI that 404s is worse than an honest fallback.
+Honesty rule: if you are deploying in on-chain mode, tell the user which of the three
+modes each token uses — which you drew and which falls back to the contract's render —
+and that `setBaseURI` swaps in hosted art later. A baseURI that 404s is worse than an
+honest fallback.
 
 ## Agent NFTs: RESTAP endpoints, ERC-8048 profiles
 
@@ -359,6 +400,11 @@ Mint for a user (or yourself) by calling the contract — the value must match e
 | `mint(1)` | one mint price |
 | `mint(5)` | five × mint price |
 | `mintToCreator(n)` | none — owner only, ≤ remaining reserve |
+| `mintWithArt(to, svg)` | none — owner only, one token per call, ≤ remaining reserve |
+
+`mintWithArt` is the one to reach for when the user named a subject: you draw the SVG and
+it is stored on the token, so rabbits come back as rabbits. See *Art*. Read the artwork
+back with `metadata(id, "image")`, which returns the raw stored bytes.
 
 Reads need no transaction and any agent can phrase them: "Read `totalSupply()` on
 <address>", "Read `owner()` on <address>", "Read `minted(<address>)` on <address>",
@@ -434,7 +480,9 @@ costs nothing because no gas was spent.
 | --- | --- |
 | "Create a collection called Pixie Market on Base, free mint, 1000 supply, no creator reserve" | prepare with `mintPriceEth:"0"`, `maxSupply:1000`, `maxCreatorMints:0`, `chainId:8453`, owner = wallet → deploy → verify → report |
 | "…and verify it" | verification fields from `verify`; never skip, never guess them |
-| "The art should be ghosts / robots / crystals, not more faces" | map the subject to `artForm` (`ghost`→`blob`, `robot`→`square`, `crystal`→`diamond`, `alien`→`round`, `totem`→`tall`, `mushroom`→`arch`); `artSeed` only recolours, it never changes the shape |
+| "The art should be ghosts / robots / crystals, not more faces" | **draw it**: compose the SVG and `mintWithArt(to, svg)` per token. Only for tokens you are not drawing, map the subject to `artForm` (`ghost`→`blob`, `robot`→`square`, `crystal`→`diamond`, `alien`→`round`, `totem`→`tall`, `mushroom`→`arch`); `artSeed` only recolours, it never changes the shape |
+| "Deploy 20 rabbits to my wallet now" | prepare → deploy → then 20 × `mintWithArt(wallet, rabbitSvg)`, varying fur/ear colour per token. Say what you drew and what it costs in storage gas before the first call |
+| "Can I change my rabbit later?" | yes — `setMetadata(id, "image", svg)`; the holder owns that choice, no redeploy |
 | "Mint 3 for me" | `mint(3)` with exactly 3 × mint price attached |
 | "What has minted so far?" | read `totalSupply()` and `minted(<address>)` |
 | "Art is ready now, hosted at https://cdn.example.com/nova/" | owner calls `setBaseURI("https://cdn.example.com/nova/")`; files must be `1.json`, `2.json`, … |
@@ -456,6 +504,7 @@ costs nothing because no gas was spent.
 | `SoldOut` | `totalSupply` + order > `maxSupply` | read `totalSupply()`; nothing to do |
 | `MintingIsPaused` | owner paused minting | read `mintPaused()` and tell the user |
 | `CreatorCapExceeded` | reserve spent, or caller is not the owner | read `creatorMinted()` |
+| `EmptyArtwork` | `mintWithArt` was given `0x` | draw the SVG first and pass its bytes; an empty value would leave the token on the built-in render anyway |
 | `NotOwner` | signer is not the owner | check `owner()`; ownership is a constructor argument, not a guess |
 | `InvalidMetadataString` | a name, description or agent URL carries `"`, `\` or a control character | fix that field in prepare — a JSON string cannot carry them |
 | `ERC721NonexistentToken` | token id does not exist | ids start at 1 and only exist after mint |
