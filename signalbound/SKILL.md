@@ -74,7 +74,9 @@ back to you before you sign.
 | `baseURI` | hosted art, see *Art*; empty string = on-chain art |
 | `contractURI` | collection-level metadata (OpenSea reads it); optional |
 | `royaltyReceiver` + `royaltyBps` | EIP-2981, ≤ 10000 bps; defaults to the owner, `0` = off |
-| `artStyle` + `artSeed` | on-chain art mode: `0` creature, `1` mosaic, `2` horizon |
+| `artStyle` | on-chain art world: `0` creature, `1` mosaic, `2` horizon; defaults `0` |
+| `artForm` | on-chain silhouette, creature only: `0` blob, `1` round, `2` square, `3` tall, `4` diamond, `5` arch; defaults `0` |
+| `artSeed` | on-chain art seed; derived from the name when omitted, so the same request always renders the same art |
 | `description` | optional; what every token's agent document says, see *Agent NFTs* |
 | `agentBaseURI` | optional; where each token's agent is served, see *Agent NFTs* |
 | `chainId` | not a constructor argument — prepare echoes it so you deploy on the right chain |
@@ -113,11 +115,39 @@ URI may be empty at deploy and set later with `setBaseURI` — that is the revea
 
 **On-chain art (no `baseURI`).** The contract renders the token itself: a 16×16 mirrored
 pixel image, deterministic from `artSeed` and the token id, carried as the `image` field
-of the token's metadata document. Three styles: `0` creature (body, eyes, one of four
-extras, a pattern), `1` mosaic, `2` horizon (gradient sky, sun, stars, hills). No hosting,
-no images to upload, works immediately — and it is what you fall back to when the
-description ("high-resolution portraits with a painted backdrop for every token") is
-beyond what you can render.
+of the token's metadata document. No hosting, no images to upload, works immediately —
+and it is what you fall back to when the description ("high-resolution portraits with a
+painted backdrop for every token") is beyond what you can render.
+
+Two knobs, and they answer different questions:
+
+- `artStyle` picks the **world**: `0` creature, `1` mosaic, `2` horizon (gradient sky,
+  sun, stars, hills).
+- `artForm` picks the **subject's silhouette** inside the creature world: `0` blob (a
+  wide oval), `1` round (a circle), `2` square (a blocky head), `3` tall (a capsule),
+  `4` diamond (a rhombus), `5` arch (a domed top over a flat foot). It has no effect on
+  `mosaic` or `horizon`, which compose a scene rather than a body.
+
+**Read the request before you pick them.** Every creature token shares one face — same
+eyes, same mouth, one of four extras — so the silhouette is the only thing that tells
+two collections apart. A request that names a subject therefore has to reach `artForm`:
+
+| The user asks for | Set |
+| --- | --- |
+| robot, mech, android, cube, machine | `artStyle:"creature"`, `artForm:"square"` |
+| alien, orb, planet, emoji, balloon | `artStyle:"creature"`, `artForm:"round"` |
+| ghost, slime, blob, goo, mascot | `artStyle:"creature"`, `artForm:"blob"` |
+| crystal, gem, shard, diamond shape | `artStyle:"creature"`, `artForm:"diamond"` |
+| mushroom, helmet, dome, tower, house | `artStyle:"creature"`, `artForm:"arch"` |
+| totem, monolith, statue, figure, pillar | `artStyle:"creature"`, `artForm:"tall"` |
+| landscape, sunset, mountains, sky, scenery | `artStyle:"horizon"` |
+| abstract, pattern, geometric, texture, tiles | `artStyle:"mosaic"` |
+
+Nothing in the request matched is a reason to choose, not a reason to skip choosing:
+take its strongest noun, map it, and then **name the style and form you picked and
+why** before you deploy, so the user can correct you while it is still free. Never
+quietly fall back to `creature`/`blob` because it is the first row — that is exactly
+how a collection comes back as a face the user never asked for.
 
 Honesty rule: if you are deploying in on-chain mode, tell the user the art is the
 contract's generative render and that `setBaseURI` swaps in their own art later. A
@@ -140,7 +170,8 @@ ERC-721 metadata the contract writes itself, carrying the token's service entry:
     { "trait_type": "pattern", "value": "striped" },
     { "trait_type": "eyes", "value": "narrow" },
     { "trait_type": "mouth", "value": "small" },
-    { "trait_type": "accessory", "value": "antenna" }
+    { "trait_type": "accessory", "value": "antenna" },
+    { "trait_type": "form", "value": "square" }
   ],
   "image": "data:image/svg+xml;base64,…",
   "services": [
@@ -218,18 +249,21 @@ marketplace-ready `attributes`, from the same hash, so the two cannot disagree.
 - **`attributes`** in that document spells those numbers out in words — `"azure"`,
   not `7` — with `style` first so a reader always knows which table the rest came from.
 - The tables differ per style because the styles genuinely vary: **creature** has
-  `background`, `body`, `pattern`, `eyes`, `mouth`, `accessory`; **mosaic** has
+  `background`, `body`, `pattern`, `eyes`, `mouth`, `accessory`, `form`; **mosaic** has
   `background`, `primary`, `accent`, `tile`, `density`; **horizon** has `sky`, `sun`,
-  `ground`, `star`, `cloud`. Six rows, five, five — no invented rows to fill a fixed
-  shape.
+  `ground`, `star`, `cloud`. Seven rows, five, five — no invented rows to fill a fixed
+  shape. `form` is the one row every token in a collection shares: it mirrors the
+  `artForm` the collection was deployed with, because the silhouette is a decision
+  about the collection, not a roll per token.
 - Colour rows are one of twelve named hue bands (`red`, `orange`, `yellow`,
   `chartreuse`, `green`, `spring`, `cyan`, `azure`, `blue`, `violet`, `magenta`,
   `rose`); each other row is its axis's own small vocabulary, and a value outside it
   reads as empty rather than as a neighbouring word it was never given.
 - None of it is decoration: `tile` and `density` really coarsen the mosaic sampling,
-  `star` and `cloud` really scatter the sky and lay the cloud band, and `eyes` and
-  `mouth` really change the creature's face. A trait that stopped describing the pixels
-  would fail the collection's own tests.
+  `star` and `cloud` really scatter the sky and lay the cloud band, `eyes` and `mouth`
+  really change the creature's face, and `form` really is the outline the body test
+  draws. A trait that stopped describing the pixels would fail the collection's own
+  tests.
 
 ## Deploying a collection
 
@@ -253,6 +287,7 @@ curl -s -X POST https://api.signalbound.art/collections/prepare \
     "maxMintPerWallet": 20,
     "maxCreatorMints": 20,
     "artStyle": "creature",
+    "artForm": "square",
     "description": "One agent per node.",
     "agentBaseURI": "https://agents.example.com/nova/"
   }'
@@ -281,8 +316,9 @@ constructor is not payable; gas comes from the deployer's wallet). Three ways to
 
 **Step 3 — read it back.** `owner()`, `name()`, `symbol()`, `totalSupply()`,
 `maxSupply()`, `mintPrice()`, `maxMintPerWallet()`, `maxCreatorMints()`, `baseURI()`,
-`agentBaseURI()`, `agentDescription()`, `artStyle()`. Confirm the owner is the user's
-wallet and the rules match the request. This, plus a receipt with `status: success`, is
+`agentBaseURI()`, `agentDescription()`, `artStyle()`, `artForm()`. Confirm the owner is the user's
+wallet and the rules match the request — including the silhouette, because `artForm()`
+is what decides whether the collection looks like the subject they asked for. This, plus a receipt with `status: success`, is
 the only proof the deploy happened — an HTTP `200` is not. For an agent collection, also
 read `metadata(1, "endpoint[restap]")`: it is the endpoint the tokens advertise, and it
 is empty if no `agentBaseURI` was ever set.
@@ -365,7 +401,8 @@ Deploying on a chain the user did not name is a bug: ask, or follow what they sa
 | Royalty | 0–10000 bps, receiver required above 0 |
 | `mintPrice` | below 1,000,000 ETH (sanity check) |
 | Art styles | 0 creature, 1 mosaic, 2 horizon |
-| Deploy bytecode | 24.2 KB creation, 21.0 KB runtime — under the 24 KB code-size limit |
+| Art forms | 0 blob, 1 round, 2 square, 3 tall, 4 diamond, 5 arch — creature only, ignored otherwise |
+| Deploy bytecode | 27.0 KB creation, 23.7 KB runtime — under the 24 KB code-size limit |
 | Prepare | `POST`, free, no key; `400` names the offending field |
 
 ## Prompt examples
@@ -373,23 +410,29 @@ Deploying on a chain the user did not name is a bug: ask, or follow what they sa
 The ask this skill exists for, in one message:
 
 > Create an NFT collection called Nova Nodes on Robinhood with the art generated on-chain
-> in the creature style. Mint price of 0.001 ETH, max supply of 2222, max mints per wallet
+> as blocky little robots. Mint price of 0.001 ETH, max supply of 2222, max mints per wallet
 > of 20, and max creator mints of 20. Each token is an agent — we serve them at
 > https://agents.example.com/nova/. Use this skill for creating NFT collections
 > https://signalbound.art/skill.md — Make sure to verify the contract you deploy as well
 
 What that becomes: prepare with `{name:"Nova Nodes", chainId:4663, maxSupply:2222,
 mintPriceEth:"0.001", maxMintPerWallet:20, maxCreatorMints:20, artStyle:"creature",
-agentBaseURI:"https://agents.example.com/nova/"}` (symbol derived `NOVA`, description
-defaulted to `Nova Nodes — agent NFT collection.`, owner = the signing wallet) → deploy
-with no value → read back the rules → verify with the pack's fields → report the address,
-the explorer link, and that token `1`'s document points RESTAP clients at
-`https://agents.example.com/nova/1`.
+artForm:"square", agentBaseURI:"https://agents.example.com/nova/"}` (symbol derived
+`NOVA`, description defaulted to `Nova Nodes — agent NFT collection.`, owner = the
+signing wallet) → **say "blocky robots, so `creature` + `square`" before deploying**, so
+the user can stop you while prepare is still free → deploy with no value → read back the
+rules → verify with the pack's fields → report the address, the explorer link, and that
+token `1`'s document points RESTAP clients at `https://agents.example.com/nova/1`.
+
+The same request with `artForm` omitted would deploy the wide blob every other creature
+collection deploys. The words "blocky little robots" are the request; `artForm:"square"`
+is the part of it the contract can honour.
 
 | What a user says | What you do |
 | --- | --- |
 | "Create a collection called Pixie Market on Base, free mint, 1000 supply, no creator reserve" | prepare with `mintPriceEth:"0"`, `maxSupply:1000`, `maxCreatorMints:0`, `chainId:8453`, owner = wallet → deploy → verify → report |
 | "…and verify it" | verification fields from `verify`; never skip, never guess them |
+| "The art should be ghosts / robots / crystals, not more faces" | map the subject to `artForm` (`ghost`→`blob`, `robot`→`square`, `crystal`→`diamond`, `alien`→`round`, `totem`→`tall`, `mushroom`→`arch`); `artSeed` only recolours, it never changes the shape |
 | "Mint 3 for me" | `mint(3)` with exactly 3 × mint price attached |
 | "What has minted so far?" | read `totalSupply()` and `minted(<address>)` |
 | "Art is ready now, hosted at https://cdn.example.com/nova/" | owner calls `setBaseURI("https://cdn.example.com/nova/")`; files must be `1.json`, `2.json`, … |
