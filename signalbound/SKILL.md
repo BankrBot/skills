@@ -75,7 +75,7 @@ back to you before you sign.
 | `contractURI` | collection-level metadata (OpenSea reads it); optional |
 | `royaltyReceiver` + `royaltyBps` | EIP-2981, ≤ 10000 bps; defaults to the owner, `0` = off |
 | `artStyle` | on-chain art world: `0` creature, `1` mosaic, `2` horizon; defaults `0` |
-| `artForm` | on-chain silhouette, creature only: `0` blob, `1` round, `2` square, `3` tall, `4` diamond, `5` arch; defaults `0` |
+| `artForm` | on-chain silhouette, required for `creature`: `0` blob, `1` round, `2` square, `3` tall, `4` diamond, `5` arch; ignored by `mosaic`/`horizon` and by hosted art |
 | `artSeed` | on-chain art seed; derived from the name when omitted, so the same request always renders the same art |
 | `description` | optional; what every token's agent document says, see *Agent NFTs* |
 | `agentBaseURI` | optional; where each token's agent is served, see *Agent NFTs* |
@@ -424,9 +424,11 @@ the user can stop you while prepare is still free → deploy with no value → r
 rules → verify with the pack's fields → report the address, the explorer link, and that
 token `1`'s document points RESTAP clients at `https://agents.example.com/nova/1`.
 
-The same request with `artForm` omitted would deploy the wide blob every other creature
+The same request with `artForm` omitted is now refused with `400 field:"artForm"` — that is
+the endpoint refusing to let a collection come back as the wide blob every other creature
 collection deploys. The words "blocky little robots" are the request; `artForm:"square"`
-is the part of it the contract can honour.
+is the part of it the contract can honour. Pick the form and send it again; the refusal
+costs nothing because no gas was spent.
 
 | What a user says | What you do |
 | --- | --- |
@@ -446,6 +448,7 @@ is the part of it the contract can honour.
 | Symptom | Meaning | What to do |
 | --- | --- | --- |
 | `400` with `field` | prepare rejected a value | the message names the field and the rule; fix that field only |
+| `400` `field:"artForm"` | a `creature` collection reached prepare with no silhouette | pick from the subject table above and send the same request again; if the user's subject is a landscape use `artStyle:"horizon"` instead, and if they are hosting their own art pass `baseURI` — never send `0` just to clear the error, that is the blob |
 | `405` | wrong method | prepare is `POST`; the artifact is `GET` |
 | `503` "artifact not built" | our side has not published the bytecode | say so; do not substitute another contract |
 | `WrongPayment` | value ≠ price × quantity | recompute from `mintPrice()` read on chain |
