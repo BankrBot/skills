@@ -252,6 +252,8 @@ agent has checked the chain itself:
 | Settle PnL | `POST https://og.nexustradinglabs.com/settle-pnl` | walletSig |
 | Register wallet | `POST https://og.nexustradinglabs.com/proxy/bankr-register` | Bankr API key |
 | Publish thesis on-chain | `POST https://og.nexustradinglabs.com/proxy/thesis-register` | Bankr API key |
+| Index a registration you sent yourself | `POST https://og.nexustradinglabs.com/theses/index` | None (txHash + wallet) |
+| Where my calls stand (state + live distances) | `GET https://og.nexustradinglabs.com/theses/status/:wallet` | None |
 | **Deploy / arm agent** | `POST https://og.nexustradinglabs.com/agent/:wallet/bankr/activate` | walletSig (all modes) |
 | **Change agent mode** | `POST https://og.nexustradinglabs.com/agent/:wallet/bankr/mode` | walletSig |
 | **Update agent config** | `PUT https://og.nexustradinglabs.com/agent/:wallet/config` | walletSig |
@@ -280,7 +282,7 @@ agent has checked the chain itself:
 - **references/trading.md** — full trade flow, registration, SL/TP, close, cancel, order-status, order-history, positions, leverage
 - **references/deposit-withdraw.md** — deposit USDC, withdraw, settle PnL, balance
 - **references/agent.md** — deploy/arm/fund/kill the autonomous agent, mode flips (PAPER/ASSISTED/AUTONOMOUS), status formatting, safety gates
-- **references/feed-leaderboard.md** — public feed, thesis copy flow, on-chain registry, Rep Score, leaderboard build, notifications, comments
+- **references/feed-leaderboard.md** — public feed, thesis copy flow, on-chain registry (proxy or direct contract call + `/theses/index`), how calls are graded (incl. split exit), call status + fill alerts, Rep Score, leaderboard build, notifications, comments
 - **references/market-data.md** — mark price, funding rate, 24h stats, error codes, retry logic, rate limits, testnet
 - **references/intel.md** — market intelligence: pull live OI, funding rates, regime signals from Orderly public API
 - **references/news.md** — pull latest crypto/macro news via RSS feeds before framing a trade or answering market questions

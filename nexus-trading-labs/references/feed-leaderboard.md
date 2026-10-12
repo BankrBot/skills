@@ -99,7 +99,11 @@ Events: `ThesisRegistered(thesisId, trader, symbol)`, `ThesisClosed(thesisId, tr
 
 ## Publish a Thesis On-Chain
 
-Use `POST https://og.nexustradinglabs.com/proxy/thesis-register` — the Worker handles ABI encoding and Bankr submission. Pass raw USD prices; server scales automatically.
+Two ways. Both put the SAME call in `/feed`, built from what the chain holds, and both are graded the
+same way (below). Registering is optional: a call saved through `PUT /lab/:address` is graded too, and
+the public call ledger is anchored on Arbitrum every hour.
+
+### A. Through Nexus (we encode, Bankr submits)
 
 ```
 POST https://og.nexustradinglabs.com/proxy/thesis-register
@@ -113,11 +117,117 @@ POST https://og.nexustradinglabs.com/proxy/thesis-register
   "takeProfit1":   70000,
   "takeProfit2":   0,
   "isPublic":      true,
-  "notes":         "BTC breakout thesis"
+  "notes":         "BTC breakout thesis",
+  "exitPlan":      "SPLIT_50"            // optional, see below
 }
 ```
 
-Returns `{ ok, txHash, thesisId, riskReward, hint }`. The thesis is automatically indexed in `/feed` — no separate PUT required. `thesisId` is the KV record ID. `txHash` links to Arbiscan. To also capture the on-chain `onChainId` (ThesisRegistry's integer ID), parse the `ThesisRegistered` event from the tx receipt.
+Before anything is sent, the route checks the levels and simulates the exact transaction from the
+wallet (`eth_call`). A refusal at that stage costs no gas. What comes back:
+
+| Status | Meaning | What to do |
+|---|---|---|
+| 200 `{ok, txHash, thesisId, onChainId}` | Registered and in `/feed` | Done |
+| 200 `{already: true}` | This exact call was already registered | Done. Nothing was resent |
+| 202 `{pending: true, txHash}` | Sent, receipt not readable yet | **Don't resend.** `POST /theses/index` with that txHash in a minute |
+| 400 `bad_levels` / `bad_split` / `bad_exit_plan` / `price_too_small` / `notes_too_long` / `would_revert` | Refused before sending, no gas spent | Fix the call |
+| 409 `in_flight` | The same call was sent in the last 15 min and its outcome is unknown | **Don't resend.** Check the wallet's last Arbitrum tx; if it landed, `POST /theses/index` |
+| 409 `recent_failure` | Bankr refused the same call in the last 15 min | Check the wallet's last tx; resend only with `"retry": true` |
+| 502 `bankr_timeout` / `bankr_no_tx_hash` | Unknown whether Bankr sent it | **Don't resend.** Check the wallet's last tx, then `POST /theses/index` |
+| 502 `bankr_submit_failed` | Bankr refused it | Read `detail` |
+| 503 `simulation_unavailable` | Arbitrum unreachable, nothing sent | Try again shortly |
+
+The same call (same wallet, same levels and notes) can't be sent twice within 15 minutes, so a retry
+loop can't pay twice. `walletAddress` must be the wallet behind `bankrApiKey`: the call is written only
+if the registry's event names that wallet.
+
+### B. Call the contract yourself, then index it (no key shared with Nexus)
+
+ThesisRegistry on Arbitrum One (chainId 42161): `0x2F4EdA890f96a7979d6f26bCB210cEDAD68346Bc`
+
+```
+function registerThesis(
+  string symbol,        // "PERP_BTC_USDC"
+  uint8 direction,      // 0 = LONG, 1 = SHORT
+  uint256 entryPrice,   // price × 1e6  (65000.50 → 65000500000)
+  uint256 stopLoss,     // × 1e6
+  uint256 takeProfit1,  // × 1e6
+  uint256 takeProfit2,  // × 1e6, 0 if none
+  uint256 riskReward,   // |tp1 − entry| / |entry − stop| × 1e4  (2.0 → 20000)
+  bool isPublic,
+  string notes          // add "#SPLIT_50" to declare a split exit (see below)
+) returns (uint256)
+```
+
+Send it with Bankr `write_contract` (or any wallet), then:
+
+```
+POST https://og.nexustradinglabs.com/theses/index
+{ "txHash": "0x…", "walletAddress": "<the wallet that sent it>" }
+```
+
+No key. The route reads the transaction from Arbitrum, checks it succeeded with ONE registry event
+naming that wallet, decodes the levels from the calldata, and writes that call. Indexing twice returns
+the same call (`already: true`). Errors: `wallet_not_proven`, `tx_failed`, `not_a_registration`,
+`multiple_registrations` (one registration per transaction), `calldata_unreadable`, `too_old` (index
+within 6 hours), 202 `pending` (not mined yet, try again), 503 `chain_unreadable`.
+Simulate first (`eth_call` with the same calldata from the wallet): a call the registry rejects reverts
+there for free.
+
+**How a call is graded.** First touch on public 1h candles: TP1 before the stop = WIN at the R of the
+posted levels; stop first (or both in one hour) = LOSS, −1R. An entry away from the market rests until
+price trades it. A `takeProfit2` on its own is a note; it is NOT graded.
+
+**Split exit (optional).** Declares half closed at TP1 and half at TP2, both on the ORIGINAL stop (no
+move to breakeven). Graded total = 0.5·R1 + 0.5·R2 if the runner reaches TP2, or 0.5·R1 − 0.5 if the
+runner is stopped (WIN when the total is above zero); the call stays PENDING until the runner closes.
+Requires `takeProfit2` beyond `takeProfit1`. It is declared ON-CHAIN, as `#SPLIT_50` in the registered
+notes: route A adds it when you pass `"exitPlan": "SPLIT_50"`; with route B put it in `notes` yourself.
+It can't be added or removed after the call is registered. A call saved through `PUT /lab/:address`
+declares it with the field `exitPlan: "SPLIT_50"` at first publish.
+
+---
+
+## Track Your Calls (for agents)
+
+```
+GET https://og.nexustradinglabs.com/theses/status/:wallet
+```
+
+No key. Returns the wallet's PUBLIC calls that are still open, newest first, plus the last 10 graded:
+
+```
+{
+  "counts": { "working": 2, "open": 1, "runner": 0, "unchecked": 0, "recentGraded": 3 },
+  "calls": [{
+    "id": "reg-…", "symbol": "PERP_ETH_USDC", "direction": "LONG",
+    "entryPrice": 2400, "stopLoss": 2350, "takeProfit1": 2500, "takeProfit2": null,
+    "exitPlan": null, "plannedR": { "tp1": 2, "tp2": null },
+    "state": "WORKING",                 // WORKING · OPEN · RUNNER · UNCHECKED
+    "filledAt": null, "tp1HitAt": null,
+    "live": {
+      "mark": 2538,
+      "levels": { "entry": { "price": 2400, "pct": -5.44, "r": 2.76 }, "stop": {…}, "tp1": {…} },
+      "crossedEntrySincePost": false    // WORKING only
+    }
+  }],
+  "recent": [{ "id": "…", "state": "WIN", "graded": { "outcome": "WIN", "r": 2, "at": 1790… } }]
+}
+```
+
+- `state` comes from the hourly grader: **WORKING** = the entry hasn't traded (no position) ·
+  **OPEN** = live · **RUNNER** = a split call whose TP1 half closed, runner still open · **UNCHECKED**
+  = not stamped yet (posted in the last hour).
+- `live` is the Orderly mark right now (cached ≤20 s), **not a grade**. `levels.*.pct` = how far each
+  level is from the mark, signed; `levels.*.r` = that distance in units of the call's risk. `moveR` (open
+  calls) = the position's move in R. A mark through the entry is a fill only once the hourly grade says so.
+- Poll it every few minutes to rotate: a call leaves `calls` when it's graded and appears in `recent`.
+
+**Alerts.** The owner gets a notification when a resting order fills (`call_fill`), when a split call's
+TP1 half closes (`call_tp1`) and when a call is graded (`call_resolved`). They land in
+`GET /notifications/:wallet?unreadOnly=true` (below), on phones with Nexus alerts on, and in Telegram if
+linked. All of them come from the hourly grading pass, so expect up to an hour's delay; for anything
+faster, poll `/theses/status`.
 
 ---
 
