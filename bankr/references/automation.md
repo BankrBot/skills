@@ -36,7 +36,7 @@ Limit, stop, DCA and TWAP orders, plus agent commands that run on a schedule or 
 | Defaults | Limit/stop orders expire after 7 days (Solana too). DCA and TWAP default to 10 runs and expire after 30 days — state a duration or run count for longer schedules |
 | Minimum size (the agent declines smaller) | DCA $10 a run · TWAP $300 total and at least 10 chunks · $10 for a command that trades |
 
-The wallet must already hold the spend when an order is created: the full amount for a limit or stop order, one run for a DCA, the first chunk for a TWAP. Later runs can be funded by top-ups.
+The wallet must already hold the spend when an order is created: the full amount for a limit or stop order, one run for a DCA, the first chunk for a TWAP. Later runs can be funded by top-ups. Limit, stop, DCA and TWAP fills count toward the wallet's spend limits; a refused fill retries hourly, the order stays active, and Bankr says why at most once a day.
 
 ## Managing Automations
 

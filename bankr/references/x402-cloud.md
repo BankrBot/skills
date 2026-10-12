@@ -57,7 +57,7 @@ Handlers use the standard Fetch `Request` and `Response`, within the [limits](#l
 - `ctx.appKV` (`appKV` block) offers `get`, `set`, `list` and `delete` on the key-value store of Bankr apps owned by the same wallet.
 - `ctx.askAgent(prompt)` (`agent` block) hands a prompt to your own Bankr agent, for example to message you on Telegram after a payment. Don't await it: agent runs outlast the 30-second limit, and a timed-out request isn't charged. Runs are limited to 5 a minute per wallet. Free runs are also limited to 2 a day (5 with Bankr Club) and stop entirely after 14 days without signed-in activity on the wallet. Setting a Max Mode model on the block bills your LLM credits and lifts the daily cap.
 
-A deploy whose source calls a `ctx` method that doesn't exist is rejected. Worked examples: [docs.bankr.bot/x402-cloud/examples](https://docs.bankr.bot/x402-cloud/examples).
+A deploy whose source calls a `ctx` method that doesn't exist, or imports a module `with { type: "macro" }`, is rejected. Worked examples: [docs.bankr.bot/x402-cloud/examples](https://docs.bankr.bot/x402-cloud/examples).
 
 ## Configuration
 
@@ -117,7 +117,7 @@ bankr x402 call <url> --max-payment 0.50            # your cap in USD (default 1
 
 ### How payment is handled
 
-- **Verification and settlement are Bankr's.** The router verifies the payment, runs the handler, and settles only on a response below 400. Neither payers nor handlers call a facilitator: the `facilitator` URL in a 402 is informational, and the payout goes to the address on the endpoint's record, not to anything in the request.
+- **Verification and settlement are Bankr's.** The router verifies the payment, runs the handler, and settles only on a response below 400; if settlement fails, the payer gets a `402` instead of the response. Neither payers nor handlers call a facilitator: the `facilitator` URL in a 402 is informational, and the payout goes to the address on the endpoint's record, not to anything in the request.
 - **Payer wallets:** plain EOAs, deployed smart accounts (ERC-1271) and EIP-7702 delegated wallets such as Bankr's all verify. Counterfactual ERC-6492 signatures from an undeployed account are rejected, so deploy the account first.
 - **Failures:** a reused payment gets `402` with `Payment already used`. A failed verification gets `402` with a machine-readable `reason` such as `permit2_allowance_required` or `insufficient_balance`. More than 60 paid requests a minute from one payer to one endpoint gets `429` with `retry-after`. A paused or deleted endpoint returns `404`.
 
