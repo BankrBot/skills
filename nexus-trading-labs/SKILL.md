@@ -252,6 +252,8 @@ agent has checked the chain itself:
 | Settle PnL | `POST https://og.nexustradinglabs.com/settle-pnl` | walletSig |
 | Register wallet | `POST https://og.nexustradinglabs.com/proxy/bankr-register` | Bankr API key |
 | Publish thesis on-chain | `POST https://og.nexustradinglabs.com/proxy/thesis-register` | Bankr API key |
+| Index a registration you sent yourself | `POST https://og.nexustradinglabs.com/theses/index` | None (txHash + wallet) |
+| Where my calls stand (state + live distances) | `GET https://og.nexustradinglabs.com/theses/status/:wallet` | None |
 | **Deploy / arm agent** | `POST https://og.nexustradinglabs.com/agent/:wallet/bankr/activate` | walletSig (all modes) |
 | **Change agent mode** | `POST https://og.nexustradinglabs.com/agent/:wallet/bankr/mode` | walletSig |
 | **Update agent config** | `PUT https://og.nexustradinglabs.com/agent/:wallet/config` | walletSig |
