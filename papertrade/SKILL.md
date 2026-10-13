@@ -44,7 +44,7 @@ Papertrade uses real USDC and open nothing.
 
 | Action | What happens |
 | --- | --- |
-| Open | Long or short BTC or ETH at market. Margin $10 or more; position (margin × leverage) $10,000 to $10M today; up to 1000x. No open fee, no funding. |
+| Open | Long or short BTC or ETH at market. Margin $10 or more; position (margin × leverage) $1,000 to $10M today; up to 1000x. No open fee, no funding. |
 | Close | The whole position at market. Margin, less any loss, comes back at once; profit is paid now or queued. |
 | Take-profit / stop-loss | Set on the open or later, edit or remove any time. When the price crosses a level, Bankr closes the whole position at market a few seconds later. Best-effort. |
 | Fund | USDC on Base, Arbitrum, Polygon or Ethereum, or another token such as ETH on Base, moved to your own Papertrade deposit address. Usually under a minute, occasionally up to ~3 minutes. |
@@ -108,16 +108,21 @@ them.
   stop-loss must sit at least 0.25% inside the liquidation price, so
   very high leverage can't have one.
 - **Wins are haircut.** About 74% of a gain is kept on a 0.1% move and
-  about 88% on a 1% move, then Papertrade's 2% fee, then Bankr's 1%.
+  about 88% on a 1% move on BTC (ETH keeps about 69% and 87%), then
+  Papertrade's 2% fee, then Bankr's 1%.
 - **Papertrade can change.** Its contracts are upgradeable behind a
-  7-day timelock, its pause-guardian multisig can retire a market
-  instantly, and it can pause deposits or opens.
-- **Activity has fallen.** As of Oct 11, 2026, TVL is down about 49% from
-  its peak and volume has collapsed: fewer losses to pay stakers or a
-  queue.
+  timelock (7 days today; a queued change, executable from Oct 19, 2026,
+  would cut it to 1 day), its pause-guardian multisig can retire a
+  market instantly, and it can pause deposits or opens.
+- **Activity has fallen.** As of Oct 13, 2026, TVL is about half its
+  Oct 10 peak and daily volume has fallen by more than half since
+  Oct 11: fewer losses to pay stakers or a queue.
 - **PAPER yield depends on the regime.** It's high only while the pool is
-  at its cap. Otherwise stakers get only a fee share, and nothing while
-  winners are queued. PAPER has no price, so there is no APR.
+  at its cap, and even then USDC per 1M PAPER swings a lot from day to
+  day. Otherwise stakers get only a fee share, and nothing while winners
+  are queued. A timelocked change, ready from Oct 17, 2026, would raise
+  the cap from $5M to $10M, which ends that regime until traders' losses
+  refill the pool. PAPER has no price, so there is no APR.
 
 ## The one hard rule: native tools only
 
@@ -158,16 +163,18 @@ Papertrade on your own.
   stop-loss come from Bankr (next section). Never fake a limit order,
   take-profit or stop-loss with automations or price alerts that trade.
 - **Limits are read live, never assumed.** Today: margin of at least
-  $10, a position (margin × leverage) of $10,000 to $10M, and up to
-  1000x. So 100x needs at least $100 of margin and 1000x at least $10.
-  Quote what the markets tool returns. Below a minimum, show the
-  smallest valid trade ("the smallest position is $10,000: $100 at 100x,
-  or $200 at 50x").
+  $10, a position (margin × leverage) of $1,000 to $10M, and up to
+  1000x. So 50x needs at least $20 of margin, and from 100x up the $10
+  minimum margin is the floor. Quote what the markets tool returns.
+  Below a minimum, show the smallest valid trade ("the smallest position
+  is $1,000: $20 at 50x, or $10 at 100x").
 - **Bankr adds no leverage, per-trade or daily cap of its own.** The
-  per-trade and daily limits in the wallet's Security settings ($500
-  each unless the user changed them) do apply to Papertrade margin. Over
-  one, relay the tool's message: raise the limit in Security or trade
-  smaller. Never split an order to get under a limit.
+  wallet's own per-trade and daily limits in Security apply to
+  Papertrade margin when they're on. `get_papertrade_account` reports
+  them as `securityLimits` (an amount, or off): quote that, and never
+  assume a $500 default. Over one, relay the tool's message: raise the
+  limit in Security or trade smaller. Never split an order to get under
+  a limit.
 - **Above 100x, the open tool always asks for a yes**, whatever the
   margin, and warns that a move of a few basis points liquidates the
   position. Relay that warning in full with the preview. Never suggest
@@ -222,10 +229,9 @@ position. Each position can have one take-profit and one stop-loss.
 - Closing a position removes its levels, and so does a liquidation. The
   account tool shows each position's levels and their state, and
   whether Bankr's watcher is running; quote it.
-- Take-profit and stop-loss are turning on wallet by wallet. If
-  `manage_papertrade_tpsl` isn't available after
-  `request_additional_tools`, say they aren't on for this wallet yet,
-  and don't fake them.
+- If `manage_papertrade_tpsl` isn't available after
+  `request_additional_tools`, say take-profit and stop-loss aren't on
+  for this wallet right now, and don't fake them.
 
 ## Costs
 
@@ -235,7 +241,7 @@ position. Each position can have one take-profit and one stop-loss.
   1. A 0.2 bp deadband: the gain is measured as if the exit were 0.2 bp
      worse, so a tiny win pays nothing.
   2. An impact haircut on the gain: about 74% kept on a 0.1% move,
-     about 88% on a 1% move.
+     about 88% on a 1% move on BTC (ETH: about 69% and 87%).
   3. Papertrade's 2% win fee on what's left.
   4. Bankr's 1% of the realized profit. On a queued profit, Bankr
      collects its 1% only once Papertrade pays it.
@@ -283,8 +289,9 @@ can't be withdrawn until it's paid.
 ## PAPER and staking
 
 - PAPER is minted straight to the wallet on a losing close or a
-  liquidation. The mint rate per dollar lost falls as the pool grows,
-  so never promise an amount up front.
+  liquidation. PAPER per $1 lost falls as traders' total losses on
+  Papertrade grow, and lately it has fallen fast, so never promise an
+  amount up front.
 - **PAPER can't be transferred.** It can't be sent, sold, swapped or
   bridged, and PAPER held in another wallet can't be moved into Bankr.
   Its only use is staking.
@@ -303,10 +310,13 @@ can't be withdrawn until it's paid.
   what the staking tool reports: USDC paid per 1M staked PAPER over the
   last 24 hours.
 - The staking tool's `paperFarming` block says whether the pool is at
-  its cap (`lpAtCap`). Only then do stakers get traders' losses above
-  the cap; otherwise they get just the fee share, which is far smaller,
-  and nothing while winners are queued. It also shows PAPER minted per
-  $1 lost.
+  its cap (`lpAtCap`, true once it's within 1% of the cap;
+  `lpHeadroomUsd` is what's left to the cap itself). Stakers get
+  traders' losses only above the cap; otherwise they get just the fee
+  share, which is far smaller, and nothing while winners are queued. It
+  also shows PAPER minted per $1 lost and, given `farmMarket` and
+  `farmLeverage`, a PAPER farm cycle's estimated exit, cost and payback
+  (`cycle`).
 
 ## Money in and out
 
@@ -359,7 +369,11 @@ Users outside Bankr Club get one automation with 5 runs, which is
 enough to try a routine but not to keep a farm running. Club members
 get up to 100 runs a day and 1,000 per automation; recreate the
 routine when it runs out. To stop, cancel the automation with
-`cancel_automations`. Open positions stay open until closed.
+`cancel_automations`. Open positions stay open until closed, and so do
+their take-profit and stop-loss. A routine keeps the text it was
+created with: to move one to newer routine text, show the new text, and
+after the user's "yes" cancel the old automation and create the new
+one.
 
 ### Auto-stake and claim (every 1–6 hours)
 
@@ -371,52 +385,125 @@ also catches PAPER minted by a liquidation and claims the USDC.
 > manage_papertrade_staking (action stake, all true). If claimableUsdc
 > is at least 1, claim it. Do nothing else. Reply in one line.
 
-### PAPER farm (every 15 minutes)
+### PAPER farm (every 15–30 minutes)
 
 A hedged long and short on the same market at the same leverage. Price
 moves make one leg win and the other lose. The losing leg mints PAPER
-and the routine stakes it. **It's a way to buy PAPER, not a yield.**
-Each cycle costs the winning leg's impact haircut, the 2% win fee and
-Bankr's 1% of profit. At 50x that's about 5% of the pair's margin per
-cycle, or about 8% when a leg is liquidated first. The routine only
-pays back while staking rewards outweigh that cost, which in practice
-means while `lpAtCap` is true. That's why it opens nothing when the
-pool is below its cap. Never promise a return.
+and Bankr stakes it. **It's a way to buy PAPER, not a yield.** Never
+promise a return.
+
+- **What a cycle costs.** The winning leg's impact haircut, the 2% win
+  fee and Bankr's 1% of profit. At 50x on BTC a cycle ends after about
+  a 1.55% move: the losing leg has lost about 78% of its margin and the
+  winning leg has gained about 67% of its own after fees, so the cycle
+  costs about 11% of one leg's margin (about 5.4% of the pair's), or
+  about 8% of the pair's when a leg is liquidated first. ETH costs a
+  little more. The two legs open seconds apart at slightly different
+  prices, which can add or save about 1% of a leg's margin. BTC often
+  moves 1.55% within a day, so expect one to three cycles a day:
+  roughly 5–15% of the pair's margin a day.
+- **What it buys.** PAPER minted on the loser's loss.
+  `view_papertrade_staking` with `farmMarket` and `farmLeverage`
+  estimates a cycle at today's rates in `paperFarming.cycle`: its exit,
+  its cost, PAPER per $1 of cost, USDC a day per $1 of cost and
+  `paybackDays`. Quote those; don't recompute them.
+- **Payback is an estimate, and optimistic.** It holds today's rates
+  still. In practice more PAPER is staked every day, PAPER minted per $1
+  lost keeps falling as traders' total losses grow, and USDC per 1M
+  PAPER swings a lot from one day to the next, so real payback runs
+  longer. It also assumes stakers keep getting the pool's overflow,
+  which happens only while the pool is at its cap. When it isn't,
+  stakers get only a fee share and a cycle may never pay back. A
+  timelocked Papertrade change, ready from Oct 17, 2026, would raise the
+  cap from $5M to $10M; once it runs, the farm stops opening until
+  traders' losses refill the pool.
+- **Exits run on Bankr's take-profit and stop-loss.** Each leg opens
+  with both, at the same move from entry just inside liquidation
+  (`paperFarming.cycle.exitMovePct`: 3.55 at 25x, 1.55 at 50x, 0.55 at
+  100x). When price moves that far, the loser's stop-loss and the
+  winner's take-profit fire together and Bankr closes both within
+  seconds, so a leg is rarely liquidated and the winner isn't left open
+  alone. Bankr messages the user for each leg it closes. The levels are
+  best-effort (see Take-profit and stop-loss), so each run still closes
+  the pair at 0.4% from liquidation and closes a leg left alone. This
+  cuts risk more than cost: closing only on runs costs about the same
+  per PAPER on average.
+- **Leverage.** 50x is the default; the farm runs from 3x to 100x. 100x
+  reaches its exit after a smaller move, so each PAPER costs about 15%
+  more on BTC (about 20% on ETH). Lower leverage buys about 5% more PAPER
+  per $1 at 25x and under 10% more even at very low leverage on BTC (a
+  little more on ETH), but a cycle can take days, and PAPER minted per $1
+  lost keeps falling while it waits. Quote the chosen leverage's
+  `paperFarming.cycle.paperPerDollarCost` rather than a percentage.
+- **When it opens.** A run opens a new pair only while the pool is at
+  its cap (`lpAtCap`), nothing is queued, `paybackDays` is within the
+  user's limit, Bankr's watcher is running and the free balance covers
+  both legs. Bankr counts the pool as at its cap once it's within 1% of
+  it, and the pool moves minute to minute, so `lpAtCap` can flip
+  between runs. Stakers get overflow only above the cap itself
+  (`lpHeadroomUsd` is what's left to it).
 
 Set-up rules:
-- Default BTC at 50x; never above 100x. The user picks the margin per
-  leg: at least the minimum position ÷ leverage ($200 at 50x) and at
-  most the wallet's per-trade Security limit. Each cycle opens two
-  legs, and the wallet's daily Security limit counts both, so it caps
-  how many cycles run in a day (at the $500 default, one cycle of $250
-  a leg).
+- Default BTC at 50x; between 3x and 100x. Below 3x Bankr can't place
+  the exit levels, so the farm never opens.
+- The farm needs Bankr's take-profit and stop-loss. If
+  `manage_papertrade_tpsl` isn't available after
+  `request_additional_tools`, say so and don't set the farm up.
+- Call `view_papertrade_staking` with `farmMarket` and `farmLeverage`,
+  and `get_papertrade_account`. Fill the exit with
+  `paperFarming.cycle.exitMovePct`, and show the cycle's cost, PAPER per
+  $1 of cost and `paybackDays` with the caveats above.
+- The user picks the margin per leg: at least the markets tool's
+  minimum position ÷ leverage ($1,000 today, so $20 at 50x) and the $10
+  minimum margin, and no more than `securityLimits.perTransactionUsd`
+  when that isn't off. Each cycle opens two legs, and a daily limit
+  counts both: with `securityLimits.dailyUsd` on, the farm can open
+  about dailyUsd ÷ (2 × margin) pairs in any 24 hours. Pick a margin
+  that splits the daily limit into whole pairs (dailyUsd a multiple of
+  2 × margin); otherwise, once a day, the farm may open a long it then
+  has to close because the short no longer fits. Quote
+  `securityLimits`; never assume $500. With both limits off, only the
+  balance and the payback limit cap what the farm spends; a daily limit
+  in Security is the way to cap it.
+- The user picks the payback limit in days (default 10). The free
+  balance needed to open is 2 × the margin plus anything they want kept
+  free.
 - The farm treats every open position on its market at its leverage as
   one of its legs. If the user already has a position there, ask them
   to close it or pick the other market or another leverage.
-- The interval must be at least 10 minutes; 15 suits Club's daily run
-  limit. Between runs a leg can be liquidated. That still mints PAPER,
-  but the other leg is left alone until the next run closes it.
+- The interval must be at least 10 minutes. 15 suits Club's daily run
+  limit, and up to 30 is fine, because the levels do the closing.
+- At risk at any moment: both legs' margin. A liquidated leg loses its
+  whole margin.
 
-> Papertrade PAPER farm step: [BTC], [50]x, $[250] margin per leg, keep
-> $[0] free. Follow exactly and do nothing else.
-> 1. Call get_papertrade_account. Farm legs are the open [BTC] positions
-> at [50]x.
+> Papertrade PAPER farm step: [BTC], [50]x, $[250] margin per leg,
+> exit at a [1.55]% move, open only with $[500] free and a payback of
+> [10] days or less. Follow exactly and do nothing else.
+> 1. Call get_papertrade_account. Farm legs are the open [BTC]
+> positions at [50]x. Call view_papertrade_staking with farmMarket
+> [BTC] and farmLeverage [50].
 > 2. If a long leg and a short leg are both open: if either leg's
 > distanceToLiquidationPct is 0.4 or less, close all farm legs together
-> with smart_papertrade_close by their positionIds; otherwise go to
-> step 5.
-> 3. If only long legs or only short legs are open, close them now with
-> smart_papertrade_close by their positionIds.
-> 4. If no farm leg is open: call view_papertrade_staking. Only if
-> paperFarming.lpAtCap is true, paperFarming.payoutQueueUsd is 0 and the
-> free Papertrade balance is at least 2 × $[250] + $[0], open a [BTC]
-> long at [50]x with $[250], then a [BTC] short at [50]x with $[250],
-> with smart_papertrade_open. If the short doesn't open, close the long.
-> Otherwise open nothing and say why.
-> 5. If paperBalance is at least 1,000, stake all of it; if
-> claimableUsdc is at least 1, claim it.
-> Never deposit, withdraw, change the size or leverage, or touch any
-> other position. Reply in one line with what happened.
+> with smart_papertrade_close by their positionIds. Otherwise, on each
+> leg whose tpslState is none or failed, set takeProfit {movePct:
+> [1.55]} and stopLoss {movePct: [1.55]} with manage_papertrade_tpsl by
+> its positionId. Then go to step 5.
+> 3. If only long legs or only short legs are open, close them with
+> smart_papertrade_close by their positionIds, then go to step 5.
+> 4. If no farm leg is open: only if tpslWatcher.status is running,
+> paperFarming.lpAtCap is true, paperFarming.payoutQueueUsd is 0,
+> paperFarming.cycle.paybackDays is a number no more than [10], and
+> balanceUsd is at least $[500], open a [BTC] long at [50]x with
+> $[250], then a [BTC] short at [50]x with $[250], with
+> smart_papertrade_open, each with takeProfit {movePct: [1.55]} and
+> stopLoss {movePct: [1.55]}. If the long doesn't open, open nothing
+> else. If the short doesn't open, close the long. Otherwise open
+> nothing and say which check failed.
+> 5. If paperBalance is at least 1,000, stake all of it with
+> manage_papertrade_staking (action stake, all true); if claimableUsdc
+> is at least 1, claim it.
+> Never deposit, withdraw, use another size, leverage or level, or
+> touch any other position. Reply in one line with what happened.
 
 ## When it isn't available
 
