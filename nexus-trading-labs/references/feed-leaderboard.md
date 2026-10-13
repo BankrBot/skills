@@ -63,7 +63,9 @@ On-chain stats: call `getTraderStats(walletAddress)` on ThesisRegistry returns `
 
 Key functions:
 ```solidity
-registerThesis(string symbol, string direction, uint256 entry, uint256 sl, uint256 tp) → thesisId
+registerThesis(string symbol, uint8 direction, uint256 entryPrice, uint256 stopLoss,
+               uint256 takeProfit1, uint256 takeProfit2, uint256 riskReward, bool isPublic,
+               string notes) → thesisId          // full argument notes: "Publish a Thesis On-Chain", route B
 closeThesis(uint256 thesisId, string outcome, string settlementTxHash)
 getTraderStats(address trader) → (wins, losses, activeTrades)
 getThesis(uint256 thesisId) → ThesisData
@@ -71,7 +73,8 @@ getThesis(uint256 thesisId) → ThesisData
 
 Price encoding: `Math.round(price * 1e6)` — e.g. BTC at $65,432.10 → `65432100000` (contract uses 6 decimal scaling, NOT 8)
 
-Events: `ThesisRegistered(thesisId, trader, symbol)`, `ThesisClosed(thesisId, trader, outcome)`
+Registering emits ONE event from the registry with the thesis id as topic 1 and the trader (`msg.sender`) as
+topic 2. Read it by that layout, not by an event-signature hash.
 
 ---
 
@@ -115,10 +118,10 @@ POST https://og.nexustradinglabs.com/proxy/thesis-register
   "entryPrice":    65000.50,
   "stopLoss":      62000,
   "takeProfit1":   70000,
-  "takeProfit2":   0,
+  "takeProfit2":   74000,                // optional; required (beyond TP1) only with exitPlan
   "isPublic":      true,
   "notes":         "BTC breakout thesis",
-  "exitPlan":      "SPLIT_50"            // optional, see below
+  "exitPlan":      "SPLIT_50"            // optional, see below. Omit it (and TP2 if unused) for TP1-only
 }
 ```
 
@@ -137,9 +140,13 @@ wallet (`eth_call`). A refusal at that stage costs no gas. What comes back:
 | 502 `bankr_submit_failed` | Bankr refused it | Read `detail` |
 | 503 `simulation_unavailable` | Arbitrum unreachable, nothing sent | Try again shortly |
 
-The same call (same wallet, same levels and notes) can't be sent twice within 15 minutes, so a retry
-loop can't pay twice. `walletAddress` must be the wallet behind `bankrApiKey`: the call is written only
-if the registry's event names that wallet.
+**Send one request and wait for its answer.** A REPEAT of the same call (same wallet, same levels and
+notes) within 15 minutes is never sent again: it gets the first txHash, or a 409. That covers a retry
+loop that waits for each answer. It does NOT cover two identical requests fired at the same moment:
+they can both be sent and both pay gas. So never fire the same registration in parallel, and after any
+502 / 409 / timeout, check the wallet's last Arbitrum transaction before doing anything else.
+`walletAddress` must be the wallet behind `bankrApiKey`: the call is written only if the registry's
+event names that wallet.
 
 ### B. Call the contract yourself, then index it (no key shared with Nexus)
 
@@ -198,6 +205,9 @@ No key. Returns the wallet's PUBLIC calls that are still open, newest first, plu
 
 ```
 {
+  "markAt": 1790000000000, "markAgeSec": 4,  // when the marks in `live` were read
+  "marksAvailable": true,                    // false → no marks: every `live` is null
+  "marksStale": false,                       // true → Orderly unreadable, marks up to 2 min old
   "counts": { "working": 2, "open": 1, "runner": 0, "unchecked": 0, "recentGraded": 3 },
   "calls": [{
     "id": "reg-…", "symbol": "PERP_ETH_USDC", "direction": "LONG",
@@ -218,7 +228,9 @@ No key. Returns the wallet's PUBLIC calls that are still open, newest first, plu
 - `state` comes from the hourly grader: **WORKING** = the entry hasn't traded (no position) ·
   **OPEN** = live · **RUNNER** = a split call whose TP1 half closed, runner still open · **UNCHECKED**
   = not stamped yet (posted in the last hour).
-- `live` is the Orderly mark right now (cached ≤20 s), **not a grade**. `levels.*.pct` = how far each
+- `live` is the Orderly mark at `markAt`, **not a grade**. Normally ≤20 s old. If Orderly can't be
+  read, the last read is reused for up to 2 minutes with `marksStale: true`; past that there are no
+  marks (`marksAvailable: false`, every `live` is `null`). Check `markAgeSec` before acting on a distance. `levels.*.pct` = how far each
   level is from the mark, signed; `levels.*.r` = that distance in units of the call's risk. `moveR` (open
   calls) = the position's move in R. A mark through the entry is a fill only once the hourly grade says so.
 - Poll it every few minutes to rotate: a call leaves `calls` when it's graded and appears in `recent`.
@@ -279,4 +291,5 @@ Returns `{ wallets: string[], fromCache: bool }` — all wallets that have ever 
 → build leaderboard → top wallet → find PERP_BTC_USDC ACTIVE thesis → size: $10k * 0.02 / (entry - sl) → GET /lab/:userWallet → append → PUT /lab/:userWallet
 
 **"Publish my ETH short: entry 3200, SL 3350, TP 2800"**
-→ GET /lab/:wallet → create thesis object → registerThesis("PERP_ETH_USDC", "SHORT", 320000000000, 335000000000, 280000000000) → parse ThesisRegistered event → update thesis with onChainId → PUT /lab/:wallet
+→ Route A: POST https://og.nexustradinglabs.com/proxy/thesis-register { walletAddress, bankrApiKey, symbol: "PERP_ETH_USDC", direction: "SHORT", entryPrice: 3200, stopLoss: 3350, takeProfit1: 2800, isPublic: true } → done when it answers 200 (202 → POST /theses/index with the txHash)
+→ or Route B: write_contract registerThesis("PERP_ETH_USDC", 1, 3200000000, 3350000000, 2800000000, 0, 26667, true, "") → POST /theses/index { txHash, walletAddress }
