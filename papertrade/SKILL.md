@@ -428,10 +428,13 @@ promise a return.
   the pair at 0.4% from liquidation and closes a leg left alone. This
   cuts risk more than cost: closing only on runs costs about the same
   per PAPER on average.
-- **Leverage.** 50x is the default. 100x reaches its exit after a
-  smaller move, so each PAPER costs about 15% more. Lower leverage buys
-  at most about 8% more PAPER per $1, but a cycle can take days, and
-  PAPER minted per $1 lost keeps falling while it waits.
+- **Leverage.** 50x is the default; the farm runs from 3x to 100x. 100x
+  reaches its exit after a smaller move, so each PAPER costs about 15%
+  more on BTC (about 20% on ETH). Lower leverage buys about 5% more PAPER
+  per $1 at 25x and under 10% more even at very low leverage on BTC (a
+  little more on ETH), but a cycle can take days, and PAPER minted per $1
+  lost keeps falling while it waits. Quote the chosen leverage's
+  `paperFarming.cycle.paperPerDollarCost` rather than a percentage.
 - **When it opens.** A run opens a new pair only while the pool is at
   its cap (`lpAtCap`), nothing is queued, `paybackDays` is within the
   user's limit, Bankr's watcher is running and the free balance covers
@@ -441,7 +444,8 @@ promise a return.
   (`lpHeadroomUsd` is what's left to it).
 
 Set-up rules:
-- Default BTC at 50x; never above 100x.
+- Default BTC at 50x; between 3x and 100x. Below 3x Bankr can't place
+  the exit levels, so the farm never opens.
 - The farm needs Bankr's take-profit and stop-loss. If
   `manage_papertrade_tpsl` isn't available after
   `request_additional_tools`, say so and don't set the farm up.
@@ -454,7 +458,10 @@ Set-up rules:
   minimum margin, and no more than `securityLimits.perTransactionUsd`
   when that isn't off. Each cycle opens two legs, and a daily limit
   counts both: with `securityLimits.dailyUsd` on, the farm can open
-  about dailyUsd ÷ (2 × margin) pairs in any 24 hours. Quote
+  about dailyUsd ÷ (2 × margin) pairs in any 24 hours. Pick a margin
+  that splits the daily limit into whole pairs (dailyUsd a multiple of
+  2 × margin); otherwise, once a day, the farm may open a long it then
+  has to close because the short no longer fits. Quote
   `securityLimits`; never assume $500. With both limits off, only the
   balance and the payback limit cap what the farm spends; a daily limit
   in Security is the way to cap it.
