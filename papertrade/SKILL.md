@@ -179,8 +179,12 @@ Papertrade on your own.
   margin, and warns that a move of a few basis points liquidates the
   position. Relay that warning in full with the preview. Never suggest
   more leverage than the user asked for.
-- Papertrade caps net open interest per market, so an open on the
-  crowded side can be refused. Relay the refusal.
+- Papertrade caps net open interest per market, so the crowded side
+  (usually BTC longs) can fill up for a minute or two. Bankr checks the
+  room before signing and waits briefly for it; if the side stays full,
+  nothing is opened or signed and the reply says so. Tell the user to
+  try again shortly, and say their yes still holds only when the reply
+  says it does.
 
 ## Take-profit and stop-loss (run by Bankr)
 
@@ -493,12 +497,12 @@ Set-up rules:
 > 4. If no farm leg is open: only if tpslWatcher.status is running,
 > paperFarming.lpAtCap is true, paperFarming.payoutQueueUsd is 0,
 > paperFarming.cycle.paybackDays is a number no more than [10], and
-> balanceUsd is at least $[500], open a [BTC] long at [50]x with
-> $[250], then a [BTC] short at [50]x with $[250], with
-> smart_papertrade_open, each with takeProfit {movePct: [1.55]} and
-> stopLoss {movePct: [1.55]}. If the long doesn't open, open nothing
-> else. If the short doesn't open, close the long. Otherwise open
-> nothing and say which check failed.
+> balanceUsd is at least $[500], open both legs in one call:
+> smart_papertrade_open with market [BTC], hedge true, leverage [50],
+> marginUsd [250], takeProfit {movePct: [1.55]} and stopLoss {movePct:
+> [1.55]}. It opens the less crowded side first and closes that leg
+> itself if the other can't open, so never open or close a leg by hand
+> here. Otherwise open nothing and say which check failed.
 > 5. If paperBalance is at least 1,000, stake all of it with
 > manage_papertrade_staking (action stake, all true); if claimableUsdc
 > is at least 1, claim it.
