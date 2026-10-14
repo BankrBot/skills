@@ -817,9 +817,9 @@ costs nothing because no gas was spent.
 
 ## References
 
-- [collection.md](https://raw.githubusercontent.com/nrlartt/signalbound-skill/main/references/collection.md) — constructor, functions, errors and both endpoints in full
-- [deploy.md](https://raw.githubusercontent.com/nrlartt/signalbound-skill/main/references/deploy.md) — the deploy recipes: Bankr, viem, cast/forge, and how to confirm one
-- [verification.md](https://raw.githubusercontent.com/nrlartt/signalbound-skill/main/references/verification.md) — every explorer field, plus the failure modes
+- [collection.md](https://signalbound.art/references/collection.md) — constructor, functions, errors and both endpoints in full
+- [deploy.md](https://signalbound.art/references/deploy.md) — the deploy recipes: Bankr, viem, cast/forge, and how to confirm one
+- [verification.md](https://signalbound.art/references/verification.md) — every explorer field, plus the failure modes
 
 ## Rules
 
