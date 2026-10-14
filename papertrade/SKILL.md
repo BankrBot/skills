@@ -1,6 +1,6 @@
 ---
 name: papertrade
-description: Trade Papertrade's synthetic BTC and ETH perps (HyperEVM, priced from Hyperliquid) from a Bankr wallet with REAL USDC, and earn USDC from the PAPER that losing trades mint. Open a long or short with a market order at up to 1000x (above 100x always needs the user's yes), close, set, edit or remove a take-profit and stop-loss that Bankr runs (on the open or later), fund from USDC or another token in one preview, withdraw, and check positions, balance, deposit status and queued payouts. Bankr stakes the user's PAPER automatically so it earns a share of Papertrade's USDC, and scheduled routines can auto-stake and claim or run a hedged long+short PAPER farm. Use when the user names Papertrade or PAPER, asks about their Papertrade positions, take-profit or stop-loss, balance, deposits, payouts or PAPER staking, or asks how Papertrade works or what its risks are. Every action goes through Bankr's built-in Papertrade tools; this skill adds the venue's rules, its risks and how to talk about them. NOT a practice or simulated "paper trading" mode, NOT Hyperliquid's own perps (use the Hyperliquid tools), and NOT for limit, partial-close or add-margin orders — Papertrade has none.
+description: Trade Papertrade's synthetic BTC and ETH perps (HyperEVM, priced from Hyperliquid) from a Bankr wallet with REAL USDC, and earn USDC from the PAPER that losing trades mint. Open a long or short with a market order at up to 1000x, close, set, edit or remove a take-profit and stop-loss that Bankr runs (on the open or later), fund from USDC or another token in one preview, withdraw, and check positions, balance, deposit status and queued payouts. Bankr stakes the user's PAPER automatically so it earns a share of Papertrade's USDC, and scheduled routines can auto-stake and claim or run a hedged long+short PAPER farm. Use when the user names Papertrade or PAPER, asks about their Papertrade positions, take-profit or stop-loss, balance, deposits, payouts or PAPER staking, or asks how Papertrade works or what its risks are. Every action goes through Bankr's built-in Papertrade tools; this skill adds the venue's rules, its risks and how to talk about them. NOT a practice or simulated "paper trading" mode, NOT Hyperliquid's own perps (use the Hyperliquid tools), and NOT for limit, partial-close or add-margin orders — Papertrade has none.
 ---
 
 # Papertrade — BTC and ETH perps from chat, and PAPER that earns USDC
@@ -76,8 +76,10 @@ and 1% of each staking claim.
 - "run the PAPER farm on BTC at 50x with $250 a leg"
 - "what are the risks of papertrade?"
 
-Every open comes back as a preview with the liquidation price, the
-fees and any take-profit or stop-loss. Reply yes to place it.
+The first open in a conversation, and any open over $250 of margin or
+one that deposits first, comes back as a preview with the liquidation
+price, the fees and any take-profit or stop-loss. Reply yes to place
+it. Smaller follow-up opens are placed straight away.
 
 ## Risks
 
@@ -106,7 +108,9 @@ them.
   Bankr's watcher or Papertrade's relayer is down or paused, and a fast
   move can liquidate a position before its stop-loss closes it. A
   stop-loss must sit at least 0.25% inside the liquidation price, so
-  very high leverage can't have one.
+  very high leverage can't have one: above roughly 220x when it's set
+  on the open, or about 250x once the position is open. A take-profit
+  still works.
 - **Wins are haircut.** About 74% of a gain is kept on a 0.1% move and
   about 88% on a 1% move on BTC (ETH keeps about 69% and 87%), then
   Papertrade's 2% fee, then Bankr's 1%.
@@ -175,12 +179,20 @@ Papertrade on your own.
   assume a $500 default. Over one, relay the tool's message: raise the
   limit in Security or trade smaller. Never split an order to get under
   a limit.
-- **Above 100x, the open tool always asks for a yes**, whatever the
-  margin, and warns that a move of a few basis points liquidates the
-  position. Relay that warning in full with the preview. Never suggest
-  more leverage than the user asked for.
-- Papertrade caps net open interest per market, so an open on the
-  crowded side can be refused. Relay the refusal.
+- **Above 100x, lead with the liquidation warning.** High leverage
+  adds no yes of its own: the open follows the same rules as any other
+  (see Confirmations). Its preview carries `highLeverageWarning`: the
+  distance to liquidation in % and $, and that a move of a few basis
+  points loses the whole margin. Relay it in full before the yes. When
+  the open runs without a yes, its reply still states that distance and
+  warning; pass both on. Never suggest more leverage than the user
+  asked for.
+- Papertrade caps net open interest per market, so the crowded side
+  (usually BTC longs) can fill up for a minute or two. Bankr checks the
+  room before signing and waits briefly for it; if the side stays full,
+  nothing is opened or signed and the reply says so. Tell the user to
+  try again shortly, and say their yes still holds only when the reply
+  says it does.
 
 ## Take-profit and stop-loss (run by Bankr)
 
@@ -209,9 +221,11 @@ position. Each position can have one take-profit and one stop-loss.
   short), and a level already crossed is refused. Each level sits 0.10%
   to 50% from the current price. A stop-loss must sit at least 0.25%
   inside the liquidation price (a little more when that price is
-  Bankr's estimate), so very high leverage (roughly 250x and up) can't
-  have one; the tool says so and gives the furthest stop-loss allowed
-  when one fits. A take-profit that closes at a loss, or a stop-loss
+  Bankr's estimate, as on the open), so very high leverage can't have
+  one: above roughly 220x on the open, or about 250x once the position
+  is open. The tool says so and gives the furthest stop-loss allowed
+  when one fits. A take-profit has no such limit and works at any
+  leverage. A take-profit that closes at a loss, or a stop-loss
   past entry that locks in profit, is allowed with a note. Relay
   refusals and notes as they come back.
 - **The fill:** the close goes in at market a few seconds after the
@@ -342,10 +356,12 @@ can't be withdrawn until it's paid.
 The tools decide when a "yes" is needed. Relay their preview as it
 comes back and follow its instruction.
 
-- Every open is previewed. The first open in a conversation, any open
-  with more than $250 of margin, any open that has to deposit first,
-  and **every open above 100x** wait for the user's "yes" in a later
-  message.
+- The first open in a conversation, any open with more than $250 of
+  margin and any open that has to deposit first come back as a preview
+  and wait for the user's "yes" in a later message. Smaller follow-up
+  opens are placed straight away at any leverage, so never promise a
+  preview for one. Above 100x the preview, or the reply when there's
+  none, carries `highLeverageWarning`: quote it first.
 - Deposits and withdrawals out to an EVM chain also wait for a "yes".
 - Close, setting, editing or removing a take-profit or stop-loss,
   unstake, claim and Bankr's auto-stake run straight away.
@@ -360,7 +376,9 @@ Two routines run on Bankr's scheduled agent commands
 (`automate_agent_command`). Inside a scheduled run, opens and stakes
 skip the preview because the user approved the routine when they set
 it up. Deposits and withdrawals never run on a schedule, so fund the
-Papertrade balance in chat first. A routine never opens above 100x.
+Papertrade balance in chat first. A routine can open at any leverage
+Papertrade allows, up to 1000x; above 100x, say at set-up how small a
+move liquidates each position and that it loses the whole margin.
 
 **Before creating either routine:** show the user the exact routine
 text, the interval and what it can put at risk, and wait for their
@@ -397,11 +415,10 @@ promise a return.
   a 1.55% move: the losing leg has lost about 78% of its margin and the
   winning leg has gained about 67% of its own after fees, so the cycle
   costs about 11% of one leg's margin (about 5.4% of the pair's), or
-  about 8% of the pair's when a leg is liquidated first. ETH costs a
-  little more. The two legs open seconds apart at slightly different
-  prices, which can add or save about 1% of a leg's margin. BTC often
-  moves 1.55% within a day, so expect one to three cycles a day:
-  roughly 5–15% of the pair's margin a day.
+  about 8% of the pair's when a leg is liquidated first. At 100x on BTC
+  a cycle ends after a 0.55% move and costs about 8.75% of one leg's
+  margin (about 4.37% of the pair's, or 9.32% if a leg liquidates). ETH
+  costs a little more.
 - **What it buys.** PAPER minted on the loser's loss.
   `view_papertrade_staking` with `farmMarket` and `farmLeverage`
   estimates a cycle at today's rates in `paperFarming.cycle`: its exit,
@@ -428,13 +445,36 @@ promise a return.
   the pair at 0.4% from liquidation and closes a leg left alone. This
   cuts risk more than cost: closing only on runs costs about the same
   per PAPER on average.
-- **Leverage.** 50x is the default; the farm runs from 3x to 100x. 100x
-  reaches its exit after a smaller move, so each PAPER costs about 15%
-  more on BTC (about 20% on ETH). Lower leverage buys about 5% more PAPER
-  per $1 at 25x and under 10% more even at very low leverage on BTC (a
-  little more on ETH), but a cycle can take days, and PAPER minted per $1
-  lost keeps falling while it waits. Quote the chosen leverage's
-  `paperFarming.cycle.paperPerDollarCost` rather than a percentage.
+- **Leverage and cycle speed.** Use **100x** (0.55% exit move) when
+  the user wants constant PAPER turnover: a cycle needs about a third
+  of the move it needs at 50x (1.55% exit move), so cycles fire about
+  eight times as often: expect roughly 8–20 cycles a day on BTC,
+  roughly 35–90% of the pair's margin a day. It also buys about 13%
+  less PAPER per $1 of cost on BTC (about 16% on ETH). Use **50x**
+  when the user prefers more PAPER per $1 of cost and fewer cycles:
+  BTC often moves 1.55% within a day, so expect one to three cycles a
+  day, roughly 5–15% of the pair's margin a day. Lower leverage (25x
+  and below) buys only ~5–10% more PAPER per $1 on BTC while a single
+  cycle can stall for days as the mint rate decays.
+  Quote the chosen leverage's `paperFarming.cycle.paperPerDollarCost`
+  rather than a percentage.
+- **Its exit has to fit before liquidation.** Each leg's levels sit
+  0.4% of price inside liquidation, and Bankr needs them at least 0.1%
+  from the price when it sets them, a few seconds after the fill.
+  Leaving room for a 0.1% move in between, the farm works only up to
+  about 150x on BTC and ETH with today's params. Above that,
+  `view_papertrade_staking` returns no `cycle`, so the routine's
+  payback check fails and it opens nothing.
+- **One-call hedged open (`hedge: true`).** In a scheduled PAPER farm
+  run, Step 4 opens both legs in a single `smart_papertrade_open` call
+  with `hedge: true` (no `side`, with `takeProfit` and `stopLoss` as
+  `movePct`). Bankr checks open-interest room on both sides from one
+  read (waiting up to 60 seconds), opens the less crowded side first,
+  re-checks the second leg's room right before signing, and closes the
+  first leg immediately if the second leg doesn't open. If the reply is
+  `unhedged`, close the named leg with `smart_papertrade_close`; if
+  `pending`, do nothing else that run so the next run reconciles via
+  `get_papertrade_account`.
 - **When it opens.** A run opens a new pair only while the pool is at
   its cap (`lpAtCap`), nothing is queued, `paybackDays` is within the
   user's limit, Bankr's watcher is running and the free balance covers
@@ -444,61 +484,73 @@ promise a return.
   (`lpHeadroomUsd` is what's left to it).
 
 Set-up rules:
-- Default BTC at 50x; between 3x and 100x. Below 3x Bankr can't place
-  the exit levels, so the farm never opens.
+- Default BTC at 100x for faster PAPER turnover (0.55% exit move), or
+  50x for a lower cost per PAPER (1.55% exit move); from 3x up to the
+  highest leverage `view_papertrade_staking` returns a `cycle` for
+  (about 150x today). Below 3x Bankr can't place the exit levels, and
+  above that ceiling they sit too close to the price to set reliably,
+  so the routine never opens.
 - The farm needs Bankr's take-profit and stop-loss. If
   `manage_papertrade_tpsl` isn't available after
   `request_additional_tools`, say so and don't set the farm up.
 - Call `view_papertrade_staking` with `farmMarket` and `farmLeverage`,
   and `get_papertrade_account`. Fill the exit with
   `paperFarming.cycle.exitMovePct`, and show the cycle's cost, PAPER per
-  $1 of cost and `paybackDays` with the caveats above.
+  $1 of cost and `paybackDays` with the caveats above. Also give the
+  rough daily spend at that leverage (above: about 5–15% of the pair's
+  margin at 50x, 35–90% at 100x) and offer a daily limit in Security
+  to cap it. With no `cycle` at that leverage, don't set the farm up;
+  offer a lower leverage.
 - The user picks the margin per leg: at least the markets tool's
-  minimum position ÷ leverage ($1,000 today, so $20 at 50x) and the $10
-  minimum margin, and no more than `securityLimits.perTransactionUsd`
-  when that isn't off. Each cycle opens two legs, and a daily limit
-  counts both: with `securityLimits.dailyUsd` on, the farm can open
-  about dailyUsd ÷ (2 × margin) pairs in any 24 hours. Pick a margin
-  that splits the daily limit into whole pairs (dailyUsd a multiple of
-  2 × margin); otherwise, once a day, the farm may open a long it then
-  has to close because the short no longer fits. Quote
-  `securityLimits`; never assume $500. With both limits off, only the
-  balance and the payback limit cap what the farm spends; a daily limit
-  in Security is the way to cap it.
-- The user picks the payback limit in days (default 10). The free
-  balance needed to open is 2 × the margin plus anything they want kept
-  free.
+  minimum position ÷ leverage ($1,000 today, so $20 at 50x or $10 at
+  100x) and the $10 minimum margin, and no more than
+  `securityLimits.perTransactionUsd` when that isn't off. Each cycle
+  opens two legs, and a daily limit counts both: with
+  `securityLimits.dailyUsd` on, the farm can open about dailyUsd ÷ (2 ×
+  margin) pairs in any 24 hours. Pick a margin that splits the daily
+  limit into whole pairs (dailyUsd a multiple of 2 × margin);
+  otherwise, once a day, the farm may open a long it then has to close
+  because the short no longer fits. Quote `securityLimits`; never
+  assume $500. With both limits off, only the balance and the payback
+  limit cap what the farm spends; a daily limit in Security is the way
+  to cap it.
+- The user picks the payback limit in days (default 20) and it stays
+  fixed. When `paperFarming.cycle.paybackDays` rises past it, the farm
+  stops opening pairs, as intended; never suggest raising the limit to
+  keep it opening. The free balance needed to open is 2 × the margin
+  plus anything they want kept free.
 - The farm treats every open position on its market at its leverage as
   one of its legs. If the user already has a position there, ask them
   to close it or pick the other market or another leverage.
-- The interval must be at least 10 minutes. 15 suits Club's daily run
-  limit, and up to 30 is fine, because the levels do the closing.
+- The interval must be at least 10 minutes. 15–20 minutes suits Club's
+  daily run limit, and up to 30 is fine, because the levels do the
+  closing.
 - At risk at any moment: both legs' margin. A liquidated leg loses its
   whole margin.
 
-> Papertrade PAPER farm step: [BTC], [50]x, $[250] margin per leg,
-> exit at a [1.55]% move, open only with $[500] free and a payback of
-> [10] days or less. Follow exactly and do nothing else.
+> Papertrade PAPER farm step: [BTC], [100]x, $[250] margin per leg,
+> exit at a [0.55]% move, open only with $[500] free and a payback of
+> [20] days or less. Follow exactly and do nothing else.
 > 1. Call get_papertrade_account. Farm legs are the open [BTC]
-> positions at [50]x. Call view_papertrade_staking with farmMarket
-> [BTC] and farmLeverage [50].
+> positions at [100]x. Call view_papertrade_staking with farmMarket
+> [BTC] and farmLeverage [100].
 > 2. If a long leg and a short leg are both open: if either leg's
 > distanceToLiquidationPct is 0.4 or less, close all farm legs together
 > with smart_papertrade_close by their positionIds. Otherwise, on each
 > leg whose tpslState is none or failed, set takeProfit {movePct:
-> [1.55]} and stopLoss {movePct: [1.55]} with manage_papertrade_tpsl by
+> [0.55]} and stopLoss {movePct: [0.55]} with manage_papertrade_tpsl by
 > its positionId. Then go to step 5.
 > 3. If only long legs or only short legs are open, close them with
 > smart_papertrade_close by their positionIds, then go to step 5.
 > 4. If no farm leg is open: only if tpslWatcher.status is running,
 > paperFarming.lpAtCap is true, paperFarming.payoutQueueUsd is 0,
-> paperFarming.cycle.paybackDays is a number no more than [10], and
-> balanceUsd is at least $[500], open a [BTC] long at [50]x with
-> $[250], then a [BTC] short at [50]x with $[250], with
-> smart_papertrade_open, each with takeProfit {movePct: [1.55]} and
-> stopLoss {movePct: [1.55]}. If the long doesn't open, open nothing
-> else. If the short doesn't open, close the long. Otherwise open
-> nothing and say which check failed.
+> paperFarming.cycle.paybackDays is a number no more than [20], and
+> balanceUsd is at least $[500], call smart_papertrade_open once with
+> hedge true, market [BTC], leverage [100], marginUsd [250], takeProfit
+> {movePct: [0.55]} and stopLoss {movePct: [0.55]}. If the reply is
+> unhedged, close the leg it names with smart_papertrade_close. If the
+> reply is pending, do nothing else this run. Otherwise if it didn't
+> open, say which check failed.
 > 5. If paperBalance is at least 1,000, stake all of it with
 > manage_papertrade_staking (action stake, all true); if claimableUsdc
 > is at least 1, claim it.
@@ -548,8 +600,10 @@ Set-up rules:
   the liquidation price and the funding route. After "yes": deposit if
   needed, then open.
 - "long ETH 1000x with $20 on papertrade" → a preview that leads with
-  the warning: a 0.05% move liquidates it and takes the whole $20. Open
-  only after "yes".
+  the warning: a 0.05% move liquidates it and takes the whole $20. As
+  the conversation's first open it waits for "yes". A later one with
+  $250 or less of margin and no deposit opens straight away, and its
+  reply leads with the same warning.
 - "short BTC 50x with $300 on papertrade, pay with my ETH on Base" → one
   preview covering the conversion, the deposit and the open; one "yes".
 - "long BTC 50x with $200 on papertrade, take profit at +3%, stop loss

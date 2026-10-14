@@ -12,8 +12,8 @@
   "setup": [
     "Install the skill with the button below — Bankr's Papertrade tools work without it; the skill adds the venue's rules and risks",
     "Hold USDC or another token (such as ETH on Base) in your Bankr wallet; one preview covers funding Papertrade and opening the trade (first deposit 11.20 USDC or more)",
-    "Say: \"long BTC 100x with $150 on papertrade\" — you get a preview with the liquidation price, then reply yes. Anything above 100x (up to 1000x) always asks for a yes",
-    "Add a take-profit or stop-loss on the open or later (\"set a stop-loss on my papertrade BTC at $110,000\"). Bankr runs them and closes the whole position at market a few seconds after a level is hit. They're best-effort, and a stop-loss must sit at least 0.25% inside the liquidation price, so very high leverage can't have one",
+    "Say: \"long BTC 100x with $150 on papertrade\" — you get a preview with the liquidation price, then reply yes. Leverage goes up to 1000x; above 100x Bankr leads with how small a move liquidates it",
+    "Add a take-profit or stop-loss on the open or later (\"set a stop-loss on my papertrade BTC at $110,000\"). Bankr runs them and closes the whole position at market a few seconds after a level is hit. They're best-effort, and a stop-loss must sit at least 0.25% inside the liquidation price, so very high leverage can't have one (above roughly 220x when set on the open, about 250x once the position is open); a take-profit still works",
     "Every losing trade mints PAPER and Bankr stakes it for you to earn USDC; see your account, PAPER staking, positions with their take-profit and stop-loss, and history at https://bankr.bot/terminal/skills/partner/papertrade",
     "Real money: a liquidation takes the whole margin, and winnings the pool can't pay wait in a queue. Your wallet's Security limits apply to every trade"
   ],
