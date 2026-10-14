@@ -76,8 +76,10 @@ and 1% of each staking claim.
 - "run the PAPER farm on BTC at 50x with $250 a leg"
 - "what are the risks of papertrade?"
 
-Every open comes back as a preview with the liquidation price, the
-fees and any take-profit or stop-loss. Reply yes to place it.
+The first open in a conversation, and any open over $250 of margin or
+one that deposits first, comes back as a preview with the liquidation
+price, the fees and any take-profit or stop-loss. Reply yes to place
+it. Smaller follow-up opens are placed straight away.
 
 ## Risks
 
@@ -106,8 +108,9 @@ them.
   Bankr's watcher or Papertrade's relayer is down or paused, and a fast
   move can liquidate a position before its stop-loss closes it. A
   stop-loss must sit at least 0.25% inside the liquidation price, so
-  very high leverage (roughly 250x and up) can't have one; a
-  take-profit still works.
+  very high leverage can't have one: above roughly 220x when it's set
+  on the open, or about 250x once the position is open. A take-profit
+  still works.
 - **Wins are haircut.** About 74% of a gain is kept on a 0.1% move and
   about 88% on a 1% move on BTC (ETH keeps about 69% and 87%), then
   Papertrade's 2% fee, then Bankr's 1%.
@@ -218,8 +221,9 @@ position. Each position can have one take-profit and one stop-loss.
   short), and a level already crossed is refused. Each level sits 0.10%
   to 50% from the current price. A stop-loss must sit at least 0.25%
   inside the liquidation price (a little more when that price is
-  Bankr's estimate), so very high leverage (roughly 250x and up) can't
-  have one; the tool says so and gives the furthest stop-loss allowed
+  Bankr's estimate, as on the open), so very high leverage can't have
+  one: above roughly 220x on the open, or about 250x once the position
+  is open. The tool says so and gives the furthest stop-loss allowed
   when one fits. A take-profit has no such limit and works at any
   leverage. A take-profit that closes at a loss, or a stop-loss
   past entry that locks in profit, is allowed with a note. Relay
@@ -352,11 +356,12 @@ can't be withdrawn until it's paid.
 The tools decide when a "yes" is needed. Relay their preview as it
 comes back and follow its instruction.
 
-- Every open is previewed. The first open in a conversation, any open
-  with more than $250 of margin and any open that has to deposit first
-  wait for the user's "yes" in a later message. Leverage adds no yes of
-  its own: an open above 100x follows these same rules, with the
-  liquidation warning first.
+- The first open in a conversation, any open with more than $250 of
+  margin and any open that has to deposit first come back as a preview
+  and wait for the user's "yes" in a later message. Smaller follow-up
+  opens are placed straight away at any leverage, so never promise a
+  preview for one. Above 100x the preview, or the reply when there's
+  none, carries `highLeverageWarning`: quote it first.
 - Deposits and withdrawals out to an EVM chain also wait for a "yes".
 - Close, setting, editing or removing a take-profit or stop-loss,
   unstake, claim and Bankr's auto-stake run straight away.
@@ -442,23 +447,24 @@ promise a return.
   per PAPER on average.
 - **Leverage and cycle speed.** Use **100x** (0.55% exit move) when
   the user wants constant PAPER turnover: a cycle needs about a third
-  of the move it needs at 50x (1.55% exit move), so cycles fire several
-  times as often and the farm spends its margin faster, at the
-  trade-off of about 13% less PAPER per $1 of cost on BTC (about 16% on
-  ETH). Use **50x** when the user prefers more PAPER per $1 of cost and
-  fewer cycles: BTC often moves 1.55% within a day, so expect one to
-  three cycles a day, roughly 5–15% of the pair's margin a day. Lower
-  leverage (25x and below) buys only ~5–10% more PAPER per $1 on BTC
-  while a single cycle can stall for days as the mint rate decays.
+  of the move it needs at 50x (1.55% exit move), so cycles fire about
+  eight times as often: expect roughly 8–20 cycles a day on BTC,
+  roughly 35–90% of the pair's margin a day. It also buys about 13%
+  less PAPER per $1 of cost on BTC (about 16% on ETH). Use **50x**
+  when the user prefers more PAPER per $1 of cost and fewer cycles:
+  BTC often moves 1.55% within a day, so expect one to three cycles a
+  day, roughly 5–15% of the pair's margin a day. Lower leverage (25x
+  and below) buys only ~5–10% more PAPER per $1 on BTC while a single
+  cycle can stall for days as the mint rate decays.
   Quote the chosen leverage's `paperFarming.cycle.paperPerDollarCost`
   rather than a percentage.
 - **Its exit has to fit before liquidation.** Each leg's levels sit
   0.4% of price inside liquidation, and Bankr needs them at least 0.1%
-  from the price, so the farm works only up to about 180x on BTC and
-  ETH with today's params. Above that, `view_papertrade_staking`
-  returns no `cycle`, so the routine's payback check fails and it opens
-  nothing. Near that ceiling a small move before the fill can leave a
-  leg without its levels, so stay well under it.
+  from the price when it sets them, a few seconds after the fill.
+  Leaving room for a 0.1% move in between, the farm works only up to
+  about 150x on BTC and ETH with today's params. Above that,
+  `view_papertrade_staking` returns no `cycle`, so the routine's
+  payback check fails and it opens nothing.
 - **One-call hedged open (`hedge: true`).** In a scheduled PAPER farm
   run, Step 4 opens both legs in a single `smart_papertrade_open` call
   with `hedge: true` (no `side`, with `takeProfit` and `stopLoss` as
@@ -479,18 +485,22 @@ promise a return.
 
 Set-up rules:
 - Default BTC at 100x for faster PAPER turnover (0.55% exit move), or
-  50x for a lower cost per PAPER (1.55% exit move); from 3x up to about
-  180x. Below 3x Bankr can't place the exit levels, and above about
-  180x the exit no longer fits before liquidation, so the routine never
-  opens.
+  50x for a lower cost per PAPER (1.55% exit move); from 3x up to the
+  highest leverage `view_papertrade_staking` returns a `cycle` for
+  (about 150x today). Below 3x Bankr can't place the exit levels, and
+  above that ceiling they sit too close to the price to set reliably,
+  so the routine never opens.
 - The farm needs Bankr's take-profit and stop-loss. If
   `manage_papertrade_tpsl` isn't available after
   `request_additional_tools`, say so and don't set the farm up.
 - Call `view_papertrade_staking` with `farmMarket` and `farmLeverage`,
   and `get_papertrade_account`. Fill the exit with
   `paperFarming.cycle.exitMovePct`, and show the cycle's cost, PAPER per
-  $1 of cost and `paybackDays` with the caveats above. With no `cycle`
-  at that leverage, don't set the farm up; offer a lower leverage.
+  $1 of cost and `paybackDays` with the caveats above. Also give the
+  rough daily spend at that leverage (above: about 5–15% of the pair's
+  margin at 50x, 35–90% at 100x) and offer a daily limit in Security
+  to cap it. With no `cycle` at that leverage, don't set the farm up;
+  offer a lower leverage.
 - The user picks the margin per leg: at least the markets tool's
   minimum position ÷ leverage ($1,000 today, so $20 at 50x or $10 at
   100x) and the $10 minimum margin, and no more than
@@ -504,10 +514,11 @@ Set-up rules:
   assume $500. With both limits off, only the balance and the payback
   limit cap what the farm spends; a daily limit in Security is the way
   to cap it.
-- The user picks the payback limit in days (default 20, or higher if
-  dilution has pushed `paperFarming.cycle.paybackDays` past 10–15 days).
-  The free balance needed to open is 2 × the margin plus anything they
-  want kept free.
+- The user picks the payback limit in days (default 20) and it stays
+  fixed. When `paperFarming.cycle.paybackDays` rises past it, the farm
+  stops opening pairs, as intended; never suggest raising the limit to
+  keep it opening. The free balance needed to open is 2 × the margin
+  plus anything they want kept free.
 - The farm treats every open position on its market at its leverage as
   one of its legs. If the user already has a position there, ask them
   to close it or pick the other market or another leverage.
