@@ -8,8 +8,13 @@ description: |
   metadata carrying an optional RESTAP service entry, plus an ERC-8048 (ERC-721T) agent
   profile readable on-chain, and every token publishes the traits its art
   was drawn from. Use when a user asks to create or launch an NFT collection, verify a
-  deployed contract, mint from a collection, or read what a collection contract says.
-version: 2.2.0
+  deployed contract, mint from a collection, airdrop tokens from a collection to
+  holders of another asset, or read what a collection contract says.
+  When the user names a subject — whatever the noun is — build a character cast for
+  that subject and pass `subject` plus `cast`, so every token is painted from it.
+  The built-in silhouette is not that subject. bird, rabbit and robot already have
+  sheets; any other noun needs the cast you draw.
+version: 2.20.0
 license: CC0-1.0
 metadata:
   author: signalbound
@@ -30,6 +35,16 @@ compiled contract, and you describe the collection and sign the deploy it hands 
 Every token is also an agent NFT: ERC-721 metadata carrying an optional RESTAP service
 entry, plus an ERC-8048 (ERC-721T) agent profile readable straight from the
 contract, so the collection deploys ready for agents to reach and for indexers to read.
+Prepare assigns one bound Signalbound agent. The collection supply is 6,666, and
+most of those tokens are not agents that can act. The assignment is taken from the
+bound agents only: the tokens whose ERC-8217 identity they control. Do not pass `deployerAgentId`
+and do not ask the user for one. Read `params.deployerAgentId`
+and `params.deployerAgentPool` from this response and deploy that exact
+`deployData`. Every on-chain token then carries that agent as the `Signalbound Agent`
+trait. On Ethereum and Base, mint holds the new token for a moment, registers
+it, then transfers it to the minter. That is one transaction. `binding.calls`
+is only for a collection deployed from an earlier artifact. Robinhood Chain has
+no adapter, so a mint there stays an NFT with the trait and no panel.
 
 This file is canonical at `https://signalbound.art/skill.md`. A copy in the source
 repository is a mirror; load the URL.
@@ -39,9 +54,9 @@ repository is a mirror; load the URL.
 | Origin | Carries |
 | --- | --- |
 | `https://signalbound.art` | The site, the docs, and this file |
-| `https://api.signalbound.art` | `GET /collections/artifact`, `POST /collections/prepare` — both free, no key, no payment |
+| `https://api.signalbound.art` | `GET /collections/artifact`, `POST /collections/prepare`, `GET /collections/<chainId>/<collection>/<tokenId>/registration.json` — free, no key, no payment |
 
-Two endpoints, that is the whole integration. Anything else claiming to be a Signalbound
+These are the collection endpoints. Anything else claiming to be a Signalbound
 endpoint for collections does not exist.
 
 ## Start here
@@ -52,6 +67,8 @@ endpoint for collections does not exist.
 | "…and verify the contract you deploy" | *Verifying the contract* — never skip it |
 | "each token should be an agent, we host them at …" | *Agent NFTs* — pass `agentBaseURI` |
 | "mint 5 from my collection" / "what's the supply so far" | *Minting and reading* |
+| "a collection of birds / foxes / lighthouses / whatever they named" | *Character cast* — draw that subject. Do not pick a silhouette and call it the thing they asked for |
+| "a set of rabbits, each one different" / "draw the whole supply" | *Drawing a series* — the card first; `maxCreatorMints` equals the number you will draw |
 | "the art isn't ready yet, add it later" | Deploy now (on-chain art), then `setBaseURI` for the reveal |
 | "change the mint price / pause minting" | owner setters in *Minting and reading* |
 | "deploy on Robinhood / Base / Ethereum" | look the chain up in *Chains*, pass `chainId` to prepare |
@@ -79,6 +96,7 @@ back to you before you sign.
 | `artSeed` | on-chain art seed; derived from the name when omitted, so the same request always renders the same art |
 | `description` | optional; what every token's agent document says, see *Agent NFTs* |
 | `agentBaseURI` | optional; where each token's agent is served, see *Agent NFTs* |
+| `deployerAgentId` | not an input. Prepare assigns a bound Signalbound agent and writes trait `Signalbound Agent` on every on-chain token. Do not pass it. A token from the 6,666 supply that is not bound is never used. This trait is not the OpenSea binding panel |
 | `chainId` | not a constructor argument — prepare echoes it so you deploy on the right chain |
 
 **Ownership is a constructor argument on purpose.** An agent deploying through a factory
@@ -106,13 +124,82 @@ The sale itself:
 The user's art description decides which mode you use — and if you cannot produce the
 art, say so instead of inventing a URL.
 
-There are three ways a token can end up with artwork. **When the request names a subject,
-you use the first one.** The other two are what you fall back to.
+There are four ways a token can end up with artwork. **When the request names a subject,
+you cast that subject.** The other ways are a single stored drawing, hosted files, and
+the silhouette. The silhouette is not a stand-in for a noun.
+
+### 0. Character cast (`subject` + `cast`)
+
+The contract paints every token from a sheet of parts. It does not know what a fox,
+a lighthouse or a bird is. You do. A mint does not store an SVG, so a supply of 1000
+is that subject all the way through.
+
+You decide the parts that make *this* subject recognizable. A sideways animal needs a
+scene behind it, a body, feet, a head, eyes, and one worn or held part. A building
+needs a ground, a mass, an opening, and a top. Vary at least four of those parts.
+Do not reuse a sheet whose parts belong to a different thing, and do not send
+`subject:"rabbit"` because a rabbit sheet already exists and the user said fox.
+
+The sheet is refused when it is too thin to be a collection. `cast.canvas` is 32.
+The first part is the background, and each of its variants is a scene: sky, ground,
+and at least one prop — a single full-canvas rectangle is not a background. At least
+six parts, at least four of them with two or more variants, and at least 40
+rectangles across the sheet. A `400` with `field:"cast"` names which of those is
+missing. Fix the drawing. Do not switch the subject to one that already has a sheet.
+
+`bird`, `rabbit` and `robot` already have sheets, so a name alone is enough:
+
+```bash
+curl -s -X POST https://api.signalbound.art/collections/prepare \
+  -H 'content-type: application/json' \
+  -d '{"name":"Bankr Birds","owner":"0xTHE_DEPLOYER_WALLET","chainId":4663,"maxSupply":1000,"mintPriceEth":"0","subject":"bird"}'
+```
+
+Any other subject needs the sheet you just drew. `palette` entries are `#rrggbb`.
+Each rect is `[x, y, width, height, colorIndex]`. Names are letters, digits, spaces
+or hyphens, at most eight parts and eight variants. This is the shape of one part,
+not a drawing you paste in for a different subject:
+
+```json
+{
+  "subject": "fish",
+  "cast": {
+    "canvas": 32,
+    "palette": ["#12151c", "#3aa8b0", "#141414"],
+    "layers": [
+      {"name": "Background", "variants": [
+        {"name": "Night", "rects": [[0, 0, 32, 32, 0]]},
+        {"name": "Sea", "rects": [[0, 0, 32, 32, 1]]}
+      ]},
+      {"name": "Body", "variants": [
+        {"name": "Slim", "rects": [[8, 14, 14, 6, 1], [20, 15, 6, 3, 1]]},
+        {"name": "Round", "rects": [[8, 12, 12, 8, 1]]}
+      ]},
+      {"name": "Tail", "variants": [
+        {"name": "Fork", "rects": [[4, 13, 5, 2, 1], [4, 19, 5, 2, 1]]},
+        {"name": "Fan", "rects": [[4, 14, 5, 6, 1]]}
+      ]},
+      {"name": "Eye", "variants": [
+        {"name": "Dot", "rects": [[20, 15, 2, 2, 2]]}
+      ]}
+    ]
+  }
+}
+```
+
+Say the subject and the part names before you sign. `params.art.mode` must be `cast`,
+`params.art.subject` the noun they used, and `params.art.parts` the parts you drew.
+`artForm` is not the picture here — a round silhouette with the description
+"birds" is the failure this field exists to stop. After the deploy, read
+`subject()` and `traits(1)` and say the part names. A `400` with `field:"cast"`
+means the sheet is missing, too thin, or a rect falls outside the canvas. The
+sample below is the shape of the fields, and sending it alone is refused. Fix the
+drawing. Do not clear the error by switching the subject to one that already has a sheet.
 
 ### 1. Art you draw, stored on-chain (`mintWithArt`)
 
-This is the answer to "deploy a collection of rabbits" — the pixels come back as rabbits,
-because you drew them and the chain kept them.
+This is one stored drawing on one token. A whole supply of a named subject is a cast,
+above. Reach for this when a single token needs a picture the cast does not cover.
 
 ```
 mintWithArt(address to, bytes svg) → uint256 tokenId      // onlyOwner, creator reserve rules
@@ -142,6 +229,68 @@ public sale. Any token you do not draw falls back to the built-in render, so set
 
 The holder can redraw later with `setMetadata(id, "image", svg)`; the art is an ordinary
 profile value, not something frozen at mint.
+
+#### Drawing a series
+
+`mintWithArt` stores the bytes you pass. Those bytes are one collection only when they
+follow one grammar. Fill this card and show it before the first signature:
+
+```
+Series
+- subject:
+- drawn count:          (this is maxCreatorMints; one transaction each)
+- whole supply:         the set | hosted files | reserve only, public mint is the silhouette
+- canvas:               24×24 rects
+- palette:              ground / body / marking / eye / accent
+- fixed:
+- varies:               (two axes — or say it is a recolor)
+- bytes of token 1:
+```
+
+The whole-supply line is the decision. Drawing 20 rabbits inside a supply of 2222 does not make a rabbit collection: a public `mint` still receives the built-in silhouette.
+Three honest shapes:
+
+- **The set is the subject.** `maxSupply` equals the number you will draw,
+  `maxCreatorMints` equals that number, and you `mintWithArt` every id. Nothing is left
+  for the silhouette.
+- **The files exist.** Pass `baseURI` and ship `<id>.json` for every id. Do not also
+  claim the contract drew them.
+- **Only the reserve is drawn.** Say that, name the `artForm` the public mint will show,
+  and do not call the collection the subject.
+
+Every token:
+
+- `viewBox="0 0 24 24"`, `xmlns="http://www.w3.org/2000/svg"`, `shape-rendering="crispEdges"`.
+- Elements are `svg`, `g` and `rect` only. Integer `x`, `y`, `width`, `height`. No
+  `path`, `circle`, `image`, `text`, `filter`, gradient or `url(`.
+- Five named fills. The first child is the ground, `<rect width="24" height="24"/>`,
+  and that ground is the same on every token.
+- The subject sits in the same footprint every time, about x 6–18 and y 2–20, so a
+  grid of them aligns.
+- Two axes change between tokens. If only the colours change, the card says recolor.
+
+Copy the construction, not the animal. This one is a rabbit. A robot collection does
+not paste it.
+
+Five fills in this one: ground `#1c2430`, body `#f3efe6`, marking `#e7a8ad`, eye `#12151c`, accent `#d8c7a2`.
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" shape-rendering="crispEdges"><rect width="24" height="24" fill="#1c2430"/><rect x="8" y="1" width="2" height="8" fill="#f3efe6"/><rect x="14" y="1" width="2" height="8" fill="#f3efe6"/><rect x="9" y="3" width="1" height="4" fill="#e7a8ad"/><rect x="14" y="3" width="1" height="4" fill="#e7a8ad"/><rect x="8" y="8" width="8" height="1" fill="#f3efe6"/><rect x="7" y="9" width="10" height="1" fill="#f3efe6"/><rect x="6" y="10" width="12" height="5" fill="#f3efe6"/><rect x="7" y="15" width="10" height="1" fill="#f3efe6"/><rect x="8" y="16" width="8" height="3" fill="#f3efe6"/><rect x="7" y="19" width="3" height="3" fill="#f3efe6"/><rect x="14" y="19" width="3" height="3" fill="#f3efe6"/><rect x="16" y="16" width="2" height="2" fill="#d8c7a2"/><rect x="9" y="12" width="2" height="2" fill="#12151c"/><rect x="13" y="12" width="2" height="2" fill="#12151c"/><rect x="11" y="14" width="2" height="1" fill="#e7a8ad"/></svg>
+```
+
+Same ground, same body, same eye line. The next token lengthens both ears (`y="0"` `height="9"`). The one after adds a belly mark (`<rect x="10" y="16" width="4" height="2" fill="#e7a8ad"/>`). A later token that switches to circles is a different collection; do not mint it into this one.
+
+| Subject | Stays | Varies |
+| --- | --- | --- |
+| rabbit, hare | two ears, head, body, feet | ear length; belly mark |
+| bird, owl | beak, body, wing, tail | beak length; wing height |
+| robot, mech | block head, body, two eyes | antenna; chest panel |
+| ghost, slime | rounded cap, flat foot | eye gap; mouth |
+| crystal, gem | diamond body | facet offset; spark |
+
+Count the UTF-8 length of token 1. Say that length, the storage note above, and the
+drawn count, before the first `mintWithArt`. If the subject cannot be drawn with rects
+on this canvas, say so and use the silhouette table. Do not invent a URL to get past it.
 
 ### 2. Hosted metadata (`baseURI` given)
 
@@ -270,11 +419,24 @@ all:
     `An AI agent in the <name> collection.` the metadata document writes);
   - `metadata(id, "endpoint[restap]")` — `<agentBaseURI><id>`, empty when no base was set.
 - **Writes:** `setMetadata(id, key, value)` stores raw bytes and emits `MetadataSet`.
-  Keys are lowercase and case-sensitive; the reserved ones are `context`,
-  `endpoint[mcp]`, `endpoint[a2a]`, `endpoint[web]` and `address[<chain-id>]`
-  (20 raw address bytes) — any other `endpoint[<scheme>]` is allowed too.
-  `setContext(id, text)` and `setEndpoint(id, scheme, uri)` build the canonical key so
-  the brackets cannot be missed.
+  A written value wins over the automatic fallback, including empty bytes, so a
+  holder can clear `context`. Keys are case-sensitive. The reserved ones are
+  `context`, `endpoint[mcp]`, `endpoint[a2a]`, `endpoint[web]` and
+  `address[<chain-id>]`. Any other `endpoint[<scheme>]` is allowed too.
+  `setContext(id, text)` and `setEndpoint(id, scheme, uri)` build the canonical
+  key. `setEndpoint` lowercases the scheme, so `MCP` is stored as `endpoint[mcp]`.
+  `setAgentAddress(id, chainId, account)` stores the 20-byte account. `chainId`
+  is the ERC-7930 chain identifier, lowercase `0x` hex with a zero address
+  length — not the decimal chain id:
+
+  | Chain | chainId | `address` key |
+  | --- | --- | --- |
+  | Ethereum | 1 | `address[0x00010000010100]` |
+  | Base | 8453 | `address[0x0001000002210500]` |
+  | Robinhood Chain | 4663 | `address[0x0001000002123700]` |
+
+  A chain identifier that is not lowercase `0x` hex reverts `InvalidChainIdentifier`.
+  A scheme that is empty or not letters, digits and hyphens reverts `InvalidEndpointScheme`.
 - **Who may write:** only the token's owner or an approved operator — the same authority
   as moving the token, because the profile is the agent's identity. A stranger's write
   reverts with `ERC721InsufficientApproval`; a token that does not exist reverts with
@@ -305,6 +467,50 @@ marketplace-ready `attributes`, from the same hash, so the two cannot disagree.
   really change the creature's face, and `form` really is the outline the body test
   draws. A trait that stopped describing the pixels would fail the collection's own
   tests.
+- **`Signalbound Agent`** is not a roll and not a row of `traits(id)`. Prepare assigns
+  one bound Signalbound agent, and every on-chain token lists that same id. Bound
+  means the token controls an ERC-8217 identity and can act. The 6,666 supply is not the pool.
+  `params.deployerAgentPool` is how many bound agents were eligible when
+  this response was built. Deploy the `deployData` from that same response: a later
+  prepare can choose a different agent if the bound set has changed. Do not pass
+  `deployerAgentId`. Hosted mode does not write attributes in the contract: put the
+  same trait in each JSON file yourself. Read the id back with `deployerAgentId()`.
+
+### OpenSea "Onchain agent binding"
+
+The panel that shows an Agent ID and a Binding Contract is not a trait and not an
+ERC-8048 key. On Ethereum and Base this artifact's `mint`, `mintToCreator` and
+`mintWithArt` register the token while the collection still owns it, then
+transfer it to the minter. That is the whole registration. Do not send `register` again afterwards: a second call opens a second identity for the same
+token. A collection whose mint already reverted was built from the previous
+bytecode; deploy it again. `binding.calls` is only for a collection deployed
+from an earlier artifact, whose mint did not register. OpenSea shows the
+panel after it indexes that registration:
+
+`register(0, collection, tokenId, agentURI)`
+
+`0` means ERC-721. `agentURI` is that collection token's own registration,
+`https://api.signalbound.art/collections/<chainId>/<collection>/<tokenId>/registration.json`.
+It is named `<collection> #<id>` and carries that token's description, image, and
+services. The same document includes `registrations`: `agentId` is this token's
+id and `agentRegistry` is `eip155:<chainId>:<collection>`. OpenSea attaches the
+panel from that entry. It also includes `supportedTrust`. The Signalbound Agent trait is only the agent assigned to the collection.
+Do not point `agentURI` at that agent's registration, at the HTML profile page, or
+at `tokenURI`. Do not add an ERC-8004 `type` field to the metadata document —
+that hides the art traits.
+
+Prepare returns `binding`. When `binding.available` is false, this chain has no
+adapter. Robinhood Chain is one of those chains, so a collection deployed there will
+not show the panel. When it is true, mint is what creates the identity. The panel appears after
+OpenSea indexes the registration document, not after a second `register`.
+`binding.calls` is only for a collection deployed from an earlier artifact, whose
+mint did not register. For that repair, call prepare again with `collection` and
+`bindCount` (1 to 20). `bindFrom` defaults to 1; raise it to continue past 20.
+Send each call from that token's owner, value `0`. Do not send those calls for a
+collection whose mint already registered, and do not send `deployData` again.
+The panel's Agent ID is the new identity the adapter creates. It is not the
+`Signalbound Agent` trait. Do not invent an adapter address, and do not describe
+the panel as present before the marketplace has indexed the registration.
 
 ## Deploying a collection
 
@@ -334,11 +540,26 @@ curl -s -X POST https://api.signalbound.art/collections/prepare \
   }'
 ```
 
-The reply carries `creationBytecode` (the compiled contract), `constructorArgs`
-(ABI-encoded, ready), `deployData` (bytecode + arguments for a raw creation transaction),
-`params` (every value echoed — the `description` and the `agent` endpoint among them —
-read it and check it against what the user asked for), `chainId`, and `verify` (the exact
-compiler settings). `POST` only; a missing field answers `400` naming the field.
+`POST` only; a missing field answers `400` naming the field. Read the reply before you
+sign. A mismatch stops the deploy — do not repair a field by editing `deployData`.
+
+| Field | Must match |
+| --- | --- |
+| `chainId` | the chain the user named |
+| `deployData` | the creation transaction's `data`. No `to`, no value. Do not rebuild it from parts |
+| `params.name`, `params.symbol` | the collection |
+| `params.owner` | the user's wallet. `null` means `owner` was omitted; read `ownerNote` and stop when a factory would otherwise own it |
+| `params.maxSupply`, `params.mintPrice.eth`, `params.maxMintPerWallet`, `params.maxCreatorMints` | the sale. `maxCreatorMints` is how many tokens you can still draw |
+| `params.art.mode` | `onchain` or `metadata` |
+| `params.art.styleName`, `params.art.formName` | the world and the silhouette you already named. `formName` is null for mosaic, horizon and hosted art |
+| `params.description`, `params.agent.endpoint` | the document. `endpoint` is `<agentBaseURI><id>`, or null when no base was passed |
+| `params.deployerAgentId` | the bound Signalbound agent prepare assigned. You did not choose it. It is a member of the bound set, not an arbitrary token from the 6,666 supply |
+| `params.deployerAgentPool` | how many bound agents were eligible for that assignment |
+| `binding.available` | true only when this chain has an ERC-8217 adapter. After the mint, `binding.calls` are the register transactions. Do not invent an adapter when it is false |
+| `verify` | the explorer fields, passed on unchanged |
+
+`creationBytecode` and `constructorArgs` are that same deploy split apart, for a tool
+that asks for them separately. `params.art` is the echo of the card, not a new decision.
 
 **Step 2 — deploy.** A creation transaction has **no `to`** and **no value** (the
 constructor is not payable; gas comes from the deployer's wallet). Three ways to send it:
@@ -355,18 +576,39 @@ constructor is not payable; gas comes from the deployer's wallet). Three ways to
 - **A chain CLI:** `cast create --create --data <deployData>`, or `forge create` against
   the source in the artifact.
 
-**Step 3 — read it back.** `owner()`, `name()`, `symbol()`, `totalSupply()`,
+**Step 3 — mint the creator reserve.** The deploy does not mint. A collection with
+`totalSupply() == 0` has no tokens, so a marketplace grid stays empty. Prepare's
+`mint.creator` is the next transaction: send `mint.creator.data` **to the deployed
+address**, with `value` `0`. It calls `mintToCreator` for up to 20 of the reserve.
+If `maxCreatorMints` is larger, send it again until `creatorMinted()` matches. If
+`mint.creator` is null, the reserve is zero and only a public `mint` can create
+tokens. A public mint sends `mint.public.data` to the same address with
+`mint.public.valueWei` attached for one token — any other value reverts
+`WrongPayment`. Do not attach that value to the deploy. The deploy stays valueless.
+
+**Binding.** On Ethereum and Base the mint you just sent already registered each
+token while the collection owned it, then transferred it to the minter. Do not
+send `binding.calls` for that collection. If
+the creator mint runs out of gas, send `mintToCreator` again with a smaller
+quantity; each token still registers. On a chain where `binding.available` is
+false, the panel cannot appear. `binding.calls` is the repair for a collection
+deployed from an earlier artifact: call prepare again with `collection` and
+`bindCount`, and send each call from the token owner. Do not redeploy.
+
+**Step 4 — read it back.** `owner()`, `name()`, `symbol()`, `totalSupply()`,
 `maxSupply()`, `mintPrice()`, `maxMintPerWallet()`, `maxCreatorMints()`, `baseURI()`,
-`agentBaseURI()`, `agentDescription()`, `artStyle()`, `artForm()`. Confirm the owner is the user's
+`agentBaseURI()`, `agentDescription()`, `deployerAgentId()`, `artStyle()`, `artForm()`. Confirm the owner is the user's
 wallet and the rules match the request — including the silhouette, because `artForm()`
 is what decides whether the collection looks like the subject they asked for. This, plus a receipt with `status: success`, is
 the only proof the deploy happened — an HTTP `200` is not. For an agent collection, also
 read `metadata(1, "endpoint[restap]")`: it is the endpoint the tokens advertise, and it
 is empty if no `agentBaseURI` was ever set.
 
-**Step 4 — report.** The address, the explorer link, verification status, and the mint
-instruction: price per mint, supply, per-wallet cap, creator reserve. If tokens point at
-an agent, say where — token `1`'s endpoint, from `params.agent.endpoint`.
+**Step 5 — report.** The address, the explorer link, verification status, `totalSupply()`,
+and the public mint: price per token, supply, per-wallet cap, creator reserve already
+minted. If `totalSupply()` is still 0, say the mint did not happen and quote the
+revert. Do not describe an empty collection as minted. If tokens point at an agent,
+say where — token `1`'s endpoint, from `params.agent.endpoint`.
 
 ## Verifying the contract
 
@@ -375,16 +617,17 @@ block explorer asks for:
 
 | Field | Where it comes from |
 | --- | --- |
+| Contract name | `SignalCollection`. This is the Solidity contract. The collection title is `name()`, not this identifier. Do not verify the source under any other contract name |
 | Source | `source` in `GET /collections/artifact` — the complete file, no imports to reconstruct |
 | Compiler version | `verify.compiler`, e.g. `0.8.26+commit.8a97fa7a` |
-| Optimization | `verify.optimizerRuns` — `200`, enabled |
+| Optimization | `verify.optimizerRuns` — `1`, enabled |
 | EVM version | `verify.evmVersion` — `paris`; do not accept a tool's "default" |
 | Constructor arguments | `verify.constructorArgs` — already ABI-encoded, paste as hex |
 
-With Bankr: "Verify contract <address> on <chain> with this source, compiler …, optimizer
-runs 200, EVM version paris, constructor args …". On an explorer form: single-file
-Solidity, paste the source, pick the version, optimization yes / runs 200, EVM version
-paris, paste the constructor arguments. Re-verification with different settings fails
+With Bankr: "Verify contract <address> on <chain> as SignalCollection with this source, compiler …, optimizer
+runs 1, EVM version paris, constructor args …". On an explorer form: single-file
+Solidity, contract name `SignalCollection`, paste the artifact source, pick the version, optimization yes / runs 1, EVM version
+paris, paste the constructor arguments. Do not rename the contract in the source, and do not reuse another collection's verified source. Re-verification with different settings fails
 loudly — re-read `verify`, do not guess.
 
 If verification is refused, the deploy is still live and still owned by the user: report
@@ -411,6 +654,49 @@ Reads need no transaction and any agent can phrase them: "Read `totalSupply()` o
 "Read `royaltyInfo(1, 1000000000000000000)`". The state worth reading back after any
 owner action: `mintPrice()`, `mintPaused()`, `baseURI()`, `contractURI()`,
 `agentBaseURI()`, `royaltyBps()`.
+
+## Airdrop
+
+A collection has no `airdrop` function. Giving its tokens to holders of another
+asset is two owner-signed steps: mint them from the creator reserve, then
+transfer each one. The contract cannot read who holds an ERC-20 or another NFT
+collection, and this file has no airdrop endpoint to call.
+
+Set the size before deploy. `maxCreatorMints` and `maxSupply` are fixed for the
+life of the contract. `maxCreatorMints` must be at least the number of tokens
+the user will give away. `maxSupply` must be at least that number plus any
+public mint they still want. Read `maxCreatorMints()`, `creatorMinted()`,
+`maxSupply()` and `totalSupply()` on a collection that already exists. Stop
+when the remaining creator reserve, or the remaining supply, is below the
+count. Public `mint` is not a way around that: `maxMintPerWallet` caps the
+owner too.
+
+Name the rule before any signature. Say how many tokens, which asset, which
+chain that asset is on, and how the wallets are chosen: the N largest balances,
+or one token per holder at or above a minimum balance, read at one block. When
+holders outnumber the tokens, the rule decides who is in the list. Do not
+promise a token to every holder of that asset when there are more holders than
+tokens.
+
+Build the list from that read. One address per token, unless the user asked for
+more than one per wallet. Drop the zero address. Do not invent addresses. If
+the holder set cannot be read, stop and say the list is missing. Show the rule,
+the block, the count and the addresses, and wait until the user accepts the
+list. The accepted count is the number of tokens you will mint.
+
+Mint, then transfer. The owner calls `mintToCreator` with value `0`, in batches
+of at most 20, until the new token ids cover the list. On Ethereum and Base
+each of those mints registers the token while the collection owns it. Do not
+send `register` again. The new ids run from the `totalSupply()` before the
+first airdrop mint, plus one, through the `totalSupply()` after the last. The
+owner then calls `safeTransferFrom(owner, recipient, tokenId)` once per id, in
+list order. Read `ownerOf` on each id afterwards and report any token that is
+still the owner's. A drawn series can skip the transfer and call
+`mintWithArt(recipient, svg)` instead; that still spends the creator reserve,
+one token per call.
+
+The airdrop is done when `ownerOf` for every id in the accepted list is the
+recipient you named. An accepted list is not a completed send.
 
 Owner actions (signer must be the owner, else `NotOwner`): `setBaseURI`, `setContractURI`,
 `setAgentBaseURI`, `setAgentDescription`, `setMintPrice`, `setMintPaused(bool)`,
@@ -441,6 +727,8 @@ Deploying on a chain the user did not name is a bug: ask, or follow what they sa
 | Name / symbol | 64 characters / 1–16 letters and digits |
 | `description` | 512 characters; no `"`, `\` or control characters — it is written into JSON |
 | `agentBaseURI` | optional http/https/ipfs URL; trailing slash appended by prepare |
+| `deployerAgentId` | assigned by prepare from the bound agents; do not send it |
+| `bindCount` | 1–20, only on the second prepare, with `collection` |
 | `maxSupply` | 1–1,000,000 |
 | `maxMintPerWallet` | 1–`maxSupply`, cumulative |
 | `maxCreatorMints` | ≤ `maxSupply` |
@@ -448,7 +736,7 @@ Deploying on a chain the user did not name is a bug: ask, or follow what they sa
 | `mintPrice` | below 1,000,000 ETH (sanity check) |
 | Art styles | 0 creature, 1 mosaic, 2 horizon |
 | Art forms | 0 blob, 1 round, 2 square, 3 tall, 4 diamond, 5 arch — creature only, ignored otherwise |
-| Deploy bytecode | 27.0 KB creation, 23.7 KB runtime — under the 24 KB code-size limit |
+| Deploy bytecode | under the 24 KB runtime limit; read `deployedBytecodeSize` from the artifact. The cast is constructor data, not runtime code, so a large sheet is not what hits that limit |
 | Prepare | `POST`, free, no key; `400` names the offending field |
 
 ## Prompt examples
@@ -462,13 +750,15 @@ The ask this skill exists for, in one message:
 > https://signalbound.art/skill.md — Make sure to verify the contract you deploy as well
 
 What that becomes: prepare with `{name:"Nova Nodes", chainId:4663, maxSupply:2222,
-mintPriceEth:"0.001", maxMintPerWallet:20, maxCreatorMints:20, artStyle:"creature",
-artForm:"square", agentBaseURI:"https://agents.example.com/nova/"}` (symbol derived
-`NOVA`, description defaulted to `Nova Nodes — agent NFT collection.`, owner = the
-signing wallet) → **say "blocky robots, so `creature` + `square`" before deploying**, so
-the user can stop you while prepare is still free → deploy with no value → read back the
-rules → verify with the pack's fields → report the address, the explorer link, and that
-token `1`'s document points RESTAP clients at `https://agents.example.com/nova/1`.
+mintPriceEth:"0.001", maxMintPerWallet:20, maxCreatorMints:20, subject:"robot",
+agentBaseURI:"https://agents.example.com/nova/"}` (symbol derived `NOVA`, description
+defaulted to `Nova Nodes — agent NFT collection.`, owner = the signing wallet) →
+**say "robots, so the robot cast" before deploying**, so the user can stop you while
+prepare is still free → deploy with no value → read `subject()` back → verify with
+the pack's fields → report the address, the explorer link, and that token `1`'s
+document points RESTAP clients at `https://agents.example.com/nova/1`. A square
+silhouette is only the fallback when they asked for the built-in renderer, and you
+say that it is a silhouette.
 
 The same request with `artForm` omitted is now refused with `400 field:"artForm"` — that is
 the endpoint refusing to let a collection come back as the wide blob every other creature
@@ -481,7 +771,7 @@ costs nothing because no gas was spent.
 | "Create a collection called Pixie Market on Base, free mint, 1000 supply, no creator reserve" | prepare with `mintPriceEth:"0"`, `maxSupply:1000`, `maxCreatorMints:0`, `chainId:8453`, owner = wallet → deploy → verify → report |
 | "…and verify it" | verification fields from `verify`; never skip, never guess them |
 | "The art should be ghosts / robots / crystals, not more faces" | **draw it**: compose the SVG and `mintWithArt(to, svg)` per token. Only for tokens you are not drawing, map the subject to `artForm` (`ghost`→`blob`, `robot`→`square`, `crystal`→`diamond`, `alien`→`round`, `totem`→`tall`, `mushroom`→`arch`); `artSeed` only recolours, it never changes the shape |
-| "Deploy 20 rabbits to my wallet now" | prepare → deploy → then 20 × `mintWithArt(wallet, rabbitSvg)`, varying fur/ear colour per token. Say what you drew and what it costs in storage gas before the first call |
+| "Deploy 20 rabbits to my wallet now" | *Drawing a series*: card first. Drawn count 20, and the whole supply is the set, so `maxSupply` and `maxCreatorMints` are 20 unless they asked for a public mint of the silhouette. Prepare → deploy → 20 × `mintWithArt`. Token 2 changes an axis; it does not restyle the canvas. Say the byte length before the first call |
 | "Can I change my rabbit later?" | yes — `setMetadata(id, "image", svg)`; the holder owns that choice, no redeploy |
 | "Mint 3 for me" | `mint(3)` with exactly 3 × mint price attached |
 | "What has minted so far?" | read `totalSupply()` and `minted(<address>)` |
@@ -490,6 +780,8 @@ costs nothing because no gas was spent.
 | "Make it 0.002 ETH now" | owner calls `setMintPrice`; the supply caps cannot change |
 | "Pause minting while we fix the site" | owner calls `setMintPaused(true)` |
 | "Who owns it?" | read `owner()` — if it is not the user's wallet, say so plainly |
+| "Airdrop 100 of these to the largest $BANKR holders" | On a new collection, set `maxCreatorMints` to at least 100 before deploy. Read the 100 largest balances at one block, show that list, and wait. Then `mintToCreator` in batches of at most 20 and `safeTransferFrom` each new id. If the remaining creator reserve is below 100, stop |
+| "Airdrop these to CryptoPunks holders" | Ask how many tokens and the rule: one per holder, or the N largest. If holders outnumber the remaining creator reserve, say so and do not mint a shorter list unless the user accepts that smaller count |
 
 ## When a call fails
 
@@ -504,11 +796,12 @@ costs nothing because no gas was spent.
 | `SoldOut` | `totalSupply` + order > `maxSupply` | read `totalSupply()`; nothing to do |
 | `MintingIsPaused` | owner paused minting | read `mintPaused()` and tell the user |
 | `CreatorCapExceeded` | reserve spent, or caller is not the owner | read `creatorMinted()` |
+| Airdrop count above the remaining creator reserve | `maxCreatorMints` is immutable | read `creatorMinted()` and `maxCreatorMints()`; do not mint a shorter list unless the user accepts a smaller count |
 | `EmptyArtwork` | `mintWithArt` was given `0x` | draw the SVG first and pass its bytes; an empty value would leave the token on the built-in render anyway |
 | `NotOwner` | signer is not the owner | check `owner()`; ownership is a constructor argument, not a guess |
 | `InvalidMetadataString` | a name, description or agent URL carries `"`, `\` or a control character | fix that field in prepare — a JSON string cannot carry them |
 | `ERC721NonexistentToken` | token id does not exist | ids start at 1 and only exist after mint |
-| Explorer rejects verification | settings mismatch | re-read `verify` — version, runs 200, `paris`, encoded args |
+| Explorer rejects verification | settings mismatch | re-read `verify` — version, runs 1, `paris`, encoded args |
 | Deploy succeeded, `owner()` is not the user | the factory became owner | stop, say what happened, redeploy passing `owner` |
 | Out of gas / insufficient funds | deployer pays the deploy gas | the user's wallet needs the chain's native token |
 
