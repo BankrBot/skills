@@ -75,7 +75,7 @@ endpoint for collections does not exist.
 
 ## The contract: SignalCollection
 
-One flat Solidity file, no imports, compiled for `paris` so its bytecode runs on any EVM
+One flat Solidity file, no imports, compiled for `cancun` so its bytecode runs on any EVM
 chain a wallet can be asked to deploy to. Everything is set in the constructor and echoed
 back to you before you sign.
 
@@ -621,13 +621,13 @@ block explorer asks for:
 | Source | `source` in `GET /collections/artifact` — the complete file, no imports to reconstruct |
 | Compiler version | `verify.compiler`, e.g. `0.8.26+commit.8a97fa7a` |
 | Optimization | `verify.optimizerRuns` — `1`, enabled |
-| EVM version | `verify.evmVersion` — `paris`; do not accept a tool's "default" |
+| EVM version | `verify.evmVersion` — `cancun`; do not accept a tool's "default" |
 | Constructor arguments | `verify.constructorArgs` — already ABI-encoded, paste as hex |
 
 With Bankr: "Verify contract <address> on <chain> as SignalCollection with this source, compiler …, optimizer
-runs 1, EVM version paris, constructor args …". On an explorer form: single-file
+runs 1, EVM version cancun, constructor args …". On an explorer form: single-file
 Solidity, contract name `SignalCollection`, paste the artifact source, pick the version, optimization yes / runs 1, EVM version
-paris, paste the constructor arguments. Do not rename the contract in the source, and do not reuse another collection's verified source. Re-verification with different settings fails
+cancun, paste the constructor arguments. Do not rename the contract in the source, and do not reuse another collection's verified source. Re-verification with different settings fails
 loudly — re-read `verify`, do not guess.
 
 If verification is refused, the deploy is still live and still owned by the user: report
@@ -704,8 +704,7 @@ Owner actions (signer must be the owner, else `NotOwner`): `setBaseURI`, `setCon
 
 ## Chains
 
-The contract deploys on any EVM chain whose hardfork includes `paris` (no PUSH0, no
-MCOPY). The chain must still be one your wallet can sign for. Bankr's deploy surface, as
+The contract deploys on any EVM chain whose hardfork includes `cancun`. The chain must still be one your wallet can sign for. Bankr's deploy surface, as
 an example of a wallet that supports this flow end to end:
 
 | Chain | chainId | | Chain | chainId |
@@ -801,7 +800,7 @@ costs nothing because no gas was spent.
 | `NotOwner` | signer is not the owner | check `owner()`; ownership is a constructor argument, not a guess |
 | `InvalidMetadataString` | a name, description or agent URL carries `"`, `\` or a control character | fix that field in prepare — a JSON string cannot carry them |
 | `ERC721NonexistentToken` | token id does not exist | ids start at 1 and only exist after mint |
-| Explorer rejects verification | settings mismatch | re-read `verify` — version, runs 1, `paris`, encoded args |
+| Explorer rejects verification | settings mismatch | re-read `verify` — version, runs 1, `cancun`, encoded args |
 | Deploy succeeded, `owner()` is not the user | the factory became owner | stop, say what happened, redeploy passing `owner` |
 | Out of gas / insufficient funds | deployer pays the deploy gas | the user's wallet needs the chain's native token |
 
