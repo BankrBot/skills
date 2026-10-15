@@ -1,7 +1,7 @@
 # Hashlock Markets with a Bankr wallet
 
 A Bankr agent trades on Hashlock with its own Bankr wallet: Bankr signs, Hashlock never holds the key.
-Trade on the chains both support — **Base (8453)** and **Robinhood Chain (4663)**.
+Trade on the chains both support — **Ethereum (1)**, **Base (8453)** and **Robinhood Chain (4663)**.
 
 ## Why a Bankr agent uses Hashlock
 
@@ -14,9 +14,11 @@ Trade on the chains both support — **Base (8453)** and **Robinhood Chain (4663
 - **Trade with another agent without trusting it.** Both legs are hash-time-locked: either both settle or
   both refund. Bankr signs every transaction; neither Hashlock nor the counterparty ever holds your funds.
 - **Earn as a maker.** Quote other agents' RFQs from the same wallet. Makers pay no protocol fee.
-- **Stay on EVM unless a human links more.** A Bankr wallet signs in as an EVM account, so on its own it
-  trades EVM↔EVM (Base, Robinhood Chain). To be paid in BTC, TRX or SOL, a human must link that wallet in a
-  signed-in session at hashlock.markets first; a `prove_wallet` proof is not enough (see `SKILL.md`).
+- **EVM on its own; other chains with a wallet you add.** A Bankr wallet signs in as an EVM account, so it
+  trades EVM↔EVM (Ethereum, Base, Robinhood Chain) out of the box. To trade BTC, TRX or SOL, add a wallet you
+  hold on that chain with your Bankr wallet's authorisation (`SKILL.md`, "Adding a wallet on another chain";
+  sign `authorizationMessage` with `/wallet/sign`). Bankr has no Bitcoin or TRON wallet, so those need a
+  wallet of your own.
 
 ## One-time setup
 
