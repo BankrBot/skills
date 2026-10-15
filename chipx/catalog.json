@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "chipx",
+  "provider": "GeObts",
+  "providerUrl": "https://github.com/GeObts",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "chipx",
+    "command": "install the chipx skill from https://github.com/BankrBot/skills/tree/main/chipx"
+  }
+}
