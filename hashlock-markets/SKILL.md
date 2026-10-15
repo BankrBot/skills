@@ -139,19 +139,18 @@ POST https://api.hashlock.markets/v1/keys
 
 ### Your wallets: where you are paid, what you can give
 
-- **Where money comes back to you must be your login wallet** (one address covers every EVM chain) or a
-  wallet linked in a signed-in web session at hashlock.markets. That is every payout address, and on Bitcoin
-  and Solana the refund address too, because a refund there is paid to it.
-- **Giving from another wallet:** `prove_wallet` (sign the text from `wallet_proof_message`) records a
-  wallet under `proven`. Over the API that is enough to **give** from it on EVM (set it as your refund
-  address on that leg — it funds from there). It is not enough to receive anything, nor to give on TRON
-  (a TRON leg is always funded by your login TRON wallet) or on Bitcoin and Solana (the refund is paid to
-  the refund address).
-- So an agent signed up by API key alone trades within its login family: an EVM agent EVM↔EVM, a Solana agent
-  Solana↔Solana. To give or receive on another family (BTC, TRX, SOL), a human signs in once at
-  hashlock.markets with that wallet linked to the same account. Hashlock refuses an RFQ or quote that gives on
-  a chain your account cannot fund from. A Bitcoin-only or TRON-only agent cannot complete a trade alone:
-  a Bitcoin swap always has a non-Bitcoin leg, and TRON↔TRON pairs are not offered.
+- **Where money comes back to you must be one of your account's wallets:** the login wallet (one address
+  covers every EVM chain) or a wallet you added with your login wallet's authorisation (below). That is every
+  payout address, and on Bitcoin and Solana the refund address too, because a refund there is paid to it.
+- **Adding a wallet on another chain:** call `wallet_proof_message` with the new `address` and your `login`
+  wallet. Sign `message` with the NEW wallet and `authorizationMessage` with your LOGIN wallet, then call
+  `prove_wallet` with both (`authorization`). The answer says `authorised: true`, and the wallet now works like
+  your login wallet: you are paid there, refunded there, and a TRON leg funds from it. This is how an agent
+  trades BTC, TRX or SOL against EVM on its own. Without `authorization` a proof only lets you give from that
+  wallet on EVM. Check for `authorised: true` before you rely on it. Sign both messages within 5 minutes; if
+  `prove_wallet` fails, call `wallet_proof_message` again and re-sign both. A Bitcoin wallet must be native
+  SegWit (`bc1q…`). Only add wallets whose keys you alone hold: an added wallet can also sign in to your account.
+- Hashlock refuses an RFQ or quote that gives on a chain your account cannot fund from, so add the wallet first.
 
 With a Bankr wallet, sign and send through Bankr's Wallet API — see `references/bankr.md`.
 
@@ -238,14 +237,15 @@ with a new one, the first may be the one that counted. Your role is on the swap:
 Legs: `a` is funded by the maker, `b` by the taker. Follow progress with `swap_status` /
 `GET /v1/swaps/{id}` (all your deals: `list_swaps`), or with `swap.*` webhooks.
 
-**Which wallet does what** — one rule per chain; follow it and the builders line up:
+**Which wallet does what** — one rule per chain; follow it and the builders line up. "Your wallet" below
+means your login wallet on that chain or one you added with an authorisation (see "Your wallets"):
 
 | Chain | Set as your payout address | Funds the leg | Set as your refund address | Signs a refund | Signs your claim | Gas to keep until settled |
 |---|---|---|---|---|---|---|
-| EVM | your login wallet | your refund address (the builder's `from`) | the wallet that will send the fund: your login wallet or one you proved | anyone (it always pays the funder) | anyone (it always pays your payout) | ETH on the wallet that sends |
-| Solana | your login wallet (or one linked in a web session) | your refund address | your login wallet (or one linked in a web session) | your refund address | your payout address | SOL on each wallet that signs (a claim may also pay rent for a new token account) |
-| TRON | your login TRON wallet | **always your login TRON wallet** | your login TRON wallet (a refund always goes back to the funder) | your login TRON wallet | your login TRON wallet | funding a TRC-20 leg: **about 75 TRX** (approve ~10 + fund ~40; the builder asks ~64 up front, and again on a rebuild); a native TRX leg: ~18 TRX on top of amount + fee; receiving only: ~15 TRX for a claim |
-| Bitcoin | your login wallet's public key | any wallet that pays `payTo` — with the fee output in the same transaction | your login wallet's public key | **your login key** — not the wallet that paid | your login key | BTC for funding only; claim and refund fees come out of the escrow |
+| EVM | your EVM wallet | your refund address (the builder's `from`) | the wallet that will send the fund: your login wallet or one you proved | anyone (it always pays the funder) | anyone (it always pays your payout) | ETH on the wallet that sends |
+| Solana | your Solana wallet | your refund address | your Solana wallet | your refund address | your payout address | SOL on each wallet that signs (a claim may also pay rent for a new token account) |
+| TRON | your TRON wallet | **always ONE TRON wallet: your login one, else the oldest you added with `authorised: true`** (the builder's `from`) | that same wallet (a refund always goes back to the funder) | that same wallet | that same wallet | funding a TRC-20 leg: **about 75 TRX** (approve ~10 + fund ~40; the builder asks ~64 up front, and again on a rebuild); a native TRX leg: ~18 TRX on top of amount + fee; receiving only: ~15 TRX for a claim |
+| Bitcoin | your Bitcoin wallet's public key | any wallet that pays `payTo` — with the fee output in the same transaction | your Bitcoin wallet's public key | **that wallet's key** — not the wallet that paid | that wallet's key | BTC for funding only; claim and refund fees come out of the escrow |
 
 TRX figures are at today's energy price; when short, the TRON builder answers `409` naming the TRX it needs.
 
@@ -254,7 +254,7 @@ TRX figures are at today's energy price; when short, the TRON builder answers `4
    comes back to you" above). **Always set both yourself**: the swap may come pre-filled from your address
    book with a wallet you did not mean. Use the addresses in the table above. If both legs are on one chain,
    pass `leg`. **On Bitcoin, `address` is not a `bc1…` address but your 33-byte compressed public key (66
-   hex chars)** — the key of your native-SegWit (`bc1q…`) login wallet; the escrow script is built from it.
+   hex chars)** — the key of your native-SegWit (`bc1q…`) wallet; the escrow script is built from it.
    The fund builder answers `409` (wait, then retry) until the addresses a deal needs are set: the
    counterparty's payout on the leg you fund, your own payout on the other leg and — before the first leg is
    funded — the counterparty's Solana refund address there; on Bitcoin, also your own refund public key.
