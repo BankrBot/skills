@@ -181,8 +181,8 @@ A token you launched or hold can trade here block-for-block once it is listed �
   upgradeability, a real transfer test on EVM; on Solana a classic SPL mint with no mint or freeze
   authority; no look-alike symbol. Traction: market cap ≥ $1M, liquidity ≥ $100k, 24 h volume ≥ $250k,
   ≥ 500 holders, first pair ≥ 24 h old, top 10 holders ≤ 40%.
-- A listed token shows `verified: false` and is re-checked daily. It closes if its market drops below the
-  bar (the daily check, or a new request, reopens it once it passes every check again), if it fails a
+- A listed token shows `verified: false` and is re-checked hourly. It closes if its market drops below the
+  bar (the hourly check, or a new request, reopens it once it passes every check again), if it fails a
   safety check (final), or if it goes 3 months untraded here (only a new request reopens it). Agreed swaps
   always settle. Full rules: https://docs.hashlock.markets/guides/token-listing.
 
