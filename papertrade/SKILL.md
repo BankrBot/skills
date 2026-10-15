@@ -1,6 +1,6 @@
 ---
 name: papertrade
-description: Trade Papertrade's synthetic BTC and ETH perps (HyperEVM, priced from Hyperliquid) from a Bankr wallet with REAL USDC, and earn USDC from the PAPER that losing trades mint. Open a long or short with a market order at up to 1000x, close, set, edit or remove a take-profit and stop-loss that Bankr runs (on the open or later), fund from USDC or another token in one preview, withdraw, and check positions, balance, deposit status and queued payouts. Bankr stakes the user's PAPER automatically so it earns a share of Papertrade's USDC, and scheduled routines can auto-stake and claim or run a hedged long+short PAPER farm. Use when the user names Papertrade or PAPER, asks about their Papertrade positions, take-profit or stop-loss, balance, deposits, payouts or PAPER staking, or asks how Papertrade works or what its risks are. Every action goes through Bankr's built-in Papertrade tools; this skill adds the venue's rules, its risks and how to talk about them. NOT a practice or simulated "paper trading" mode, NOT Hyperliquid's own perps (use the Hyperliquid tools), and NOT for limit, partial-close or add-margin orders — Papertrade has none.
+description: Trade Papertrade's synthetic BTC and ETH perps (HyperEVM, priced from Hyperliquid) from a Bankr wallet with REAL USDC, and earn USDC from the PAPER that losing trades mint. Open a long or short with a market order at up to 1000x, close, set, edit or remove a take-profit and stop-loss that Bankr runs (on the open or later), fund from USDC or another token in one preview, withdraw, and check positions, balance, deposit status and queued payouts. Bankr stakes the user's PAPER automatically so it earns a share of Papertrade's USDC, and scheduled automations can auto-stake and claim or run a hedged long+short PAPER farm. Use when the user names Papertrade or PAPER, asks about their Papertrade positions, take-profit or stop-loss, balance, deposits, payouts or PAPER staking, or asks how Papertrade works or what its risks are. Every action goes through Bankr's built-in Papertrade tools; this skill adds the venue's rules, its risks and how to talk about them. NOT a practice or simulated "paper trading" mode, NOT Hyperliquid's own perps (use the Hyperliquid tools), and NOT for limit, partial-close or add-margin orders — Papertrade has none.
 ---
 
 # Papertrade — BTC and ETH perps from chat, and PAPER that earns USDC
@@ -30,9 +30,9 @@ Papertrade uses real USDC and open nothing.
   its own. Set either on the open or later; Bankr watches the price and
   closes the whole position at market when a level is hit. It's
   best-effort (see below).
-- **Routines.** Schedule an auto-stake-and-claim routine, or a hedged
-  PAPER farm: a long and a short on the same market that mint PAPER on
-  purpose and stake it.
+- **Automations.** Schedule an auto-stake-and-claim automation, or a
+  hedged PAPER farm: a long and a short on the same market that mint
+  PAPER on purpose and stake it.
 - **One place to see it.** The Papertrade page in Bankr Terminal,
   https://bankr.bot/terminal/skills/partner/papertrade, shows the
   account (balance, queued payouts and your place in line, pending
@@ -368,35 +368,35 @@ comes back and follow its instruction.
 - A "yes" counts only as the reply to a preview. A request that says
   "and confirm" up front doesn't skip the preview.
 - On X, the user's "yes" reply to the preview tweet confirms it.
-- Scheduled routines skip previews for opens and stakes; see below.
+- Scheduled automations skip previews for opens and stakes; see below.
 
-## Scheduled routines
+## Scheduled automations
 
-Two routines run on Bankr's scheduled agent commands
+Two automations run on Bankr's scheduled agent commands
 (`automate_agent_command`). Inside a scheduled run, opens and stakes
-skip the preview because the user approved the routine when they set
-it up. Deposits and withdrawals never run on a schedule, so fund the
-Papertrade balance in chat first. A routine can open at any leverage
+skip the preview because the user approved the automation when they
+set it up. Deposits and withdrawals never run on a schedule, so fund the
+Papertrade balance in chat first. An automation can open at any leverage
 Papertrade allows, up to 1000x; above 100x, say at set-up how small a
 move liquidates each position and that it loses the whole margin.
 
-**Before creating either routine:** show the user the exact routine
-text, the interval and what it can put at risk, and wait for their
+**Before creating either automation:** show the user the exact
+automation text, the interval and what it can put at risk, and wait for their
 "yes". Fill in the bracketed values and keep the rest word for word.
 Users outside Bankr Club get one automation with 5 runs, which is
-enough to try a routine but not to keep a farm running. Club members
+enough to try one but not to keep a farm running. Club members
 get up to 100 runs a day and 1,000 per automation; recreate the
-routine when it runs out. To stop, cancel the automation with
+automation when it runs out. To stop, cancel the automation with
 `cancel_automations`. Open positions stay open until closed, and so do
-their take-profit and stop-loss. A routine keeps the text it was
-created with: to move one to newer routine text, show the new text, and
+their take-profit and stop-loss. An automation keeps the text it was
+created with: to move one to newer automation text, show the new text, and
 after the user's "yes" cancel the old automation and create the new
 one.
 
 ### Auto-stake and claim (every 1–6 hours)
 
-Bankr already stakes PAPER after each Papertrade action. This routine
-also catches PAPER minted by a liquidation and claims the USDC.
+Bankr already stakes PAPER after each Papertrade action. This
+automation also catches PAPER minted by a liquidation and claims the USDC.
 
 > Papertrade auto-stake. Call view_papertrade_staking. If paperBalance
 > is at least 1,000, stake all unstaked PAPER with
@@ -463,7 +463,7 @@ promise a return.
   from the price when it sets them, a few seconds after the fill.
   Leaving room for a 0.1% move in between, the farm works only up to
   about 150x on BTC and ETH with today's params. Above that,
-  `view_papertrade_staking` returns no `cycle`, so the routine's
+  `view_papertrade_staking` returns no `cycle`, so the automation's
   payback check fails and it opens nothing.
 - **One-call hedged open (`hedge: true`).** In a scheduled PAPER farm
   run, Step 4 opens both legs in a single `smart_papertrade_open` call
@@ -489,7 +489,7 @@ Set-up rules:
   highest leverage `view_papertrade_staking` returns a `cycle` for
   (about 150x today). Below 3x Bankr can't place the exit levels, and
   above that ceiling they sit too close to the price to set reliably,
-  so the routine never opens.
+  so the automation never opens.
 - The farm needs Bankr's take-profit and stop-loss. If
   `manage_papertrade_tpsl` isn't available after
   `request_additional_tools`, say so and don't set the farm up.
@@ -561,7 +561,7 @@ Set-up rules:
 
 - Papertrade runs in Bankr's terminal chat, on X (replies and DMs),
   through the Agent API (not read-only keys), and in the user's own
-  scheduled routines. Writes are refused from Farcaster, Telegram,
+  scheduled automations. Writes are refused from Farcaster, Telegram,
   webhooks and apps; point the user to Bankr's terminal chat or X.
   Scheduled runs never deposit or withdraw.
 - Wallets connected from outside Bankr (wallet mode) can't use it.
