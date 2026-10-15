@@ -31,8 +31,8 @@ Papertrade uses real USDC and open nothing.
   closes the whole position at market when a level is hit. It's
   best-effort (see below).
 - **Routines.** Schedule an auto-stake-and-claim routine, or a hedged
-  PAPER farm: a long and a short on the same market that mint PAPER on
-  purpose and stake it.
+  PAPER farm: a long and a short on the same market (BTC, or ETH when
+  BTC is full) that mint PAPER on purpose and stake it.
 - **One place to see it.** The Papertrade page in Bankr Terminal,
   https://bankr.bot/terminal/skills/partner/papertrade, shows the
   account (balance, queued payouts and your place in line, pending
@@ -308,7 +308,9 @@ can't be withdrawn until it's paid.
   amount up front.
 - **PAPER can't be transferred.** It can't be sent, sold, swapped or
   bridged, and PAPER held in another wallet can't be moved into Bankr.
-  Its only use is staking.
+  Its only use is staking. Papertrade says transfers come in a later
+  phase, with no date and no terms; never promise when, or that they
+  will.
 - **Bankr auto-stakes it.** After a close, and on the user's other
   Papertrade actions, Bankr stakes any unstaked PAPER of 1,000 or more
   (Papertrade's minimum stake), and the reply says so. PAPER from a
@@ -322,15 +324,16 @@ can't be withdrawn until it's paid.
   less Bankr's 1%. From there the USDC can be traded or withdrawn.
 - PAPER has no price, so there is no honest APR. Never quote one. Quote
   what the staking tool reports: USDC paid per 1M staked PAPER over the
-  last 24 hours.
-- The staking tool's `paperFarming` block says whether the pool is at
-  its cap (`lpAtCap`, true once it's within 1% of the cap;
-  `lpHeadroomUsd` is what's left to the cap itself). Stakers get
-  traders' losses only above the cap; otherwise they get just the fee
-  share, which is far smaller, and nothing while winners are queued. It
-  also shows PAPER minted per $1 lost and, given `farmMarket` and
-  `farmLeverage`, a PAPER farm cycle's estimated exit, cost and payback
-  (`cycle`).
+  last 24 hours. A farm cycle's cost per PAPER (see PAPER farm) is what
+  PAPER costs to mint, not a price.
+- The staking tool's `paperFarming` block shows the pool against its
+  cap (`lpAtCap`, true once it's within 1% of the cap; `lpHeadroomUsd`
+  is what's left to the cap itself). Stakers get traders' losses only
+  above the cap; otherwise they get just the fee share, which is far
+  smaller, and nothing while winners are queued. Use it to explain the
+  yield; the PAPER farm doesn't check it. It also shows PAPER minted per
+  $1 lost and, given `farmMarket` and `farmLeverage`, a PAPER farm
+  cycle's estimated exit, cost, cost per PAPER and payback (`cycle`).
 
 ## Money in and out
 
@@ -422,18 +425,32 @@ promise a return.
 - **What it buys.** PAPER minted on the loser's loss.
   `view_papertrade_staking` with `farmMarket` and `farmLeverage`
   estimates a cycle at today's rates in `paperFarming.cycle`: its exit,
-  its cost, PAPER per $1 of cost, USDC a day per $1 of cost and
-  `paybackDays`. Quote those; don't recompute them.
+  its cost, PAPER per $1 of cost, cost per PAPER (`costPerPaperUsd`),
+  USDC a day per $1 of cost and `paybackDays`. Quote those; don't
+  recompute them.
+- **Cost per PAPER is the break-even price.** `costPerPaperUsd` is the
+  USDC a cycle spends for each PAPER it mints. Quote it as the PAPER
+  price a farmer needs to break even if transfers ever open: PAPER
+  farmed at today's rates is in profit only if PAPER trades above it,
+  not counting the USDC it earns while staked. It rises as the mint rate
+  falls, so quote today's figure, never an old one. Always say with it:
+  PAPER can't be sold today, and Papertrade has given no date or terms
+  for transfers; PAPER may never trade, or may trade below that cost;
+  staking USDC comes from traders' losses, which have been falling; and
+  this is not investment advice. Never call it PAPER's price or value,
+  and never predict a price or quote a profit from it.
 - **Payback is an estimate, and optimistic.** It holds today's rates
-  still. In practice more PAPER is staked every day, PAPER minted per $1
-  lost keeps falling as traders' total losses grow, and USDC per 1M
-  PAPER swings a lot from one day to the next, so real payback runs
-  longer. It also assumes stakers keep getting the pool's overflow,
-  which happens only while the pool is at its cap. When it isn't,
-  stakers get only a fee share and a cycle may never pay back. A
+  still: the last 24 hours of staking rewards and today's mint rate. In
+  practice more PAPER is staked every day, PAPER minted per $1 lost
+  keeps falling as traders' total losses grow, and USDC per 1M PAPER
+  swings a lot from one day to the next, so real payback runs longer.
+  Stakers get traders' losses only while the pool is above its cap;
+  below it they get only a fee share, and a cycle may never pay back. A
   timelocked Papertrade change, ready from Oct 17, 2026, would raise the
-  cap from $5M to $10M; once it runs, the farm stops opening until
-  traders' losses refill the pool.
+  cap from $5M to $10M. Once it runs, stakers' share of losses may pause
+  until traders' losses refill the pool; `paybackDays` shows it as the
+  last 24 hours of rewards fall, and the farm stops opening once it
+  passes the user's limit.
 - **Exits run on Bankr's take-profit and stop-loss.** Each leg opens
   with both, at the same move from entry just inside liquidation
   (`paperFarming.cycle.exitMovePct`: 3.55 at 25x, 1.55 at 50x, 0.55 at
@@ -457,7 +474,7 @@ promise a return.
   and below) buys only ~5–10% more PAPER per $1 on BTC while a single
   cycle can stall for days as the mint rate decays.
   Quote the chosen leverage's `paperFarming.cycle.paperPerDollarCost`
-  rather than a percentage.
+  and `costPerPaperUsd` rather than a percentage.
 - **Its exit has to fit before liquidation.** Each leg's levels sit
   0.4% of price inside liquidation, and Bankr needs them at least 0.1%
   from the price when it sets them, a few seconds after the fill.
@@ -475,32 +492,50 @@ promise a return.
   `unhedged`, close the named leg with `smart_papertrade_close`; if
   `pending`, do nothing else that run so the next run reconciles via
   `get_papertrade_account`.
-- **When it opens.** A run opens a new pair only while the pool is at
-  its cap (`lpAtCap`), nothing is queued, `paybackDays` is within the
-  user's limit, Bankr's watcher is running and the free balance covers
-  both legs. Bankr counts the pool as at its cap once it's within 1% of
-  it, and the pool moves minute to minute, so `lpAtCap` can flip
-  between runs. Stakers get overflow only above the cap itself
-  (`lpHeadroomUsd` is what's left to it).
+- **When it opens.** A run opens a new pair only while nothing is
+  queued, `paybackDays` is within the user's limit, Bankr's watcher is
+  running and the free balance covers both legs.
+- **BTC first, ETH as the fallback.** A run tries BTC first. Only when
+  BTC's call comes back `skipped` because a side is full (`side_full`),
+  or is refused because the BTC market is paused, does the same run try
+  the same pair on ETH, once, and only if ETH's own `paybackDays` is
+  within the limit. That reply's "opens nothing else" means the BTC
+  pair; nothing was left open. Any other result (`unhedged`, `pending`,
+  `needs_deposit`, a `paused` reply for queued profits, another skip)
+  never triggers the ETH try. A pair is always on one market: legs split
+  across markets are closed on the next run.
+- **Why there's no pool-at-cap check.** Earlier versions also opened
+  only while the pool was at its cap (`lpAtCap`). That was a snapshot:
+  the pool moves minute to minute, so a brief dip below the cap blocked
+  cycles even while stakers were being paid. `paybackDays` is computed
+  from the last 24 hours of staking rewards, so it's the brake that
+  adapts: when rewards fall (the pool sits below its cap, or the cap
+  rises), payback rises past the user's limit and the farm stops
+  opening. It reacts over a day, not instantly.
 
 Set-up rules:
-- Default BTC at 100x for faster PAPER turnover (0.55% exit move), or
-  50x for a lower cost per PAPER (1.55% exit move); from 3x up to the
-  highest leverage `view_papertrade_staking` returns a `cycle` for
-  (about 150x today). Below 3x Bankr can't place the exit levels, and
-  above that ceiling they sit too close to the price to set reliably,
-  so the routine never opens.
+- Default BTC, with ETH as the fallback, at 100x for faster PAPER
+  turnover (0.55% exit move), or 50x for a lower cost per PAPER (1.55%
+  exit move); from 3x up to the highest leverage
+  `view_papertrade_staking` returns a `cycle` for (about 150x today).
+  Below 3x Bankr can't place the exit levels, and above that ceiling
+  they sit too close to the price to set reliably, so the routine never
+  opens.
 - The farm needs Bankr's take-profit and stop-loss. If
   `manage_papertrade_tpsl` isn't available after
   `request_additional_tools`, say so and don't set the farm up.
-- Call `view_papertrade_staking` with `farmMarket` and `farmLeverage`,
-  and `get_papertrade_account`. Fill the exit with
-  `paperFarming.cycle.exitMovePct`, and show the cycle's cost, PAPER per
-  $1 of cost and `paybackDays` with the caveats above. Also give the
-  rough daily spend at that leverage (above: about 5–15% of the pair's
-  margin at 50x, 35–90% at 100x) and offer a daily limit in Security
-  to cap it. With no `cycle` at that leverage, don't set the farm up;
-  offer a lower leverage.
+- Call `view_papertrade_staking` with `farmLeverage` and `farmMarket`
+  BTC, again with ETH, and `get_papertrade_account`. Fill the exit with
+  BTC's `paperFarming.cycle.exitMovePct`; both markets share it (0.55
+  at 100x on each today). For each market show the cycle's cost, PAPER
+  per $1 of cost, `costPerPaperUsd` as the break-even PAPER price, and
+  `paybackDays`, with the caveats above. Also give the rough daily
+  spend at that leverage (above: about 5–15% of the pair's margin at
+  50x, 35–90% at 100x) and offer a daily limit in Security to cap it.
+  With no BTC `cycle` at that leverage, don't set the farm up; offer a
+  lower leverage. If ETH has no `cycle` there or a different
+  `exitMovePct`, its fallback can't share the routine's exit, so don't
+  set the farm up either; say why.
 - The user picks the margin per leg: at least the markets tool's
   minimum position ÷ leverage ($1,000 today, so $20 at 50x or $10 at
   100x) and the $10 minimum margin, and no more than
@@ -519,38 +554,46 @@ Set-up rules:
   stops opening pairs, as intended; never suggest raising the limit to
   keep it opening. The free balance needed to open is 2 × the margin
   plus anything they want kept free.
-- The farm treats every open position on its market at its leverage as
-  one of its legs. If the user already has a position there, ask them
-  to close it or pick the other market or another leverage.
+- The farm treats every open BTC or ETH position at its leverage as one
+  of its legs. If the user already has a position there, ask them to
+  close it or pick another leverage.
 - The interval must be at least 10 minutes. 15–20 minutes suits Club's
   daily run limit, and up to 30 is fine, because the levels do the
   closing.
 - At risk at any moment: both legs' margin. A liquidated leg loses its
   whole margin.
 
-> Papertrade PAPER farm step: [BTC], [100]x, $[250] margin per leg,
-> exit at a [0.55]% move, open only with $[500] free and a payback of
-> [20] days or less. Follow exactly and do nothing else.
-> 1. Call get_papertrade_account. Farm legs are the open [BTC]
+> Papertrade PAPER farm step: [BTC] first, else [ETH], [100]x, $[250]
+> margin per leg, exit at a [0.55]% move, open only with $[500] free and
+> a payback of [20] days or less. Follow exactly and do nothing else.
+> 1. Call get_papertrade_account. Farm legs are the open [BTC] or [ETH]
 > positions at [100]x. Call view_papertrade_staking with farmMarket
 > [BTC] and farmLeverage [100].
-> 2. If a long leg and a short leg are both open: if either leg's
+> 2. If a long leg and a short leg are both open on the same market and
+> no farm leg is open on the other market: if either leg's
 > distanceToLiquidationPct is 0.4 or less, close all farm legs together
 > with smart_papertrade_close by their positionIds. Otherwise, on each
 > leg whose tpslState is none or failed, set takeProfit {movePct:
 > [0.55]} and stopLoss {movePct: [0.55]} with manage_papertrade_tpsl by
 > its positionId. Then go to step 5.
-> 3. If only long legs or only short legs are open, close them with
-> smart_papertrade_close by their positionIds, then go to step 5.
+> 3. If only long legs or only short legs are open, or legs are split
+> across markets, close all farm legs with smart_papertrade_close by
+> their positionIds, then go to step 5.
 > 4. If no farm leg is open: only if tpslWatcher.status is running,
-> paperFarming.lpAtCap is true, paperFarming.payoutQueueUsd is 0,
-> paperFarming.cycle.paybackDays is a number no more than [20], and
-> balanceUsd is at least $[500], call smart_papertrade_open once with
-> hedge true, market [BTC], leverage [100], marginUsd [250], takeProfit
-> {movePct: [0.55]} and stopLoss {movePct: [0.55]}. If the reply is
-> unhedged, close the leg it names with smart_papertrade_close. If the
-> reply is pending, do nothing else this run. Otherwise if it didn't
-> open, say which check failed.
+> paperFarming.payoutQueueUsd is 0, paperFarming.cycle.paybackDays is a
+> number no more than [20], and balanceUsd is at least $[500], call
+> smart_papertrade_open once with hedge true, market [BTC], leverage
+> [100], marginUsd [250], takeProfit {movePct: [0.55]} and stopLoss
+> {movePct: [0.55]}. If that call is skipped because [BTC] is at its
+> open-interest cap (side_full), or refused because the [BTC] market is
+> paused, this run still tries [ETH] once: call view_papertrade_staking
+> with farmMarket [ETH] and farmLeverage [100], and only if its
+> paperFarming.cycle.paybackDays is a number no more than [20], call
+> smart_papertrade_open once with hedge true, market [ETH], leverage
+> [100], marginUsd [250], takeProfit {movePct: [0.55]} and stopLoss
+> {movePct: [0.55]}. If either reply is unhedged, close the leg it names
+> with smart_papertrade_close. If either reply is pending, do nothing
+> else this run. Otherwise if neither opened, say which check failed.
 > 5. If paperBalance is at least 1,000, stake all of it with
 > manage_papertrade_staking (action stake, all true); if claimableUsdc
 > is at least 1, claim it.
