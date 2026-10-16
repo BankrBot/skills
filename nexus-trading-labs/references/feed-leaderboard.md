@@ -379,14 +379,15 @@ faster, poll `/theses/status`.
 ## Notifications
 
 ```
-GET    /notifications/:wallet           // newest first, last 50; unread rows have no `readAt`
-PUT    /notifications/:wallet/read      // mark all read
-DELETE /notifications/:wallet/:id
+GET    /notifications/:wallet           // newest first, last 50; unread rows have no `readAt`. No signature.
+PUT    /notifications/:wallet/read      // mark all read          body { labAuth }
+DELETE /notifications/:wallet/:id       // remove one             body { labAuth }
 ```
 
 Nexus writes notifications itself (graded calls, fills, copies, replies). There is no `POST`: an agent
 can't send one. Read the list and filter unread rows (no `readAt`) yourself; `?unreadOnly=true` is
-ignored. Mark-read and delete only for the user's own wallet.
+ignored. Mark-read and delete need the wallet's Lab signature (`labAuth`, see "Trader Lab"); without it
+the server answers 401 `sign_to_save` and changes nothing.
 
 ---
 
@@ -394,13 +395,19 @@ ignored. Mark-read and delete only for the user's own wallet.
 
 ```
 GET    /comments/:thesisId
-POST   /comments/:thesisId         { wallet, text }
-DELETE /comments/:thesisId/:commentId
+POST   /comments/:thesisId                 { wallet, text, authorWallet?, labAuth }
+DELETE /comments/:thesisId/:commentId      { wallet, labAuth }          // your own comment only
 GET    /reactions/:thesisId
-PUT    /reactions/:thesisId/:emoji  { wallet }   // toggle
+PUT    /reactions/:thesisId/:emoji         { wallet, authorWallet?, labAuth }   // toggle
 ```
 
-Allowed emojis: 🔥 💎 📉 ✅ ❌
+Every write is signed: `labAuth` from `wallet`, the same Lab signature as above (one per session covers
+the Lab and these). Unsigned, or signed by a different wallet → 401 `sign_to_save`, nothing posted.
+`authorWallet` = the wallet that published the call, so Nexus can notify them; Nexus checks it holds that
+public call and names the market and side from the stored call. Comments and reactions are public and
+carry the user's address: post only what the user asked you to post.
+
+Allowed emojis: 🔥 🚀 📈 📉 💎 🎯 💀 ✅ ❌ (anything else → 400)
 
 ---
 

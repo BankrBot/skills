@@ -50,7 +50,7 @@ All price + market data for a symbol in one call.
 | `error` field | Cause | Fix |
 |---|---|---|
 | `walletSig_required` | Missing walletSig or walletAddress | Call sign_message first |
-| `sign_to_save` / `sign_to_read` (401) | Lab write or full Lab read without a valid `labAuth`; `reason` says why | Sign the Lab message (feed-leaderboard.md → "The Lab signature"); nothing was written |
+| `sign_to_save` / `sign_to_read` (401) | Lab write, full Lab read, comment, reaction or notification change without a valid `labAuth`; `reason` says why | Sign the Lab message (feed-leaderboard.md → "The Lab signature"); nothing was written |
 | `published_permanent` (409) | Tried to delete a published call | Published calls are permanent; nothing to fix |
 | `wallet_not_registered` | No Orderly account in KV | Run registration flow |
 | `insufficient_margin` | Not enough free collateral | Reduce size, add leverage, or deposit |
