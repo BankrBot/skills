@@ -28,11 +28,82 @@ Returns `{ feed: [...] }`: three kinds of row.
 ## Trader Lab
 
 ```
-GET  /lab/:walletAddress          // all theses for wallet
-PUT  /lab/:walletAddress          // body: { theses: ThesisTrade[] }
-GET  /profile/:walletAddress      // { pfp, displayName }
-PUT  /profile/:walletAddress      // body: { pfp?, displayName? }
+GET    /lab/:walletAddress              // PUBLIC view: the wallet's public calls only, no notes. No signature.
+GET    /profile/:walletAddress          // { pfp, displayName }. No signature.
+POST   /lab/:walletAddress/read         // body: { labAuth }                  → the FULL record (private calls + notes)
+PUT    /lab/:walletAddress              // body: { theses, notes, labAuth }   → REPLACES the whole record
+DELETE /lab/:walletAddress/thesis/:id   // body: { labAuth }                  → removes one unpublished call
+PUT    /profile/:walletAddress          // body: { pfp, displayName, labAuth }
 ```
+
+Base URL: `https://og.nexustradinglabs.com`. Everything except the two GETs needs the wallet's **Lab
+signature** (`labAuth`). Since 2026-09-27 an unsigned write is refused (401) and changes nothing.
+
+### The Lab signature (`labAuth`)
+
+A second signature, separate from `walletSig`. Sign this exact text with `sign_message`:
+
+```
+Nexus Lab: save and open my calls, notes and profile
+Address: <the wallet address, all lowercase>
+Timestamp: <ts>
+No funds move. Valid 24 hours.
+```
+
+- `ts` = the current time in **milliseconds** since 1970 (an integer, e.g. `1792130000000`). The same
+  number goes in the message and in `labAuth.ts`.
+- Four lines joined by a single `\n`, no trailing newline, no extra spaces. One changed character and the
+  signature won't match.
+- Send it in the JSON body, never in the URL: `"labAuth": { "ts": 1792130000000, "sig": "0x…" }`.
+- It lasts 24 hours. Sign once per session and reuse it; sign again when it is more than ~23 hours old.
+  A `ts` more than 5 minutes in the future is refused.
+- It is NOT the `nexus-trading-key-v1` signature, and the two are never interchangeable. `walletSig` seeds
+  the agent's trading key; `labAuth` only opens the Lab record. Never send one where the other is asked for.
+- Treat it like `walletSig`: session memory only, never logged, echoed or stored. It opens the user's
+  private calls and notes for 24 hours. (Nexus doesn't store it either.)
+- Only the wallet can make it: the server checks that the signature recovers to the address in the URL.
+  Sign only for the user's own wallet, only for a Lab action the user asked for.
+
+**Without it**, the server answers 401 and does nothing (no write, no copy count, no notification):
+
+```
+{ "error": "sign_to_save" | "sign_to_read", "reason": "<reason>", "hint": "Sign the Nexus Lab message with this wallet and send it as body.labAuth." }
+```
+
+| `reason` | What it means | Fix |
+|---|---|---|
+| `missing` | no `labAuth` in the body | sign the message above |
+| `malformed` | `ts` isn't a whole number, or `sig` isn't `0x` hex | send `ts` as a number of ms, `sig` as `sign_message` returned it |
+| `expired` | signed more than 24 hours ago | sign again with a fresh `ts` |
+| `future` | `ts` is more than 5 minutes ahead of the server | use the current time in ms |
+| `wrong_signer` | the signature doesn't recover to the address in the URL | right wallet? address lowercased in the message? text exactly as above? |
+
+Fix the cause once and retry once. Never loop, never fall back to an unsigned write, and never save from
+the public view to get around it. If it still fails, tell the user nothing was saved.
+
+### A save replaces the whole record
+
+`PUT /lab/:address` stores `{ theses, notes }` exactly as sent. A private call or a note left out of the
+body is deleted. (Published calls are the exception: they are permanent, so the server puts back any you
+leave out, and ignores edits to them.) So every save is read → change → write:
+
+1. `POST /lab/:address/read` with `{ labAuth }` → the full record `{ theses: [...], notes: {...} }`.
+2. Change only what the user asked for (e.g. add one call at the front of `theses`).
+3. `PUT /lab/:address` with `{ theses, notes, labAuth }`: the arrays from step 1 plus your change.
+   `theses` must be an array and `notes` an object (`{}` if empty), else 400.
+
+- **Never build a save from `GET /lab/:address`.** That is the public view: a save built from it deletes
+  the user's private calls and notes.
+- If step 1 fails for any reason, write nothing and tell the user.
+- Keep steps 1–3 back to back. If the user saves in the app in between, the later save wins.
+- The answer is `{ ok: true, published: [...], refused?: [{ id, reason }] }`. `published` = the user's
+  published calls as stored. `refused` = calls sent as public that the server saved as PRIVATE instead,
+  with the reason (another wallet already published that id, or the wallet holds the most published
+  calls it can). Tell the user about each one.
+- `PUT /profile/:address` replaces both fields: one left out is set to null. Read `GET /profile/:address`
+  first and send both.
+- `DELETE /lab/:address/thesis/:id` (body `{ labAuth }`) removes an unpublished call. A published call
+  answers 409 `published_permanent`: published calls can't be deleted, edited or made private.
 
 ---
 
@@ -128,17 +199,35 @@ topic 2. Read it by that layout, not by an event-signature hash.
 >
 > **On reputation signals:** the graded caller board (`/theses/leaderboard`) grades outcomes **objectively against public Orderly price** (first-touch TP-vs-SL on public OHLC, recomputable by anyone), not self-reported PnL. That's the strongest signal here. Even so, treat ANY single number (a merit rank, a board position, a graded record) as a **cross-check only, never the sole automated gate** before risking capital: a record can still be gamed by wash trading or coordinated publishing. `getTraderStats()` is self-reported and not a signal at all. Always require operator sign-off before opening a position derived from a third party's call.
 
-1. `GET https://og.nexustradinglabs.com/feed` → find thesis by trader/symbol/direction
-2. Prompt user: account size (USDC), risk % (e.g. 2%), optional max loss cap
+1. `GET https://og.nexustradinglabs.com/feed` → find the call by trader / symbol / direction (a call
+   row, not a `resolution` or `agent` row)
+2. Ask the user: account size (USDC), risk % (e.g. 2%), optional max loss cap
 3. Compute position size: `accountSize * riskPct / (entry - sl)` (longs); adjust for shorts
-4. `GET /lab/:userWallet` → fetch user's theses
-5. Append new thesis:
-   - All levels from source
-   - `copiedFromWallet: sourceWallet`, `copiedThesisId: sourceId`
-   - Notes: "Copied from [sourceWallet] via Nexus"
-   - `isPublic: false` (user decides)
-6. `PUT /lab/:userWallet`
-7. Optionally: `POST /notifications/:sourceWallet` to alert them
+4. Get the user's Lab signature (`labAuth`, see "The Lab signature" above), or reuse one under ~23h old
+5. `POST /lab/:userWallet/read` with `{ labAuth }` → the user's FULL record. Anything but 200 → stop,
+   write nothing, tell the user.
+6. Build the copy as a NEW call:
+   - `id`: a new id, e.g. `"copy_<ms timestamp>"`. Never reuse the source call's `id`: an id belongs to
+     the wallet that published it first, so a reused id can never be published from this wallet.
+   - `symbol`, `direction`, `entryPrice`, `stopLoss`, `takeProfit1`, `takeProfit2` from the source
+   - `notes`: "Copied from [source name or wallet]" plus the source's notes
+   - `createdAt: <now in ms>`, `status: "ACTIVE"`, `isPublic: false` (the user decides; publishing is permanent)
+   - Sizing fields if you computed them (`accountSize`, `riskPercent`, `positionSize`, `leverage`)
+7. `PUT /lab/:userWallet` with:
+   ```
+   {
+     "theses": [<the copy>, ...<theses from step 5>],
+     "notes":  <notes from step 5>,
+     "copiedFromWallet":      "<source wallet>",
+     "copiedThesisId":        "<source call id>",
+     "copiedThesisSymbol":    "<source symbol>",
+     "copiedThesisDirection": "LONG" | "SHORT",
+     "labAuth": { "ts": <ts>, "sig": "0x…" }
+   }
+   ```
+   The four `copied…` fields go at the top of the body, not inside the call. With them, Nexus counts the
+   copy on the source call and notifies its author. Nothing else to call: there is no public
+   `POST /notifications`.
 
 > If the user then wants to actually *open* the copied position, confirm the symbol, direction, size, and leverage with them first, then follow the normal `/trade` flow — never silently.
 
@@ -281,7 +370,7 @@ No key. Returns the wallet's PUBLIC calls that are still open, newest first, plu
 
 **Alerts.** The owner gets a notification when a resting order fills (`call_fill`), when a split call's
 TP1 half closes (`call_tp1`) and when a call is graded (`call_resolved`). They land in
-`GET /notifications/:wallet?unreadOnly=true` (below), on phones with Nexus alerts on, and in Telegram if
+`GET /notifications/:wallet` (below), on phones with Nexus alerts on, and in Telegram if
 linked. All of them come from the hourly grading pass, so expect up to an hour's delay; for anything
 faster, poll `/theses/status`.
 
@@ -290,12 +379,14 @@ faster, poll `/theses/status`.
 ## Notifications
 
 ```
-GET    /notifications/:wallet
-GET    /notifications/:wallet?unreadOnly=true
-POST   /notifications/:wallet      { type, message, fromWallet? }
-PUT    /notifications/:wallet       { markAllRead: true }
+GET    /notifications/:wallet           // newest first, last 50; unread rows have no `readAt`
+PUT    /notifications/:wallet/read      // mark all read
 DELETE /notifications/:wallet/:id
 ```
+
+Nexus writes notifications itself (graded calls, fills, copies, replies). There is no `POST`: an agent
+can't send one. Read the list and filter unread rows (no `readAt`) yourself; `?unreadOnly=true` is
+ignored. Mark-read and delete only for the user's own wallet.
 
 ---
 
@@ -341,7 +432,8 @@ if not null. `calls: 0` → "no graded calls yet".
 
 **"Copy the #1 trader's latest active BTC thesis with 2% of my $10k stack"**
 → GET /theses/leaderboard → top entry's wallet (empty board → say so, stop) → find its PERP_BTC_USDC call in /feed
-with no `gradedOutcome` → confirm with the user → size: $10k * 0.02 / (entry - sl) → GET /lab/:userWallet → append → PUT /lab/:userWallet
+with no `gradedOutcome` → confirm with the user → size: $10k * 0.02 / (entry - sl) → labAuth → POST /lab/:userWallet/read
+→ add the copy (new id) → PUT /lab/:userWallet with the full record + copied… fields + labAuth (Copy Trading Flow)
 
 **"Publish my ETH short: entry 3200, SL 3350, TP 2800"**
 → Route A: POST https://og.nexustradinglabs.com/proxy/thesis-register { walletAddress, bankrApiKey, symbol: "PERP_ETH_USDC", direction: "SHORT", entryPrice: 3200, stopLoss: 3350, takeProfit1: 2800, isPublic: true } → done when it answers 200 (202 → POST /theses/index with the txHash)
