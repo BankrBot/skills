@@ -44,16 +44,17 @@ signature** (`labAuth`). Since 2026-09-27 an unsigned write is refused (401) and
 A second signature, separate from `walletSig`. Sign this exact text with `sign_message`:
 
 ```
-Nexus Lab: save and open my calls, notes and profile
+Nexus Lab: sign in with this wallet
+Lets Nexus save and open your calls, notes and profile, post your comments, reactions and takes, and update your follows, notifications, phone alerts and Telegram link.
 Address: <the wallet address, all lowercase>
 Timestamp: <ts>
-No funds move. Valid 24 hours.
+No funds move. No trades. Valid 24 hours.
 ```
 
 - `ts` = the current time in **milliseconds** since 1970 (an integer, e.g. `1792130000000`). The same
   number goes in the message and in `labAuth.ts`.
-- Four lines joined by a single `\n`, no trailing newline, no extra spaces. One changed character and the
-  signature won't match.
+- Five lines joined by a single `\n` (the second line is one long line), no trailing newline, no extra
+  spaces. One changed character and the signature won't match.
 - Send it in the JSON body, never in the URL: `"labAuth": { "ts": 1792130000000, "sig": "0x…" }`.
 - It lasts 24 hours. Sign once per session and reuse it; sign again when it is more than ~23 hours old.
   A `ts` more than 5 minutes in the future is refused.

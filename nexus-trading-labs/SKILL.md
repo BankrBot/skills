@@ -28,8 +28,8 @@ Step 3 — sign_message({ message: "nexus-trading-key-v1" }) → save as walletS
 **⛔ DO NOT skip this.** No walletSig = 401 error on every authenticated endpoint.
 **⛔ DO NOT ask the user for a signature.** You have `sign_message` — use it yourself.
 
-**Saving to a user's Lab (calls, notes, profile, copying a call) needs a SECOND signature, `labAuth`**, over a
-different message, valid 24h. walletSig does not work there. Message, body format and the read → change → write
+**Saving to a user's Lab (calls, notes, profile, copying a call) and posting comments or reactions need a
+SECOND signature, `labAuth`**, over a different message, valid 24h. walletSig does not work there. Message, body format and the read → change → write
 rule: references/feed-leaderboard.md → "Trader Lab".
 
 ---
