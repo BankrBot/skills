@@ -46,7 +46,7 @@ export default async function handler(req: Request): Promise<Response> {
 
 Handlers use the standard Fetch `Request` and `Response`, within the [limits](#limits) below. The platform adds these rules:
 
-- **npm packages:** list them in `x402/<name>/package.json`, which `bankr x402 add` can scaffold. They are installed at deploy time with install scripts skipped.
+- **npm packages:** list them in `x402/<name>/package.json`, which `bankr x402 add` can scaffold. They are installed at deploy time with install scripts skipped. Only npm registry versions, ranges, tags and `npm:` aliases are accepted; `file:`, `link:`, `workspace:`, git and URL dependencies are rejected.
 - **Response headers:** only `content-type`, `cache-control`, `etag`, `last-modified` and `x-request-id` reach the caller.
 - **Secrets:** `bankr x402 env set KEY=VALUE` makes the value available as `process.env.KEY` in every service on the wallet. Names with a reserved prefix such as `BANKR_` are rejected, and read as `undefined` in the handler. Store a Bankr key under another name, for example `LLM_GATEWAY_KEY` for calls to the [LLM gateway](llm-gateway.md).
 - **Network:** outbound `fetch` to private or internal addresses is blocked.
@@ -57,7 +57,7 @@ Handlers use the standard Fetch `Request` and `Response`, within the [limits](#l
 - `ctx.appKV` (`appKV` block) offers `get`, `set`, `list` and `delete` on the key-value store of Bankr apps owned by the same wallet.
 - `ctx.askAgent(prompt)` (`agent` block) hands a prompt to your own Bankr agent, for example to message you on Telegram after a payment. Don't await it: agent runs outlast the 30-second limit, and a timed-out request isn't charged. Runs are limited to 5 a minute per wallet. Free runs are also limited to 2 a day (5 with Bankr Club) and stop entirely after 14 days without signed-in activity on the wallet. Setting a Max Mode model on the block bills your LLM credits and lifts the daily cap.
 
-A deploy whose source calls a `ctx` method that doesn't exist, or imports a module `with { type: "macro" }`, is rejected. Worked examples: [docs.bankr.bot/x402-cloud/examples](https://docs.bankr.bot/x402-cloud/examples).
+A deploy whose source calls a `ctx` method that doesn't exist, imports a module `with { type: "macro" }`, or imports a path outside the service's project directory, is rejected. Worked examples: [docs.bankr.bot/x402-cloud/examples](https://docs.bankr.bot/x402-cloud/examples).
 
 ## Configuration
 

@@ -13,6 +13,7 @@ Limit, stop, DCA and TWAP orders, plus agent commands that run on a schedule or 
 | Scheduled command | Any agent prompt on a schedule, or once when a price trigger hits | "Every day at 9am, check my portfolio" · "Alert me when BNKR pumps 20%" |
 
 - A trigger is a percentage move from the current price or an exact price, and can watch a different asset than the one traded ("Sell my DEGEN if ETH drops 10%").
+- A schedule with no zone uses a zone named in the prompt, then a timezone you've told Bankr (remembered across platforms); otherwise the agent asks. Confirmations name the zone used.
 - A price-triggered command runs once and then completes. A scheduled command stops at its run count or expiry.
 - Prefer the order types for plain buys and sells — "buy X every day" is a DCA, "buy X if it dips" is a limit order. Commands are for multi-step or conditional work (leverage, Polymarket, analysis, alerts). A command can place orders when it runs, but it can't create another scheduled command, launch tokens, send airdrops or copy-trade.
 
@@ -36,7 +37,7 @@ Limit, stop, DCA and TWAP orders, plus agent commands that run on a schedule or 
 | Defaults | Limit/stop orders expire after 7 days (Solana too). DCA and TWAP default to 10 runs and expire after 30 days — state a duration or run count for longer schedules |
 | Minimum size (the agent declines smaller) | DCA $10 a run · TWAP $300 total and at least 10 chunks · $10 for a command that trades |
 
-The wallet must already hold the spend when an order is created: the full amount for a limit or stop order, one run for a DCA, the first chunk for a TWAP. Later runs can be funded by top-ups. Limit, stop, DCA and TWAP fills count toward the wallet's spend limits; a refused fill retries hourly, the order stays active, and Bankr says why at most once a day.
+The wallet must already hold the spend when an order is created: the full amount for a limit or stop order, one run for a DCA, the first chunk for a TWAP. Later runs can be funded by top-ups. Orders are checked against the wallet's spend limits when made (an order whose every fill is over a limit is refused), and each fill against the limits and price impact protection. A fill refused for the daily limit waits until the rolling window has room; other refusals retry hourly. The order stays active, and Bankr says why at most once a day.
 
 ## Managing Automations
 

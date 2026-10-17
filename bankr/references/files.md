@@ -25,7 +25,7 @@ Quotas are checked at the moment of write and resolved from your current Club st
 /runs/               ← run outputs (conversation-scoped, expiring) — see below
 ```
 
-`/runs` is a reserved namespace: you can't create a folder of your own by that name.
+`/runs` is a reserved namespace: you can't create a folder of your own by that name. An app's code (`/apps/<slug>/`) and an installed skill's files (`/skills/<slug>/`) belong to that app or skill: plain writes, moves and renames on them are refused (`400`), so ask Bankr to change the app or skill.
 
 ## Using Files From Chat
 
