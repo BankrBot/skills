@@ -8,7 +8,6 @@ Browse, buy, sell, mint and transfer NFTs through OpenSea on **Ethereum, Base, P
 |---|---|
 | Find collections, floors and cheapest listings (by name, contract address or OpenSea URL) | "What's the floor price for Pudgy Penguins?", "Show me trending NFT collections" |
 | Search individual NFTs by their own name (up to 10 matches, optionally with listing prices) | "Find a PSA 10 Charizard card and show prices" |
-| Search trading cards by franchise, grader and grade, set, year or value range; sort by best deal, cheapest or highest value (Polygon, Base, Robinhood Chain) | "Cheapest PSA 10 Pokémon cards on Base under $200" |
 | Buy a specific NFT or the floor | "Buy Pudgy Penguin #1234", "Buy the cheapest Azuki", "Purchase this NFT: [OpenSea URL]" |
 | List an NFT for sale, with a price and expiry | "List my Pudgy Penguin #1234 for 12 ETH for 7 days" |
 | Cancel your listings | "Cancel my listings for Pudgy Penguin #1234" |

@@ -13,7 +13,6 @@ Limit, stop, DCA and TWAP orders, plus agent commands that run on a schedule or 
 | Scheduled command | Any agent prompt on a schedule, or once when a price trigger hits | "Every day at 9am, check my portfolio" · "Alert me when BNKR pumps 20%" |
 
 - A trigger is a percentage move from the current price or an exact price, and can watch a different asset than the one traded ("Sell my DEGEN if ETH drops 10%").
-- A schedule with no zone uses a zone named in the prompt, then a timezone you've told Bankr (remembered across platforms); otherwise the agent asks. Confirmations name the zone used.
 - A price-triggered command runs once and then completes. A scheduled command stops at its run count or expiry.
 - Prefer the order types for plain buys and sells — "buy X every day" is a DCA, "buy X if it dips" is a limit order. Commands are for multi-step or conditional work (leverage, Polymarket, analysis, alerts). A command can place orders when it runs, but it can't create another scheduled command, launch tokens, send airdrops or copy-trade.
 
