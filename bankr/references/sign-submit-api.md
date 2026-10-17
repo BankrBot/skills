@@ -19,7 +19,7 @@ curl -X POST "https://api.bankr.bot/wallet/sign" \
   -d '{"signatureType": "personal_sign", "message": "Sign in to MyApp\nNonce: abc123"}'
 ```
 
-A success returns `{ "success": true, "signature", "signer", "signatureType" }`. A key with a recipient allowlist can only use `personal_sign`. The other two types answer `403 Restricted API key`, because recipients can't be verified from calldata or typed data.
+A success returns `{ "success": true, "signature", "signer", "signatureType" }`. A key with a recipient allowlist can only use `personal_sign`. The other two types answer `403 Restricted API key`, because recipients can't be verified from calldata or typed data. A 32-byte `personal_sign` message (`0x` + 64 hex), which some order protocols accept as an order signature, and an order that buys a stock-bearing index need a wallet that passed the location check at bankr.bot (`403` `INDEX_REGION_VERIFY` or `INDEX_REGION_BLOCKED`).
 
 ## POST /wallet/submit
 

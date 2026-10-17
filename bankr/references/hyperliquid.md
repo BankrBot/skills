@@ -48,7 +48,7 @@ The dollar amount is **margin**, not position size: $100 at 10x opens about $1,0
 
 ## Funding the Venue (Deposit / Withdraw)
 
-Hyperliquid is a trading **venue**, not a chain, so moving USDC in and out of it is venue funding rather than bridging — and deposit and withdraw are separate operations with fixed destinations. A deposit only ever reaches Hyperliquid; a withdrawal only ever lands on **Arbitrum**. To get withdrawn funds somewhere else, follow it with an ordinary cross-chain swap ("withdraw $500 from hyperliquid, then move it to Base").
+Hyperliquid is a trading **venue**, not a chain, so moving USDC in and out of it is venue funding rather than bridging — and deposit and withdraw are separate operations with fixed destinations. A deposit only ever reaches Hyperliquid; a withdrawal only ever lands on **Arbitrum**, at your own address. Bankr refuses to sign any Hyperliquid send or withdrawal to another address, or an action that hands the account to another key (agent approval, multisig conversion). To get withdrawn funds somewhere else, follow it with an ordinary cross-chain swap ("withdraw $500 from hyperliquid, then move it to Base").
 
 | | Deposit | Withdraw |
 |---|---|---|

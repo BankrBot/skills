@@ -43,7 +43,7 @@ bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base
 bankr wallet transfer --to name.base.eth --native --amount 0.01
 ```
 
-`--to` takes a 0x address or an ENS-style name (`.eth`, `.base.eth`, `.cb.id`), resolved via `/addresses/resolve` before anything is sent — without a chain, so a name's Base record wins even with `--chain polygon`; pass a 0x address when that matters. Handles are rejected; use the agent for those. `--token` takes a symbol or contract address; `--native` sends the chain's gas token. `--chain` defaults to `base` and takes any EVM chain — there is no Solana support.
+`--to` takes a 0x address or an ENS-style name (`.eth`, `.base.eth`, `.cb.id`), resolved via `/addresses/resolve` before anything is sent — without a chain, so a name's Base record wins even with `--chain polygon`; pass a 0x address when that matters. Handles are rejected; use the agent for those. `--token` takes a symbol or contract address (from 0.3.48 a symbol resolves to the token the agent would pick, and the gas token's ticker, such as `ETH`, sends it natively); `--native` sends the chain's gas token. `--chain` defaults to `base` and takes any EVM chain — there is no Solana support.
 
 ## Wallet API
 
