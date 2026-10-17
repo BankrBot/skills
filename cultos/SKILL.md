@@ -36,31 +36,37 @@ Read the relevant OpenAPI operation before constructing a request. All paid rout
 
 ## Pay and retrieve results
 
-Use Bankr's x402 payment capability, or `bankr x402 call`. The CLI requires a Bankr API key with Wallet API access that is not read-only. Keep that credential in Bankr's own configuration; do not send it to Cult OS.
+Use Bankr's documented Wallet API: `POST https://api.bankr.bot/wallet/x402-pay`. Authenticate to Bankr with `X-API-Key` using a non-read-only key with Wallet API access. Read the existing credential from `BANKR_API_KEY` or `~/.bankr/config.json` in memory. Never print it or send it to Cult OS. Send the API request itself as `application/json`.
 
-Confirm the requested service, input and spending limit with the user. Select the Base offer (`eip155:8453`) and enforce the limit even if other networks are advertised. Keep the request unchanged between discovery and paid submission. Do not manually transfer tokens to pay an HTTP endpoint.
+Confirm the requested service, input and spending limit with the user. These endpoints advertise Base USDC (`eip155:8453`); verify the live quote and enforce `maxPaymentUsd`. Keep the request unchanged between discovery and paid submission. Do not manually transfer tokens to pay an HTTP endpoint.
+
+Pass `body` as a JSON object and explicitly set the target `headers.Content-Type` to `application/json`. These request bodies go to Bankr's `/wallet/x402-pay` API, which performs discovery, signing and the paid request.
 
 Validate a builder code for at most $0.001:
 
-```bash
-bankr x402 call https://www.cultos.dev/services/builder-code-validator \
-  -X POST -d '{"builderCode":"bc_rtkgzsuf"}' --max-payment 0.001
-```
-
-Inspect an x402 endpoint's quote without paying the inspected endpoint:
-
-```bash
-bankr x402 call https://www.cultos.dev/services/x402-lens \
-  -X POST -d '{"endpoint":"https://www.cultos.dev/services/builder-code-validator","method":"POST","body":{"builderCode":"bc_rtkgzsuf"}}' \
-  --max-payment 0.001
+```json
+{
+  "url": "https://www.cultos.dev/services/builder-code-validator",
+  "method": "POST",
+  "body": { "builderCode": "bc_rtkgzsuf" },
+  "headers": { "Content-Type": "application/json" },
+  "maxPaymentUsd": 0.001
+}
 ```
 
 Request an Aeon-powered vulnerability audit of a public repository:
 
-```bash
-bankr x402 call https://www.cultos.dev/services/vulnerability-audit \
-  -X POST -d '{"repository":"https://github.com/thesmithdao/x402-mqtt"}' --max-payment 0.20
+```json
+{
+  "url": "https://www.cultos.dev/services/vulnerability-audit",
+  "method": "POST",
+  "body": { "repository": "https://github.com/thesmithdao/x402-mqtt" },
+  "headers": { "Content-Type": "application/json" },
+  "maxPaymentUsd": 0.20
+}
 ```
+
+For x402 Lens, use `/services/x402-lens` with `body` containing `endpoint`, `method` and optional target `body`, following OpenAPI. Set `maxPaymentUsd` to `0.001`. Lens inspects the target's quote without paying that target.
 
 Use `pullRequest` for PR audit/triage and `url` for SEO audit, following their OpenAPI schemas. Only submit public inputs. Completed PR audits are also published to the public Cult OS audit registry. Automated audit findings are review assistance, not a security guarantee.
 
