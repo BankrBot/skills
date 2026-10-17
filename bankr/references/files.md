@@ -80,7 +80,7 @@ Available on **every wallet** — no Club subscription needed — and you don't 
 ## CLI Commands
 
 ```bash
-bankr files ls [--folder /research]             # List, with full paths
+bankr files ls [--folder /research]             # List, with full paths and file ids
 bankr files upload ./report.csv --folder /data  # Upload from your machine
 bankr files download <fileId>                   # Get a download URL
 bankr files cat <fileId> [-o ./local.md]        # Print contents, or save locally
