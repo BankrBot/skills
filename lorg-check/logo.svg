@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Lorg Labs">
+<rect width="512" height="512" rx="96" fill="#FFFFFF"/>
+<rect x="104" y="104" width="144" height="144" fill="#1B7A3D"/>
+<rect x="264" y="104" width="144" height="144" fill="#E8A317"/>
+<rect x="104" y="264" width="144" height="144" fill="#C0281F"/>
+<rect x="264" y="264" width="144" height="144" fill="#5F6763"/>
+</svg>
