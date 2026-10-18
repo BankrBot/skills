@@ -19,21 +19,34 @@ between legs decide the actual result.
 
 ## Plan
 
-`node scripts/chop.mjs arb --log L --size <paired amount> --wallet W` sizes a route and estimates P&L:
+`node scripts/chop.mjs arb --log L --size <paired amount> --wallet W` sizes a route, records the wallet's current
+balances (`baseline`) and estimates P&L:
 
 | Direction | Steps |
 |---|---|
-| log-cheap | 1. `buy` log with the paired token · 2. `unwrap --amount all` · 3. Bankr swap: underlying → paired |
-| log-rich | 1. Bankr swap: paired → underlying · 2. `wrap --amount all` · 3. `sell --amount all` |
+| log-cheap | 1. `buy --amount <size>` · 2. `arb --leg unwrap --since <log baseline>` · 3. `arb --leg swap-out --since <underlying baseline>` → exact Bankr swap prompt |
+| log-rich | 1. Bankr swap of exactly `<size>` paired → underlying · 2. `arb --leg wrap --since <underlying baseline>` · 3. `arb --leg sell --since <log baseline>` |
 
-`chop` steps are CLI commands that return plans (approve, re-run, submit). `bankr-swap` steps are ordinary
-Bankr swap prompts, e.g. `bankr agent "Swap 1200 VRAX (0x…) to WETH on Robinhood Chain"`.
+**An arb only ever spends what its own legs acquired.** Each follow-up leg reads the wallet balance now, subtracts
+the baseline recorded in the plan, and builds the transaction for exactly that delta (capped at the plan's
+expected amount + 2%). Tokens the wallet held before the arb are never wrapped, unwrapped, sold or swapped.
+Never replace a leg with `--amount all`.
+
+Each `arb --leg` call also re-quotes the rest of the route from the acquired amount:
+
+- `status: "ready"` or `"approval-required"`: submit as usual (approvals, then re-run the same `arb --leg` command).
+- `status: "abort"`: the route is no longer profitable. Stop and tell the user what the wallet now holds.
+- `code: "NOTHING_ACQUIRED"`: the previous leg has not confirmed yet (or this leg already ran). Do not retry blindly.
+
+`bankr-swap` steps are ordinary Bankr swap prompts with an exact amount, e.g.
+`bankr agent "Swap 965.06 VRAX (0x…) to WETH on Robinhood Chain"`. Submit them as given; never round up or swap
+the whole balance.
 
 ## Execute safely
 
 1. Only proceed when `profitable: true` and the user agreed to the size.
-2. After each leg confirms, **re-quote the next leg** (re-run its command) and abort if the trade is no longer
-   profitable. Prices can move between transactions; nothing here is atomic.
+2. Run the steps in order, each only after the previous one confirms. Steps 2 and 3 re-quote themselves.
+   Prices can move between transactions; nothing here is atomic.
 3. Stay inside the wallet's Bankr spend limits; never ask the user to raise them for an arb.
 4. Fee hurdles on Volatile logs are about 2.1% for either direction (1% + 0.5% + 0.3% + ~0.3%). Small gaps are
    not worth it.

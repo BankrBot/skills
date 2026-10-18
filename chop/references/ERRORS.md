@@ -20,6 +20,7 @@
 | `DUPLICATE_LOG` | Log exists for this token + pair | Use the existing log (`log` field) |
 | `NO_REWARD_ROUTE` | Paired token has no reviewed $CHOP route | Pair with CHOP, WETH or USDG |
 | `NO_PRICE` | No market price for the underlying | Gap/arb cannot be computed |
+| `NOTHING_ACQUIRED` | An `arb --leg` found no tokens acquired since the plan's baseline | The previous leg has not confirmed, or this leg already ran. Do not retry blindly |
 | `FEE_ORACLE_NOT_READY` | The log's fee price oracle is not matured or is stale | `update-oracle`, wait ~11 min, `update-oracle`, then `process-fees`. Usually the keeper handles it |
 | `SIMULATION_REVERTED` | The final transaction would revert | Relay the reason (below). Nothing was submitted |
 

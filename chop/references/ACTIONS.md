@@ -29,6 +29,7 @@ Write commands return a **plan**: `status` (`approval-required` | `ready`), `sum
 | `quote farm --log L --amount <log>` | Paired tokens needed at the pool ratio |
 | `quote farm-single --log L --amount <paired>` | How much is swapped into log tokens and the expected log output |
 | `gaps [--log L]` | Log price vs. backing × market price of the underlying, round-trip cost, estimated edge. See ARBITRAGE.md |
+| `arb --log L --size N` | Arb plan with wallet baselines; follow-up legs are `arb --leg … --since …` and spend only what the arb acquired. See ARBITRAGE.md |
 
 ## Writes
 
