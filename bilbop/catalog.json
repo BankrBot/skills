@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "bilbop",
+  "provider": "bilbop",
+  "providerUrl": "https://bilbop-portfolio.pages.dev/",
+  "logo": null,
+  "demo": {
+    "title": "bilbop.sh",
+    "language": "bash",
+    "code": "# On-chain Solana mint facts ($0.01)\nbankr prompt \"Use bilbop /v1/sol-mint-info for So11111111111111111111111111111111111111112\"\n\n# Public token market brief ($0.01)\nbankr prompt \"Run bilbop /v1/sol-token-brief for mint <SPL mint>\"\n\n# Short summary ($0.01)\nbankr prompt \"bilbop /v1/summarize this paragraph: ...\"\n\n# Piper TTS WAV ($0.025)\nbankr prompt \"bilbop /v1/tts say hello from an agent\"\n\n# Human brand feedback ($0.50)\nbankr prompt \"bilbop /brand-feedback brand=Acme question='Would you buy again?' n=1\""
+  },
+  "setup": [
+    "No install required — every endpoint is plain HTTP behind x402",
+    "Fund a Solana wallet with USDC for pay-per-call requests (no account/API key needed)",
+    "Discovery: GET https://api.bilbop.org/.well-known/x402",
+    "Confirm payTo is 2r2vsoyuYuy4dsyQVRhfmMBqsMRKHRS5FTPNumYFhxE4 before paying"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "bilbop",
+    "command": "install the bilbop skill from https://github.com/BankrBot/skills/tree/main/bilbop"
+  }
+}
