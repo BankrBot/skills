@@ -841,41 +841,98 @@ async function cmdGaps(o) {
   gaps.sort((a, b) => (b.estEdgeBeforeImpactPct ?? -1e9) - (a.estEdgeBeforeImpactPct ?? -1e9));
   return { ok: true, chainId: CHAIN_ID, gaps, note: "Spot mid prices for detection only. Size, price impact, gas and the external leg's real fee decide profit; always quote each leg before acting. External fee assumed 0.3%." };
 }
+// Arb legs only ever spend what the previous leg acquired: each follow-up leg is `arb --leg <name> --since <raw>`,
+// which reads the wallet's balance now, subtracts the balance recorded in the plan, re-quotes the rest of the
+// route and returns a plan for exactly that delta. Pre-existing balances are never touched.
+const ARB_LEGS = { unwrap: "log", "swap-out": "underlying", wrap: "underlying", sell: "log" };
+const ARB_TOLERANCE_BPS = 200n; // acquired amount may exceed the plan's expectation by at most 2% (price drift)
+
+async function arbBalances(l, w) {
+  const [log, underlying, paired] = await Promise.all([
+    read(l.address, LOG, "balanceOf", [w]), read(l.underlying.address, ERC20, "balanceOf", [w]), read(l.paired.address, ERC20, "balanceOf", [w])]);
+  return { log, underlying, paired };
+}
+function arbCmd(l, w, leg, since, size, expect) {
+  return `node scripts/chop.mjs arb --log ${l.address} --leg ${leg} --since ${since} --size ${size} --expect ${expect} --raw-size --wallet ${w}`;
+}
+
 async function cmdArb(o) {
   const w = wallet(o); const l = await resolveLog(o); const g = await gapFor(l);
   if (!g || g.error) throw new ChopError(g?.error ?? "No liquidity to arbitrage.", "NO_PRICE");
-  const size = amount(o, l.paired.decimals, "size");
-  const steps = []; let est = null;
+  if (getAddress(l.underlying.address) === getAddress(l.paired.address)) throw new ChopError("Underlying and paired token are the same; leg deltas would be ambiguous.", "UNSUPPORTED_LOG");
+  if (o["raw-size"] && !/^\d+$/.test(String(o.size))) throw new UsageError("--size must be raw units with --raw-size");
+  const size = o["raw-size"] ? BigInt(o.size) : amount(o, l.paired.decimals, "size");
+  if (size <= 0n) throw new ChopError("Arb size must be greater than zero.", "ZERO_AMOUNT");
+  const pnl = (outPaired) => Number(formatUnits(outPaired, l.paired.decimals)) - Number(formatUnits(size, l.paired.decimals));
+  const extOut = (uAmt) => parseUnits((Number(formatUnits(uAmt, l.underlying.decimals)) * g.externalPrice.price * 0.997).toFixed(Math.min(l.paired.decimals, 12)), l.paired.decimals);
+
+  if (o.leg) return arbLeg(o, w, l, g, size, pnl, extOut);
+
+  const bal = await arbBalances(l, w);
+  const steps = []; let est;
   if (g.direction === "log-cheap") {
     const q = await quoteSwap(l, "buy", size);
     const assets = (await read(l.address, LOG, "convertToAssets", [q.out]) * (DEN - BigInt(l.fees.debond))) / DEN;
-    const back = Number(formatUnits(assets, l.underlying.decimals)) * g.externalPrice.price * (1 - 0.003);
-    est = back - Number(formatUnits(size, l.paired.decimals));
+    est = pnl(extOut(assets));
     steps.push({ n: 1, kind: "chop", command: `node scripts/chop.mjs buy --log ${l.address} --amount ${fmt(size, l.paired.decimals)} --wallet ${w}`, expect: `${fmt(q.out, l.decimals)} ${l.symbol}` });
-    steps.push({ n: 2, kind: "chop", command: `node scripts/chop.mjs unwrap --log ${l.address} --amount all --wallet ${w}`, expect: `${fmt(assets, l.underlying.decimals)} ${l.underlying.symbol}` });
-    steps.push({ n: 3, kind: "bankr-swap", prompt: `Swap ${fmt(assets, l.underlying.decimals)} ${l.underlying.symbol} (${l.underlying.address}) to ${l.paired.symbol} (${l.paired.address}) on Robinhood Chain` });
+    steps.push({ n: 2, kind: "chop", command: arbCmd(l, w, "unwrap", bal.log, size, q.out), expect: `${fmt(assets, l.underlying.decimals)} ${l.underlying.symbol}`, note: "Unwraps only the log tokens step 1 bought." });
+    steps.push({ n: 3, kind: "chop", command: arbCmd(l, w, "swap-out", bal.underlying, size, assets), note: "Returns the exact Bankr swap prompt for only the underlying step 2 returned." });
   } else {
-    const underlyingIn = Number(formatUnits(size, l.paired.decimals)) / g.externalPrice.price * (1 - 0.003);
+    const underlyingIn = Number(formatUnits(size, l.paired.decimals)) / g.externalPrice.price * 0.997;
     const uRaw = parseUnits(underlyingIn.toFixed(Math.min(l.underlying.decimals, 12)), l.underlying.decimals);
     const minted = (await read(l.address, LOG, "convertToShares", [uRaw]) * (DEN - BigInt(l.fees.bond))) / DEN;
     const q = await quoteSwap(l, "sell", minted);
-    est = Number(formatUnits(q.out, l.paired.decimals)) - Number(formatUnits(size, l.paired.decimals));
-    steps.push({ n: 1, kind: "bankr-swap", prompt: `Swap ${fmt(size, l.paired.decimals)} ${l.paired.symbol} (${l.paired.address}) to ${l.underlying.symbol} (${l.underlying.address}) on Robinhood Chain` });
-    steps.push({ n: 2, kind: "chop", command: `node scripts/chop.mjs wrap --log ${l.address} --amount all --wallet ${w}`, expect: `${fmt(minted, l.decimals)} ${l.symbol}` });
-    steps.push({ n: 3, kind: "chop", command: `node scripts/chop.mjs sell --log ${l.address} --amount all --wallet ${w}`, expect: `${fmt(q.out, l.paired.decimals)} ${l.paired.symbol}` });
+    est = pnl(q.out);
+    steps.push({ n: 1, kind: "bankr-swap", prompt: `Swap ${fmt(size, l.paired.decimals)} ${l.paired.symbol} (${l.paired.address}) to ${l.underlying.symbol} (${l.underlying.address}) on Robinhood Chain`, expect: `${fmt(uRaw, l.underlying.decimals)} ${l.underlying.symbol}` });
+    steps.push({ n: 2, kind: "chop", command: arbCmd(l, w, "wrap", bal.underlying, size, uRaw), expect: `${fmt(minted, l.decimals)} ${l.symbol}`, note: "Wraps only the underlying step 1 bought." });
+    steps.push({ n: 3, kind: "chop", command: arbCmd(l, w, "sell", bal.log, size, minted), expect: `${fmt(q.out, l.paired.decimals)} ${l.paired.symbol}`, note: "Sells only the log tokens step 2 minted." });
   }
   return {
     ok: true, status: "plan", action: "arb", chainId: CHAIN_ID, wallet: w, gap: g, size: `${fmt(size, l.paired.decimals)} ${l.paired.symbol}`,
+    baseline: { log: bal.log.toString(), underlying: bal.underlying.toString(), paired: bal.paired.toString() },
     estimatedPnl: `${est >= 0 ? "+" : ""}${est.toFixed(6)} ${l.paired.symbol} (before gas; external leg priced at spot minus 0.3%)`, profitable: est > 0, steps,
-    next: est > 0 ? "Confirm with the user, then run each step in order, re-quoting each step after the previous one confirms. Abort if a re-quote turns the trade unprofitable." : "Not profitable at this size after fees. Do not execute.",
-    warnings: ["Legs are separate transactions: prices can move between them.", "Never exceed the wallet's Bankr spend limits; the external leg is a normal Bankr swap."],
+    next: est > 0 ? "Confirm with the user, then run the steps in order, each only after the previous one confirms. Steps 2 and 3 measure what the previous leg acquired and re-quote; stop if they return status abort." : "Not profitable at this size after fees. Do not execute.",
+    warnings: ["Legs are separate transactions: prices can move between them.", "Never exceed the wallet's Bankr spend limits; the external leg is a normal Bankr swap.",
+      "Never replace a step with --amount all: that would include tokens the wallet held before the arb."],
   };
+}
+
+async function arbLeg(o, w, l, g, size, pnl, extOut) {
+  const leg = String(o.leg); const which = ARB_LEGS[leg];
+  if (!which) throw new UsageError(`--leg must be one of ${Object.keys(ARB_LEGS).join(", ")}`);
+  if (o.since === undefined || !/^\d+$/.test(String(o.since))) throw new UsageError("--since <raw balance from the plan> is required with --leg");
+  if (o.expect === undefined || !/^\d+$/.test(String(o.expect))) throw new UsageError("--expect <raw amount from the plan> is required with --leg");
+  const since = BigInt(o.since), expect = BigInt(o.expect);
+  const t = which === "log" ? { address: l.address, symbol: l.symbol, decimals: l.decimals } : l.underlying;
+  const now = await read(t.address, ERC20, "balanceOf", [w]);
+  const acquired = now > since ? now - since : 0n;
+  if (acquired === 0n) throw new ChopError(`No ${t.symbol} acquired since the plan (balance ${fmt(now, t.decimals)}, baseline ${fmt(since, t.decimals)}). Wait for the previous leg to confirm.`, "NOTHING_ACQUIRED");
+  const cap = (expect * (DEN + ARB_TOLERANCE_BPS)) / DEN;
+  const use = acquired > cap ? cap : acquired;
+  const warnings = acquired > cap ? [`${fmt(acquired, t.decimals)} ${t.symbol} arrived since the plan, more than this leg expected; using only ${fmt(use, t.decimals)}. The rest is not part of the arb.`] : [];
+  let out;
+  if (leg === "unwrap") out = extOut((await read(l.address, LOG, "convertToAssets", [use]) * (DEN - BigInt(l.fees.debond))) / DEN);
+  else if (leg === "swap-out") out = extOut(use);
+  else if (leg === "wrap") out = (await quoteSwap(l, "sell", (await read(l.address, LOG, "convertToShares", [use]) * (DEN - BigInt(l.fees.bond))) / DEN)).out;
+  else out = (await quoteSwap(l, "sell", use)).out;
+  const est = pnl(out);
+  const meta = { leg, token: t.symbol, baseline: since.toString(), balanceNow: now.toString(), acquired: acquired.toString(), using: use.toString(),
+    reQuotedPnl: `${est >= 0 ? "+" : ""}${est.toFixed(6)} ${l.paired.symbol}`, profitable: est > 0 };
+  if (est <= 0) return { ok: true, status: "abort", action: "arb", chainId: CHAIN_ID, wallet: w, arb: meta, warnings,
+    next: `Re-quote is no longer profitable. Stop the arb. The wallet now holds the ${fmt(use, t.decimals)} ${t.symbol} from earlier legs; ask the user what to do with it.` };
+  if (leg === "swap-out") return { ok: true, status: "ready", action: "arb", chainId: CHAIN_ID, wallet: w, arb: meta, warnings,
+    steps: [{ kind: "bankr-swap", prompt: `Swap ${fmt(use, t.decimals)} ${t.symbol} (${t.address}) to ${l.paired.symbol} (${l.paired.address}) on Robinhood Chain` }],
+    next: "Submit this exact Bankr swap. Do not round up or swap the whole balance." };
+  const sub = { ...o, log: l.address, amount: use.toString(), raw: true, wallet: w };
+  const plan = leg === "unwrap" ? await buildUnwrap(sub) : leg === "wrap" ? await buildWrap(sub) : await buildSwap(sub, "sell");
+  return { ...plan, arb: meta, warnings: [...(plan.warnings ?? []), ...warnings],
+    next: plan.status === "approval-required" ? `Submit the approval, then re-run this same arb --leg ${leg} command.` : plan.next };
 }
 
 // ------------------------------------------------------------------ main
 const HELP = `chop.mjs: Chop logs on Robinhood Chain (4663). Reads and Bankr-ready transaction plans; never signs.
 Reads:   logs [--yields] [--all] · log <log> · position [<log>] --wallet W · quote <wrap|unwrap|buy|sell|farm|farm-single> --log L --amount N
-         gaps [--log L] · arb --log L --size N --wallet W (plan only)
+         gaps [--log L] · arb --log L --size N --wallet W (plan) · arb --leg unwrap|swap-out|wrap|sell --since RAW --expect RAW ...
 Writes:  wrap · unwrap · buy · sell · farm · farm-single · unfarm [--to both|paired|log] · stake · unstake · claim [--log L | --all]
          process-fees · update-oracle · wrap-eth · unwrap-eth · launch --token T --paired CHOP|WETH|USDG --amount N --paired-amount M · create · seed
 Common:  --log <address|chSYMBOL|SYMBOL> [--paired X] · --wallet 0x… (or BANKR_WALLET_ADDRESS) · --amount N|all [--raw] · --slippage-bps N · --rpc URL`;
