@@ -101,7 +101,7 @@ Slippage: `--slippage-bps` (defaults: wrap 50, swaps/exits 100, LP adds 1%).
 | Native ETH ↔ WETH | `wrap-eth --amount N` · `unwrap-eth --amount N` |
 | Trigger fee processing (upkeep) | `process-fees --log L` · `update-oracle --log L` |
 | Price gaps between logs and the market | `gaps [--log L]` |
-| Arbitrage plan for one log | `arb --log L --size <paired> --wallet W` |
+| Arbitrage plan for one log | `arb --log L --size <paired> --wallet W`, then run its steps in order (each leg spends only what the arb acquired) |
 | Launch + seed a new log atomically | `launch --token T --paired CHOP\|WETH\|USDG --amount <token> --paired-amount <paired>` |
 | Create unfunded / seed later | `create --token T --paired P` · `seed --log L --amount N --paired-amount M` |
 
