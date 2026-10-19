@@ -4,7 +4,7 @@ Bankr has two independent layers of controls: **wallet-level** settings at [bank
 
 ## Wallet-Level Security Settings
 
-These are enforced where transactions are signed, so they cover chat, the agent, the Wallet API, the CLI and x402 alike. Changing them needs a signed-in web session, plus a passkey step-up when MFA is on. An API key can't change them, and no API-key endpoint returns them (a swap quote does report your price-impact ceiling).
+These are enforced where transactions are signed, so they cover chat, the agent, the Wallet API, the CLI and x402 alike. Changing them needs a signed-in web session, plus an MFA step-up for a change that loosens them (tightening doesn't ask). An API key can't change them, and no API-key endpoint returns them (a swap quote does report your price-impact ceiling).
 
 | Control | Default | Effect |
 |---------|---------|--------|
@@ -14,14 +14,14 @@ These are enforced where transactions are signed, so they cover chat, the agent,
 | Per-transaction limit | $500 | Rejects any single transaction priced above the limit |
 | Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%) |
 | Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown |
-| Allow NFT transfers | On, 5 per rolling 24h | Off blocks NFT sends and direct ERC-721/1155 transfer calls, raw ones included; on allows a set count (1–1,000). Sales and NFTs moved inside another contract call aren't counted. No timer |
+| Allow NFT transfers | On, 5 per rolling 24h | Off blocks NFT sends, direct ERC-721/1155 transfer calls, operator approvals (`setApprovalForAll`, ERC-721 `approve`) and signed NFT permits, raw ones included; on allows a set count (1–1,000). Marketplace sales and revocations aren't counted; NFTs moved inside a batch or smart-wallet call (multicall, Safe, ERC-7579) are. No timer |
 | Response channels | All on | Per channel (X, Farcaster, Telegram). Bankr stops replying on a disabled channel; Telegram `/start` and wallet linking stay live |
 
 USD limits accept `1` to `1,000,000`. `0` is rejected, so disable the limit instead. The recipient cooldown is `0` to `168` hours (default 24), and re-adding a removed recipient restarts it.
 
 ### Spend limits are enforced everywhere
 
-A wallet that has never opened the Security page is still capped at **$500 a day and $500 per transaction**, on every signing path: agent tools, limit/stop/DCA/TWAP order fills, Wallet API swaps (the sell side is priced, cross-chain and Solana legs included) and transfers, raw `/wallet/submit`, x402 paid calls, and direct signer callers. If an integration needs to move more, raise the limit deliberately.
+A wallet that has never opened the Security page is still capped at **$500 a day and $500 per transaction**, on every signing path: agent tools, limit/stop/DCA/TWAP order fills, Wallet API swaps (the sell side is priced, cross-chain and Solana legs included) and transfers, raw `/wallet/submit`, x402 paid calls, Polymarket bets, LLM credit top-ups, Bankr Club sign-up, Hyperliquid deposits, airdrops, launch dev buys, and direct signer callers. A Club renewal counts toward the daily total but is never refused by a limit (a paused wallet still blocks it). Launch fee recipients and fee-recipient hand-offs must pass the permitted-recipients list. If an integration needs to move more, raise the limit deliberately.
 
 - Each transaction is priced at submission from on-chain quotes (0x on EVM, Jupiter on Solana). If pricing fails while a USD limit is on, the transaction is **rejected**, not waved through.
 - Successful transactions count toward the rolling 24h total. The spend log is keyed on transaction hash, so retries can't inflate it.
