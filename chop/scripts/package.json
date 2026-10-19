@@ -1,0 +1,10 @@
+{
+  "name": "chop-skill-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Read Chop logs and build Bankr-ready transactions on Robinhood Chain (4663).",
+  "bin": { "chop": "./chop.mjs" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "viem": "2.38.0" }
+}
