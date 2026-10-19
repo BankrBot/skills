@@ -1,31 +1,59 @@
 ---
 name: grey-ridge-x402
-description: Base-native x402 data + token security for AI agents — pay-per-call on Base USDC, no account or API key. Use BEFORE an agent buys/sells a Base token (honeypot / rug / proxy / mint-authority check), or when it needs Base-chain RPC reads (balances, gas, tx, wallet — enriched with USD values), crypto prices, cross-venue funding-rate arbitrage, DeFi yields, live Polymarket markets, or an MCP-server security audit. Base-native (most x402 data sellers are Ethereum-only) and USD-enriched. Triggers on token safety, honeypot, rug pull, is this token safe, can I sell, proxy/upgradeable, mint authority, Base RPC, wallet balance, funding rate, DeFi yield, Polymarket, crypto prices, MCP security scan.
+description: Base-native pre-trade safety gate and onchain data for AI agents — pay-per-call in USDC on Base via x402, no account or API key. Use BEFORE an agent buys or sells a Base token (honeypot, rug, proxy, mint/fee authority, liquidity) and get a GO/HOLD/BLOCK or SAFE/CAUTION/AVOID verdict, or when it needs Base RPC reads (balances, gas, tx, wallet) with USD values, crypto prices, funding-rate spreads, DeFi yields, or live Polymarket markets. Triggers on token safety, honeypot check, rug pull, is this token safe, can I sell, safe to swap, proxy/upgradeable, Base balance, gas price, funding rate, DeFi yield, Polymarket.
 ---
 
-# Grey Ridge Signals — Base-native x402 Data + Token Security
+# Grey Ridge Signals — Base pre-trade gate + onchain data (x402)
 
-Agent-native, pay-per-call data on **Base** (USDC via x402 — no account, no API key).
+**Base URL:** `https://x402-data-api.sigrunner.workers.dev`
+**Payment:** x402, USDC on Base (`eip155:8453`, scheme `exact`). No account, no API key. Every route has a free `/preview` variant (same response shape) so you can test with no wallet.
+**Catalog:** `/.well-known/x402` · **Docs:** `/llms.txt` · **MCP server:** `/mcp`
 
-## Token security — check BEFORE you trade ($0.02)
-`GET /chain/token-security?token=0x...` — **the "can I safely buy/sell this Base token?" check every trading agent needs.** Runs real compute (not a lookup): a live `eth_call` state-override **honeypot simulation** (funds a synthetic wallet, attempts a transfer, observes revert), **proxy/upgradeability detection** (EIP-1967 / UUPS / legacy OZ slots), a **bytecode red-flag scan** (mint / pause / blacklist / fee-setter authorities), and **ownership state** (renounced vs. active owner) → a `risk_score` + `clear|review|block` verdict + human-readable flags. Free preview: `curl -s https://x402-data-api.sigrunner.workers.dev/chain/token-security/preview`
+## Endpoints
 
-## The rest of the suite
-- **Base RPC** ($0.001): block, gas (EIP-1559 + `gas_price_usd`), ETH/ERC-20 balances (+ `balance_usd`), tx, receipt (+ L1-fee breakdown), wallet bundle, EIP-7702 detection.
-- **Crypto signals**: prices (+ 24h change), cross-venue funding-rate arbitrage (HL/OKX/dYdX), DeFi yields (risk-adjusted).
-- **Prediction markets**: live Polymarket (bestBid/ask/spread, tags).
-- **Security**: on-demand MCP-server audit (tool-poisoning / prompt-injection).
+| Endpoint | Price | What it returns |
+|---|---|---|
+| `GET /gate/swap?token=0x..&side=buy&notional_usd=100` | $0.008 | GO / HOLD / BLOCK verdict for swapping a Base ERC-20: live honeypot sell simulation, liquidity vs. size, proxy and tax risk |
+| `GET /chain/token-report?token=0x..` | $0.01 | Full SAFE / CAUTION / AVOID report: honeypot sim, proxy/upgrade risk, mutable tax, mint/pause/blacklist authorities, ownership, liquidity |
+| `GET /chain/token-security?token=0x..` | $0.009 | Lighter `clear / review / block` check with risk score and flags |
+| `GET /chain/wallet?address=0x..` | $0.003 | ETH + token balances in one call, USD-priced |
+| `GET /chain/gas-price` | $0.01 | EIP-1559 fees plus USD cost |
+| `GET /crypto/funding` | $0.004 | Cross-venue perp funding-rate spread |
+| `GET /defi/yields` | $0.001 | DeFi yields, risk-adjusted |
+| `GET /pm/markets?q=..` | $0.005 | Live Polymarket markets with bid/ask/spread |
 
-## Access
-- **x402 (no account)**: pay $0.001-$0.10 USDC per call on Base — agent pays inline, no API key.
-- **Free preview** routes to try with no wallet.
+Full list (60+ routes, all $0.001–$0.05): `GET /.well-known/x402`.
 
-## MCP install (22 tools)
+## Try it free (no wallet)
+
+```bash
+B=https://x402-data-api.sigrunner.workers.dev
+curl -s "$B/gate/swap/preview?token=weth"
+curl -s "$B/chain/token-report/preview?token=aero"   # also usdc, cbbtc, degen, or any 0x address
+```
+
+## Call it with a paying client
+
+```typescript
+import { wrapFetchWithPayment } from "@x402/fetch";
+// signer: any viem account holding a little USDC on Base
+const pay = wrapFetchWithPayment(fetch, client);
+const r = await pay(`${B}/gate/swap?token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&side=buy&notional_usd=100`);
+console.log(await r.json()); // { verdict: "GO" | "HOLD" | "BLOCK", ... }
+```
+
+Without a client, the first request returns `HTTP 402` with a `payment-required` header (amount, payTo, asset); sign a USDC authorization and retry with `X-PAYMENT`. If the paid path errors you are not charged.
+
+## Practical flow
+
+1. Before any Base swap, call `/gate/swap`. On `BLOCK`, stop. On `HOLD`, size down or ask the user.
+2. For a larger position, pull `/chain/token-report` and read the flags.
+3. Execute the trade through Bankr.
+
+## MCP
+
 ```json
 {"mcpServers":{"grey-ridge-x402":{"type":"streamable-http","url":"https://x402-data-api.sigrunner.workers.dev/mcp"}}}
 ```
 
-## Research -> Execute
-Grey Ridge is the **Base data + safety layer**: vet a token, price a wallet in USD, find funding/yield/PM edges — then hand off to Bankr for **execution**.
-
-Docs: https://x402-data-api.sigrunner.workers.dev/llms.txt
+Contact: contact@greyridgesignals.ai
