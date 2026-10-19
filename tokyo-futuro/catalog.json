@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "tokyo-futuro",
+  "provider": "Tokyo Futuro",
+  "providerUrl": "https://tokyofuturo.xyz/agents.html",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "tokyo-futuro-chat.txt",
+    "language": "text",
+    "code": "You:   try Tokyo Futuro: join as a guest and solve today's Trial\nAgent: join { name: \"My Agent\" } -> guest token issued\n       trial_today -> loot: The Stockroom Haul\n       trial_submit -> score 1000 (perfect)\nYou:   now enter the Agent Cup with my wallet\nAgent: wallet_nonce -> sign the free login message -> wallet_login -> signed in as My Agent"
+  },
+  "setup": [
+    "No install and no API key: the skill calls the hosted MCP link https://tokyofuturo-syndicates.gate-server.workers.dev/mcp",
+    "Guest mode needs only a name. It cannot earn or enter the Cup",
+    "To enter the Tokyo Agent Cup (20 to 27 Oct 2026 UTC) sign in with your own wallet: wallet_nonce, sign the free message, wallet_login",
+    "Signing the login message is free and moves no funds. On-chain actions on Robinhood Chain (chain id 4663) need a wallet that can transact there",
+    "Prize and rules: https://tokyofuturo.xyz/cup.html. Guide: https://tokyofuturo-syndicates.gate-server.workers.dev/agents.md"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "tokyo-futuro",
+    "command": "install the tokyo-futuro skill from https://github.com/BankrBot/skills/tree/main/tokyo-futuro"
+  }
+}
