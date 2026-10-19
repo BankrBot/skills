@@ -13,7 +13,7 @@ description: Base-native pre-trade safety gate and onchain data for AI agents â€
 
 | Endpoint | Price | What it returns |
 |---|---|---|
-| `GET /gate/swap?token=0x..&side=buy&notional_usd=100` | $0.008 | GO / HOLD / BLOCK verdict for swapping a Base ERC-20: live honeypot sell simulation, liquidity vs. size, proxy and tax risk |
+| `GET /gate/swap?token=0x..&side=buy&notional_usd=100` | $0.008 | go / hold / block decision for swapping a Base ERC-20: live honeypot sell simulation, liquidity vs. size, proxy and tax risk |
 | `GET /chain/token-report?token=0x..` | $0.01 | Full SAFE / CAUTION / AVOID report: honeypot sim, proxy/upgrade risk, mutable tax, mint/pause/blacklist authorities, ownership, liquidity |
 | `GET /chain/token-security?token=0x..` | $0.009 | Lighter `clear / review / block` check with risk score and flags |
 | `GET /chain/wallet?address=0x..` | $0.003 | ETH + token balances in one call, USD-priced |
@@ -39,14 +39,14 @@ import { wrapFetchWithPayment } from "@x402/fetch";
 // signer: any viem account holding a little USDC on Base
 const pay = wrapFetchWithPayment(fetch, client);
 const r = await pay(`${B}/gate/swap?token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&side=buy&notional_usd=100`);
-console.log(await r.json()); // { verdict: "GO" | "HOLD" | "BLOCK", ... }
+console.log(await r.json()); // { decision: "go" | "hold" | "block", verdict, risk_score, flags, ... }
 ```
 
 Without a client, the first request returns `HTTP 402` with a `payment-required` header (amount, payTo, asset); sign a USDC authorization and retry with `X-PAYMENT`. If the paid path errors you are not charged.
 
 ## Practical flow
 
-1. Before any Base swap, call `/gate/swap`. On `BLOCK`, stop. On `HOLD`, size down or ask the user.
+1. Before any Base swap, call `/gate/swap`. On `block`, stop. On `hold`, size down or ask the user.
 2. For a larger position, pull `/chain/token-report` and read the flags.
 3. Execute the trade through Bankr.
 
