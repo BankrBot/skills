@@ -166,17 +166,16 @@ def cmd_card(username, out=None):
     points = tr[3] if tr else [total]
     lo, hi = min(points + [total]) or 0, max(points + [total]) or 1
     rng = (hi - lo) or 1
-    W, H = 560, 380
-    x0, y0, w, h = 40, 220, 480, 110
+    W, H = 560, 440
+    x0, y0, w, h = 40, 330, 480, 80
     poly = " ".join(
         f"{x0 + i * w / max(1, len(points) - 1):.1f},{y0 + h - (p - lo) / rng * h:.1f}"
         for i, p in enumerate(points)
     )
-    avatar = profile.get("profilePicture") or ""
     cats = sorted(
         ((k, v.get("score", 0)) for k, v in scores.items() if k != "total"), key=lambda t: -t[1]
     )[:4]
-    bars, by = [], 60
+    bars, by = [], 200
     for k, s in cats:
         label = CATEGORY_LABELS.get(k, k)
         bars.append(
@@ -184,7 +183,7 @@ def cmd_card(username, out=None):
             f'<rect x="40" y="{by + 6}" width="480" height="8" rx="4" fill="#2a2a35"/>'
             f'<rect x="40" y="{by + 6}" width="{max(2, 480 * min(1, s)):.0f}" height="8" rx="4" fill="#a78bfa"/>'
         )
-        by += 36
+        by += 34
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
   <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0" stop-color="#1b1626"/><stop offset="1" stop-color="#241a38"/></linearGradient></defs>
@@ -193,10 +192,11 @@ def cmd_card(username, out=None):
   <text x="40" y="80" font-family="sans-serif" font-size="24" fill="#fff" font-weight="700">@{esc(handle)}</text>
   <text x="440" y="80" font-family="sans-serif" font-size="34" fill="#fff" font-weight="800" text-anchor="middle">#{rank}</text>
   <text x="440" y="100" font-family="monospace" font-size="11" fill="#9a9aa8" text-anchor="middle">RANK</text>
-  <text x="40" y="120" font-family="monospace" font-size="30" fill="#a78bfa" font-weight="700">{total:.4f}</text>
+  <text x="40" y="166" font-family="monospace" font-size="30" fill="#a78bfa" font-weight="700">{total:.4f}</text>
+  <text x="40" y="138" font-family="monospace" font-size="10" fill="#9a9aa8" letter-spacing="1">BANKR SCORE</text>
   {''.join(bars)}
   <polyline points="{poly}" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linejoin="round"/>
-  <text x="40" y="360" font-family="monospace" font-size="11" fill="#6b6b7a">score trend · bankr.bot/leaderboard</text>
+  <text x="40" y="428" font-family="monospace" font-size="11" fill="#6b6b7a">score trend - bankr.bot/leaderboard</text>
 </svg>'''
     path = out or os.path.join(HISTORY_DIR, f"card-{handle}.svg")
     os.makedirs(HISTORY_DIR, exist_ok=True)
