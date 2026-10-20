@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "bnkr-score-tracker",
+  "provider": "Chopiou",
+  "providerUrl": "https://x.com/chopiou",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "demo.sh",
+    "language": "bash",
+    "code": "python3 scripts/score_tracker.py track chopiou\npython3 scripts/score_tracker.py top 30d\npython3 scripts/score_tracker.py card chopiou"
+  },
+  "setup": [
+    "Nothing to configure — read-only public leaderboard API",
+    "Run `python3 scripts/score_tracker.py track <x-username>` for a snapshot"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "bnkr-score-tracker",
+    "command": "install the bnkr-score-tracker skill from https://github.com/BankrBot/skills/tree/main/bnkr-score-tracker"
+  }
+}

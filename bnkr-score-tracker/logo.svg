@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="26" fill="#1b1626"/>
+  <rect x="10" y="10" width="108" height="108" rx="20" fill="none" stroke="#a78bfa" stroke-width="3"/>
+  <path d="M28 86 L44 66 L58 74 L78 44 L100 52" fill="none" stroke="#4ade80" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="100" cy="52" r="7" fill="#a78bfa"/>
+  <text x="64" y="112" font-family="monospace" font-size="14" fill="#a78bfa" text-anchor="middle" letter-spacing="3">SCORE</text>
+</svg>
