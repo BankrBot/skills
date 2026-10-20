@@ -35,7 +35,7 @@ Any active API key works, read-only keys included. PnL and NFTs are fetched only
 
 - The CLI and REST API hide tokens worth under **$1** unless you pass `--low-value` / `showLowValueTokens=true`.
 - The agent applies the wallet's own hide-low-value setting (the web portfolio's toggle), so chat shows the same holdings as the web. Its reply says how many low-value tokens it hid, and its USD totals cover only the rows shown. Ask for "all my tokens, including dust" to see everything.
-- Never hidden: native gas balances, tokens launched through Bankr (even without a market price), and tokens you acquired that no source can price yet.
+- Never hidden: native gas balances, and tokens launched through Bankr or acquired by you that no source can price yet.
 
 ## Selling and transferring by ticker
 

@@ -1,0 +1,60 @@
+{
+  "_agentNote": "Canonical Chop contracts on Robinhood Chain (4663). Logs themselves are NOT listed here: every log is discovered from IndexManager and must pass isRegistered + validateIndex + makePublic before any transaction targets it. Source: chop-contracts deployments/4663 and chopdemo src/config/deployments/4663.json.",
+  "chainId": 4663,
+  "network": "Robinhood Chain",
+  "rpc": {
+    "primary": "https://rpc.mainnet.chain.robinhood.com",
+    "secondary": "https://choplogs.app/api/rpc"
+  },
+  "site": "https://choplogs.app",
+  "source": {
+    "repository": "https://github.com/Chopmaster9000/chop-contracts",
+    "sourceSha": "af146dfed105820040c46eeb2ff61cd3e0b0b79c"
+  },
+  "contracts": {
+    "indexManager": "0xF2A26110396b4162d48A16eE8683372a6A2c3b76",
+    "indexUtils": "0x88BfFDf0ce9EB8889577924Cf802B2237bf8aD79",
+    "dexAdapter": "0x615c2485e1aD9C2B6DAf71c38e825Ff38C10A338",
+    "logSeeder": "0xE1F6638F3276a88557AD4e81c50bFd5AA99fc50c",
+    "protocolFees": "0xF6FF998B5eE44c877C06C0f92d0199528292C5f1",
+    "feeRouter": "0xDaC4Db962D94e3570e02D13a4eDC18267537B752",
+    "rewardsWhitelist": "0xab74612eB2ef5642fa804A52529fEDC6D98f6Cbd",
+    "twapUtils": "0x5079e61e5d8a00AF59654d8cA5e6ABE3aC3722E4",
+    "v4RewardRouter": "0xEeEC32f6A2AF7f9701D5bBBbb5cb6626b2570a5a",
+    "v4Keeper": "0x660B6662870375C560C612a3ce5dC6829Ce341Ba"
+  },
+  "tokens": {
+    "CHOP": { "address": "0x100765a16f42636Bd84EE1e86Bc5107b84bCdBA3", "decimals": 18 },
+    "WETH": { "address": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", "decimals": 18 },
+    "USDG": { "address": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", "decimals": 6 }
+  },
+  "uniswap": {
+    "v2Factory": "0x8bcEaA40B9AcdfAedF85AdF4FF01F5Ad6517937f",
+    "v2Router": "0x89e5DB8B5aA49aA85AC63f691524311AEB649eba",
+    "v3Factory": "0x1f7d7550B1b028f7571E69A784071F0205FD2EfA",
+    "v3Router": "0xCaf681a66D020601342297493863E78C959E5cb2",
+    "v4PoolManager": "0x8366a39CC670B4001A1121B8F6A443A643e40951",
+    "v4Quoter": "0x8Dc178eFB8111BB0973Dd9d722ebeFF267c98F94"
+  },
+  "v4PricePools": [
+    { "token": "0x100765a16f42636Bd84EE1e86Bc5107b84bCdBA3", "symbol": "CHOP", "poolId": "0x8111082d181841cbd123e82bced032b1331140332b6ce3da37f53a6b24ed736c", "other": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", "otherDecimals": 18 },
+    { "token": "0x2531F3ca1b31086b7FC130eCDa6D3253DAF83ba3", "symbol": "QUOTIENT", "poolId": "0xc6c2cd8e0f1e9373e0e2c60da3b6619753f7ff05599d59a66a358cbbaecc5ccf", "other": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", "otherDecimals": 18 },
+    { "token": "0x6eDA83Fc299C10d474068A7E69771c809Bcbbba3", "symbol": "AGENTOS", "poolId": "0x1299aa8c4ea0db5b8453757ed129ed8e916561925926a161cb89842e3987401a", "other": "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", "otherDecimals": 18 }
+  ],
+  "rewardRoutes": {
+    "_note": "Logs paired with a token other than $CHOP need a reviewed V4 reward route so fees can be converted to $CHOP by the keeper.",
+    "pairedWithRoute": ["0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"]
+  },
+  "feeSets": {
+    "volatile": { "burn": 1500, "bond": 100, "debond": 100, "buy": 50, "sell": 50, "partner": 0 },
+    "stable": { "burn": 1500, "bond": 20, "debond": 30, "buy": 30, "sell": 30, "partner": 0 },
+    "_units": "basis points of the amount; burn is the share of every fee burned as log tokens",
+    "maxPartnerFee": 500
+  },
+  "protocol": {
+    "yieldBurnBps": 2000,
+    "yieldAdminBps": 0,
+    "stakeWaitSeconds": 600,
+    "harvestGasPerLog": 800000
+  }
+}
