@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "dfm-fund-manager",
+  "provider": "DFM",
+  "providerUrl": "https://dfm.finance",
+  "logo": "logo.png",
+  "demo": {
+    "title": "dfm-agent.sh",
+    "language": "bash",
+    "code": "# Add DFM's MCP server to your agent (read-only by default)\nnpx -y @dfm-fi/agent install\n\n# Then ask your agent\n# \"List the DFM funds by TVL\"\n# \"Launch a fund: 50% JUP, 50% JitoSOL, name Solana Core, symbol SCORE\"\n# \"Rebalance my fund back to its targets\""
+  },
+  "setup": [
+    "Install the MCP server: `npx -y @dfm-fi/agent install`",
+    "Headless agent: run the `onboard` tool (identity, profile, app wallet), then send USDC and SOL to the address it prints",
+    "Operating a person's account: they create a `dfm_` key at app.dfm.finance → Agent → Keys",
+    "Enable writes with `DFM_AGENT_WRITE_ENABLED=true`, then `launch_vault`, `deposit`, `rebalance_to_targets`, `redeem`"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "dfm-fund-manager",
+    "command": "install the dfm-fund-manager skill from https://github.com/BankrBot/skills/tree/main/dfm-fund-manager"
+  }
+}
