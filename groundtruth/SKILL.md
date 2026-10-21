@@ -8,7 +8,7 @@ description: |
   lost on. Up to 10 coins in one basket call. $0.01 USDC a coin over x402 (Base or Solana); the first 5
   calls a day per IP are free.
 tags: [solana, robinhood, memecoin, pump-fun, dev-wallet, rug, x402]
-version: 6
+version: 7
 visibility: public
 metadata:
   clawdbot:
@@ -35,6 +35,9 @@ This dev's other coins. Counted. That's it.
 - `/v1/*`: 5 free calls a day per IP (shared with `/mcp` and `/api/scan`), then 402.
 - `/x402/v1/record`, `/x402/v1/flag` and `/x402/v1/basket`: same answer, same price, always 402 until paid. Use these when the wallet pays anyway.
 - `/v1/basket` is $0.01 a coin: its 402 states the amount for the coins you asked (3 coins, `amount: "30000"`).
+- Already live on Bankr x402 Cloud. One call, the whole rap sheet ($0.01):
+  `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/gt-dev-record?ca=<coin>` -> `dev`, `launches`, `rugged`,
+  `faded`, `resolved`, `bonded`, `last_mint_utc`, `verdict` (one line, counts with N), `card_url`.
 - On Bankr x402 Cloud, the same three calls:
   `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/coin-record`,
   `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/creator-record` and
