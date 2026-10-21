@@ -21,6 +21,16 @@ curl -X POST "https://api.bankr.bot/wallet/sign" \
 
 A success returns `{ "success": true, "signature", "signer", "signatureType" }`. A key with a recipient allowlist can only use `personal_sign`. The other two types answer `403 Restricted API key`, because recipients can't be verified from calldata or typed data. A 32-byte `personal_sign` message (`0x` + 64 hex), which some order protocols accept as an order signature, and an order that buys a stock-bearing index need a wallet that passed the location check at bankr.bot (`403` `INDEX_REGION_VERIFY` or `INDEX_REGION_BLOCKED`).
 
+### Wallet security settings apply
+
+Signing is checked against the wallet's security settings (see [safety.md](safety.md)) before anything is signed, and the agent's `sign_data` follows the same rules:
+
+- A **paused** wallet refuses every signature with `403 Wallet paused`.
+- While **"Enable arbitrary contract calls"** is off, `eth_signTypedData_v4`, `eth_signTransaction` and a 32-byte `personal_sign` message answer `403 Arbitrary contract calls disabled`. Other messages, such as sign-ins, still sign.
+- While **permitted recipients** is on, `eth_signTransaction` and a 32-byte message are refused, since neither shows who it pays. So is a token permit or transfer authorization (ERC-2612 or DAI-style `Permit`, Permit2, EIP-3009 `TransferWithAuthorization` / `ReceiveWithAuthorization`) whose spender or recipient isn't on the list, and a CoW or 1inch `Order` whose `receiver` isn't (the zero address means the wallet). These answer `403` with `errorCode` `RECIPIENT_NOT_PERMITTED` or `RECIPIENT_COOLDOWN`. Other typed data isn't checked against the list.
+
+As on submit, the pause and arbitrary-calls refusals carry no `errorCode`.
+
 ## POST /wallet/submit
 
 ```bash

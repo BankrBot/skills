@@ -8,12 +8,12 @@ These are enforced where transactions are signed, so they cover chat, the agent,
 
 | Control | Default | Effect |
 |---------|---------|--------|
-| Pause all transactions | Off | Blocks every outbound transaction until unpaused |
-| Enable arbitrary contract calls | On | While off, blocks the agent's `write_contract`, `submit_raw_transaction` and `deploy_contract` tools and raw `/wallet/submit`. Named operations like swaps and transfers still work |
+| Pause all transactions | Off | Blocks every outbound transaction and every signature until unpaused |
+| Enable arbitrary contract calls | On | While off, blocks the agent's `write_contract`, `submit_raw_transaction` and `deploy_contract` tools and raw `/wallet/submit`, and signing typed data, transactions or 32-byte messages through `/wallet/sign` or the agent's `sign_data`. Named operations like swaps and transfers still work, and so do sign-in messages |
 | Daily spending limit | $500 per rolling 24h | Rejects a transaction that would push USD outflow past the limit |
 | Per-transaction limit | $500 | Rejects any single transaction priced above the limit |
 | Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%) |
-| Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown |
+| Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown. While on, `/wallet/sign` and `sign_data` refuse transactions and 32-byte messages, whose recipient can't be checked, and token permits, transfer authorizations and CoW or 1inch orders to an unlisted address |
 | Allow NFT transfers | On, 5 per rolling 24h | Off blocks NFT sends, direct ERC-721/1155 transfer calls, operator approvals (`setApprovalForAll`, ERC-721 `approve`) and signed NFT permits, raw ones included; on allows a set count (1–1,000). Marketplace sales and revocations aren't counted; NFTs moved inside a batch or smart-wallet call (multicall, Safe, ERC-7579) are. No timer |
 | Response channels | All on | Per channel (X, Farcaster, Telegram). Bankr stops replying on a disabled channel; Telegram `/start` and wallet linking stay live |
 
