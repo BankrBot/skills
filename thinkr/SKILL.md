@@ -1,112 +1,109 @@
 ---
 name: thinkr
-description: Sealed evidence with money behind it, for agents that pay other agents. Use before paying another agent over x402 to read whether that seller has posted a bond and whether it is safe to pay. Use after a payment that delivered nothing to file a claim against the seller's bond. Use when your own agent sells, to post a bond, seal every hour what it delivered, and answer claims with the sealed record. Covers non delivery only, never the quality of the work.
+description: Sealed evidence for agents that sell to agents, on Robinhood Chain. Use when your agent delivers work to other agents and should seal each hour what it delivered, before anyone could dispute it; when you need to prove a delivery was sealed, and when; and before dealing with an unfamiliar agent, to read its sealing record and bond. Use before paying a bonded agent, to pay through THINKR so the payment is covered, and after paying one that sealed nothing for it, to claim from its bond. Commands /thinkr:start, /thinkr:check, /thinkr:seal, /thinkr:verify.
 ---
 
 # THINKR
 
 Any agent can sign a record after the fact. THINKR seals it before anyone knows there
-is a dispute, and puts money behind it.
+is a dispute. Signed proves who. Sealed proves when.
 
-- **The seal.** Every hour a seller commits one root covering everything it delivered
-  that hour. The window to seal an hour closes before the window to claim against it
-  opens, so evidence can never be written in answer to a claim. Signed proves who.
-  Sealed proves when.
-- **The bond.** The seller posts its own money against its ERC-8004 identity. If it
-  takes a payment and cannot show the sealed delivery, the claimant is paid from it.
+- **The seal (live).** Every hour a seller commits one merkle root of everything it
+  delivered that hour, on Robinhood Chain. The window to seal an hour closes six
+  hours after it ends and a root can never be rewritten, so the record provably existed before
+  any argument about it.
+- **Verifying (live).** Anyone can prove a given delivery is in an agent's sealed record,
+  and when it was sealed, without trusting the seller or THINKR.
+- **Bonds (live, capped).** A seller posts money behind its record. A buyer that pays
+  through THINKR reserves that amount of the seller's bond for its payment; if the seller
+  then seals nothing for it, the buyer is paid from the bond. Capped at $250 a seller
+  while the contract is unaudited.
 
-x402 itself is untouched. The payment stays instant and final; nothing is held or
-routed. The API never holds a key: every write returns transactions for your own
-wallet to sign and send.
+API: `https://api.thinkr.tech` (`GET /v1` lists everything). Chain: Robinhood Chain
+4663. Contract `0x41f3836260D04fa156D3ef2a4Ab7e5C1dEe0F95e`, source verified on Sourcify.
+The API never holds a key: writes come back as transactions for your own wallet to sign.
 
-API base: `https://api.thinkr.tech` (or `THINKR_API` if the user runs their own).
-`GET /v1` lists every endpoint. Agent ids are ERC-8004 token ids, as plain numbers.
-Amounts are whole units of the collateral token, as strings. THINKR runs on Robinhood
-Chain (4663), contract `0xD5e4643e7E20c987a3da124b05a54cae57de9DDA`, with USDG as collateral (6 decimals, so `"1000000"` is $1). The bond
-response names the chain; check it matches the chain you are paying on.
+## Try it on THINKR's own agent
 
-## Before paying an agent
+Agent **9232** is THINKR's demo agent. It gives one answer a minute at
+`/v1/demo/answer`, with `x-thinkr-agent`, `x-thinkr-epoch`, `x-thinkr-ref` and
+`x-thinkr-digest` headers, and seals each hour's sixty answers when the hour ends. So:
 
 ```
-GET /v1/bond/{agentId}?amount={what you are about to pay}
+GET  https://api.thinkr.tech/v1/seals/9232               its sealing record
+GET  https://api.thinkr.tech/v1/demo/answer              an answer; keep its body and x-thinkr-* headers
+GET  https://api.thinkr.tech/v1/demo/deliveries/{epoch}  the hour's list (sealed: true once sealed)
+POST https://api.thinkr.tech/v1/verify                   { agentId, epoch, ref, digest, deliveries }
 ```
-
-Always pass the amount. Branch on `safeToPay`: with an amount it is true only when the
-seller's unreserved bond covers that payment and the seller has not given notice to
-leave. Bonds start at $1, so the minimum alone says little; the comparison with your
-payment is the check. `claimable` says separately whether the payment is large enough
-to claim against (at least 1% of the bond). A small call to a well bonded seller is
-safe but not claimable: the bond vouches for the seller, it cannot refund that call.
 
 ```json
-{
-  "agentId": "1427",
-  "bonded": "10000000",
-  "available": "10000000",
-  "status": "active",
-  "minClaim": "100000",
-  "payment": "250000",
-  "covers": true,
-  "claimable": true,
-  "safeToPay": true,
-  "epoch": 491234,
-  "chain": { "id": 4663, "name": "Robinhood Chain" }
-}
+{ "sealed": true, "agentId": "9232", "epoch": 497965,
+  "hourStarted": "2026-10-22T13:00:00.000Z", "sealedAt": "2026-10-22T14:01:12.000Z",
+  "root": "0x…" }
 ```
 
-- `status: "winding_down"` means the seller has started its notice period. Its bond
-  may be gone before a claim against it ripens. Treat it as unbonded.
-- `minClaim` is the smallest claim this seller can face (1% of its bond). A payment
-  below it comes back `claimable: false`: there would be no refund if it fails. Fine
-  for a few cents; say so before paying more than you would lose quietly.
-- A seller with no bond is not necessarily dishonest. Nothing stands behind its
-  promise, and the user should know that before money moves.
+An hour is sealed a minute or two after it ends. Change one byte of the answer and the
+digest no longer matches: verify answers `sealed: false` with the reason.
 
-`GET /v1/claims/{agentId}` gives the record: claims filed, answered with a sealed
-proof, and paid out.
+## Before dealing with an unfamiliar agent
 
-## After a payment that delivered nothing
+Read its sealing record: `GET /v1/seals/{agentId}` returns `hoursSealed`, `last24h`,
+`last7d`, `lastSealed` and recent roots. An agent that seals every hour it works is
+committing its evidence in advance; one that never seals has nothing to show later.
+`GET /v1/agent/{agentId}` gives its owner in the ERC-8004 registry.
 
-File a claim naming the transaction. See [references/claims.md](references/claims.md).
-The claimant stakes 2% of the claim. If the seller answers with its sealed proof
-within 48 hours, the stake goes to the seller. If it stays silent, anyone can settle
-and the claimant receives the claim plus its stake back.
+## When your agent sells: seal every hour
 
-Only file when nothing arrived. A disagreement about quality is not covered, and a
-seller that delivered will answer and take the stake.
+See [references/selling.md](references/selling.md). In short:
 
-## When your own agent sells
-
-Post a bond, seal every hour, answer claims. See
-[references/selling.md](references/selling.md).
-
-The hourly seal is the whole mechanism. **A seller that stops sealing can no longer
-answer claims**, so run it as a scheduled job, never as best effort.
+1. **An agent id.** No ERC-8004 identity yet? `POST /v1/register` with
+   `{ "agentURI": "<link to your agent card JSON>" }` returns one transaction; the wallet
+   that sends it owns the agent, and the id is the tokenId in the receipt's Transfer
+   event. You need a little ETH on Robinhood Chain for gas.
+2. **Record each delivery** as `{ ref, digest }`: `ref` is what the buyer calls the
+   order, `digest` the hash of what you delivered.
+3. **Seal each finished hour** within six hours of its end: `POST /v1/attest` with
+   `{ agentId, epoch, deliveries }` returns the transaction and its cost (about a third
+   of a cent). Keep the list: it is your proof.
 
 ## Refs and digests
 
-Every delivery is a pair of 32 byte values:
+Both are 32 byte hex. This plugin ships the converter, no install needed:
 
-- `ref`: what both sides call the transaction. An x402 payment reference, an
-  [action_ref](https://datatracker.ietf.org/doc/draft-etcheverry-action-ref/), a
-  Tersign receipt id. A buyer only ever needs this.
-- `digest`: a hash of the seller's evidence, in whatever format it already keeps.
+```
+node scripts/thinkr-tree.mjs ref <any id>                 32 byte hex passes through; UUIDs and text are hashed
+node scripts/thinkr-tree.mjs digest <file | json | text>  JSON is hashed as RFC 8785 canonical JSON
+node scripts/thinkr-tree.mjs root <deliveries.json>
+node scripts/thinkr-tree.mjs proof <deliveries.json> <ref> <digest>
+```
 
-The API accepts only 32 byte hex for both, on purpose: a mistyped id must fail
-loudly, never turn silently into a different ref. To convert other shapes, use the
-SDK in the THINKR repo (`contracts/sdk/tree.js`): `toRef` passes any 32 byte hex id
-through unchanged and hashes anything else (a UUID, say) with keccak256; `toDigest`
-hashes bytes and strings as they are and JSON as RFC 8785 canonical JSON, so the
-same envelope always gives the same digest.
+(`scripts/` is next to this file.) An
+[action_ref](https://datatracker.ietf.org/doc/draft-etcheverry-action-ref/), a Tersign id
+or a transaction hash goes in as the ref unchanged. The API itself accepts only 32 byte
+hex, on purpose: a mistyped id must fail loudly, never become a different ref.
 
-## What it covers
+## What a seal proves, and what it does not
 
-| Covered | Not covered |
-| --- | --- |
-| Payment settled, nothing delivered | Whether the work was any good |
-| Seller went silent after taking payment | Disagreement about scope |
-| No sealed record for your transaction | Payments smaller than the seller's `minClaim` |
+A seal proves the seller committed to a record of a delivery at a time, before any
+dispute could exist. It does not prove the content was what the buyer wanted, or that it
+arrived: a dishonest seller can seal a record of work it never did. What it cannot do is
+change its story after a dispute starts. That fixed, timestamped record is what an
+adjudicator needs, and it is the part THINKR guarantees.
 
-Non delivery is the only part that can be settled mechanically, so it is the only
-part covered. The contract also cannot confirm a payment happened; the claimant's
-stake is what makes a false claim cost money.
+## Paying with cover
+
+Before paying a bonded seller, `GET /v1/bond/{agentId}?amount=` answers `safeToPay` and
+`covers`: whether its free bond covers your payment. Then pay through THINKR:
+
+```
+POST /v1/pay   { "agentId": "1427", "ref": "0x…", "amount": "2500000" }
+```
+
+The money goes straight to the seller in the same transaction; nothing is held. The same
+amount of its bond is reserved for you until your claim window ends, so nobody else can
+take your cover. If it seals nothing for your payment, claim, and the bond pays you. See
+[references/claims.md](references/claims.md).
+
+What a bond covers: a seller that is paid and then goes silent. What it cannot cover: a
+seller that seals a record of work it never did. The seal still fixes that record before
+any dispute, which is the evidence an adjudicator needs.
