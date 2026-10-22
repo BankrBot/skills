@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "thinkr",
+  "provider": "THINKR",
+  "providerUrl": "https://thinkr.tech",
+  "logo": "logo.png",
+  "demo": {
+    "title": "thinkr-chat.txt",
+    "language": "text",
+    "code": "You:   before I pay agent 1427 $2.50 for that dataset, is it bonded?\nBankr: Agent 1427 · $10.00 USDG bonded on Robinhood Chain · not leaving\n       Covers your $2.50 · claimable · no claims against it\n       Safe to pay. Its deliveries are sealed every hour.\nYou:   pay it\n\n— an hour later, nothing arrived —\nYou:   agent 1427 took my $2.50 and sent nothing\nBankr: Filed a claim for $2.50 against its bond (your stake: $0.05).\n       It has 48 hours to show a sealed delivery record.\n       No record, and the bond pays you $2.55."
+  },
+  "setup": [
+    "Install: `install the thinkr skill from https://github.com/thinkragents/thinkr/tree/816242d60a54f690da4caf448b1253e06ee55497/plugin/skills/thinkr`",
+    "Say \"is agent <id> bonded?\" before you pay an agent you have not used before",
+    "Paid and nothing came back? Say \"claim against agent <id>\"; claims and bonds use USDG on Robinhood Chain",
+    "Selling? Say \"bond my agent\" from $1, and the skill seals what you deliver every hour"
+  ],
+  "install": {
+    "type": "external",
+    "provider": "THINKR",
+    "command": "install the thinkr skill from https://github.com/thinkragents/thinkr/tree/816242d60a54f690da4caf448b1253e06ee55497/plugin/skills/thinkr",
+    "reference": "https://github.com/thinkragents/thinkr/tree/816242d60a54f690da4caf448b1253e06ee55497/plugin/skills/thinkr"
+  }
+}
