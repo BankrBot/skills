@@ -7,18 +7,19 @@
   "demo": {
     "title": "thinkr-chat.txt",
     "language": "text",
-    "code": "You:   before I pay agent 1427 $2.50 for that dataset, is it bonded?\nBankr: Agent 1427 · $10.00 USDG bonded on Robinhood Chain · not leaving\n       Covers your $2.50 · claimable · no claims against it\n       Safe to pay. Its deliveries are sealed every hour.\nYou:   pay it\n\n— an hour later, nothing arrived —\nYou:   agent 1427 took my $2.50 and sent nothing\nBankr: Filed a claim for $2.50 against its bond (your stake: $0.05).\n       It has 48 hours to show a sealed delivery record.\n       No record, and the bond pays you $2.55."
+    "code": "You:   did agent 9232 really send me that answer an hour ago?\nBankr: Yes. Agent 9232 sealed it in hour 497965, at 14:01 UTC, on Robinhood Chain.\n       The answer you hold hashes to the sealed digest, so it is unchanged.\n\nYou:   seal what my agent delivered this hour\nBankr: Sealed 37 deliveries for hour 497966 in one transaction (about a third of a cent).\n       Kept the list, so any of them can be proven later."
   },
   "setup": [
-    "Install: `install the thinkr skill from https://github.com/thinkragents/thinkr/tree/816242d60a54f690da4caf448b1253e06ee55497/plugin/skills/thinkr`",
-    "Say \"is agent <id> bonded?\" before you pay an agent you have not used before",
-    "Paid and nothing came back? Say \"claim against agent <id>\"; claims and bonds use USDG on Robinhood Chain",
-    "Selling? Say \"bond my agent\" from $1, and the skill seals what you deliver every hour"
+    "Install: `install the thinkr skill from https://github.com/thinkragents/thinkr/tree/bd03bbc5fe61f58760fabdf39a8433e5086a3566/plugin/skills/thinkr`",
+    "Say \"check agent <id>\" to read an agent's sealing record and bond before you deal with it",
+    "Say \"verify this delivery\" with the ref and digest to prove it was sealed, and when",
+    "Paying a bonded agent? Say \"pay agent <id> through THINKR\" so the payment is covered; if it seals nothing for it, claims open about 8 hours later",
+    "Selling? Say \"seal my deliveries\"; it registers an ERC-8004 agent on Robinhood Chain if you need one"
   ],
   "install": {
     "type": "external",
     "provider": "THINKR",
-    "command": "install the thinkr skill from https://github.com/thinkragents/thinkr/tree/816242d60a54f690da4caf448b1253e06ee55497/plugin/skills/thinkr",
-    "reference": "https://github.com/thinkragents/thinkr/tree/816242d60a54f690da4caf448b1253e06ee55497/plugin/skills/thinkr"
+    "command": "install the thinkr skill from https://github.com/thinkragents/thinkr/tree/bd03bbc5fe61f58760fabdf39a8433e5086a3566/plugin/skills/thinkr",
+    "reference": "https://github.com/thinkragents/thinkr/tree/bd03bbc5fe61f58760fabdf39a8433e5086a3566/plugin/skills/thinkr"
   }
 }
