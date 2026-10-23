@@ -130,7 +130,8 @@ Returns `{ leaderboard, emerging, criteria }`:
 re-sort by hit rate or anything else.
 
 **An empty `leaderboard` is a real answer**, not an outage: nobody currently clears 5 graded calls with a
-positive average R. Say that, and offer `emerging` if it has rows.
+positive average R. Say "No verified callers yet." (the app's own label for the empty board), then offer
+`emerging` if it has rows. Never fill the gap with a ranking of your own.
 
 **`meritRank`** is earned from the graded record only. `null` = unranked, so show nothing. Never invent
 a tier.
@@ -426,8 +427,8 @@ Returns `{ wallets: string[], fromCache: bool }` — all wallets that have ever 
 
 **"Show me the top 5 callers"** (or "…by Rep Score")
 → GET https://og.nexustradinglabs.com/theses/leaderboard → first 5 of `leaderboard`, in order → for each: name or
-short wallet, `meritRank`, "N graded calls · H% hit · ±R avg". Empty `leaderboard` → "No caller clears the bar
-yet (5 graded calls, positive average R)", then list `emerging`. Rep Score is retired: say so in one line.
+short wallet, `meritRank`, "N graded calls · H% hit · ±R avg". Empty `leaderboard` → "No verified callers yet
+(5 graded calls with a positive average R needed)", then list `emerging`. Rep Score is retired: say so in one line.
 
 **"Who has the highest win rate?"**
 → GET https://og.nexustradinglabs.com/theses/leaderboard → answer from the graded entries, each with its average R
