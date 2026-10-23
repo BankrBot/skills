@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "piptrade-private-swap",
+  "provider": "PipTradeDex",
+  "providerUrl": "https://piptradedex.xyz",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "private-swap.txt",
+    "language": "text",
+    "code": "You: swap 0.0001 ETH on Base to USDC privately, to my own address\nAgent: asks for the refund address, then shows the quote\n       You send 0.0001 ETH, you receive the quoted USDC, with a minimum and a time estimate\n       Send it?\nYou: yes\nAgent: sends the exact amount to the one-time deposit address,\n       tracks the status, then confirms the USDC balance"
+  },
+  "setup": [
+    "Install the skill into your Bankr agent",
+    "Have a wallet with the token you want to sell on its chain",
+    "Ask your agent for a private swap and name the tokens, the amount, a refund address and a receiving address",
+    "Approve the quote the agent shows before it sends anything"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "piptrade-private-swap",
+    "command": "install the piptrade-private-swap skill from https://github.com/BankrBot/skills/tree/main/piptrade-private-swap"
+  }
+}
