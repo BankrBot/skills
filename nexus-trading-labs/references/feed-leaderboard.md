@@ -372,7 +372,7 @@ No key. Returns the wallet's PUBLIC calls that are still open, newest first, plu
 
 **Alerts.** The owner gets a notification when a resting order fills (`call_fill`), when a split call's
 TP1 half closes (`call_tp1`) and when a call is graded (`call_resolved`). They land in
-`GET /notifications/:wallet` (below), on phones with Nexus alerts on, and in Telegram if
+the wallet's notification list (`POST /notifications/:wallet`, signed, below), on phones with Nexus alerts on, and in Telegram if
 linked. All of them come from the hourly grading pass, so expect up to an hour's delay; for anything
 faster, poll `/theses/status`.
 
@@ -381,15 +381,18 @@ faster, poll `/theses/status`.
 ## Notifications
 
 ```
-GET    /notifications/:wallet           // newest first, last 50; unread rows have no `readAt`. No signature.
-PUT    /notifications/:wallet/read      // mark all read          body { labAuth }
-DELETE /notifications/:wallet/:id       // remove one             body { labAuth }
+POST   /notifications/:wallet           // the list: newest first, last 50   body { labAuth }
+PUT    /notifications/:wallet/read      // mark all read                      body { labAuth }
+DELETE /notifications/:wallet/:id       // remove one                         body { labAuth }
 ```
 
-Nexus writes notifications itself (graded calls, fills, copies, replies). There is no `POST`: an agent
-can't send one. Read the list and filter unread rows (no `readAt`) yourself; `?unreadOnly=true` is
-ignored. Mark-read and delete need the wallet's Lab signature (`labAuth`, see "Trader Lab"); without it
-the server answers 401 `sign_to_save` and changes nothing.
+A wallet's notifications are private: only that wallet can read them. Every call needs its Lab
+signature (`labAuth`, see "Trader Lab") in the JSON body, never in the URL. `GET /notifications/:wallet`
+returns nothing (401 `sign_to_read`). An unsigned or wrongly signed read answers 401 `sign_to_read`;
+an unsigned mark-read or delete answers 401 `sign_to_save` and changes nothing.
+
+Nexus writes notifications itself (graded calls, fills, copies, replies). An agent can't send one.
+Unread rows have no `readAt`: filter them yourself.
 
 ---
 
