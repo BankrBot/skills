@@ -94,7 +94,7 @@ Every field: [config file reference](https://docs.bankr.bot/x402-cloud/config-fi
 
 ### The marketplace listing is public
 
-The public marketplace at [bankr.bot/terminal/x402/discover](https://bankr.bot/terminal/x402/discover), agent discovery and `bankr x402 search` all read the same catalogue, built from `description`, `category`, `tags` (the first four show on the card) and `schema`. Treat those fields as published content, and keep internal notes and hostnames out of them. A new endpoint can be called at its URL straight away, but it appears in the catalogue only once Bankr marks it discoverable (the `discoverable` field in `GET /x402/endpoints`).
+The public marketplace at [bankr.bot/x402/discover](https://bankr.bot/x402/discover), agent discovery and `bankr x402 search` all read the same catalogue, built from `description`, `category`, `tags` (the first four show on the card) and `schema`. Treat those fields as published content, and keep internal notes and hostnames out of them. A new endpoint can be called at its URL straight away, but it appears in the catalogue only once Bankr marks it discoverable (the `discoverable` field in `GET /x402/endpoints`).
 
 ## Calling x402 Endpoints
 
