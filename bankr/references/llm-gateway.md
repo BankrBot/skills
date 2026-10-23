@@ -55,7 +55,7 @@ Every request runs at one of three nested tiers, and each includes the guarantee
    ```
 2. **A base-path prefix**, for tools that only take a base URL, key and model: `OPENAI_BASE_URL=https://llm.bankr.bot/zdr/v1` for OpenAI-compatible clients, `ANTHROPIC_BASE_URL=https://llm.bankr.bot/zdr` for Anthropic-compatible ones (Claude Code, OpenClaw). `/private` works the same way.
 3. **A model-ID suffix:** `glm-5.3-flash:zdr`, `glm-5.3-flash:private`. Only a trailing tier token counts, matched case-insensitively, and it is stripped before model lookup.
-4. **Account-wide:** turn ZDR on under **Settings** in the web terminal. Every request from the account then runs at that tier or stronger.
+4. **Account-wide:** turn ZDR on under **Settings** in Bankr Console. Every request from the account then runs at that tier or stronger.
 
 How the effective tier is decided:
 
@@ -77,7 +77,7 @@ Max Mode runs the Bankr agent itself on a gateway model instead of its default (
 
 - **Only frontier, flagship and balanced lines are offered.** Light models such as `claude-haiku-4.5`, `gpt-5.6-luna` or `glm-5.3-flash` stay available on the gateway API, but the Agent API answers `400` if you ask for one in Max Mode.
 - **Per request:** `bankr agent "analyze my portfolio" --model claude-opus-5.5` (or `-m`), or `maxMode: { "enabled": true, "model": "<id>" }` on `POST /agent/prompt`. The CLI accepts only the two newest releases of each offered line and rejects other IDs before sending. The API also accepts an older release of an offered line while the gateway still serves it.
-- **Wallet-wide:** choosing **Max** in the web terminal's composer mode menu, and a model in its picker, saves the choice on the wallet; on X, Telegram, Farcaster or text, asking Bankr to switch to a named model (or back to Fast) does the same. It then applies everywhere: web, X, Farcaster, Telegram, automations, and CLI or API prompts sent without `--model`. If the gateway later removes the saved model, the saved choice moves to its replacement or the newest model in the same line; if Max Mode stops offering it, Max Mode is switched off. A removed model named explicitly in a request gets the `410` instead.
+- **Wallet-wide:** choosing **Max** in Bankr Console's composer mode menu, and a model in its picker, saves the choice on the wallet; on X, Telegram, Farcaster or text, asking Bankr to switch to a named model (or back to Fast) does the same. It then applies everywhere: web, X, Farcaster, Telegram, automations, and CLI or API prompts sent without `--model`. If the gateway later removes the saved model, the saved choice moves to its replacement or the newest model in the same line; if Max Mode stops offering it, Max Mode is switched off. A removed model named explicitly in a request gets the `410` instead.
 - **Credits are enforced per LLM call.** Your effective balance (spendable credit minus usage metered but not yet deducted) must be positive to start, and it becomes the run's budget, re-checked before every model call. When it runs out, the turn stops with its progress saved. The daily spend budget stops runs the same way.
 - **Out of credits at the start:** the agent asks you to top up rather than answer. On X it quietly uses the default model instead of posting a public top-up reply.
 - **Deduction is all-or-nothing.** A batch the balance can't fully cover leaves the balance untouched and the usage owed, and a later top-up settles it.
@@ -98,7 +98,7 @@ bankr llm credits auto --disable
 ```
 
 - The CLI pays on Base, Polygon, Ethereum, Arbitrum or BNB Chain. USDC and USDT are sent directly where the chain accepts them. Any other token is swapped to the chain's preferred stablecoin (USDC, or USDT on BNB), normally for exactly the top-up amount while spending at most 5% more than quoted. Where an exact buy isn't available, the swap can deliver up to 5% less and you're credited what arrives.
-- The agent can do the same in chat ("Top up my LLM credits with $25 using USDT on Polygon") and reports the balance, including grants and when they expire ("How many LLM credits do I have left?"). On the web, use [bankr.bot/terminal/llm?tab=credits](https://bankr.bot/terminal/llm?tab=credits).
+- The agent can do the same in chat ("Top up my LLM credits with $25 using USDT on Polygon") and reports the balance, including grants and when they expire ("How many LLM credits do I have left?"). On the web, use [bankr.bot/llm?tab=credits](https://bankr.bot/llm?tab=credits).
 - **Expiring grants:** promotional or developer grants can carry an expiry. What you can spend is the purchased pool plus unexpired grants. Usage draws on grants first, soonest-expiring first, then the pool, and expired grants drop off on their own.
 
 ### Sending credits to another Bankr user

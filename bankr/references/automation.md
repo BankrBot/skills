@@ -29,7 +29,7 @@ Limit, stop, DCA and TWAP orders, plus agent commands that run on a schedule or 
 | | |
 |---|---|
 | Active orders per wallet | 50 limit/stop · 20 DCA + TWAP combined (paused orders count) |
-| Scheduled commands | Bankr Club: 20 active (paused ones count). Without Club: one per Telegram or Farcaster direct-cast conversation. Creating one from the API, the terminal or a public post requires Club |
+| Scheduled commands | Bankr Club: 20 active (paused ones count). Without Club: one per Telegram or Farcaster direct-cast conversation. Creating one from the API, Bankr Console or a public post requires Club |
 | Minimum interval | DCA 1 hour · TWAP 3 minutes · command 10 minutes |
 | Max runs | DCA 100 · TWAP 1,000 · command 1,000 |
 | Max runs per rolling 24h | DCA 24 · TWAP 480 · command 100 |
@@ -42,12 +42,12 @@ The wallet must already hold the spend when an order is created: the full amount
 
 - "Show my automations" · "What limit orders do I have?" — lists open, running and paused automations, including each run's result
 - "Cancel my ETH limit order" · "Cancel all my stop losses" — takes effect immediately; a run that is executing right now can't be cancelled
-- To change an automation, cancel it and create a new one. Pausing, resuming and editing a command are done in the Bankr terminal ([bankr.bot/terminal](https://bankr.bot/terminal)).
+- To change an automation, cancel it and create a new one. Pausing, resuming and editing a command are done on the Automations page ([bankr.bot/automation](https://bankr.bot/automation)).
 - A scheduled command's results are kept in its run history (last 10 runs). One created in a Telegram or Farcaster DM also replies in that conversation; add "notify me on Telegram" to have results sent to your linked Telegram account.
 
 ## Creating Automations from the API
 
-There is no REST endpoint for your wallet's automations. Send the same phrasing you'd type in the terminal through `/agent/prompt` (or `bankr agent prompt`):
+There is no REST endpoint for your wallet's automations. Send the same phrasing you'd type in Bankr Console through `/agent/prompt` (or `bankr agent prompt`):
 
 ```bash
 curl -X POST "https://api.bankr.bot/agent/prompt" \
@@ -61,20 +61,20 @@ bankr agent prompt "Show my automations"
 bankr agent prompt "Cancel my ETH limit order"
 ```
 
-**An API key can create automations on its own** — no web-terminal step is required first. The automation binds to the wallet behind the API key at creation, and every later run executes against that same wallet.
+**An API key can create automations on its own** — no step in Bankr Console is required first. The automation binds to the wallet behind the API key at creation, and every later run executes against that same wallet.
 
 > **Creating an automation is not idempotent — never retry it blind.** The same prompt sent twice can leave two live schedules on the same wallet, so a duplicated DCA spends twice. If a create appears to fail, **list your automations first** (`bankr agent prompt "Show my automations"`) and only re-send if the automation genuinely isn't there.
 
-The `/user/automation/*` REST endpoints you may see referenced are **Bankr Terminal session endpoints**, not part of the API-key surface — an `X-API-Key` request to them will not authenticate.
+The `/user/automation/*` REST endpoints you may see referenced are **Bankr Console session endpoints**, not part of the API-key surface — an `X-API-Key` request to them will not authenticate.
 
 ## Refusals
 
 | Message / symptom | Cause |
 |---|---|
-| "Automations are only available for Bankr Club members" | A scheduled command created from the API, terminal or a public post without Club |
+| "Automations are only available for Bankr Club members" | A scheduled command created from the API, Bankr Console or a public post without Club |
 | "... Limit Reached" | An order or command cap above; cancel one first (paused ones count) |
 | "Automations are not supported when trusted recipient restrictions are configured" | The API key carries a recipient allowlist; scheduled commands run unattended and can't be checked against it. Orders are unaffected |
 | "The minimum allowed schedule interval is N minutes" | Schedule faster than the minimum interval |
 | "You don't hold enough [token] to place this order" | The creation-time balance check above |
-| Automated orders for a connected (external) wallet | Set up from the Bankr terminal's Trade page; the agent places orders for the Bankr wallet only |
+| Automated orders for a connected (external) wallet | Set up from the Trade page ([bankr.bot/trade](https://bankr.bot/trade)); the agent places orders for the Bankr wallet only |
 | Selling a Base launch token you earn creator fees on | Can be refused for limit/stop/DCA/TWAP; exit through Glidepath on the token page instead |
