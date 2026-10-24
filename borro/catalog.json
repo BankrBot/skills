@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "borro",
+  "provider": "Borro",
+  "providerUrl": "https://borro.markets",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "demo.sh",
+    "language": "bash",
+    "code": "cd borro/scripts\n\n# Rates, what is lent and borrowed, the $BORRO Drip\nnode borro.mjs read markets\n\n# Lend 1.5 NVDA (approve exactly, deposit, simulated from your wallet)\nnode borro.mjs plan supply --wallet 0xYOUR_BANKR_WALLET --asset NVDA --amount 1.5\n\n# Short 0.5 TSLA with a 100 USDG deposit, in one transaction\nnode borro.mjs plan open_short --wallet 0xYOUR_BANKR_WALLET --symbol TSLA --amount 0.5 --deposit 100\n\n# Each plan prints bankr_submit[]: POST them in order to /wallet/submit (chainId 4663)"
+  },
+  "setup": [
+    "Chain: Robinhood Chain (4663). Stop if the Bankr wallet cannot act on 4663.",
+    "Node 18 or later for scripts/borro.mjs (no dependencies). Or add Borro as an MCP server: https://borro.markets/mcp, no authentication.",
+    "Log in to Bankr with a read-write key that has walletApiEnabled; keep 'Enable arbitrary contract calls' on (bankr.bot, Security).",
+    "Keep a little ETH on Robinhood Chain for gas: raw submits are not sponsored.",
+    "Flow: run a borro.mjs plan → preview summary, quote and warnings → submit bankr_submit[] in order via /wallet/submit with waitForConfirmation.",
+    "Approvals are exact, never unlimited. Every target is pinned in known-contracts.json and checked on every plan.",
+    "Contracts: known-contracts.json · Registry: https://borro.markets/contracts.json · Source: https://github.com/Borro-Markets/contracts"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "borro",
+    "command": "install the borro skill from https://github.com/BankrBot/skills/tree/main/borro"
+  }
+}
