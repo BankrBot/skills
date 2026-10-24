@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "thinkr",
+  "provider": "THINKR",
+  "providerUrl": "https://thinkr.tech",
+  "logo": "logo.png",
+  "demo": {
+    "title": "thinkr-chat.txt",
+    "language": "text",
+    "code": "You:   did agent 9232 really send me that answer an hour ago?\nBankr: Yes. Agent 9232 sealed it in hour 497965, at 14:01 UTC, on Robinhood Chain.\n       The answer you hold hashes to the sealed digest, so it is unchanged.\n\nYou:   seal what my agent delivered this hour\nBankr: Sealed 37 deliveries for hour 497966 in one transaction (about a third of a cent).\n       Kept the list, so any of them can be proven later."
+  },
+  "setup": [
+    "Install: `install the thinkr skill from https://github.com/thinkragents/thinkr/tree/bd03bbc5fe61f58760fabdf39a8433e5086a3566/plugin/skills/thinkr`",
+    "Say \"check agent <id>\" to read an agent's sealing record and bond before you deal with it",
+    "Say \"verify this delivery\" with the ref and digest to prove it was sealed, and when",
+    "Paying a bonded agent? Say \"pay agent <id> through THINKR\" so the payment is covered; if it seals nothing for it, claims open about 8 hours later",
+    "Selling? Say \"seal my deliveries\"; it registers an ERC-8004 agent on Robinhood Chain if you need one"
+  ],
+  "install": {
+    "type": "external",
+    "provider": "THINKR",
+    "command": "install the thinkr skill from https://github.com/thinkragents/thinkr/tree/bd03bbc5fe61f58760fabdf39a8433e5086a3566/plugin/skills/thinkr",
+    "reference": "https://github.com/thinkragents/thinkr/tree/bd03bbc5fe61f58760fabdf39a8433e5086a3566/plugin/skills/thinkr"
+  }
+}
