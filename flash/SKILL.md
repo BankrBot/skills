@@ -51,7 +51,7 @@ Addresses: [CONTRACTS.md](references/CONTRACTS.md) and [`known-contracts.json`](
 2. `ok: false` or `status: "would-revert"`: relay `error` (a decoded revert) and stop. Do not retry blind.
 3. `status: "ready"`: approvals and the action were **simulated together from the user's wallet** with `eth_simulateV1`, at the exact gas limits in the plan. Show `summary` and `warnings`, validate per [TX-VALIDATION.md](references/TX-VALIDATION.md), then submit.
    - **Bankr:** POST each `transactions[]` item in order to `/wallet/submit` with `chainId: 8453`, keeping `gas`, and wait for each to confirm.
-   - **Base MCP:** pass `sendCalls` to `send_calls`.
+   - **Wallet MCP (formerly Base MCP):** pass `sendCalls` to `send_calls`.
    - Details: [SUBMIT.md](references/SUBMIT.md).
 4. `status: "needs-signature"`: sign the returned EIP-712 `typedData`, then re-run with `--signature`. Only a smart-wallet referral bind needs this.
 5. Plans expire in 20 minutes. Rebuild after `expiresAt`, or after approvals confirm, to get fresh minimums.
@@ -92,7 +92,7 @@ Addresses: [CONTRACTS.md](references/CONTRACTS.md) and [`known-contracts.json`](
   - exit-only perp markets
   - graduation waiting on FLASH/ETH depth
 - **Risk honesty:** perps are leveraged and can lose most of their value fast. New launches and war tokens are illiquid. A referral bind and a launch are permanent. Never auto-buy.
-- **Respect wallet protections** (Bankr limits and scans, Base MCP approvals). If one blocks a transaction, stop and say why.
+- **Respect wallet protections** (Bankr limits and scans, Wallet MCP approvals). If one blocks a transaction, stop and say why.
 
 ## Examples
 

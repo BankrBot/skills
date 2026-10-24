@@ -43,5 +43,5 @@ Every selector above was computed from the source signature and found in the dep
 6. **Leverage risk:** perps are leveraged tokens. They can lose most of their value in a sharp move. Say so before the first perp buy.
 7. **New-token risk:** launches and war tokens are new and illiquid. Never auto-buy.
 8. **Permanent actions:** a referral bind and a launch cannot be undone. Confirm the code and the token details.
-9. **Respect wallet limits** (Bankr spend limits, allowlists, security scans, Base MCP approvals). Never suggest disabling one.
+9. **Respect wallet limits** (Bankr spend limits, allowlists, security scans, Wallet MCP approvals). Never suggest disabling one.
 10. **Keep the gas limits.** Hook swaps revert below their floor. Use the plan's gas, or `eth_estimateGas` x 1.1.

@@ -34,9 +34,9 @@ Before every submit, show the user `summary` and `warnings`, and validate each t
 4. A response with a `transactionHash` was broadcast, even if it failed. Look the hash up before doing anything else: a blind retry can execute twice.
 5. If Bankr refuses (arbitrary calls disabled, spend limit, `untrusted_address`, security scan), **stop** and tell the user. Never work around a protection.
 
-## Base MCP (Coinbase wallet MCP)
+## Wallet MCP (formerly Base MCP)
 
-Pass `sendCalls` straight to the Base MCP `send_calls` tool. It is an EIP-5792 batch: approvals and the action execute atomically under one user approval, and the wallet sizes the gas. Then follow the approval-URL / status-poll flow. Chain name `base`, values as hex wei. Without a shell, use the Flash Base MCP plugin (`plugins/flash.md`). It covers `chain_rpc_request` reads, verified swap calldata templates and single-word claim calls.
+Pass `sendCalls` straight to the Base MCP `send_calls` tool. It is an EIP-5792 batch: approvals and the action execute atomically under one user approval, and the wallet sizes the gas. Then follow the approval-URL / status-poll flow. Chain name `base`, values as hex wei. Without a shell, use the Flash Wallet MCP plugin (`plugins/flash.md`). It covers `chain_rpc_request` reads, verified swap calldata templates and single-word claim calls.
 
 ## Any other wallet
 
