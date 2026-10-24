@@ -1,7 +1,7 @@
 {
   "chainId": 8453,
   "chain": "base",
-  "source": "Flash_Protocol/ecosystem/deployments/base-mainnet.json and app/src/stackContracts.ts, lv5.ts, contracts.ts, perpV5Migrator.ts (stack live 2026-10-22, Token Wars V6 live 2026-10-23)",
+  "source": "Flash_Protocol/ecosystem/deployments/base-mainnet.json and app/src/stackContracts.ts, lv5.ts, contracts.ts, perpV5Migrator.ts (stack live 2026-10-22, Token Wars V6 live 2026-10-23, perps TP/SL + lens + treasury shares live 2026-10-24)",
   "owner": {
     "safe": "0x29C1BF0c85a9a479c1B47B847cd3Fb1C6dC5e5bD",
     "treasury": "0xD1EC8245c8850A151843ce8a3AFdca3b19747706"
@@ -41,7 +41,9 @@
     "issuer": "0x56a3e32134521Cefe75a2B8dB25D29a45E331BdD",
     "feeSink": "0x88CcF70524822c0Eb2A7e4824A6a9e57410aF76D",
     "quantOwnerSink": "0xebb672403005A20Ef914b13487505E08Aa05F760",
-    "migrator": "0x87c9784070C4E134F7dE7627dA0038CA9f0473D6"
+    "migrator": "0x87c9784070C4E134F7dE7627dA0038CA9f0473D6",
+    "limitOrders": "0xf5d94BE034944C8706a12B6B4d4dE0dbEbc10824",
+    "lens": "0x7D06a5C37fd91B85D6dC2f212467f1803895d0C2"
   },
   "churn": {
     "core": "0x35F1b89f4FEb2897CC1a6efF381d518D05824008",
@@ -54,7 +56,6 @@
   "launchV5": {
     "launchpad": "0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0",
     "routerQ": "0x2e6640bca34BC34f3F4EF31cb19527EA80987911",
-    "routerLegacy": "0x7aB1a5EAd75e53d8FbD61a0F8EA3123cC5059a17",
     "executorQ": "0x0C155b5FfBaa04f753d7D287D6bc4fBE0BcAf625",
     "executor": "0xEcaF4080bEe402263C1eA5628bf2530437573bC9",
     "config": "0x64B866F63053680F14Da2f98a67C7b2BdFf960e6",
@@ -63,13 +64,13 @@
     "churnVault": "0x4344e5D6C2D5d29FcD77bc89A41f9C2478478094",
     "lpFeeVault": "0x91a7123d0c402B5E8f5Dfd9C81f1575C05dBE060",
     "tokenWar": "0x793D3730040582fc58F3699F51396Dc6cD00dD3f",
-    "warRouter": "0x470e310f02625DAdaea471579f5ccC66fd606638",
-    "tokenWarV5Retired": "0xE3787F2EbB6b5d00B9EE5ECF73ec6C9770Bb5084"
+    "warRouter": "0x470e310f02625DAdaea471579f5ccC66fd606638"
   },
   "treasuryV3": {
     "factory": "0x128fab9a1f356868feb355858cc7CbdA7F296b91",
     "config": "0xc7151Ee6458f3AAdD1B32aF05Be690c7d3669754",
-    "quantTreasury": "0x6A7faA6B8F0C7f66dFCa2Bb5dd1BCa0915bc55E5"
+    "quantTreasury": "0x6A7faA6B8F0C7f66dFCa2Bb5dd1BCa0915bc55E5",
+    "shares": "0x98C29eC362A4e76975002778Bb2E91B99e4A288F"
   },
   "revenueShare": {
     "flashVault": "0x5cf120b13086277f83f901ea4df4fA8A45d577b0"

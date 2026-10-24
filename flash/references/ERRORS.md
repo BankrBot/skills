@@ -27,3 +27,18 @@ The CLI decodes reverts with the ABIs plus `scripts/lib/errors.json`, which maps
 | `PermanentOwnerStake()` | Revenue Share | The protocol owner's locked stake. Never hit by users. |
 | `ExitBelowMinimum` / `BuyBelowMinimum` / `UnknownToken` / `BadV5Market` | Perps migrator | One migration leg missed its minimum, or the token has no route |
 | `Slippage(got, min)` | `issuer.unwind` | USDC out below the minimum |
+| `BelowMinimum(valueUsdc, minUsdc)` | Perps `place` / `placePair` / `update` | `qty x triggerNav` is under `minOrderUsdc()` ($150 today). |
+| `InvalidParam()` | Perps orders | Zero qty or trigger, an expiry in the past, `slNav >= tpNav` in a pair, or a stop-loss `minOut` above `qty x stop`. |
+| `NotOrderOwner()` / `NotOpen()` | Perps `update` / `cancel` | Not your order / already filled or cancelled |
+| `Paused()` | Perps orders | Listing is paused. `cancel` always works. |
+
+API errors (HTTP JSON `error`) on the token-profile step (`POST /v1/launch-v2/prepare`):
+
+| Code | HTTP | Meaning |
+| --- | --- | --- |
+| `TOKEN_IMAGE_REQUIRED` | 400 | No `imageUrl`. Upload the art with `POST /v1/uploads` first. |
+| `TOKEN_PROFILE_SIGNATURE_REQUIRED` | 401 | No (or malformed) `profileAuth { nonce, issuedAt, signature }`. |
+| `TOKEN_PROFILE_SIGNATURE_EXPIRED` | 401 | `issuedAt` older than 10 minutes (or > 2 min in the future). Sign again. |
+| `TOKEN_PROFILE_SIGNATURE_INVALID` | 401 | The signature does not match the `x-flash-uploader` wallet and these exact fields. |
+| `TOKEN_PROFILE_SIGNATURE_REPLAYED` | 409 | Nonce reused, or an older signature than the stored profile. Sign again with a new nonce. |
+| `TOKEN_CONTENT_REJECTED` | 422 | Name, ticker or description failed moderation. |

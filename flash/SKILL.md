@@ -5,13 +5,13 @@ description: >
   Referral Coin FLASH/ETH Uniswap v4 hook pool (6.9% fee, 1.69% with a referral code), bind
   referral codes, claim referral earnings and the top-100 board, play King of the Hill (take the
   throne, settle the pot), trade tokenized leveraged perps (ETH2xL, BTC2xL, ETH2xS, NVDA2xL,
-  META2xL... with USDC, ETH or FLASH), earn and claim QUANT (perp-loss rewards, creator QUANT),
+  META2xL... with USDC, ETH or FLASH), set perp take-profit / stop-loss orders, earn and claim QUANT (perp-loss rewards, creator QUANT),
   trade QUANT, place limit orders and limit-order curves on the churn, manage Lattices, launch
   tokens on launch-v5 bonding curves (ETH / FLASH / STOCK / PERP pairs, reward asset, graduation,
-  creator fees, treasuries), play Token Wars V6 (enter, back, jump, cash out, claim), and use
+  creator fees, treasuries, wallet-signed token profiles with required art), play Token Wars V6 (enter, back, jump, cash out, claim), and use
   FLASH Revenue Share. A Node CLI reads the chain and returns simulated, unsigned transactions.
   It never signs. Triggers on: "flash", "$FLASH", "tryflash", "buy FLASH", "flash referral code",
-  "king of the hill", "koth", "ETH2xL", "flash perps", "QUANT", "claim QUANT", "limit order curve",
+  "king of the hill", "koth", "ETH2xL", "flash perps", "take profit", "stop loss", "QUANT", "claim QUANT", "limit order curve",
   "lattice", "flash launch", "bonding curve on flash", "token wars", "flash revenue share".
 tags: [base, defi, dex, perps, token-launches, limit-orders, referrals]
 version: 1.0.0
@@ -33,9 +33,10 @@ Flash runs on **Base, chain id 8453**. Every product sits on Uniswap v4 pools wi
 | **Referrals and top-100** | A code cuts the fee to 1.69% and pays its owner 1% of volume. Claims cascade 33% up the chain. A ranked board shares a pool. | [REFERRALS-KOTH.md](references/REFERRALS-KOTH.md) |
 | **King of the Hill** | One FLASH buy at or above the trigger takes the throne. Hold 60 s to win 69% of the ETH pot, paid in-swap. | [REFERRALS-KOTH.md](references/REFERRALS-KOTH.md) |
 | **Tokenized perps** | Leveraged long and short ERC-20s (2x, Max), priced at NAV, 0.05% fee. Includes 24/7 stock perps. | [PERPS-QUANT.md](references/PERPS-QUANT.md) |
+| **Perp take-profit / stop-loss** | On-chain listings filled by keepers when the NAV meets the trigger. 0.1% fee, $150 minimum. | [PERPS-QUANT.md](references/PERPS-QUANT.md#take-profit-and-stop-loss-limit-orders) |
 | **QUANT** | Minted to traders on realized perp losses (80/20) and to PERP-pair launch creators. Trades vs FLASH. | [PERPS-QUANT.md](references/PERPS-QUANT.md) |
 | **Limit orders / curves / Lattices** | Churn levels sell inside other people's buys at or above a floor. A curve order places many levels in one transaction. | [LIMIT-ORDERS.md](references/LIMIT-ORDERS.md) |
-| **Launches (launch-v5)** | Bonding curves priced in FLASH that graduate to a FlashV3 pool paired with ETH, FLASH, a stock or a perp. | [LAUNCHES.md](references/LAUNCHES.md) |
+| **Launches (launch-v5)** | Bonding curves priced in FLASH that graduate to a FlashV3 pool paired with ETH, FLASH, a stock or a perp. Token art is required: save a wallet-signed profile first. | [LAUNCHES.md](references/LAUNCHES.md) |
 | **Token Wars V6** | Group launches: back candidates with ETH, USDC or FLASH, jump, cash out. The winner launches. | [TOKEN-WARS.md](references/TOKEN-WARS.md) |
 | **Revenue Share, stocks, portfolio** | Deposit FLASH to earn protocol revenue. Tokenized stocks serve as launch quotes. Wallet balances. | [REVENUE-STOCKS-PORTFOLIO.md](references/REVENUE-STOCKS-PORTFOLIO.md) |
 
@@ -69,11 +70,12 @@ Addresses: [CONTRACTS.md](references/CONTRACTS.md) and [`known-contracts.json`](
 | Referral status / bind / claim / board / pay out | `referral-status`, `referral-bind --code N`, `referral-claim`, `referral-board`, `referral-distribute` |
 | King of the Hill | `koth-status`, `koth-buy [--amount ETH]`, `koth-settle` |
 | Perp positions / exit-only unwind | `perp-positions`, `perp-unwind --market BTC2x --amount all` |
+| Perp take-profit / stop-loss | `perp-tpsl --market ETH2xL --amount all --tp 1.25 --sl 0.85`, `perp-orders`, `perp-order-cancel --ids N,M` |
 | QUANT stats / creator QUANT sweep | `quant-status`, `quant-sweep --token <PERP-pair launch>` |
 | Limit order / curve order | `limit-place --market FLASH\|QUANT --amount N --price P`, or `--low-mult 2 --high-mult 20 --bins 16 --shape exp` |
 | Manage limit orders | `limit-markets`, `limit-orders`, `limit-cancel --market M --level T`, `limit-claim --market M`, `fullrange-deposit\|withdraw\|claim` |
 | Lattices | `lattice-list --market M`, `lattice-show --id N`, `lattice-withdraw`, `lattice-transfer`, `lattice-reformat` (owners), `lattice-open` (creators and treasuries) |
-| Launch a token | `launch-create --name N --symbol S --pair ETH\|FLASH\|STOCK\|PERP [--quote NVDAc\|ETH2xL] --eth 0.01 [--mode 1 --preset 1 --reward 0x..]` |
+| Launch a token (save the signed profile with art first: [LAUNCHES.md](references/LAUNCHES.md#token-profile-image-required-wallet-signed)) | `launch-create --name N --symbol S --pair ETH\|FLASH\|STOCK\|PERP [--quote NVDAc\|ETH2xL] --eth 0.01 [--mode 1 --preset 1 --reward 0x..]` |
 | Trade and manage a launch | `launch-info`, `launch-buy --eth\|--flash`, `launch-sell`, `launch-graduate`, `launch-claim`, `launch-refund`, `launch-creator-claim`, `launch-airdrop`, `treasury` |
 | Token Wars | `war-status`, `war-enter`, `war-back --id N --pay ETH\|USDC\|FLASH --amount X`, `war-sell`, `war-jump`, `war-claim`, `war-refund`, `war-creator-claim`, `war-open`, `war-finalize` |
 | Revenue Share | `revshare-status`, `revshare-deposit --amount N`, `revshare-withdraw`, `revshare-claim` |
@@ -89,6 +91,7 @@ Addresses: [CONTRACTS.md](references/CONTRACTS.md) and [`known-contracts.json`](
   - a FLASH buy that takes the KOTH throne
   - selling while leading KOTH (forfeits the leader share)
   - QUANT minted on a perp loss
+  - a take-profit or stop-loss trigger that the current NAV already meets (fills right away)
   - exit-only perp markets
   - graduation waiting on FLASH/ETH depth
 - **Risk honesty:** perps are leveraged and can lose most of their value fast. New launches and war tokens are illiquid. A referral bind and a launch are permanent. Never auto-buy.

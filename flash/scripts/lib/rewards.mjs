@@ -184,10 +184,115 @@ export async function perpUnwind(options) {
     [...await approval(account, market.token, K.perps.issuer, amount, market.symbol, 'the perps issuer'), call({ to: K.perps.issuer, abi: A.perpsIssuer, functionName: 'unwind', args: [BigInt(market.id), amount, minOut, account], description: `Unwind ${market.symbol} to USDC through the issuer` })]);
 }
 
+// ------------------------------------------------------------------ perps take-profit / stop-loss
+
+const ORDERS = K.perps.limitOrders;
+const liveMarket = (symbol) => {
+  const market = K.perpMarkets.live.find((entry) => entry.symbol.toUpperCase() === String(symbol || '').toUpperCase());
+  if (!market) throw new Error(`--market must be a live perp: ${K.perpMarkets.live.map((entry) => entry.symbol).join(', ')}`);
+  return market;
+};
+/** Human USDC-per-token NAV (e.g. 1.25) to issuer units (USDC 6 dp per 1e18 tokens). */
+const navUnits = (value, flag) => {
+  const nav = parseUnits(String(value), 6);
+  if (nav <= 0n) throw new Error(`${flag} must be a positive NAV in USDC per token`);
+  return nav;
+};
+
+export async function perpOrdersList(options) {
+  const account = wallet(options);
+  const [config, book, minOrder] = await Promise.all([
+    api('/v1/stack/perps/orders'),
+    api(`/v1/stack/perps/orders/${account}${options.status ? `?status=${encodeURIComponent(options.status)}` : ''}`),
+    read(ORDERS, A.perpOrders, 'minOrderUsdc'),
+  ]);
+  const symbolOf = (id) => [...K.perpMarkets.live, ...K.perpMarkets.exitOnly].find((m) => m.id === id)?.symbol;
+  return {
+    ok: true, status: 'info', action: 'perp-orders', account, contract: ORDERS, live: config.live, feePct: 0.1, minOrderUsdc: fmt(minOrder, 6),
+    orders: (book.orders || []).map((o) => ({ ...o, symbol: symbolOf(o.marketId), qtyTokens: fmt(BigInt(o.qty)), triggerNavUsdc: fmt(BigInt(o.triggerNav), 6), minOutUsdc: fmt(BigInt(o.minOut), 6) })),
+  };
+}
+
+export async function perpTpSl(options) {
+  const account = wallet(options);
+  const market = liveMarket(options.market);
+  const id = BigInt(market.id);
+  if (!options.tp && !options.sl) throw new Error('--tp <NAV> and/or --sl <NAV> (USDC per token) is required');
+  const [balance, nav, minOrder, paused, book] = await Promise.all([
+    read(market.token, A.erc20, 'balanceOf', [account]),
+    read(K.perps.issuer, A.perpsIssuer, 'navPerToken', [id]),
+    read(ORDERS, A.perpOrders, 'minOrderUsdc'),
+    read(ORDERS, A.perpOrders, 'paused'),
+    api(`/v1/stack/perps/orders/${account}?status=open`).catch(() => ({ orders: [] })),
+  ]);
+  if (paused) throw new Error('Perp orders are paused right now (cancelling still works).');
+  const qty = options.amount === 'all' || !options.amount ? balance : parseUnits(String(options.amount), 18);
+  if (!qty || qty > balance) throw new Error(`Balance ${fmt(balance)} ${market.symbol}`);
+  const tp = options.tp ? navUnits(options.tp, '--tp') : 0n;
+  const sl = options.sl ? navUnits(options.sl, '--sl') : 0n;
+  if (tp && sl && sl >= tp) throw new Error('--sl must be below --tp');
+  const valueAt = (price) => (qty * price) / 10n ** 18n;
+  for (const [price, flag] of [[tp, '--tp'], [sl, '--sl']]) {
+    if (price && valueAt(price) < minOrder) throw new Error(`${flag}: the order is worth ${fmt(valueAt(price), 6)} USDC at its trigger; the minimum is ${fmt(minOrder, 6)} USDC`);
+  }
+  // SL floor: the app's default is 2% under the stop's own value; never above it.
+  const slMin = sl ? (options['sl-min'] !== undefined ? parseUnits(String(options['sl-min']), 6) : (valueAt(sl) * 9_800n) / 10_000n) : 0n;
+  if (sl && slMin > valueAt(sl)) throw new Error('--sl-min cannot exceed qty x stop NAV');
+  const expiry = options['expiry-days'] ? BigInt(Math.floor(Date.now() / 1000) + Math.round(Number(options['expiry-days']) * 86_400)) : 0n;
+  // The contract pulls the tokens at fill time: the allowance must cover this order AND the account's other open orders on this token (a linked pair shares one qty).
+  const seen = new Set();
+  let reserved = 0n;
+  for (const o of book.orders || []) {
+    if (o.marketId !== market.id || o.status !== 'open' || o.expired || seen.has(o.id)) continue;
+    seen.add(o.id);
+    if (o.sibling && o.sibling !== '0') seen.add(o.sibling);
+    reserved += BigInt(o.qty);
+  }
+  const allowanceNeeded = qty + reserved;
+  const warnings = [];
+  if (tp && nav >= tp) warnings.push(`The take-profit ${fmt(tp, 6)} is at or below the current NAV ${fmt(nav, 6)}: a keeper can fill it right away.`);
+  if (sl && nav <= sl) warnings.push(`The stop-loss ${fmt(sl, 6)} is at or above the current NAV ${fmt(nav, 6)}: a keeper can fill it right away.`);
+  if (allowanceNeeded > balance) warnings.push(`Open orders on ${market.symbol} add up to more than the balance: whichever fills first may leave the others unfillable.`);
+  const action = tp && sl
+    ? call({ to: ORDERS, abi: A.perpOrders, functionName: 'placePair', args: [id, qty, tp, sl, slMin, expiry], description: `List a linked take-profit at ${fmt(tp, 6)} and stop-loss at ${fmt(sl, 6)} USDC NAV for ${fmt(qty)} ${market.symbol}` })
+    : call({ to: ORDERS, abi: A.perpOrders, functionName: 'place', args: [id, tp ? 0 : 1, qty, tp || sl, slMin, expiry], description: `List a ${tp ? 'take-profit' : 'stop-loss'} at ${fmt(tp || sl, 6)} USDC NAV for ${fmt(qty)} ${market.symbol}` });
+  return finish(account, 'perp-tpsl', {
+    market: market.symbol, qty: fmt(qty), navNowUsdc: fmt(nav, 6),
+    takeProfit: tp ? { triggerNav: fmt(tp, 6), youReceiveUsdc: fmt(await read(ORDERS, A.perpOrders, 'takeProfitOut', [qty, tp]), 6) } : undefined,
+    stopLoss: sl ? { triggerNav: fmt(sl, 6), minUsdc: fmt(slMin, 6) } : undefined,
+    expiry: expiry ? new Date(Number(expiry) * 1000).toISOString() : 'good till cancelled', feePct: 0.1, allowanceNeeded: fmt(allowanceNeeded),
+  }, [...await approval(account, market.token, ORDERS, allowanceNeeded, market.symbol, 'the perps orders contract'), action], warnings,
+  ['Tokens stay in the wallet. An allowlisted keeper sells them in the perps pool when the issuer NAV meets the trigger; a linked TP/SL cancels its sibling when one fills. Keep the balance and the allowance in place until then.']);
+}
+
+export async function perpOrderCancel(options) {
+  const account = wallet(options);
+  const ids = String(options.ids || options.id || '').split(',').map((part) => part.trim()).filter(Boolean).map((part) => BigInt(part));
+  if (!ids.length) throw new Error('--ids 12,13 is required (see perp-orders)');
+  return finish(account, 'perp-order-cancel', { ids: ids.map(String) },
+    [call({ to: ORDERS, abi: A.perpOrders, functionName: 'cancel', args: [ids], description: `Cancel perp order${ids.length > 1 ? 's' : ''} ${ids.join(', ')}` })]);
+}
+
 export async function quantStatus(options) {
   const live = await api('/v1/stack/quant').catch(() => undefined);
-  const out = { ok: true, status: 'info', action: 'quant-status', quant: K.tokens.QUANT.address, pool: K.pools['QUANT/FLASH'].id, issuerMinted: fmt(await read(K.perps.issuer, A.perpsIssuer, 'quantMinted')), api: live };
-  if (options.wallet) out.balance = fmt(await read(K.tokens.QUANT.address, A.erc20, 'balanceOf', [getAddress(options.wallet)]));
+  const LENS = K.perps.lens;
+  const [minted, kpi, rate, preview] = await Promise.all([
+    read(K.perps.issuer, A.perpsIssuer, 'quantMinted'),
+    read(LENS, A.perpsLens, 'globalKpi'),
+    read(LENS, A.perpsLens, 'quantRateNow'),
+    read(LENS, A.perpsLens, 'previewQuant', [100_000_000n]),
+  ]);
+  const out = {
+    ok: true, status: 'info', action: 'quant-status', quant: K.tokens.QUANT.address, pool: K.pools['QUANT/FLASH'].id, issuerMinted: fmt(minted),
+    lens: { address: LENS, realizedProfitUsdc: fmt(kpi[0], 6), realizedLossUsdc: fmt(kpi[1], 6), quantMinted: fmt(kpi[2]), quantLive: kpi[3], quantPerUsdLossNow: fmt(rate), per100UsdLoss: { trader: fmt(preview[0]), protocol: fmt(preview[1]) } },
+    api: live,
+  };
+  if (options.wallet) {
+    const account = getAddress(options.wallet);
+    const [balance, mine] = await Promise.all([read(K.tokens.QUANT.address, A.erc20, 'balanceOf', [account]), read(LENS, A.perpsLens, 'accountKpi', [account])]);
+    out.balance = fmt(balance);
+    out.account = { realizedProfitUsdc: fmt(mine[0], 6), realizedLossUsdc: fmt(mine[1], 6), quantReceived: fmt(mine[2]) };
+  }
   out.howQuantIsEarned = 'Traders: sell (or unwind) a perp token at a realized loss and the issuer mints QUANT to you in that same transaction (80% you / 20% protocol; a Lomax curve of cumulative protocol-wide loss sets the rate). Creators of PERP-paired launches: 50% of the QUANT from losses realized in their pool accrues to the pool and is minted to the pool creator by quant-sweep (or any fee sweep).';
   return out;
 }

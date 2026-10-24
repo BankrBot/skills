@@ -4,11 +4,12 @@ A Token War is a group launch. Anyone enters a candidate: name, ticker, and **it
 
 | | |
 | --- | --- |
-| Token War V6 (live, war #1 open) | `0x793D3730040582fc58F3699F51396Dc6cD00dD3f` |
+| Token War V6 (the only live war; war #1 open) | `0x793D3730040582fc58F3699F51396Dc6cD00dD3f` |
 | War router V6 (ETH / USDC in) | `0x470e310f02625DAdaea471579f5ccC66fd606638` |
-| Token War V5 (retired, history only) | `0xE3787F2EbB6b5d00B9EE5ECF73ec6C9770Bb5084` |
 
-The older launch routers (`0x7aB1...`) bind the retired war. Use the V6 war router above.
+Back and enter only through these two contracts. Launch routers do not back V6 candidates.
+
+**Token art is required.** Before `war-enter`, save the candidate's signed profile (image required) as in [LAUNCHES.md](LAUNCHES.md#token-profile-image-required-wallet-signed) with `action: "war"`. The on-chain entry carries no metadata: the profile attaches to the candidate by (creator, name, ticker).
 
 ## Read
 

@@ -47,7 +47,41 @@ shape = (uint8 mode, uint8 preset, bool overrideStockpile=false, uint16 stockpil
          address rewardAsset, uint8 ownerLadder=0)          zeros = the registry's mode / preset values
 ```
 
-The new token and curve are in the launchpad event `LaunchCreated(address indexed token, address indexed curve, address indexed creator, uint8 pair, uint256 goalFlash0, uint256 flashUsd18)`. Token art and description are set in the app; this skill creates the on-chain token.
+The new token and curve are in the launchpad event `LaunchCreated(address indexed token, address indexed curve, address indexed creator, uint8 pair, uint256 goalFlash0, uint256 flashUsd18)`. The create transaction carries no metadata: the token's art, description and links come from a signed profile saved **before** it (next section).
+
+## Token profile (image required, wallet-signed)
+
+Every launch and war entry needs token art. The API stores a profile keyed by (kind, creator, name, ticker) and attaches it to the token when the create (or the war entry) is indexed. Without one the token has no image.
+
+1. **Upload the image:** `POST https://api.tryflash.app/v1/uploads`, multipart field `image` (PNG or JPG, at most 10 MB), header `x-flash-uploader: <creator>`. It returns `{ "imageUrl": "..." }` after moderation.
+2. **Build the message** (EIP-191, lines joined by `\n`):
+   ```
+   tryflash.app wants you to save a Flash token profile.
+
+   Kind: launch                      (or war)
+   Name: "<name as JSON string>"
+   Ticker: "<symbol as JSON string>"
+   Image: <imageUrl>
+   Details: <keccak256(utf8(JSON.stringify([description, twitterUrl, websiteUrl])))>
+   Chain ID: 8453
+   Account: <creator, checksummed>
+   Nonce: <32 lowercase hex chars, fresh>
+   Issued At: <new Date().toISOString()>
+   ```
+   Missing description or links are empty strings. Every field is the exact text you send in step 4.
+3. **Sign it** with the creator wallet (`personal_sign`). EOAs, ERC-1271 smart wallets and undeployed ERC-6492 wallets are accepted.
+4. **Save it** within 10 minutes: `POST https://api.tryflash.app/v1/launch-v2/prepare` with headers `content-type: application/json` and `x-flash-uploader: <creator>`, body:
+   ```json
+   { "action": "launch", "name": "Agent Coin", "symbol": "AGC", "description": "", "imageUrl": "<from step 1>", "twitterUrl": "", "websiteUrl": "",
+     "mode": "deep-lp", "quoteClass": "SUB", "quoteToken": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "inputRouteId": "flash", "amountIn": "1",
+     "profileAuth": { "nonce": "<step 2>", "issuedAt": "<step 2>", "signature": "<step 3>" } }
+   ```
+   `mode`, `quoteClass`, `quoteToken`, `inputRouteId` and `amountIn` are fixed values this profile store requires (exactly what the app sends); the real pair is chosen on chain at create. The name (1-32 characters) and ticker (2-10, stored upper-case) must match the on-chain create. Use `"action": "war"` for a war entry.
+5. Send the create (`launch-create`) or the entry (`war-enter`) with the same name and ticker.
+
+Errors: `TOKEN_IMAGE_REQUIRED` (400), `TOKEN_PROFILE_SIGNATURE_REQUIRED` (401, no `profileAuth`), `TOKEN_PROFILE_SIGNATURE_EXPIRED` / `_INVALID` (401), `_REPLAYED` (409), `TOKEN_CONTENT_REJECTED` (422). See [ERRORS.md](ERRORS.md).
+
+Without a shell, the Flash MCP server (`https://api.tryflash.app/mcp`) does steps 2 and 4 for a launch: call `prepare_launch` with `from`, name, symbol, a non-empty description, imageUrl, `quoteToken` FLASH and a stock `rewardAsset` (e.g. NVDA); the first call returns `signMessage` plus `profileAuth { nonce, issuedAt }`; sign `signMessage` and call again with `profileAuth.signature` added. Use only that tool. The MCP `build_launch`, `build_war_action` and `prepare_war_entry` read an earlier launchpad and war, not launch-v5 / Token Wars V6: save a war profile with the direct POST (`"action": "war"`).
 
 Gas is **not constant**. A create measured 8.0M-8.7M gas, a first buy ~526k, later buys ~164k. A **locking** buy auto-graduates in the same transaction and needs at least 9M gas left (`AUTO_GRADUATE_GAS`), otherwise it reverts `InsufficientGasForGraduation()`. Use `eth_estimateGas`; it handles this.
 
@@ -87,3 +121,12 @@ Verified 2026-10-24 by `eth_simulateV1` on Base: shaped create, then approve, `c
 ## Per-token treasuries (treasury-v3)
 
 Every launch gets a treasury at `treasuryFactory.predictTreasury(token)` (`isTreasury(addr)` once it exists). The FlashV3 hook pays the creator share of swap fees there in-swap. Keepers convert fee tokens through the churn cascade and pay holder rewards in `rewardAsset`. Reads: `treasury.token()`, `quote()`, `controller()`, `mode()`, `rewardAsset()`. Controller-only settings (`setRewardAsset`, `setMode`, `setAgent`) are outside this skill. CLI: `treasury --token T`.
+
+**Creator cut** (`FlashTreasuryShares` `0x98C29eC362A4e76975002778Bb2E91B99e4A288F`, ownerless): a treasury's income has two buckets, and the creator keeps a share of each; the rest goes to holder rewards.
+
+| Bucket | What it is | Creator share |
+| --- | --- | --- |
+| LP | the FlashV3 hook's creator leg of every swap (the 1% quote fee and the sell tax) | `creatorLpBps` 0-80%, default 80% |
+| Rewards | everything else (Lattice sales, churn cascade income, deposits) | `creatorRewardBps` 0-10%, default 5% |
+
+Read `sharesOf(treasury)` -> `(creatorRewardBps, creatorLpBps, recipient, custom)`. Only the treasury's current `controller()` can call `setShares(treasury, creatorRewardBps, creatorLpBps, recipient)` (`0x05b75076`; recipient `0x0` = the controller) or `clearShares(treasury)` (`0xda3d2953`, back to 5% / 80%). The keeper pays the cut to `recipient`.

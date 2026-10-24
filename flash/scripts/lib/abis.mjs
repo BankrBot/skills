@@ -126,6 +126,36 @@ export const perpsHook = parseAbi([
   'function pools(bytes32) view returns (uint32 marketId,bool registered,bool usdcIs0,uint32 gasFloor)',
 ]);
 
+// FlashPerpsV5LimitOrders: take-profit / stop-loss listings (keeper-filled on the issuer's NAV).
+export const perpOrders = parseAbi([
+  'function place(uint256 marketId,uint8 kind,uint256 qty,uint256 triggerNav,uint256 minOut,uint256 expiry) returns (uint256 id)',
+  'function placePair(uint256 marketId,uint256 qty,uint256 tpNav,uint256 slNav,uint256 slMinOut,uint256 expiry) returns (uint256 tpId,uint256 slId)',
+  'function update(uint256 id,uint256 qty,uint256 triggerNav,uint256 minOut,uint256 expiry)',
+  'function cancel(uint256[] ids)',
+  'function check(uint256 id) view returns (uint8 code,uint256 nav)',
+  'function takeProfitOut(uint256 qty,uint256 limitNav) pure returns (uint256)',
+  'function minOrderUsdc() view returns (uint256)',
+  'function paused() view returns (bool)',
+  'function FEE_PIPS() view returns (uint256)',
+  'error NotOrderOwner()',
+  'error Paused()',
+  'error InvalidParam()',
+  'error BelowMinimum(uint256 valueUsdc,uint256 minUsdc)',
+  'error NotOpen()',
+  'error Expired()',
+  'error UnknownMarket()',
+]);
+
+// FlashPerpsV5Lens over the live issuer: protocol / account / market KPIs and the QUANT rate.
+export const perpsLens = parseAbi([
+  'function globalKpi() view returns (uint256 profit,uint256 loss,uint256 quantMinted,bool quantLive)',
+  'function accountKpi(address account) view returns (uint256 profit,uint256 loss,uint256 quantReceived)',
+  'function marketKpi(uint256 id) view returns (uint256 usdcIn,uint256 usdcOut,uint256 profit,uint256 loss)',
+  'function quantRateNow() view returns (uint256)',
+  'function previewQuant(uint256 lossUsd6) view returns (uint256 user,uint256 tax)',
+  'function unrealizedPnl(uint256 id,address account) view returns (int256)',
+]);
+
 // ---------------------------------------------------------------- churn (limit orders)
 
 export const churn = parseAbi([

@@ -51,6 +51,32 @@ CLI:
 - `perp-positions --wallet W`
 - `perp-unwind --market BTC2x --amount all --wallet W` for exit-only ids 1-5.
 
+## Take-profit and stop-loss (limit orders)
+
+`FlashPerpsV5LimitOrders` `0xf5d94BE034944C8706a12B6B4d4dE0dbEbc10824` lists TP / SL orders on chain, like an NFT listing: the tokens stay in the wallet, and the holder approves the contract for the perp token. Allowlisted keepers fill an order when the **issuer's on-chain NAV** (`navPerToken(id)`) meets its trigger, by selling exactly `qty` in the market's perps pool on the holder's behalf. Cost basis, realized PnL and the QUANT loss reward move exactly as for a normal sell.
+
+- **Take profit** (`kind 0`): fills at NAV >= `triggerNav`. The holder receives exactly `qty x triggerNav x 99.9%` (`takeProfitOut(qty, triggerNav)`); the fill reverts if the sale pays less.
+- **Stop loss** (`kind 1`): fills at NAV <= `triggerNav`. The holder receives the sale proceeds minus 0.1%, never less than their own `minOut` floor (the app default is 2% under `qty x stop`).
+- **Fee:** 0.1% (`FEE_PIPS` = 1000, constant). It reimburses the keeper's gas (capped at 1 USDC) and the rest goes to the FLASH buyback.
+- **Minimum:** `qty x triggerNav >= minOrderUsdc()` = $150 today (`BelowMinimum`).
+- Units: `qty` in perp tokens (18 dp), `triggerNav` in USDC (6 dp) per 1e18 tokens, `expiry` in unix seconds (0 = good till cancelled).
+- The allowance (and balance) must still cover `qty` when a keeper fills. `check(id)` returns `(code, nav)`: 0 fillable, 1 not open, 2 expired, 3 paused, 4 oracle down, 5 trigger not met, 6 balance short, 7 allowance short.
+
+| Action | Call | Selector |
+| --- | --- | --- |
+| Approve (once, covering every open order's qty) | `perpToken.approve(0xf5d9...0824, qty)` | `0x095ea7b3` |
+| One order | `place(marketId, kind, qty, triggerNav, minOut, expiry)` (`minOut` is ignored for TP) | `0xfb582da7` |
+| Linked TP + SL on the same qty (one fill cancels the other) | `placePair(marketId, qty, tpNav, slNav, slMinOut, expiry)`, `slNav < tpNav` | `0x5976f9d6` |
+| Re-price / re-size | `update(id, qty, triggerNav, minOut, expiry)` | `0x86904ccf` |
+| Cancel (works while paused) | `cancel(uint256[] ids)` | `0x2e340823` |
+
+API: `GET /v1/stack/perps/orders` (contract, fee, live flag), `GET /v1/stack/perps/orders/:account` (`?status=open`), `GET /v1/stack/perps/orderbook/:marketId` (open depth by trigger). The `/v1/live` websocket pushes `perp.order.created`, `.updated`, `.filled` and `.cancelled`.
+
+CLI:
+- `perp-orders --wallet W [--status open]`
+- `perp-tpsl --market ETH2xL --amount all --tp 1.25 --sl 0.85 [--sl-min 120] [--expiry-days 30] --wallet W` (`--tp` or `--sl` alone places one order; NAVs are USDC per token)
+- `perp-order-cancel --ids 12,13 --wallet W`
+
 ## QUANT
 
 QUANT (`0xb2000000000000000000006a9881C01617b77B08`, max supply 6,942,000) is the perps loss-reward token. It trades against FLASH on the QUANT/FLASH FlashV3 pool, and its fees fund the QUANT treasury `0x6A7faA6B8F0C7f66dFCa2Bb5dd1BCa0915bc55E5`.
@@ -77,7 +103,18 @@ CLI:
 
 API: `GET /v1/stack/quant` returns supply, issuer mints, price, volume and mint stats. Its `mints.lossUsdFloat` field is mis-scaled; use `mints.lossUsd`, which is USDC with 6 decimals.
 
-The perps "lens" (`0xBe90938841100479B78c74bbeFA4709988D34302`) that `app/src/stackContracts.ts` lists as `perpsLens` is the replica-vault lens. Its `globalKpi` / `accountKpi` / `quantRateNow` / `quoteUnwind` revert. Do not use it. Use the issuer views and the API instead.
+**QUANT stats lens:** `FlashPerpsV5Lens` `0x7D06a5C37fd91B85D6dC2f212467f1803895d0C2` reads the live issuer:
+
+| Call | Returns |
+| --- | --- |
+| `globalKpi()` | `(profit, loss, quantMinted, quantLive)`: protocol-wide realized profit and loss (USDC 6 dp) and QUANT minted |
+| `quantRateNow()` | QUANT-wei per $1 of realized loss right now |
+| `previewQuant(lossUsd6)` | `(user, tax)`: QUANT a loss of that size would mint now (80 / 20) |
+| `accountKpi(account)` | `(profit, loss, quantReceived)` |
+| `marketKpi(id)` | `(usdcIn, usdcOut, profit, loss)` |
+| `unrealizedPnl(id, account)` | int256 USDC 6 dp |
+
+`quant-status` reads it.
 
 ## Migrating from the earlier perps (v1 -> V2)
 

@@ -59,6 +59,8 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | Fee sink | `0x88CcF70524822c0Eb2A7e4824A6a9e57410aF76D` |
 | QUANT owner sink | `0xebb672403005A20Ef914b13487505E08Aa05F760` |
 | Migrator (earlier perps to V2) | `0x87c9784070C4E134F7dE7627dA0038CA9f0473D6` |
+| Limit orders (take-profit / stop-loss, `FlashPerpsV5LimitOrders`) | `0xf5d94BE034944C8706a12B6B4d4dE0dbEbc10824` |
+| Lens (QUANT rate, protocol / account / market KPIs, `FlashPerpsV5Lens`) | `0x7D06a5C37fd91B85D6dC2f212467f1803895d0C2` |
 
 ## Churn (limit orders, Lattices)
 
@@ -75,7 +77,6 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | --- | --- |
 | Launchpad | `0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0` |
 | Launch router Q (ETH / FLASH / STOCK / PERP launches; use this) | `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` |
-| Launch router (legacy, ETH / FLASH only) | `0x7aB1a5EAd75e53d8FbD61a0F8EA3123cC5059a17` |
 | Executor Q (`poolKeyForQuote`) | `0x0C155b5FfBaa04f753d7D287D6bc4fBE0BcAf625` |
 | Config (`quoteRouteOf`) | `0x64B866F63053680F14Da2f98a67C7b2BdFf960e6` |
 | Shapes registry (modes, presets) | `0x79644eC342881E40efab1401eb5ceF265F93aE7D` |
@@ -84,7 +85,6 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | LP fee vault | `0x91a7123d0c402B5E8f5Dfd9C81f1575C05dBE060` |
 | Token War V6 (live) | `0x793D3730040582fc58F3699F51396Dc6cD00dD3f` |
 | War router V6 (ETH / USDC in) | `0x470e310f02625DAdaea471579f5ccC66fd606638` |
-| Token War V5 (retired: war #1 aborted, history only) | `0xE3787F2EbB6b5d00B9EE5ECF73ec6C9770Bb5084` |
 
 ## Treasuries and Revenue Share
 
@@ -93,6 +93,7 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | treasury-v3 factory (`predictTreasury(token)`) | `0x128fab9a1f356868feb355858cc7CbdA7F296b91` |
 | treasury-v3 config | `0xc7151Ee6458f3AAdD1B32aF05Be690c7d3669754` |
 | QUANT treasury | `0x6A7faA6B8F0C7f66dFCa2Bb5dd1BCa0915bc55E5` |
+| Treasury shares (creator cut per treasury, `FlashTreasuryShares`, ownerless) | `0x98C29eC362A4e76975002778Bb2E91B99e4A288F` |
 | FLASH Revenue Share vault (FLASH in, WETH + FLASH rewards) | `0x5cf120b13086277f83f901ea4df4fA8A45d577b0` |
 
 ## Pool keys

@@ -10,12 +10,13 @@ A Flash plan may only contain these `(to, selector)` pairs. Anything else: stop.
 | --- | --- |
 | Universal Router `0x6fF5693b99212Da76ad316178A184AB56D299b43` | `0x3593564c` execute |
 | Permit2 `0x000000000022D473030F116dDEE9F6B43aC78BA3` | `0x87517c45` approve(token, UniversalRouter, amount, expiry). The spender argument must be the Universal Router. |
-| An ERC-20 being spent (FLASH, USDC, WETH, QUANT, a perp token, a launched token) | `0x095ea7b3` approve(spender, amount). The spender must be one of: Permit2, churn core, launchpad, a launch curve, Token War V6, war router V6, Revenue Share vault, perps issuer. |
+| An ERC-20 being spent (FLASH, USDC, WETH, QUANT, a perp token, a launched token) | `0x095ea7b3` approve(spender, amount). The spender must be one of: Permit2, churn core, launchpad, a launch curve, Token War V6, war router V6, Revenue Share vault, perps issuer, perps limit orders. |
 | WETH `0x4200000000000000000000000000000000000006` | `0xd0e30db0` deposit |
 | Referral registry `0x20E37314A4D52Ba1FB55a675a834665Cf2515857` | `0xd9cd8b6e` bind, `0x7899c516` bindWithSig, `0x4e71d92d` claim, `0x75433fed` distributeTop100 |
 | King of the Hill `0x2556ffbAb00D1993aD1BDA44fb6c0dc15fde7457` | `0x11da60b4` settle |
 | FlashV3 ledger `0xB6267C0bFcbBEE354723f9f97b255Da287729A07` | `0x248eb4ec` sweep |
 | Perps issuer `0x56a3e32134521Cefe75a2B8dB25D29a45E331BdD` | `0xa56df42b` unwind |
+| Perps limit orders `0xf5d94BE034944C8706a12B6B4d4dE0dbEbc10824` | `0xfb582da7` place, `0x5976f9d6` placePair, `0x86904ccf` update, `0x2e340823` cancel |
 | Churn core `0x35F1b89f4FEb2897CC1a6efF381d518D05824008` | `0x6ebf181b` deposit, `0x3adab09c` withdraw, `0x96c144f0` claim, `0xd41a2912` depositLevel, `0x8c0041ae` depositLevels, `0xaec18bd0` withdrawLevel, `0x9bdf33ff` claimLevels, `0x94324107` openLattice, `0xc5a44ee0` withdrawLattice, `0x3b82423d` withdrawLatticeAmount, `0x20493fae` reformatLattice, `0x5d10ff4b` transferLattice |
 | Launchpad `0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0` | `0x29458fbd` createLaunchShaped, `0x41701c70` createLaunchQuoted, `0x4ef39b75` finalize |
 | Launch router Q `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` | `0xce6c7a89` createWithEth, `0xbd104112` createWithEthQuoted, `0x8f36afcb` buyWithEth |

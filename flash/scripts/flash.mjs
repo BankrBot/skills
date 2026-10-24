@@ -92,6 +92,9 @@ const COMMANDS = {
   'koth-settle': R.kothSettle,
   'perp-positions': R.perpPositions,
   'perp-unwind': R.perpUnwind,
+  'perp-orders': R.perpOrdersList,
+  'perp-tpsl': R.perpTpSl,
+  'perp-order-cancel': R.perpOrderCancel,
   'quant-status': R.quantStatus,
   'quant-sweep': R.quantSweep,
   'revshare-status': R.revshareStatus,
@@ -142,6 +145,7 @@ Trade:   quote|swap --market FLASH|QUANT|ETH2xL|<launched token> --side buy|sell
 Refs:    referral-status | referral-bind --code N [--signature 0x --deadline T] | referral-claim | referral-board | referral-distribute
 KOTH:    koth-status | koth-buy [--amount ETH] | koth-settle
 Perps:   perp-positions | perp-unwind --market BTC2x [--amount N|all]   (buy/sell perps with swap)
+TP/SL:   perp-orders [--status open] | perp-tpsl --market ETH2xL [--amount N|all] (--tp NAV | --sl NAV [--sl-min USDC] | both) [--expiry-days D] | perp-order-cancel --ids 1,2
 QUANT:   quant-status | quant-sweep --pool <id>|--token <launch>
 Limits:  limit-markets | limit-orders | limit-place --market FLASH|QUANT --amount N (--price P | --low P --high P [--bins 16 --shape exp] | --low-mult 1.5 --high-mult 10)
          limit-cancel --market M --level T | limit-claim --market M | fullrange-deposit|withdraw|claim --market M

@@ -2,7 +2,7 @@
 
 Public, read-only, GET, JSON, no key. `/v1/stack/*` is an alias of `/v1/ecosystem/*`. Snapshots refresh about once a minute (stack.live is event-driven), so cache them. On HTTP 429 wait for `Retry-After`. Do not send a browser `Origin` header other than `https://tryflash.app`. Amount fields ending in `Wei` or `Raw`, and bare integer strings, are base units. `*Float`, `*Eth` and `*Usd` fields are human numbers. The API is a convenience: the chain is the source of truth before any write.
 
-There are **no** quote or prepare endpoints for the new stack. Quote with the V4 Quoter and build calldata with `scripts/flash.mjs`. The `/v1/launch-v2/*`, `/v1/bonding/*`, `/v1/perps*` and `/mcp` routes serve the retired stack. Do not use them to trade.
+There are **no** quote or transaction-building endpoints for the live stack. Quote with the V4 Quoter and build calldata with `scripts/flash.mjs`. The `/v1/launch-v2/*` reads, `/v1/bonding/*`, `/v1/perps*` and the `/mcp` build tools serve the retired stack: do not use them to trade. The exceptions are the two token-profile writes below, which every launch-v5 launch and war entry needs.
 
 | Route | Returns |
 | --- | --- |
@@ -13,6 +13,9 @@ There are **no** quote or prepare endpoints for the new stack. Quote with the V4
 | `/v1/stack/perps` | Perp markets with full detail (live only unless `?all=1`) |
 | `/v1/stack/perps/:id/nav` | NAV history points and 24h change |
 | `/v1/stack/perps/positions/:account` | Perps ledger: positions (qty, avgCost, costUsd, nav, unrealizedUsd, realizedUsd) and trades |
+| `/v1/stack/perps/orders` | TP / SL config: `contract`, `feePips` (1000 = 0.1%), `live` |
+| `/v1/stack/perps/orders/:account` (`?status=open\|filled\|cancelled`) | A wallet's TP / SL orders, newest first (id, marketId, kind, qty, triggerNav, minOut, expiry, sibling, status, expired, fill) |
+| `/v1/stack/perps/orderbook/:marketId` | Open, unexpired TP / SL depth by trigger |
 | `/v1/stack/quant` | QUANT supply, issuer mints, price (USD and FLASH), market cap, volume, mint stats |
 | `/v1/stack/koth` | Game (`secondsLeft`, `expired`, pot, trigger, ETH and USD), totals, owed, wins, history |
 | `/v1/stack/koth/history?limit=30` | Reigns and round results (limit up to 500) |
@@ -38,5 +41,14 @@ Known data caveats, as of 2026-10-24:
 
 - `/v1/stack/quant` `mints.lossUsdFloat` is divided by 1e18, but `lossUsd` is USDC with 6 decimals.
 - `/v1/stack/v3/pools` reports the QUANT pool creator as the treasury `0xD1EC...`. On chain, `v3Hook.poolInfoOf(poolId).creator` is now the QUANT treasury `0x6A7f...55E5`. Trust the chain.
+
+Writes (token profiles only; see [LAUNCHES.md](LAUNCHES.md#token-profile-image-required-wallet-signed)):
+
+| Route | Does |
+| --- | --- |
+| `POST /v1/uploads` (multipart `image`, header `x-flash-uploader`) | Moderates and stores token art; returns `{ imageUrl }` |
+| `POST /v1/launch-v2/prepare` (JSON, header `x-flash-uploader`) | Saves a wallet-signed launch / war profile. Requires `imageUrl` (`TOKEN_IMAGE_REQUIRED`) and `profileAuth { nonce, issuedAt, signature }` (401 `TOKEN_PROFILE_SIGNATURE_REQUIRED`) |
+
+Live pushes: the websocket `wss://api.tryflash.app/v1/live` sends `stack.live` (the `/v1/stack/live` snapshot) and `perp.order.created|updated|filled|cancelled` (one order record each).
 
 CLI passthrough: `node scripts/flash.mjs api /v1/stack/live`.
