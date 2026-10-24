@@ -27,7 +27,7 @@ The CLI decodes reverts with the ABIs plus `scripts/lib/errors.json`, which maps
 | `PermanentOwnerStake()` | Revenue Share | The protocol owner's locked stake. Never hit by users. |
 | `ExitBelowMinimum` / `BuyBelowMinimum` / `UnknownToken` / `BadV5Market` | Perps migrator | One migration leg missed its minimum, or the token has no route |
 | `Slippage(got, min)` | `issuer.unwind` | USDC out below the minimum |
-| `BelowMinimum(valueUsdc, minUsdc)` | Perps `place` / `placePair` / `update` | `qty x triggerNav` is under `minOrderUsdc()` ($150 today). |
+| `BelowMinimum(valueUsdc, minUsdc)` | Perps `place` / `placePair` / `update` | `qty x triggerNav` is under `minOrderUsdc()` ($10 today). |
 | `InvalidParam()` | Perps orders | Zero qty or trigger, an expiry in the past, `slNav >= tpNav` in a pair, or a stop-loss `minOut` above `qty x stop`. |
 | `NotOrderOwner()` / `NotOpen()` | Perps `update` / `cancel` | Not your order / already filled or cancelled |
 | `Paused()` | Perps orders | Listing is paused. `cancel` always works. |

@@ -33,7 +33,7 @@ Flash runs on **Base, chain id 8453**. Every product sits on Uniswap v4 pools wi
 | **Referrals and top-100** | A code cuts the fee to 1.69% and pays its owner 1% of volume. Claims cascade 33% up the chain. A ranked board shares a pool. | [REFERRALS-KOTH.md](references/REFERRALS-KOTH.md) |
 | **King of the Hill** | One FLASH buy at or above the trigger takes the throne. Hold 60 s to win 69% of the ETH pot, paid in-swap. | [REFERRALS-KOTH.md](references/REFERRALS-KOTH.md) |
 | **Tokenized perps** | Leveraged long and short ERC-20s (2x, Max), priced at NAV, 0.05% fee. Includes 24/7 stock perps. | [PERPS-QUANT.md](references/PERPS-QUANT.md) |
-| **Perp take-profit / stop-loss** | On-chain listings filled by keepers when the NAV meets the trigger. 0.1% fee, $150 minimum. | [PERPS-QUANT.md](references/PERPS-QUANT.md#take-profit-and-stop-loss-limit-orders) |
+| **Perp take-profit / stop-loss** | On-chain listings filled by keepers when the NAV meets the trigger. 0.1% fee, $10 minimum. | [PERPS-QUANT.md](references/PERPS-QUANT.md#take-profit-and-stop-loss-limit-orders) |
 | **QUANT** | Minted to traders on realized perp losses (80/20) and to PERP-pair launch creators. Trades vs FLASH. | [PERPS-QUANT.md](references/PERPS-QUANT.md) |
 | **Limit orders / curves / Lattices** | Churn levels sell inside other people's buys at or above a floor. A curve order places many levels in one transaction. | [LIMIT-ORDERS.md](references/LIMIT-ORDERS.md) |
 | **Launches (launch-v5)** | Bonding curves priced in FLASH that graduate to a FlashV3 pool paired with ETH, FLASH, a stock or a perp. Token art is required: save a wallet-signed profile first. | [LAUNCHES.md](references/LAUNCHES.md) |

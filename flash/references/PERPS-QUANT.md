@@ -58,7 +58,7 @@ CLI:
 - **Take profit** (`kind 0`): fills at NAV >= `triggerNav`. The holder receives exactly `qty x triggerNav x 99.9%` (`takeProfitOut(qty, triggerNav)`); the fill reverts if the sale pays less.
 - **Stop loss** (`kind 1`): fills at NAV <= `triggerNav`. The holder receives the sale proceeds minus 0.1%, never less than their own `minOut` floor (the app default is 2% under `qty x stop`).
 - **Fee:** 0.1% (`FEE_PIPS` = 1000, constant). It reimburses the keeper's gas (capped at 1 USDC) and the rest goes to the FLASH buyback.
-- **Minimum:** `qty x triggerNav >= minOrderUsdc()` = $150 today (`BelowMinimum`).
+- **Minimum:** `qty x triggerNav >= minOrderUsdc()` = $10 today (`BelowMinimum`).
 - Units: `qty` in perp tokens (18 dp), `triggerNav` in USDC (6 dp) per 1e18 tokens, `expiry` in unix seconds (0 = good till cancelled).
 - The allowance (and balance) must still cover `qty` when a keeper fills. `check(id)` returns `(code, nav)`: 0 fillable, 1 not open, 2 expired, 3 paused, 4 oracle down, 5 trigger not met, 6 balance short, 7 allowance short.
 
