@@ -45,6 +45,8 @@ The wallet must already hold the spend when an order is created: the full amount
 - To change an automation, cancel it and create a new one. Pausing, resuming and editing a command are done on the Automations page ([bankr.bot/automation](https://bankr.bot/automation)).
 - A scheduled command's results are kept in its run history (last 10 runs). One created in a Telegram or Farcaster DM also replies in that conversation; add "notify me on Telegram" to have results sent to your linked Telegram account.
 
+Schedules run in their own time zone, so 9am stays 9am across daylight saving. A time with no zone uses a zone named in the message, a timezone saved to the agent's memory, or the browser's zone in Bankr Console, else the agent asks; public X and Farcaster posts use only a zone stated in the conversation. From the API or CLI, name the zone in the prompt ("every day at 9am Europe/Istanbul").
+
 ## Creating Automations from the API
 
 There is no REST endpoint for your wallet's automations. Send the same phrasing you'd type in Bankr Console through `/agent/prompt` (or `bankr agent prompt`):
@@ -75,6 +77,7 @@ The `/user/automation/*` REST endpoints you may see referenced are **Bankr Conso
 | "... Limit Reached" | An order or command cap above; cancel one first (paused ones count) |
 | "Automations are not supported when trusted recipient restrictions are configured" | The API key carries a recipient allowlist; scheduled commands run unattended and can't be checked against it. Orders are unaffected |
 | "The minimum allowed schedule interval is N minutes" | Schedule faster than the minimum interval |
+| "This schedule isn't supported. Use a standard cron expression without L, #, ?, H or @annually, on a date that exists." | A cron the scheduler can't run |
 | "You don't hold enough [token] to place this order" | The creation-time balance check above |
 | Automated orders for a connected (external) wallet | Set up from the Trade page ([bankr.bot/trade](https://bankr.bot/trade)); the agent places orders for the Bankr wallet only |
 | Selling a Base launch token you earn creator fees on | Can be refused for limit/stop/DCA/TWAP; exit through Glidepath on the token page instead |

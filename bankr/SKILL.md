@@ -120,7 +120,7 @@ Never poll without a `jobId`: `GET /agent/job/null` answers `404 Job not found` 
 | `GET /wallet/portfolio` | Balances, with `?include=pnl,nfts` and `?chains=base,solana` |
 | `POST /wallet/swap-quote` | Quotes a swap: same-chain EVM, cross-chain or Solana |
 | `POST /wallet/swap` | Executes a swap. The output always goes to your own wallet |
-| `POST /wallet/transfer` | Sends a token (by contract address) to a 0x address. Resolve an ENS name or social handle first with `GET /addresses/resolve` |
+| `POST /wallet/transfer` | Sends a token (by contract address or Solana mint) to a 0x or Solana address. Resolve an ENS name or social handle first with `GET /addresses/resolve` |
 | `POST /wallet/sign` | Signs a message, EIP-712 typed data or a transaction |
 | `POST /wallet/submit` | Broadcasts a raw transaction |
 
