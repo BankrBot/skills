@@ -120,13 +120,13 @@ Never poll without a `jobId`: `GET /agent/job/null` answers `404 Job not found` 
 | `GET /wallet/portfolio` | Balances, with `?include=pnl,nfts` and `?chains=base,solana` |
 | `POST /wallet/swap-quote` | Quotes a swap: same-chain EVM, cross-chain or Solana |
 | `POST /wallet/swap` | Executes a swap. The output always goes to your own wallet |
-| `POST /wallet/transfer` | Sends a token (by contract address) to a 0x address. Resolve an ENS name or social handle first with `GET /addresses/resolve` |
+| `POST /wallet/transfer` | Sends a token (by contract address or Solana mint) to a 0x or Solana address. Resolve an ENS name or social handle first with `GET /addresses/resolve` |
 | `POST /wallet/sign` | Signs a message, EIP-712 typed data or a transaction |
 | `POST /wallet/submit` | Broadcasts a raw transaction |
 
 - Reads (`me`, `portfolio`, `swap-quote`) work with read-only keys. `swap-quote` still needs `walletApiEnabled`.
 - Writes (`swap`, `transfer`, `sign`, `submit`) need `walletApiEnabled` on a read-write key.
-- Once a key has a recipient allowlist on either chain, `transfer` only sends to addresses on its EVM list, so a Solana-only allowlist refuses every transfer. `swap` has no recipient to check, because its output returns to you.
+- Once a key has a recipient allowlist on either chain, `transfer` only sends to addresses on the list for its chain, so a key with only one chain's list can't send on the other. `swap` has no recipient to check, because its output returns to you.
 - `submit` is also checked against the wallet's security settings: spend limits, permitted recipients and the arbitrary-contract-calls switch. Its `403` comes either with a machine-readable `errorCode` or with a plain message and no code, so handle both shapes.
 - These endpoints need no key: `GET /addresses/resolve`, `GET /users/search`, `GET /token-launches` and `GET /token-launches/quote-tokens?chain=<chain>`.
 

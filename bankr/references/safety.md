@@ -21,7 +21,7 @@ USD limits accept `1` to `1,000,000`. `0` is rejected, so disable the limit inst
 
 ### Spend limits are enforced everywhere
 
-A wallet that has never opened the Security page is still capped at **$500 a day and $500 per transaction**, on every signing path: agent tools, limit/stop/DCA/TWAP order fills, Wallet API swaps (the sell side is priced, cross-chain and Solana legs included) and transfers, raw `/wallet/submit`, x402 paid calls, Polymarket bets, LLM credit top-ups, Bankr Club sign-up, Hyperliquid deposits, airdrops, launch dev buys, and direct signer callers. A Club renewal counts toward the daily total but is never refused by a limit (a paused wallet still blocks it). Launch fee recipients and fee-recipient hand-offs must pass the permitted-recipients list. If an integration needs to move more, raise the limit deliberately.
+A wallet that has never opened the Security page is still capped at **$500 a day and $500 per transaction**, on every signing path: agent tools, limit/stop/DCA/TWAP order fills, Wallet API swaps (the sell side is priced, cross-chain and Solana legs included) and transfers, raw `/wallet/submit`, x402 paid calls, Polymarket bets, LLM credit top-ups, Bankr Club sign-up, Hyperliquid deposits, Avantis opens (their USDC collateral), NFT collection offers, Glidepath deposits (from the token page or the agent), airdrops, launch dev buys, and direct signer callers. A Club renewal counts toward the daily total but is never refused by a limit (a paused wallet still blocks it). Launch fee recipients and fee-recipient hand-offs must pass the permitted-recipients list. If an integration needs to move more, raise the limit deliberately.
 
 - Each transaction is priced at submission from on-chain quotes (0x on EVM, Jupiter on Solana). If pricing fails while a USD limit is on, the transaction is **rejected**, not waved through.
 - Successful transactions count toward the rolling 24h total. The spend log is keyed on transaction hash, so retries can't inflate it.
@@ -79,7 +79,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### Recipient allowlist
 
-`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer` and a deploy's fee recipient. A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the EVM list, so a Solana-only allowlist refuses every transfer there. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
+`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer` and a deploy's fee recipient. A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the list for the transfer's chain (`solana` on Solana, `evm` otherwise), so a key with only one chain's list can't send on the other. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
 
 **A non-empty allowlist on either chain also refuses operations whose recipient can't be checked:**
 
