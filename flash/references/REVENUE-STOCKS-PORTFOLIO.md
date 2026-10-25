@@ -2,20 +2,21 @@
 
 ## FLASH Revenue Share
 
-Revenue Share is `FlashRevenueShareV3` (`version()` = `"3"`), an ERC-1967 proxy at `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` (implementation `0x7Ba4b0d63fc449D130F7259C231A7204ddcC7820`, owned by the Safe). Stake FLASH, earn ETH.
+Revenue Share is `FlashRevenueShareV4` (`version()` = `"4"`), an ERC-1967 proxy at `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` (implementation `0x22efBE492289a0b158fB83B5bc7583eb35DACf24`, owned by the Safe). Stake FLASH, earn ETH.
 
 - **Stake:** `deposit` stakes FLASH 1:1, minimum 0.01 (`MIN_DEPOSIT()`), no lockup, no fee. Staked FLASH stays in the contract, never in the churn. It is the flash-loan liquidity keepers borrow.
 - **Revenue:** protocol FLASH (`addAssetReward` from the buyback, King of the Hill, launch-v5 vault and treasury-v3; a protocol entry, not a user call) plus flash-loan fees. `flush()` (anyone) moves that revenue FLASH into **one full-range churn position** (churn core, FLASH/ETH market `0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b`) that sells it into ETH as buys fill it.
-- **Earnings:** the ETH those fills pay, pro rata to stake, paid as native ETH (WETH when the receiver rejects ETH). `harvest()` (anyone) books fills; `pendingEth` already counts unharvested fills.
+- **Earnings:** the ETH those fills pay. When it is collected (`harvest()`, anyone; every deposit / claim / withdraw collects too), 3% goes to the treasury at once and the rest pays out evenly over 24 h (to the next hour boundary) to the stake held each second, as native ETH (WETH when the receiver rejects ETH). Later arrivals never slow earlier ones. `pendingEth` is what has paid out so far; `stream()` shows what is still paying out.
 - **Claim:** pays the earned ETH, keeps the stake earning.
-- **Withdraw:** returns the staked FLASH (any amount, any time) plus all earned ETH. Nothing is forfeited, and withdrawing never takes FLASH out of the churn.
+- **Withdraw:** returns the staked FLASH (any amount, any time) plus the ETH paid out so far. ETH still paying out goes on to the stakers who stay. Withdrawing never takes FLASH out of the churn.
 
 | Call | Selector / returns |
 | --- | --- |
 | `deposit(uint256 amount)` | `0xb6b55f25`, after an exact `FLASH.approve(revshare, amount)`; returns FLASH staked. Reverts `BelowMinimum()` under 0.01 FLASH |
 | `claim(address to)` | `0x1e83409a`, returns ETH paid (0 when nothing is owed) |
-| `withdraw(uint256 amount, address to)` | `0x00f714ce`, `type(uint256).max` = all; sends the FLASH and all earned ETH to `to`. Reverts `NothingToWithdraw()` with no stake and no ETH owed |
-| `pendingEth(user)` | `0xbeae30f5`, earned unpaid ETH, including fills not yet harvested |
+| `withdraw(uint256 amount, address to)` | `0x00f714ce`, `type(uint256).max` = all; sends the FLASH and the claimable ETH to `to`. Reverts `NothingToWithdraw()` with no stake and no ETH owed |
+| `pendingEth(user)` | `0xbeae30f5`, claimable ETH (paid out so far, unclaimed) |
+| `stream()` | `0x6f2a6791`, `(streaming, ratePerSecond, uncollected, treasuryPaid)`: ETH still paying out, all-staker rate in wei/s, fills not yet collected, lifetime treasury fee |
 | `flashOf(user)` | `0x4b57af1b`, the user's staked FLASH (what a full withdraw returns) |
 | `accountOf(user)` | `0x8086b8ba`, `(shares, debt, owed, epoch)`; `shares` = staked FLASH |
 | `totals()` | `0xc038a38e`, `(flashInPool, flashInChurn, totalShares, ethDistributed, ethPaid, flashRewarded, epoch, positionId)`: `flashInPool` = `totalShares` = total staked, `flashInChurn` = revenue FLASH still unsold, `flashRewarded` = lifetime revenue FLASH |

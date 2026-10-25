@@ -304,7 +304,7 @@ export const treasury = parseAbi([
   'function rewardAsset() view returns (address)',
 ]);
 
-/** FlashRevenueShareV3 (ERC-1967 proxy): stake FLASH 1:1 (flash-loan liquidity), revenue FLASH churns to ETH, ETH out. */
+/** FlashRevenueShareV4 (ERC-1967 proxy; name kept): stake FLASH 1:1 (flash-loan liquidity), revenue FLASH churns to ETH, 3% fee, ETH streams over 24 h. */
 export const revenueShareV3 = parseAbi([
   'function version() pure returns (string)',
   'function flash() view returns (address)',
@@ -321,6 +321,7 @@ export const revenueShareV3 = parseAbi([
   'function accountOf(address account) view returns (uint256 shares,uint256 debt,uint256 owed,uint64 epoch)',
   'function totals() view returns (uint256 flashInPool,uint256 flashInChurn,uint256 totalShares,uint256 ethDistributed,uint256 ethPaid,uint256 flashRewarded,uint64 epoch,uint256 positionId)',
   'function revenue() view returns (uint256 idle,uint256 flashFees,uint256 flashChurned)',
+  'function stream() view returns (uint256 streaming,uint256 ratePerSecond,uint256 uncollected,uint256 treasuryPaid)',
   'function flashFee(uint256 amount) pure returns (uint256)',
   'function maxFlashLoan(address asset) view returns (uint256)',
   'function availableLiquidity() view returns (uint256)',

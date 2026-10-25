@@ -78,7 +78,7 @@
     "keeperLoanExecutor": "0x71E8043A562C476C5E0e3c07A1904d993e988794",
     "keeperLoanExecutorNote": "FlashKeeperLoanExecutor: registry keepers with capability bit 12 borrow the staked FLASH, profit sweeps to the treasury",
     "churnMarket": "FLASH/ETH",
-    "note": "FlashRevenueShareV3 (ERC-1967 proxy, Safe-owned, version 3, upgraded from V2 2026-10-25): stake FLASH 1:1, earn ETH. Staked FLASH stays in the contract as flash-loan liquidity (30 bps fee) and withdraw returns all of it plus earned ETH. Only revenue FLASH (addAssetReward + flash-loan fees) goes into one full-range churn position; the ETH its fills pay is the reward, pro rata to stake.",
+    "note": "FlashRevenueShareV4 (ERC-1967 proxy, Safe-owned, version 4, upgraded 2026-10-25): stake FLASH 1:1, earn ETH. Staked FLASH stays in the contract as flash-loan liquidity (30 bps fee) and withdraw returns all of it plus the ETH paid out so far. Only revenue FLASH (addAssetReward + flash-loan fees) goes into one full-range churn position; of the ETH its fills pay, 3% goes to the treasury and the rest pays out over 24 h, pro rata to the stake held each second.",
     "retired": {
       "flashPoolStaking": "0x5cf120b13086277f83f901ea4df4fA8A45d577b0",
       "note": "Old vault: no new revenue since 2026-10-25, withdraw-only for its remaining holders (revshare-migrate)."

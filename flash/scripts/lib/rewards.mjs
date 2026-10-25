@@ -315,7 +315,7 @@ export async function quantSweep(options) {
 
 const V = K.revenueShare.v3;
 const OLD = K.revenueShare.retired.flashPoolStaking;
-const MIN_DEPOSIT = 10n ** 16n; // 0.01 FLASH (FlashRevenueShareV3.MIN_DEPOSIT)
+const MIN_DEPOSIT = 10n ** 16n; // 0.01 FLASH (FlashRevenueShareV4.MIN_DEPOSIT)
 const STAKE = 'Staked FLASH stays in the contract (never in the churn) and withdraw returns all of it plus the earned ETH. revshare-claim takes the ETH and keeps the stake earning.';
 const v3 = (functionName, args = []) => read(V, A.revenueShareV3, functionName, args);
 const old = (functionName, args = []) => read(OLD, A.revenueShareRetired, functionName, args);
