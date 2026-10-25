@@ -156,8 +156,8 @@ Launch:  launch-list | launch-info --token | launch-create --name --symbol --pai
 Wars:    war-status | war-enter --name --symbol --pair .. [--quote] [--pay ETH|FLASH] | war-back --id N --pay ETH|USDC|FLASH --amount N | war-sell --id N [--units] | war-jump --from A --to B [--units]
          war-claim [--war N] | war-refund --war N --id N | war-creator-claim [--war N] | war-open | war-finalize
 Misc:    wrap-eth --amount N (ETH-pair launches trade against WETH)
-Revenue: revshare-status | revshare-deposit --amount N|all (FLASH in, earns ETH) | revshare-claim (ETH, keeps the deposit) | revshare-withdraw [--shares N|all] (ETH out, unsold FLASH forfeited)
-         revshare-migrate [--exit-only] [--amount N] (retired vault -> V2) | treasury --token 0x
+Revenue: revshare-status | revshare-deposit --amount N|all (stake FLASH, earns ETH) | revshare-claim (ETH, keeps the stake) | revshare-withdraw [--amount N|all] (full FLASH stake + ETH out)
+         revshare-migrate [--exit-only] [--amount N] (retired vault -> Revenue Share) | treasury --token 0x
 Env: FLASH_RPC_URL (default ${RPC_URL}), FLASH_API_URL, FLASH_WALLET / BANKR_WALLET_ADDRESS.`;
 
 const json = (value) => JSON.stringify(value, (_key, entry) => (typeof entry === 'bigint' ? entry.toString() : entry), 2);

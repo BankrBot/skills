@@ -311,13 +311,13 @@ export async function quantSweep(options) {
     [call({ to: K.flashV3.ledger, abi: A.v3Ledger, functionName: 'sweep', args: [poolId], description: 'Sweep FlashV3 pool fees and mint its owed QUANT to the pool creator (permissionless)' })], warnings);
 }
 
-// ------------------------------------------------------------------ Revenue Share (FLASH in, ETH out)
+// ------------------------------------------------------------------ Revenue Share (stake FLASH, earn ETH)
 
-const V = K.revenueShare.v2;
+const V = K.revenueShare.v3;
 const OLD = K.revenueShare.retired.flashPoolStaking;
-const MIN_DEPOSIT = 10n ** 16n; // 0.01 FLASH (FlashRevenueShareV2.MIN_DEPOSIT)
-const FORFEIT = 'Withdrawing does NOT return your unsold FLASH: it stays in the churn position for the remaining depositors. Only the ETH earned is paid. To take ETH and keep earning, use revshare-claim.';
-const v2 = (functionName, args = []) => read(V, A.revenueShareV2, functionName, args);
+const MIN_DEPOSIT = 10n ** 16n; // 0.01 FLASH (FlashRevenueShareV3.MIN_DEPOSIT)
+const STAKE = 'Staked FLASH stays in the contract (never in the churn) and withdraw returns all of it plus the earned ETH. revshare-claim takes the ETH and keeps the stake earning.';
+const v3 = (functionName, args = []) => read(V, A.revenueShareV3, functionName, args);
 const old = (functionName, args = []) => read(OLD, A.revenueShareRetired, functionName, args);
 
 /** The wallet's position in the retired vault, or undefined when it holds nothing there. */
@@ -329,29 +329,27 @@ async function retiredPosition(account) {
 const retiredView = (r) => r && ({
   vault: OLD, status: 'retired: no new revenue, withdraw-only', shares: fmt(r.shares), valueFlash: fmt(r.valueFlash),
   claimable: { weth: fmt(r.quote), flashRewards: fmt(r.rewards), tokenRewards: fmt(r.tokenRewards) },
-  next: 'revshare-migrate (claim, withdraw all, deposit into V2) or revshare-migrate --exit-only',
+  next: 'revshare-migrate (claim, withdraw all, stake into Revenue Share) or revshare-migrate --exit-only',
 });
 
 export async function revshareStatus(options) {
-  const [t, live] = await Promise.all([v2('totals'), api('/v1/stack/revenue-share?range=7d&limit=1').catch(() => undefined)]);
-  const [flashInPool, flashInChurn, totalShares, ethDistributed, ethPaid, flashRewarded, epoch, positionId] = t;
+  const [t, rev, liquidity, live] = await Promise.all([v3('totals'), v3('revenue'), v3('availableLiquidity'), api('/v1/stack/revenue-share?range=7d&limit=1').catch(() => undefined)]);
+  const [totalStaked, flashInChurn, , ethDistributed, ethPaid, flashRewarded, , positionId] = t;
   const out = {
-    ok: true, status: 'info', action: 'revshare-status', contract: V, deposit: 'FLASH', earns: 'ETH', minDepositFlash: fmt(MIN_DEPOSIT),
+    ok: true, status: 'info', action: 'revshare-status', contract: V, version: '3', stake: 'FLASH', earns: 'ETH', minDepositFlash: fmt(MIN_DEPOSIT),
     pool: {
-      flashInPool: fmt(flashInPool), flashInChurn: fmt(flashInChurn), idleFlash: fmt(flashInPool > flashInChurn ? flashInPool - flashInChurn : 0n),
-      totalShares: fmt(totalShares), ethDistributed: fmt(ethDistributed), ethPaid: fmt(ethPaid), flashRewarded: fmt(flashRewarded),
-      epoch: Number(epoch), positionId: positionId.toString(), churnMarket: K.churn.markets['FLASH/ETH'],
+      flashStaked: fmt(totalStaked), revenueFlashInChurn: fmt(flashInChurn), revenueFlashIdle: fmt(rev[0]),
+      ethDistributed: fmt(ethDistributed), ethPaid: fmt(ethPaid), flashRevenueLifetime: fmt(flashRewarded), flashLoanFeesLifetime: fmt(rev[1]), flashChurnedLifetime: fmt(rev[2]),
+      positionId: positionId.toString(), churnMarket: K.churn.markets['FLASH/ETH'],
     },
+    flashLoans: { availableFlash: fmt(liquidity), feeBps: 30 },
     kpis: live?.kpis && { apr7d: live.kpis.apr7d, apr30d: live.kpis.apr30d, earned7dUsd: live.kpis.earned7dUsd, depositedUsd: live.kpis.depositedUsd, depositors: live.depositors },
-    note: 'Deposit FLASH to earn ETH. All deposits sit in one full-range churn position that sells FLASH into ETH as buys fill it; depositors earn that ETH pro rata. claim keeps the deposit earning; withdraw pays the ETH and forfeits the unsold FLASH.',
+    note: `Stake FLASH to earn ETH. Revenue FLASH (protocol rewards + flash-loan fees) sits in one full-range churn position that sells into ETH; stakers earn that ETH pro rata to stake. ${STAKE}`,
   };
   if (options.wallet) {
     const account = getAddress(options.wallet);
-    const [acct, pending, unsold, retired] = await Promise.all([v2('accountOf', [account]), v2('pendingEth', [account]), v2('flashOf', [account]), retiredPosition(account)]);
-    out.position = {
-      shares: fmt(acct[0]), pendingEth: fmt(pending), flashUnsold: fmt(unsold), epoch: Number(acct[3]),
-      ...(acct[0] && acct[3] !== epoch ? { epochClosed: 'This epoch fully converted: these shares earn no more. Claim or withdraw the ETH.' } : {}),
-    };
+    const [staked, pending, retired] = await Promise.all([v3('flashOf', [account]), v3('pendingEth', [account]), retiredPosition(account)]);
+    out.position = { flashStaked: fmt(staked), pendingEth: fmt(pending) };
     if (retired) out.retired = retiredView(retired);
   }
   return out;
@@ -362,46 +360,43 @@ export async function revshareDeposit(options) {
   const amount = options.amount === 'all' ? await read(K.tokens.FLASH.address, A.erc20, 'balanceOf', [account]) : parseUnits(String(options.amount || ''), 18);
   if (!amount) throw new Error('--amount is required');
   if (amount < MIN_DEPOSIT) throw new Error(`Minimum deposit is ${fmt(MIN_DEPOSIT)} FLASH`);
-  const [shares, retired] = await Promise.all([v2('previewDeposit', [amount]), retiredPosition(account)]);
+  const retired = await retiredPosition(account);
   const txs = [
-    ...await approval(account, K.tokens.FLASH.address, V, amount, 'FLASH', 'Revenue Share V2'),
-    call({ to: V, abi: A.revenueShareV2, functionName: 'deposit', args: [amount], description: `Deposit ${fmt(amount)} FLASH into Revenue Share (earns ETH)` }),
+    ...await approval(account, K.tokens.FLASH.address, V, amount, 'FLASH', 'Revenue Share'),
+    call({ to: V, abi: A.revenueShareV3, functionName: 'deposit', args: [amount], description: `Stake ${fmt(amount)} FLASH in Revenue Share (earns ETH)` }),
   ];
   const warnings = retired?.shares ? [`This wallet still holds ${fmt(retired.shares)} shares in the retired vault ${OLD}: run revshare-migrate.`] : [];
-  return finish(account, 'revshare-deposit', { amount: fmt(amount), expectedShares: fmt(shares), earns: 'ETH' }, txs, warnings,
-    ['The FLASH is sold into ETH over time as buys fill the churn position; your share of that ETH accrues to you (revshare-claim).', FORFEIT]);
+  return finish(account, 'revshare-deposit', { amount: fmt(amount), flashStaked: fmt(amount), earns: 'ETH' }, txs, warnings, [STAKE]);
 }
 
 export async function revshareClaim(options) {
   const account = wallet(options);
-  const [pending, retired] = await Promise.all([v2('pendingEth', [account]), retiredPosition(account)]);
+  const [pending, retired] = await Promise.all([v3('pendingEth', [account]), retiredPosition(account)]);
   const txs = [];
-  if (pending) txs.push(call({ to: V, abi: A.revenueShareV2, functionName: 'claim', args: [account], description: `Claim ${fmt(pending)} ETH from Revenue Share (the deposit keeps earning)` }));
+  if (pending) txs.push(call({ to: V, abi: A.revenueShareV3, functionName: 'claim', args: [account], description: `Claim ${fmt(pending)} ETH from Revenue Share (the stake keeps earning)` }));
   if (retired?.quote) txs.push(call({ to: OLD, abi: A.revenueShareRetired, functionName: 'claimQuoteRewards', args: [account], description: `Claim ${fmt(retired.quote)} WETH from the retired vault` }));
   if (retired?.tokenRewards) txs.push(call({ to: OLD, abi: A.revenueShareRetired, functionName: 'claimTokenRewards', args: [account], description: `Claim ${fmt(retired.tokenRewards)} token rewards from the retired vault` }));
   if (!txs.length) return { ok: true, status: 'info', action: 'revshare-claim', summary: 'Nothing claimable' };
-  const warnings = retired?.shares ? ['The retired vault earns nothing new: run revshare-migrate to move into Revenue Share V2.'] : [];
+  const warnings = retired?.shares ? ['The retired vault earns nothing new: run revshare-migrate to stake into Revenue Share.'] : [];
   return finish(account, 'revshare-claim', { eth: fmt(pending), ...(retired ? { retired: { weth: fmt(retired.quote), token: fmt(retired.tokenRewards) } } : {}) }, txs, warnings);
 }
 
 export async function revshareWithdraw(options) {
   const account = wallet(options);
-  const [acct, pending, unsold] = await Promise.all([v2('accountOf', [account]), v2('pendingEth', [account]), v2('flashOf', [account])]);
-  const held = acct[0];
-  if (!held && !pending) {
+  const [staked, pending] = await Promise.all([v3('flashOf', [account]), v3('pendingEth', [account])]);
+  if (!staked && !pending) {
     const retired = await retiredPosition(account);
-    throw new Error(`Nothing to withdraw from Revenue Share V2${retired ? ' (this wallet has a retired-vault position: run revshare-migrate)' : ''}`);
+    throw new Error(`Nothing to withdraw from Revenue Share${retired ? ' (this wallet has a retired-vault position: run revshare-migrate)' : ''}`);
   }
-  const all = options.shares === 'all' || !options.shares;
-  const shares = all ? held : parseUnits(String(options.shares), 18);
-  if (shares > held) throw new Error(`Shares held: ${fmt(held)}`);
-  const forfeited = held ? (unsold * shares) / held : 0n;
-  return finish(account, 'revshare-withdraw', { sharesBurned: fmt(shares), ethPaid: fmt(pending), flashForfeited: fmt(forfeited), flashReturned: '0' },
-    [call({ to: V, abi: A.revenueShareV2, functionName: 'withdraw', args: [all ? maxUint256 : shares, account], description: `Withdraw from Revenue Share: receive ${fmt(pending)} ETH, forfeit ${fmt(forfeited)} unsold FLASH` })],
-    [`FORFEIT: ${fmt(forfeited)} unsold FLASH is NOT returned. ${FORFEIT}`]);
+  const requested = options.amount ?? options.shares; // --shares kept as an alias: stakes are 1:1
+  const all = !requested || requested === 'all';
+  const amount = all ? staked : parseUnits(String(requested), 18);
+  if (amount > staked) throw new Error(`FLASH staked: ${fmt(staked)}`);
+  return finish(account, 'revshare-withdraw', { flashReturned: fmt(amount), flashStillStaked: fmt(staked - amount), ethPaid: fmt(pending) },
+    [call({ to: V, abi: A.revenueShareV3, functionName: 'withdraw', args: [all ? maxUint256 : amount, account], description: `Withdraw from Revenue Share: receive ${fmt(amount)} FLASH and ${fmt(pending)} ETH` })]);
 }
 
-/** Retired vault -> V2: claim WETH / token rewards, withdraw every share (principal + FLASH rewards), exact-approve, deposit. */
+/** Retired vault -> Revenue Share: claim WETH / token rewards, withdraw every share (principal + FLASH rewards), exact-approve, stake. */
 export async function revshareMigrate(options) {
   const account = wallet(options);
   const retired = await retiredPosition(account);
@@ -423,15 +418,15 @@ export async function revshareMigrate(options) {
   const exitOnly = Boolean(options['exit-only']);
   const amount = exitOnly ? 0n : options.amount ? parseUnits(String(options.amount), 18) : flashOut;
   const deposit = !exitOnly && amount >= MIN_DEPOSIT;
-  const warnings = !exitOnly && amount && !deposit ? [`Only ${fmt(amount)} FLASH comes out: under the ${fmt(MIN_DEPOSIT)} FLASH minimum, so nothing is redeposited.`] : [];
+  const warnings = !exitOnly && amount && !deposit ? [`Only ${fmt(amount)} FLASH comes out: under the ${fmt(MIN_DEPOSIT)} FLASH minimum, so nothing is staked.`] : [];
   if (deposit) {
-    txs.push(...await approval(account, K.tokens.FLASH.address, V, amount, 'FLASH', 'Revenue Share V2'));
-    txs.push(call({ to: V, abi: A.revenueShareV2, functionName: 'deposit', args: [amount], description: `Deposit ${fmt(amount)} FLASH into Revenue Share V2 (earns ETH)` }));
+    txs.push(...await approval(account, K.tokens.FLASH.address, V, amount, 'FLASH', 'Revenue Share'));
+    txs.push(call({ to: V, abi: A.revenueShareV3, functionName: 'deposit', args: [amount], description: `Stake ${fmt(amount)} FLASH in Revenue Share (earns ETH)` }));
   }
   return finish(account, 'revshare-migrate', {
     from: OLD, to: deposit ? V : undefined, sharesWithdrawn: fmt(retired.shares), flashOut: fmt(flashOut), wethClaimed: fmt(retired.quote), tokenRewardsClaimed: fmt(retired.tokenRewards),
-    depositFlash: fmt(deposit ? amount : 0n), expectedShares: deposit ? fmt(await v2('previewDeposit', [amount])) : '0',
-  }, txs, warnings, deposit ? ['Revenue Share V2 pays ETH (no WETH or FLASH rewards).', FORFEIT] : ['Exit only: the FLASH stays in the wallet.']);
+    flashStaked: fmt(deposit ? amount : 0n),
+  }, txs, warnings, deposit ? ['Revenue Share pays ETH (no WETH or FLASH rewards).', STAKE] : ['Exit only: the FLASH stays in the wallet.']);
 }
 
 // ------------------------------------------------------------------ treasuries

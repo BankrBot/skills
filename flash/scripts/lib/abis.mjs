@@ -304,31 +304,45 @@ export const treasury = parseAbi([
   'function rewardAsset() view returns (address)',
 ]);
 
-/** FlashRevenueShareV2 (ERC-1967 proxy): FLASH in, one full-range churn position, ETH out. */
-export const revenueShareV2 = parseAbi([
+/** FlashRevenueShareV3 (ERC-1967 proxy): stake FLASH 1:1 (flash-loan liquidity), revenue FLASH churns to ETH, ETH out. */
+export const revenueShareV3 = parseAbi([
+  'function version() pure returns (string)',
   'function flash() view returns (address)',
   'function weth() view returns (address)',
   'function churn() view returns (address)',
   'function marketId() view returns (bytes32)',
   'function owner() view returns (address)',
   'function MIN_DEPOSIT() view returns (uint256)',
+  'function flashFeeBps() view returns (uint256)',
+  'function CALLBACK_SUCCESS() view returns (bytes32)',
   'function pendingEth(address account) view returns (uint256)',
   'function flashOf(address account) view returns (uint256)',
-  'function previewDeposit(uint256 amount) view returns (uint256)',
+  'function previewDeposit(uint256 amount) pure returns (uint256)',
   'function accountOf(address account) view returns (uint256 shares,uint256 debt,uint256 owed,uint64 epoch)',
   'function totals() view returns (uint256 flashInPool,uint256 flashInChurn,uint256 totalShares,uint256 ethDistributed,uint256 ethPaid,uint256 flashRewarded,uint64 epoch,uint256 positionId)',
-  'function deposit(uint256 amount) returns (uint256 shares)',
+  'function revenue() view returns (uint256 idle,uint256 flashFees,uint256 flashChurned)',
+  'function flashFee(uint256 amount) pure returns (uint256)',
+  'function maxFlashLoan(address asset) view returns (uint256)',
+  'function availableLiquidity() view returns (uint256)',
+  'function deposit(uint256 amount) returns (uint256 staked)',
   'function claim(address to) returns (uint256 eth)',
-  'function withdraw(uint256 sharesToBurn,address to) returns (uint256 eth)',
+  'function withdraw(uint256 amount,address to) returns (uint256 eth)',
   'function addAssetReward(bytes32 marketId,uint256 amount) returns (uint256 received)',
-  'function flush()',
+  'function flush() returns (uint256 amount)',
   'function harvest()',
+  'function flashLoan(address receiver,uint256 amount,bytes data) returns (bool)',
+  'event Deposited(address indexed account,uint256 flashIn,uint256 shares)',
+  'event Claimed(address indexed account,address indexed to,uint256 eth)',
+  'event Withdrawn(address indexed account,uint256 sharesBurned,uint256 flashReturned)',
+  'event FlashLoan(address indexed receiver,address indexed initiator,uint256 amount,uint256 fee)',
   'error BelowMinimum()',
-  'error ZeroShares()',
   'error WrongMarket()',
   'error NothingToWithdraw()',
-  'error ChurnUnavailable()',
   'error Protected()',
+  'error NothingToFlush()',
+  'error InsufficientLiquidity()',
+  'error BadCallback()',
+  'error NotRepaid()',
 ]);
 
 /** FlashPoolStaking: the RETIRED Revenue Share vault. No new revenue; withdraw-only for its remaining holders. */

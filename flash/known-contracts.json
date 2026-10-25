@@ -1,7 +1,7 @@
 {
   "chainId": 8453,
   "chain": "base",
-  "source": "Flash_Protocol/ecosystem/deployments/base-mainnet.json and app/src/stackContracts.ts, lv5.ts, contracts.ts, perpV5Migrator.ts (stack live 2026-10-22, Token Wars V6 live 2026-10-23, perps TP/SL + lens + treasury shares live 2026-10-24, Revenue Share V2 live 2026-10-25)",
+  "source": "Flash_Protocol/ecosystem/deployments/base-mainnet.json and app/src/stackContracts.ts, lv5.ts, contracts.ts, perpV5Migrator.ts (stack live 2026-10-22, Token Wars V6 live 2026-10-23, perps TP/SL + lens + treasury shares live 2026-10-24, Revenue Share V3 live 2026-10-25)",
   "owner": {
     "safe": "0x29C1BF0c85a9a479c1B47B847cd3Fb1C6dC5e5bD",
     "treasury": "0xD1EC8245c8850A151843ce8a3AFdca3b19747706"
@@ -73,10 +73,10 @@
     "shares": "0x98C29eC362A4e76975002778Bb2E91B99e4A288F"
   },
   "revenueShare": {
-    "v2": "0x7c36Ac8bec2D206984702790dB158fcAAFe69490",
-    "v2Implementation": "0x0fca4d706F978812060b974dD7b2A65DA13F208A",
+    "v3": "0x7c36Ac8bec2D206984702790dB158fcAAFe69490",
+    "v3Implementation": "0x7Ba4b0d63fc449D130F7259C231A7204ddcC7820",
     "churnMarket": "FLASH/ETH",
-    "note": "FlashRevenueShareV2 (ERC-1967 proxy, Safe-owned, live 2026-10-25): deposit FLASH, earn ETH. Deposits sit in one full-range churn position that sells into ETH; withdraw pays owed ETH and forfeits the unsold FLASH to the remaining depositors.",
+    "note": "FlashRevenueShareV3 (ERC-1967 proxy, Safe-owned, version 3, upgraded from V2 2026-10-25): stake FLASH 1:1, earn ETH. Staked FLASH stays in the contract as flash-loan liquidity (30 bps fee) and withdraw returns all of it plus earned ETH. Only revenue FLASH (addAssetReward + flash-loan fees) goes into one full-range churn position; the ETH its fills pay is the reward, pro rata to stake.",
     "retired": {
       "flashPoolStaking": "0x5cf120b13086277f83f901ea4df4fA8A45d577b0",
       "note": "Old vault: no new revenue since 2026-10-25, withdraw-only for its remaining holders (revshare-migrate)."

@@ -94,8 +94,8 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | treasury-v3 config | `0xc7151Ee6458f3AAdD1B32aF05Be690c7d3669754` |
 | QUANT treasury | `0x6A7faA6B8F0C7f66dFCa2Bb5dd1BCa0915bc55E5` |
 | Treasury shares (creator cut per treasury, `FlashTreasuryShares`, ownerless) | `0x98C29eC362A4e76975002778Bb2E91B99e4A288F` |
-| Revenue Share V2 (`FlashRevenueShareV2` proxy, Safe-owned; FLASH in, ETH out) | `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` |
-| Revenue Share V2 implementation | `0x0fca4d706F978812060b974dD7b2A65DA13F208A` |
+| Revenue Share (`FlashRevenueShareV3` proxy, Safe-owned; stake FLASH, earn ETH, FLASH flash loans) | `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` |
+| Revenue Share V3 implementation | `0x7Ba4b0d63fc449D130F7259C231A7204ddcC7820` |
 | Retired Revenue Share vault (`FlashPoolStaking`, withdraw-only, no new revenue) | `0x5cf120b13086277f83f901ea4df4fA8A45d577b0` |
 
 ## Pool keys

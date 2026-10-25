@@ -9,7 +9,7 @@ description: >
   trade QUANT, place limit orders and limit-order curves on the churn, manage Lattices, launch
   tokens on launch-v5 bonding curves (ETH / FLASH / STOCK / PERP pairs, reward asset, graduation,
   creator fees, treasuries, wallet-signed token profiles with required art), play Token Wars V6 (enter, back, jump, cash out, claim), and use
-  FLASH Revenue Share (deposit FLASH to earn ETH). A Node CLI reads the chain and returns simulated, unsigned transactions.
+  FLASH Revenue Share (stake FLASH to earn ETH). A Node CLI reads the chain and returns simulated, unsigned transactions.
   It never signs. Triggers on: "flash", "$FLASH", "tryflash", "buy FLASH", "flash referral code",
   "king of the hill", "koth", "ETH2xL", "flash perps", "take profit", "stop loss", "QUANT", "claim QUANT", "limit order curve",
   "lattice", "flash launch", "bonding curve on flash", "token wars", "flash revenue share".
@@ -38,7 +38,7 @@ Flash runs on **Base, chain id 8453**. Every product sits on Uniswap v4 pools wi
 | **Limit orders / curves / Lattices** | Churn levels sell inside other people's buys at or above a floor. A curve order places many levels in one transaction. | [LIMIT-ORDERS.md](references/LIMIT-ORDERS.md) |
 | **Launches (launch-v5)** | Bonding curves priced in FLASH that graduate to a FlashV3 pool paired with ETH, FLASH, a stock or a perp. Token art is required: save a wallet-signed profile first. | [LAUNCHES.md](references/LAUNCHES.md) |
 | **Token Wars V6** | Group launches: back candidates with ETH, USDC or FLASH, jump, cash out. The winner launches. | [TOKEN-WARS.md](references/TOKEN-WARS.md) |
-| **Revenue Share, stocks, portfolio** | Deposit FLASH to earn ETH. Tokenized stocks serve as launch quotes. Wallet balances. | [REVENUE-STOCKS-PORTFOLIO.md](references/REVENUE-STOCKS-PORTFOLIO.md) |
+| **Revenue Share, stocks, portfolio** | Stake FLASH to earn ETH (keepers flash-borrow the stake). Tokenized stocks serve as launch quotes. Wallet balances. | [REVENUE-STOCKS-PORTFOLIO.md](references/REVENUE-STOCKS-PORTFOLIO.md) |
 
 Addresses: [CONTRACTS.md](references/CONTRACTS.md) and [`known-contracts.json`](known-contracts.json). Read API: [API.md](references/API.md).
 
@@ -78,7 +78,7 @@ Addresses: [CONTRACTS.md](references/CONTRACTS.md) and [`known-contracts.json`](
 | Launch a token (save the signed profile with art first: [LAUNCHES.md](references/LAUNCHES.md#token-profile-image-required-wallet-signed)) | `launch-create --name N --symbol S --pair ETH\|FLASH\|STOCK\|PERP [--quote NVDAc\|ETH2xL] --eth 0.01 [--mode 1 --preset 1 --reward 0x..]` |
 | Trade and manage a launch | `launch-info`, `launch-buy --eth\|--flash`, `launch-sell`, `launch-graduate`, `launch-claim`, `launch-refund`, `launch-creator-claim`, `launch-airdrop`, `treasury` |
 | Token Wars | `war-status`, `war-enter`, `war-back --id N --pay ETH\|USDC\|FLASH --amount X`, `war-sell`, `war-jump`, `war-claim`, `war-refund`, `war-creator-claim`, `war-open`, `war-finalize` |
-| Revenue Share | `revshare-status`, `revshare-deposit --amount N`, `revshare-claim`, `revshare-withdraw` (forfeits unsold FLASH), `revshare-migrate` (retired vault) |
+| Revenue Share | `revshare-status`, `revshare-deposit --amount N`, `revshare-claim`, `revshare-withdraw` (full stake + ETH), `revshare-migrate` (retired vault) |
 | Misc | `wrap-eth --amount N` (ETH-pair launches trade against WETH), `contracts`, `api /v1/stack/live` |
 
 ## Rules the agent must keep

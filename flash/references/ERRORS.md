@@ -24,9 +24,10 @@ The CLI decodes reverts with the ABIs plus `scripts/lib/errors.json`, which maps
 | `AlreadyEntered()` | Token War | One candidate per wallet per war |
 | `InvalidCandidate()` | Token War | Wrong candidate id, or the war is not trading. |
 | `BelowGoal(requiredUsd18, realisedUsd18)` | `launchpad.finalize` | Graduation waits for ETH depth on the FLASH/ETH pool. |
-| `BelowMinimum()` | Revenue Share V2 `deposit` | Deposit at least 0.01 FLASH |
-| `NothingToWithdraw()` | Revenue Share V2 `withdraw` | No shares and no ETH owed |
-| `ChurnUnavailable()` | Revenue Share V2 `deposit` | The churn position could not be read. Retry later |
+| `BelowMinimum()` | Revenue Share `deposit` | Deposit at least 0.01 FLASH |
+| `NothingToWithdraw()` | Revenue Share `withdraw` | No stake and no ETH owed |
+| `NothingToFlush()` | Revenue Share `flush` | No idle revenue FLASH to move into the churn |
+| `InsufficientLiquidity()` / `BadCallback()` / `NotRepaid()` | Revenue Share `flashLoan` | Zero or more than the FLASH held / `onFlashLoan` did not return `keccak256("IFlashBorrower.onFlashLoan")` / `amount + fee` not approved and repaid |
 | `PermanentOwnerStake()` | Retired Revenue Share vault | The protocol owner's locked stake. Never hit by users. |
 | `ExitBelowMinimum` / `BuyBelowMinimum` / `UnknownToken` / `BadV5Market` | Perps migrator | One migration leg missed its minimum, or the token has no route |
 | `Slippage(got, min)` | `issuer.unwind` | USDC out below the minimum |

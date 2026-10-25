@@ -2,28 +2,40 @@
 
 ## FLASH Revenue Share
 
-Revenue Share is `FlashRevenueShareV2`, an ERC-1967 proxy at `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` (owned by the Safe). Deposit FLASH, earn ETH.
+Revenue Share is `FlashRevenueShareV3` (`version()` = `"3"`), an ERC-1967 proxy at `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` (implementation `0x7Ba4b0d63fc449D130F7259C231A7204ddcC7820`, owned by the Safe). Stake FLASH, earn ETH.
 
-- **Deposit:** FLASH, minimum 0.01 (`MIN_DEPOSIT()`), no lockup, no fee. All deposited FLASH sits in **one full-range churn position** (churn core, FLASH/ETH market `0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b`) that sells FLASH into ETH as buys fill it.
-- **Earnings:** that ETH, pro rata to shares. Protocol revenue (FLASH buyback, King of the Hill, launch-v5 vault, treasury-v3) adds FLASH to the same position through `addAssetReward`, which is a protocol entry, not a user call.
-- **Claim:** pays the earned ETH and keeps the deposit earning.
-- **Withdraw:** pays all earned ETH and burns shares. **The unsold FLASH is not returned**: it stays in the position for the remaining depositors. Say so before every withdraw.
-- ETH is paid as native ETH, or WETH when the receiver rejects ETH. When the position fully converts, an epoch closes: old shares keep their ETH and stop earning, and the next deposit starts at 1:1.
+- **Stake:** `deposit` stakes FLASH 1:1, minimum 0.01 (`MIN_DEPOSIT()`), no lockup, no fee. Staked FLASH stays in the contract, never in the churn. It is the flash-loan liquidity keepers borrow.
+- **Revenue:** protocol FLASH (`addAssetReward` from the buyback, King of the Hill, launch-v5 vault and treasury-v3; a protocol entry, not a user call) plus flash-loan fees. `flush()` (anyone) moves that revenue FLASH into **one full-range churn position** (churn core, FLASH/ETH market `0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b`) that sells it into ETH as buys fill it.
+- **Earnings:** the ETH those fills pay, pro rata to stake, paid as native ETH (WETH when the receiver rejects ETH). `harvest()` (anyone) books fills; `pendingEth` already counts unharvested fills.
+- **Claim:** pays the earned ETH, keeps the stake earning.
+- **Withdraw:** returns the staked FLASH (any amount, any time) plus all earned ETH. Nothing is forfeited, and withdrawing never takes FLASH out of the churn.
 
 | Call | Selector / returns |
 | --- | --- |
-| `deposit(uint256 amount)` | `0xb6b55f25`, after `FLASH.approve(v2, amount)` (exact). Reverts `BelowMinimum()` under 0.01 FLASH |
+| `deposit(uint256 amount)` | `0xb6b55f25`, after an exact `FLASH.approve(revshare, amount)`; returns FLASH staked. Reverts `BelowMinimum()` under 0.01 FLASH |
 | `claim(address to)` | `0x1e83409a`, returns ETH paid (0 when nothing is owed) |
-| `withdraw(uint256 shares, address to)` | `0x00f714ce`, `type(uint256).max` = all. Reverts `NothingToWithdraw()` with no shares and no ETH owed |
+| `withdraw(uint256 amount, address to)` | `0x00f714ce`, `type(uint256).max` = all; sends the FLASH and all earned ETH to `to`. Reverts `NothingToWithdraw()` with no stake and no ETH owed |
 | `pendingEth(user)` | `0xbeae30f5`, earned unpaid ETH, including fills not yet harvested |
-| `flashOf(user)` | `0x4b57af1b`, the user's FLASH still unsold (what a withdraw forfeits) |
-| `accountOf(user)` | `0x8086b8ba`, `(shares, debt, owed, epoch)` |
-| `previewDeposit(amount)` | `0xef8b30f7`, shares a deposit mints now |
-| `totals()` | `0xc038a38e`, `(flashInPool, flashInChurn, totalShares, ethDistributed, ethPaid, flashRewarded, epoch, positionId)` |
+| `flashOf(user)` | `0x4b57af1b`, the user's staked FLASH (what a full withdraw returns) |
+| `accountOf(user)` | `0x8086b8ba`, `(shares, debt, owed, epoch)`; `shares` = staked FLASH |
+| `totals()` | `0xc038a38e`, `(flashInPool, flashInChurn, totalShares, ethDistributed, ethPaid, flashRewarded, epoch, positionId)`: `flashInPool` = `totalShares` = total staked, `flashInChurn` = revenue FLASH still unsold, `flashRewarded` = lifetime revenue FLASH |
+| `revenue()` | `0x3e9491a2`, `(idle, flashFees, flashChurned)`: revenue FLASH waiting for `flush`, lifetime flash-loan fees, lifetime FLASH churned |
+| `flush()` / `harvest()` | `0x6b9f96ea` / `0x4641257d`, anyone. `flush` reverts `NothingToFlush()` with no idle revenue |
 
-**Retired vault.** The old `FlashPoolStaking` `0x5cf120b13086277f83f901ea4df4fA8A45d577b0` gets no new revenue and is withdraw-only for its remaining holders: `withdraw(uint256 shares, address receiver)` `0x00f714ce` (returns the FLASH principal plus FLASH rewards), `claimQuoteRewards(receiver)` `0x90ad2fa4`, `claimRewards(receiver)` `0xef5cfb8c`, `claimTokenRewards(receiver)` `0x06aa52f9`; reads `sharesOf`, `convertToAssets`, `claimableQuoteRewards`, `claimableRewards`, `claimableTokenRewards`. Migrate = claim WETH and token rewards, withdraw every share, exact-approve the FLASH to V2, deposit. Never deposit into the old vault.
+### Flash loans (keepers)
 
-CLI: `revshare-status [--wallet W]` (V2 position, pending ETH, unsold FLASH, totals, any retired-vault position), `revshare-deposit --amount N|all`, `revshare-claim`, `revshare-withdraw [--shares N|all]` (states the forfeited FLASH), `revshare-migrate [--exit-only]` (retired vault to V2). API: `GET /v1/stack/revenue-share?range=7d&limit=50&account=0x..` returns `totals`, `depositors`, `lifetime`, `kpis` (`apr7d`, `apr30d`, `earned7dUsd`...), `points` (chart), `recent` (activity) and, with `account`, that wallet's deposits, claims and forfeited FLASH. `GET /v1/stack/live` carries the same `totals` as `revenueShare`.
+The staked FLASH is lendable in one transaction, with the same API, callback and 30 bps fee as the old `FlashPoolStaking`, so existing borrowers point at the new address unchanged.
+
+1. The keeper contract implements `onFlashLoan(address initiator, address token, uint256 amount, uint256 fee, bytes data) returns (bytes32)` (`0x23e30c8b`).
+2. It calls `flashLoan(address receiver, uint256 amount, bytes data)` (`0xe0232b42`). The contract sends `amount` FLASH to `receiver`, then calls `receiver.onFlashLoan(msg.sender, FLASH, amount, fee, data)`.
+3. The callback does its work, approves the Revenue Share proxy for `amount + fee` FLASH, and returns `keccak256("IFlashBorrower.onFlashLoan")` = `0xf51a74cb268a8f727edf953ddacc8f280294844b89df00cd2e0ae537e4b981d3` (`CALLBACK_SUCCESS()`).
+4. The contract pulls `amount + fee`. The fee is revenue: it is flushed into the churn and paid to stakers as ETH.
+
+Views: `flashFee(amount)` `0xa7af467a` = `ceil(amount * 30 / 10000)`, `maxFlashLoan(FLASH)` `0x613255ab` and `availableLiquidity()` `0x74375359` = FLASH held (stake plus idle revenue). Reverts: `InsufficientLiquidity()` (zero or above the balance), `BadCallback()` (wrong return value), `NotRepaid()` (balance short after the pull).
+
+**Retired vault.** The old `FlashPoolStaking` `0x5cf120b13086277f83f901ea4df4fA8A45d577b0` gets no new revenue and is withdraw-only for its remaining holders: `withdraw(uint256 shares, address receiver)` `0x00f714ce` (returns the FLASH principal plus FLASH rewards), `claimQuoteRewards(receiver)` `0x90ad2fa4`, `claimRewards(receiver)` `0xef5cfb8c`, `claimTokenRewards(receiver)` `0x06aa52f9`; reads `sharesOf`, `convertToAssets`, `claimableQuoteRewards`, `claimableRewards`, `claimableTokenRewards`. Migrate = claim WETH and token rewards, withdraw every share, exact-approve the FLASH to Revenue Share, deposit. Never deposit into the old vault.
+
+CLI: `revshare-status [--wallet W]` (staked FLASH, pending ETH, totals, revenue, flash-loan liquidity, any retired-vault position), `revshare-deposit --amount N|all`, `revshare-claim`, `revshare-withdraw [--amount N|all]` (reports `flashReturned` and `ethPaid`), `revshare-migrate [--exit-only]` (retired vault to Revenue Share). API: `GET /v1/stack/revenue-share?range=7d&limit=50&account=0x..` returns `totals`, `depositors`, `lifetime`, `kpis` (`apr7d`, `apr30d`, `earned7dUsd`...), `points` (chart), `recent` (activity) and, with `account`, that wallet's deposits, claims and withdrawals. `GET /v1/stack/live` carries the same `totals` as `revenueShare`.
 
 ## Tokenized stocks
 
