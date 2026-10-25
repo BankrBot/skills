@@ -2,27 +2,28 @@
 
 ## FLASH Revenue Share
 
-Revenue Share is the protocol's single revenue-share vault: `0x5cf120b13086277f83f901ea4df4fA8A45d577b0`.
+Revenue Share is `FlashRevenueShareV2`, an ERC-1967 proxy at `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` (owned by the Safe). Deposit FLASH, earn ETH.
 
-- **Deposit:** FLASH, with no lockup and no deposit fee.
-- **Earnings:** protocol revenue (WETH quote rewards and FLASH rewards from the buyback and fee routing) plus flash-loan fees (`flashFeeBps()` = 30).
-- **Withdraw:** any time, as shares.
-
-Neither the Referral Coin nor FlashV3 has a per-token staking contract: this vault is the only one.
+- **Deposit:** FLASH, minimum 0.01 (`MIN_DEPOSIT()`), no lockup, no fee. All deposited FLASH sits in **one full-range churn position** (churn core, FLASH/ETH market `0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b`) that sells FLASH into ETH as buys fill it.
+- **Earnings:** that ETH, pro rata to shares. Protocol revenue (FLASH buyback, King of the Hill, launch-v5 vault, treasury-v3) adds FLASH to the same position through `addAssetReward`, which is a protocol entry, not a user call.
+- **Claim:** pays the earned ETH and keeps the deposit earning.
+- **Withdraw:** pays all earned ETH and burns shares. **The unsold FLASH is not returned**: it stays in the position for the remaining depositors. Say so before every withdraw.
+- ETH is paid as native ETH, or WETH when the receiver rejects ETH. When the position fully converts, an epoch closes: old shares keep their ETH and stop earning, and the next deposit starts at 1:1.
 
 | Call | Selector / returns |
 | --- | --- |
-| `token()` / `quoteToken()` | FLASH / WETH |
-| `totalAssets()`, `totalShares()`, `convertToShares(a)`, `convertToAssets(s)` | vault math |
-| `sharesOf(user)`, `principalOf(user)` | position |
-| `claimableQuoteRewards(user)`, `claimableRewards(user)`, `claimableTokenRewards(user)` | WETH, FLASH, other token rewards |
-| `deposit(uint256 assets, address receiver)` | `0x6e553f65`, after `FLASH.approve(vault, assets)` |
-| `withdraw(uint256 shares, address receiver)` | `0x00f714ce` |
-| `claimQuoteRewards(receiver)` / `claimRewards(receiver)` / `claimTokenRewards(receiver)` | `0x90ad2fa4` / `0xef5cfb8c` / `0x06aa52f9` |
+| `deposit(uint256 amount)` | `0xb6b55f25`, after `FLASH.approve(v2, amount)` (exact). Reverts `BelowMinimum()` under 0.01 FLASH |
+| `claim(address to)` | `0x1e83409a`, returns ETH paid (0 when nothing is owed) |
+| `withdraw(uint256 shares, address to)` | `0x00f714ce`, `type(uint256).max` = all. Reverts `NothingToWithdraw()` with no shares and no ETH owed |
+| `pendingEth(user)` | `0xbeae30f5`, earned unpaid ETH, including fills not yet harvested |
+| `flashOf(user)` | `0x4b57af1b`, the user's FLASH still unsold (what a withdraw forfeits) |
+| `accountOf(user)` | `0x8086b8ba`, `(shares, debt, owed, epoch)` |
+| `previewDeposit(amount)` | `0xef8b30f7`, shares a deposit mints now |
+| `totals()` | `0xc038a38e`, `(flashInPool, flashInChurn, totalShares, ethDistributed, ethPaid, flashRewarded, epoch, positionId)` |
 
-`PermanentOwnerStake()` is the protocol owner's locked stake. It only affects the owner's wallet.
+**Retired vault.** The old `FlashPoolStaking` `0x5cf120b13086277f83f901ea4df4fA8A45d577b0` gets no new revenue and is withdraw-only for its remaining holders: `withdraw(uint256 shares, address receiver)` `0x00f714ce` (returns the FLASH principal plus FLASH rewards), `claimQuoteRewards(receiver)` `0x90ad2fa4`, `claimRewards(receiver)` `0xef5cfb8c`, `claimTokenRewards(receiver)` `0x06aa52f9`; reads `sharesOf`, `convertToAssets`, `claimableQuoteRewards`, `claimableRewards`, `claimableTokenRewards`. Migrate = claim WETH and token rewards, withdraw every share, exact-approve the FLASH to V2, deposit. Never deposit into the old vault.
 
-CLI: `revshare-status [--wallet W]`, `revshare-deposit --amount 100`, `revshare-withdraw [--shares N|all]`, `revshare-claim` (claims every non-zero reward). Earnings history: `GET /v1/tokens/0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84/chart` (Revenue Share series).
+CLI: `revshare-status [--wallet W]` (V2 position, pending ETH, unsold FLASH, totals, any retired-vault position), `revshare-deposit --amount N|all`, `revshare-claim`, `revshare-withdraw [--shares N|all]` (states the forfeited FLASH), `revshare-migrate [--exit-only]` (retired vault to V2). API: `GET /v1/stack/revenue-share?range=7d&limit=50&account=0x..` returns `totals`, `depositors`, `lifetime`, `kpis` (`apr7d`, `apr30d`, `earned7dUsd`...), `points` (chart), `recent` (activity) and, with `account`, that wallet's deposits, claims and forfeited FLASH. `GET /v1/stack/live` carries the same `totals` as `revenueShare`.
 
 ## Tokenized stocks
 

@@ -24,7 +24,10 @@ The CLI decodes reverts with the ABIs plus `scripts/lib/errors.json`, which maps
 | `AlreadyEntered()` | Token War | One candidate per wallet per war |
 | `InvalidCandidate()` | Token War | Wrong candidate id, or the war is not trading. |
 | `BelowGoal(requiredUsd18, realisedUsd18)` | `launchpad.finalize` | Graduation waits for ETH depth on the FLASH/ETH pool. |
-| `PermanentOwnerStake()` | Revenue Share | The protocol owner's locked stake. Never hit by users. |
+| `BelowMinimum()` | Revenue Share V2 `deposit` | Deposit at least 0.01 FLASH |
+| `NothingToWithdraw()` | Revenue Share V2 `withdraw` | No shares and no ETH owed |
+| `ChurnUnavailable()` | Revenue Share V2 `deposit` | The churn position could not be read. Retry later |
+| `PermanentOwnerStake()` | Retired Revenue Share vault | The protocol owner's locked stake. Never hit by users. |
 | `ExitBelowMinimum` / `BuyBelowMinimum` / `UnknownToken` / `BadV5Market` | Perps migrator | One migration leg missed its minimum, or the token has no route |
 | `Slippage(got, min)` | `issuer.unwind` | USDC out below the minimum |
 | `BelowMinimum(valueUsdc, minUsdc)` | Perps `place` / `placePair` / `update` | `qty x triggerNav` is under `minOrderUsdc()` ($10 today). |

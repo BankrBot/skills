@@ -304,7 +304,35 @@ export const treasury = parseAbi([
   'function rewardAsset() view returns (address)',
 ]);
 
-export const revenueShare = parseAbi([
+/** FlashRevenueShareV2 (ERC-1967 proxy): FLASH in, one full-range churn position, ETH out. */
+export const revenueShareV2 = parseAbi([
+  'function flash() view returns (address)',
+  'function weth() view returns (address)',
+  'function churn() view returns (address)',
+  'function marketId() view returns (bytes32)',
+  'function owner() view returns (address)',
+  'function MIN_DEPOSIT() view returns (uint256)',
+  'function pendingEth(address account) view returns (uint256)',
+  'function flashOf(address account) view returns (uint256)',
+  'function previewDeposit(uint256 amount) view returns (uint256)',
+  'function accountOf(address account) view returns (uint256 shares,uint256 debt,uint256 owed,uint64 epoch)',
+  'function totals() view returns (uint256 flashInPool,uint256 flashInChurn,uint256 totalShares,uint256 ethDistributed,uint256 ethPaid,uint256 flashRewarded,uint64 epoch,uint256 positionId)',
+  'function deposit(uint256 amount) returns (uint256 shares)',
+  'function claim(address to) returns (uint256 eth)',
+  'function withdraw(uint256 sharesToBurn,address to) returns (uint256 eth)',
+  'function addAssetReward(bytes32 marketId,uint256 amount) returns (uint256 received)',
+  'function flush()',
+  'function harvest()',
+  'error BelowMinimum()',
+  'error ZeroShares()',
+  'error WrongMarket()',
+  'error NothingToWithdraw()',
+  'error ChurnUnavailable()',
+  'error Protected()',
+]);
+
+/** FlashPoolStaking: the RETIRED Revenue Share vault. No new revenue; withdraw-only for its remaining holders. */
+export const revenueShareRetired = parseAbi([
   'function token() view returns (address)',
   'function quoteToken() view returns (address)',
   'function rewardToken() view returns (address)',
