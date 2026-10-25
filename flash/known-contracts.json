@@ -7,28 +7,11 @@
     "treasury": "0xD1EC8245c8850A151843ce8a3AFdca3b19747706"
   },
   "tokens": {
-    "ETH": {
-      "address": "0x0000000000000000000000000000000000000000",
-      "decimals": 18,
-      "note": "native ETH as a Uniswap v4 currency"
-    },
-    "WETH": {
-      "address": "0x4200000000000000000000000000000000000006",
-      "decimals": 18
-    },
-    "USDC": {
-      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-      "decimals": 6
-    },
-    "FLASH": {
-      "address": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84",
-      "decimals": 18,
-      "totalSupply": "69420"
-    },
-    "QUANT": {
-      "address": "0xb2000000000000000000006a9881C01617b77B08",
-      "decimals": 18
-    }
+    "ETH": { "address": "0x0000000000000000000000000000000000000000", "decimals": 18, "note": "native ETH as a Uniswap v4 currency" },
+    "WETH": { "address": "0x4200000000000000000000000000000000000006", "decimals": 18 },
+    "USDC": { "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "decimals": 6 },
+    "FLASH": { "address": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "decimals": 18, "totalSupply": "69420" },
+    "QUANT": { "address": "0xb2000000000000000000006a9881C01617b77B08", "decimals": 18 }
   },
   "uniswap": {
     "poolManager": "0x498581fF718922c3f8e6A244956aF099B2652b2b",
@@ -92,314 +75,74 @@
   "revenueShare": {
     "v3": "0x7c36Ac8bec2D206984702790dB158fcAAFe69490",
     "v3Implementation": "0x7Ba4b0d63fc449D130F7259C231A7204ddcC7820",
+    "keeperLoanExecutor": "0x71E8043A562C476C5E0e3c07A1904d993e988794",
+    "keeperLoanExecutorNote": "FlashKeeperLoanExecutor: registry keepers with capability bit 12 borrow the staked FLASH, profit sweeps to the treasury",
     "churnMarket": "FLASH/ETH",
     "note": "FlashRevenueShareV3 (ERC-1967 proxy, Safe-owned, version 3, upgraded from V2 2026-10-25): stake FLASH 1:1, earn ETH. Staked FLASH stays in the contract as flash-loan liquidity (30 bps fee) and withdraw returns all of it plus earned ETH. Only revenue FLASH (addAssetReward + flash-loan fees) goes into one full-range churn position; the ETH its fills pay is the reward, pro rata to stake.",
     "retired": {
       "flashPoolStaking": "0x5cf120b13086277f83f901ea4df4fA8A45d577b0",
       "note": "Old vault: no new revenue since 2026-10-25, withdraw-only for its remaining holders (revshare-migrate)."
-    },
-    "keeperLoanExecutor": "0x71E8043A562C476C5E0e3c07A1904d993e988794",
-    "keeperLoanExecutorNote": "FlashKeeperLoanExecutor: registry keepers with capability bit 12 borrow the staked FLASH, profit sweeps to the treasury"
+    }
   },
   "pools": {
     "FLASH/ETH": {
       "id": "0x8da9f93b7b96efd2091b9e2cc8cddf921d0237635adc5f046956576714a2824c",
-      "key": {
-        "currency0": "0x0000000000000000000000000000000000000000",
-        "currency1": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84",
-        "fee": 8388608,
-        "tickSpacing": 60,
-        "hooks": "0x57b18C5f0e028aB86a0888d578dE23e65F072ACC"
-      },
-      "token": "FLASH",
-      "quote": "ETH",
-      "gasFloorTx": 3200000,
-      "bindExtraGas": 88000
+      "key": { "currency0": "0x0000000000000000000000000000000000000000", "currency1": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "fee": 8388608, "tickSpacing": 60, "hooks": "0x57b18C5f0e028aB86a0888d578dE23e65F072ACC" },
+      "token": "FLASH", "quote": "ETH", "gasFloorTx": 3200000, "bindExtraGas": 88000
     },
     "QUANT/FLASH": {
       "id": "0x91fe9428ae1ed2938acef94d466f7f40603cdfb47cdb33cf6639fb4c6dffba8c",
-      "key": {
-        "currency0": "0xb2000000000000000000006a9881C01617b77B08",
-        "currency1": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84",
-        "fee": 8388608,
-        "tickSpacing": 200,
-        "hooks": "0xf4b67452C04017c706BEC809f39209f770Ef28Cc"
-      },
-      "token": "QUANT",
-      "quote": "FLASH",
-      "gasFloorTx": 6975725
+      "key": { "currency0": "0xb2000000000000000000006a9881C01617b77B08", "currency1": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "fee": 8388608, "tickSpacing": 200, "hooks": "0xf4b67452C04017c706BEC809f39209f770Ef28Cc" },
+      "token": "QUANT", "quote": "FLASH", "gasFloorTx": 6975725
     },
     "ETH/USDC hookless (pay-route leg)": [
-      {
-        "currency0": "0x0000000000000000000000000000000000000000",
-        "currency1": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        "fee": 3000,
-        "tickSpacing": 60,
-        "hooks": "0x0000000000000000000000000000000000000000"
-      },
-      {
-        "currency0": "0x0000000000000000000000000000000000000000",
-        "currency1": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        "fee": 500,
-        "tickSpacing": 10,
-        "hooks": "0x0000000000000000000000000000000000000000"
-      }
+      { "currency0": "0x0000000000000000000000000000000000000000", "currency1": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "fee": 3000, "tickSpacing": 60, "hooks": "0x0000000000000000000000000000000000000000" },
+      { "currency0": "0x0000000000000000000000000000000000000000", "currency1": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "fee": 500, "tickSpacing": 10, "hooks": "0x0000000000000000000000000000000000000000" }
     ]
   },
   "perpMarkets": {
     "note": "Pool key: currency0 USDC, currency1 the perp token, fee 8388608, tickSpacing 1, hooks perps.hook. gasTx = measured tx gas limit (call figure + 50k for ids >= 6). Trade only status live (ids 6-11, 16-24). Ids 0-5 are exit-only; 12-15 were never seeded.",
     "live": [
-      {
-        "id": 6,
-        "symbol": "ETH2xL",
-        "token": "0xB2000000000000000000009644514B1eAC20d754",
-        "vault": "0xe1A0503cd4Fb9fAcfD6615CE7145C5481a47331B",
-        "poolId": "0xd32c5c8820daffedcd738efc1390364caa6271267c1f210c9bfb15a0a3714740",
-        "gasFloor": 5250000,
-        "gasTx": 5687346
-      },
-      {
-        "id": 7,
-        "symbol": "BTC2xL",
-        "token": "0xB200000000000000000000BfDAb3110AA73808B1",
-        "vault": "0xf7909dc3eE0828873517CaD53dE6fB6b0a5BA410",
-        "poolId": "0x48fae8038953262a8f2fcbc689b2ff1c420519e46f596cb2c33570fc09e67d86",
-        "gasFloor": 8700000,
-        "gasTx": 9361528
-      },
-      {
-        "id": 8,
-        "symbol": "ETHMAXL",
-        "token": "0xB200000000000000000000481F439A9be136f219",
-        "vault": "0xCFB2A31e26ae20001f84871d406af138Dc925EAb",
-        "poolId": "0xad8e84241670d7177f1e5a304087f25e0ceee837c1caa3aba3313d3adc4856f1",
-        "gasFloor": 5150000,
-        "gasTx": 5581152
-      },
-      {
-        "id": 9,
-        "symbol": "XRP2xL",
-        "token": "0xB2000000000000000000005645a1D8b9AFcC8248",
-        "vault": "0xB31d75E4FEe5A10D4876dd4f8DCda743b4526E31",
-        "poolId": "0x4df1107e0fdfed1d6462a8bf2567a743991efc54eb0a17f77affda77b9e801b6",
-        "gasFloor": 7450000,
-        "gasTx": 8030328
-      },
-      {
-        "id": 10,
-        "symbol": "NVDA2xL",
-        "token": "0xb200000000000000000000563d2cA1451d746f9F",
-        "vault": "0xe93F7CAD02B70B404227244B56ec9cCeb24fAF14",
-        "poolId": "0xc5ff9e9bb8750d3c1ea6df1a5abedc676fa0a1d1c7e2b410c051bbe3e70538ba",
-        "gasFloor": 6400000,
-        "gasTx": 6912352
-      },
-      {
-        "id": 11,
-        "symbol": "ETH2xS",
-        "token": "0xB200000000000000000000f4091be2E8DB3a1896",
-        "vault": "0xBa381736f972961b6e07dBB31bb3929093b2bEce",
-        "poolId": "0x9e015d71030c197527a58608da0eaa085581ae14bb2e7de619e1593666fae88c",
-        "gasFloor": 6500000,
-        "gasTx": 7018546,
-        "side": "short"
-      },
-      {
-        "id": 16,
-        "symbol": "HYPE2xL",
-        "token": "0xB200000000000000000000801E479e58E1a90D01",
-        "vault": "0xeC3d2Ec284128b1648Ac79A965ed066B8DB55FF6",
-        "poolId": "0x29309d0a7a13819cc26748ca3639d40e68081c7507ec53925009cd1b3432b721",
-        "gasFloor": 4700000,
-        "gasTx": 5101183
-      },
-      {
-        "id": 17,
-        "symbol": "SOL2xL",
-        "token": "0xB200000000000000000000130f5fb5d65ccF99fd",
-        "vault": "0xf5c9E66125eF8A564C64F5C55459a1320B568F5B",
-        "poolId": "0x67fa8e0ab2679c79eeb89f6940ce30894459c7b5332e2df20ac1a506b3874be3",
-        "gasFloor": 7950000,
-        "gasTx": 8562975
-      },
-      {
-        "id": 18,
-        "symbol": "ZEC2xL",
-        "token": "0xb200000000000000000000263519E3A799902bC5",
-        "vault": "0xfa11b6892003d23E5617306A7545EbEc0a92E4D4",
-        "poolId": "0x17e2fc66a768fecc3a40eabe092c4f661e0c67cca63511281d9727e849085ec7",
-        "gasFloor": 4250000,
-        "gasTx": 4622051
-      },
-      {
-        "id": 19,
-        "symbol": "AERO2xL",
-        "token": "0xb200000000000000000000C26EDebFDF721e65aD",
-        "vault": "0xE90a27d4B119fBC4172b535d7DDFA750FDB6dB57",
-        "poolId": "0x34472ee38b2ea40dce9a95314abf5a1e7794e87b7e751c77d677839fee28e8d9",
-        "gasFloor": 9500000,
-        "gasTx": 10213597
-      },
-      {
-        "id": 20,
-        "symbol": "DOGE2xL",
-        "token": "0xb200000000000000000000AdA095D32710fe96C1",
-        "vault": "0xE67Bc5816E063A5aa5E5ee34A2B05Fba4bDCd809",
-        "poolId": "0xf622e7b4efc235194f4131422d8f31829346dd8e9dcb9676384cd8a443d2bda8",
-        "gasFloor": 5600000,
-        "gasTx": 6060283
-      },
-      {
-        "id": 21,
-        "symbol": "META2xL",
-        "token": "0xB200000000000000000000B1c6b3E5FA1852f63a",
-        "vault": "0xc10463aFd62dc2E1dDe30be1e9B1465ac63fB690",
-        "poolId": "0x6cf88bf5eb244a8546b17b150068ed1cccf359e382da598d9976b62965b2abea",
-        "gasFloor": 6200000,
-        "gasTx": 6699126
-      },
-      {
-        "id": 22,
-        "symbol": "AAPL2xL",
-        "token": "0xB20000000000000000000051Ae96aa4abc47dE20",
-        "vault": "0xBC7F2e7ce0d077A0ED40e238226C0d9fcC2FBd46",
-        "poolId": "0xad67e819cd1afb730340d99f11dfadc9e6d1fc54caacd9e47fdf8963d2229018",
-        "gasFloor": 4600000,
-        "gasTx": 4994988
-      },
-      {
-        "id": 23,
-        "symbol": "GOOGL2xL",
-        "token": "0xb20000000000000000000020162d13881075382e",
-        "vault": "0xFa52d07D0C4feFb6d11F53A85d6D3F65fA07C748",
-        "poolId": "0xaa2409e6f2f84adde5e489d8081fc8296d3b469692321665fb9ae968738b906e",
-        "gasFloor": 6400000,
-        "gasTx": 6912352
-      },
-      {
-        "id": 24,
-        "symbol": "SPCX2xL",
-        "token": "0xb200000000000000000000046e16550458738e91",
-        "vault": "0xF8c2886c7d882f703FCb77FCD3608B434442Cbe1",
-        "poolId": "0xcd7f12c7115661c319b609c5411323069c7e3a08ddc594e38398e3e7a6ce37b2",
-        "gasFloor": 4800000,
-        "gasTx": 5208214
-      }
+      { "id": 6, "symbol": "ETH2xL", "token": "0xB2000000000000000000009644514B1eAC20d754", "vault": "0xe1A0503cd4Fb9fAcfD6615CE7145C5481a47331B", "poolId": "0xd32c5c8820daffedcd738efc1390364caa6271267c1f210c9bfb15a0a3714740", "gasFloor": 5250000, "gasTx": 5687346 },
+      { "id": 7, "symbol": "BTC2xL", "token": "0xB200000000000000000000BfDAb3110AA73808B1", "vault": "0xf7909dc3eE0828873517CaD53dE6fB6b0a5BA410", "poolId": "0x48fae8038953262a8f2fcbc689b2ff1c420519e46f596cb2c33570fc09e67d86", "gasFloor": 8700000, "gasTx": 9361528 },
+      { "id": 8, "symbol": "ETHMAXL", "token": "0xB200000000000000000000481F439A9be136f219", "vault": "0xCFB2A31e26ae20001f84871d406af138Dc925EAb", "poolId": "0xad8e84241670d7177f1e5a304087f25e0ceee837c1caa3aba3313d3adc4856f1", "gasFloor": 5150000, "gasTx": 5581152 },
+      { "id": 9, "symbol": "XRP2xL", "token": "0xB2000000000000000000005645a1D8b9AFcC8248", "vault": "0xB31d75E4FEe5A10D4876dd4f8DCda743b4526E31", "poolId": "0x4df1107e0fdfed1d6462a8bf2567a743991efc54eb0a17f77affda77b9e801b6", "gasFloor": 7450000, "gasTx": 8030328 },
+      { "id": 10, "symbol": "NVDA2xL", "token": "0xb200000000000000000000563d2cA1451d746f9F", "vault": "0xe93F7CAD02B70B404227244B56ec9cCeb24fAF14", "poolId": "0xc5ff9e9bb8750d3c1ea6df1a5abedc676fa0a1d1c7e2b410c051bbe3e70538ba", "gasFloor": 6400000, "gasTx": 6912352 },
+      { "id": 11, "symbol": "ETH2xS", "token": "0xB200000000000000000000f4091be2E8DB3a1896", "vault": "0xBa381736f972961b6e07dBB31bb3929093b2bEce", "poolId": "0x9e015d71030c197527a58608da0eaa085581ae14bb2e7de619e1593666fae88c", "gasFloor": 6500000, "gasTx": 7018546, "side": "short" },
+      { "id": 16, "symbol": "HYPE2xL", "token": "0xB200000000000000000000801E479e58E1a90D01", "vault": "0xeC3d2Ec284128b1648Ac79A965ed066B8DB55FF6", "poolId": "0x29309d0a7a13819cc26748ca3639d40e68081c7507ec53925009cd1b3432b721", "gasFloor": 4700000, "gasTx": 5101183 },
+      { "id": 17, "symbol": "SOL2xL", "token": "0xB200000000000000000000130f5fb5d65ccF99fd", "vault": "0xf5c9E66125eF8A564C64F5C55459a1320B568F5B", "poolId": "0x67fa8e0ab2679c79eeb89f6940ce30894459c7b5332e2df20ac1a506b3874be3", "gasFloor": 7950000, "gasTx": 8562975 },
+      { "id": 18, "symbol": "ZEC2xL", "token": "0xb200000000000000000000263519E3A799902bC5", "vault": "0xfa11b6892003d23E5617306A7545EbEc0a92E4D4", "poolId": "0x17e2fc66a768fecc3a40eabe092c4f661e0c67cca63511281d9727e849085ec7", "gasFloor": 4250000, "gasTx": 4622051 },
+      { "id": 19, "symbol": "AERO2xL", "token": "0xb200000000000000000000C26EDebFDF721e65aD", "vault": "0xE90a27d4B119fBC4172b535d7DDFA750FDB6dB57", "poolId": "0x34472ee38b2ea40dce9a95314abf5a1e7794e87b7e751c77d677839fee28e8d9", "gasFloor": 9500000, "gasTx": 10213597 },
+      { "id": 20, "symbol": "DOGE2xL", "token": "0xb200000000000000000000AdA095D32710fe96C1", "vault": "0xE67Bc5816E063A5aa5E5ee34A2B05Fba4bDCd809", "poolId": "0xf622e7b4efc235194f4131422d8f31829346dd8e9dcb9676384cd8a443d2bda8", "gasFloor": 5600000, "gasTx": 6060283 },
+      { "id": 21, "symbol": "META2xL", "token": "0xB200000000000000000000B1c6b3E5FA1852f63a", "vault": "0xc10463aFd62dc2E1dDe30be1e9B1465ac63fB690", "poolId": "0x6cf88bf5eb244a8546b17b150068ed1cccf359e382da598d9976b62965b2abea", "gasFloor": 6200000, "gasTx": 6699126 },
+      { "id": 22, "symbol": "AAPL2xL", "token": "0xB20000000000000000000051Ae96aa4abc47dE20", "vault": "0xBC7F2e7ce0d077A0ED40e238226C0d9fcC2FBd46", "poolId": "0xad67e819cd1afb730340d99f11dfadc9e6d1fc54caacd9e47fdf8963d2229018", "gasFloor": 4600000, "gasTx": 4994988 },
+      { "id": 23, "symbol": "GOOGL2xL", "token": "0xb20000000000000000000020162d13881075382e", "vault": "0xFa52d07D0C4feFb6d11F53A85d6D3F65fA07C748", "poolId": "0xaa2409e6f2f84adde5e489d8081fc8296d3b469692321665fb9ae968738b906e", "gasFloor": 6400000, "gasTx": 6912352 },
+      { "id": 24, "symbol": "SPCX2xL", "token": "0xb200000000000000000000046e16550458738e91", "vault": "0xF8c2886c7d882f703FCb77FCD3608B434442Cbe1", "poolId": "0xcd7f12c7115661c319b609c5411323069c7e3a08ddc594e38398e3e7a6ce37b2", "gasFloor": 4800000, "gasTx": 5208214 }
     ],
     "exitOnly": [
-      {
-        "id": 0,
-        "symbol": "ETH2x",
-        "token": "0xB20000000000000000000020a813f90628801EF6",
-        "poolId": "0x4369f279f480dcbc26a792f32daa61a6a9378188ac0f2c79a7a87e3fa84b02f2",
-        "gasTx": 5585951,
-        "exit": "sell on its pool"
-      },
-      {
-        "id": 1,
-        "symbol": "BTC2x",
-        "token": "0xB2000000000000000000008207a8DB1C28D7bC12",
-        "poolId": "0x1cfdf1958b279fc775f69a3a0730e35edc4c1501ab8adf002a9e9d405049e9d6",
-        "gasTx": 9313474,
-        "exit": "issuer.unwind"
-      },
-      {
-        "id": 2,
-        "symbol": "ETHMAX",
-        "token": "0xB2000000000000000000004b58F1E1D5948Cc0d9",
-        "poolId": "0x67f05cd5ab11de5acf252c4483b4a63b8e52e0913b52de63cd5bb7fa43c978c5",
-        "gasTx": 5533286,
-        "exit": "issuer.unwind"
-      },
-      {
-        "id": 3,
-        "symbol": "XRP2x",
-        "token": "0xb2000000000000000000008143e22c048c7660DD",
-        "poolId": "0x89f272497aa36b67871b0be5967c7a1ad28d4fe9b1894ac4462cc0cb423be5b3",
-        "gasTx": 7982216,
-        "exit": "issuer.unwind"
-      },
-      {
-        "id": 4,
-        "symbol": "NVDA2x",
-        "token": "0xb200000000000000000000c1e2B5F65f62543985",
-        "poolId": "0xcfd0e15a8ead3fa51408be81c676e55da87960516e4a39bab4141d2bd6e1a1f0",
-        "gasTx": 5000782,
-        "exit": "issuer.unwind"
-      },
-      {
-        "id": 5,
-        "symbol": "ETH2xS (v1)",
-        "token": "0xB200000000000000000000A2Ed0aF8aB81eC0f51",
-        "poolId": "0x1b9cf1e2fd46e414875aa1b058118e3563b3522b7ec5d555f3829ec398919560",
-        "gasTx": 6970849,
-        "exit": "issuer.unwind"
-      }
+      { "id": 0, "symbol": "ETH2x", "token": "0xB20000000000000000000020a813f90628801EF6", "poolId": "0x4369f279f480dcbc26a792f32daa61a6a9378188ac0f2c79a7a87e3fa84b02f2", "gasTx": 5585951, "exit": "sell on its pool" },
+      { "id": 1, "symbol": "BTC2x", "token": "0xB2000000000000000000008207a8DB1C28D7bC12", "poolId": "0x1cfdf1958b279fc775f69a3a0730e35edc4c1501ab8adf002a9e9d405049e9d6", "gasTx": 9313474, "exit": "issuer.unwind" },
+      { "id": 2, "symbol": "ETHMAX", "token": "0xB2000000000000000000004b58F1E1D5948Cc0d9", "poolId": "0x67f05cd5ab11de5acf252c4483b4a63b8e52e0913b52de63cd5bb7fa43c978c5", "gasTx": 5533286, "exit": "issuer.unwind" },
+      { "id": 3, "symbol": "XRP2x", "token": "0xb2000000000000000000008143e22c048c7660DD", "poolId": "0x89f272497aa36b67871b0be5967c7a1ad28d4fe9b1894ac4462cc0cb423be5b3", "gasTx": 7982216, "exit": "issuer.unwind" },
+      { "id": 4, "symbol": "NVDA2x", "token": "0xb200000000000000000000c1e2B5F65f62543985", "poolId": "0xcfd0e15a8ead3fa51408be81c676e55da87960516e4a39bab4141d2bd6e1a1f0", "gasTx": 5000782, "exit": "issuer.unwind" },
+      { "id": 5, "symbol": "ETH2xS (v1)", "token": "0xB200000000000000000000A2Ed0aF8aB81eC0f51", "poolId": "0x1b9cf1e2fd46e414875aa1b058118e3563b3522b7ec5d555f3829ec398919560", "gasTx": 6970849, "exit": "issuer.unwind" }
     ]
   },
   "stocks": {
     "note": "Tokenized stocks (B20). Launch STOCK-pair quote assets and reward assets; portfolio holdings. Flash does not sell stocks itself.",
     "list": [
-      {
-        "symbol": "NVDAc",
-        "name": "Nvidia",
-        "address": "0xb20000000000000000000078ee7ce2fE4908108C"
-      },
-      {
-        "symbol": "METAc",
-        "name": "Meta",
-        "address": "0xb2000000000000000000008bC8786B856E61707C"
-      },
-      {
-        "symbol": "AAPLc",
-        "name": "Apple",
-        "address": "0xb200000000000000000000C2e324d24d7eEcd1fb"
-      },
-      {
-        "symbol": "GOOGLc",
-        "name": "Alphabet",
-        "address": "0xb2000000000000000000002D0BA3164cc74f58B7"
-      },
-      {
-        "symbol": "AMZNc",
-        "name": "Amazon",
-        "address": "0xb200000000000000000000d9192b6B456483C2E8"
-      },
-      {
-        "symbol": "MSFTc",
-        "name": "Microsoft",
-        "address": "0xB200000000000000000000Ab99cFa739E253872B"
-      },
-      {
-        "symbol": "MSTRc",
-        "name": "Strategy",
-        "address": "0xb2000000000000000000004884b426556b92883d"
-      },
-      {
-        "symbol": "SNDKc",
-        "name": "Sandisk",
-        "address": "0xb200000000000000000000397293Cb8cda9a10c5"
-      },
-      {
-        "symbol": "SPCXc",
-        "name": "SpaceX",
-        "address": "0xb2000000000000000000007b9fcbd005511aCBd5"
-      },
-      {
-        "symbol": "TSLAc",
-        "name": "Tesla",
-        "address": "0xb2000000000000000000001e800a7f5189430cD0"
-      },
-      {
-        "symbol": "MUc",
-        "name": "Micron",
-        "address": "0xb200000000000000000000Fd2f87532B90095211"
-      },
-      {
-        "symbol": "PLTRc",
-        "name": "Palantir",
-        "address": "0xb2000000000000000000007d16372840dF4dAbbe"
-      }
+      { "symbol": "NVDAc", "name": "Nvidia", "address": "0xb20000000000000000000078ee7ce2fE4908108C" },
+      { "symbol": "METAc", "name": "Meta", "address": "0xb2000000000000000000008bC8786B856E61707C" },
+      { "symbol": "AAPLc", "name": "Apple", "address": "0xb200000000000000000000C2e324d24d7eEcd1fb" },
+      { "symbol": "GOOGLc", "name": "Alphabet", "address": "0xb2000000000000000000002D0BA3164cc74f58B7" },
+      { "symbol": "AMZNc", "name": "Amazon", "address": "0xb200000000000000000000d9192b6B456483C2E8" },
+      { "symbol": "MSFTc", "name": "Microsoft", "address": "0xB200000000000000000000Ab99cFa739E253872B" },
+      { "symbol": "MSTRc", "name": "Strategy", "address": "0xb2000000000000000000004884b426556b92883d" },
+      { "symbol": "SNDKc", "name": "Sandisk", "address": "0xb200000000000000000000397293Cb8cda9a10c5" },
+      { "symbol": "SPCXc", "name": "SpaceX", "address": "0xb2000000000000000000007b9fcbd005511aCBd5" },
+      { "symbol": "TSLAc", "name": "Tesla", "address": "0xb2000000000000000000001e800a7f5189430cD0" },
+      { "symbol": "MUc", "name": "Micron", "address": "0xb200000000000000000000Fd2f87532B90095211" },
+      { "symbol": "PLTRc", "name": "Palantir", "address": "0xb2000000000000000000007d16372840dF4dAbbe" }
     ]
   },
   "api": {
