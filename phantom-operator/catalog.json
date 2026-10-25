@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "phantom-operator",
+  "provider": "PhantomOperator",
+  "providerUrl": "https://freysaai.freysa.dev",
+  "logo": "phantom-operator.png",
+  "demo": {
+    "title": "Discover and call PhantomOperator over x402",
+    "language": "bash",
+    "code": "curl -s https://freysaai.freysa.dev/.well-known/x402\n# Inspect payment requirements, then POST to a skill endpoint with an x402 payment header."
+  },
+  "setup": [
+    "No API key or account is required.",
+    "Discover payment requirements at https://freysaai.freysa.dev/.well-known/x402.",
+    "Pay in native USDC on Base (eip155:8453) through x402, then call a documented skill endpoint."
+  ],
+  "install": {
+    "type": "github",
+    "repoUrl": "https://github.com/normancomics/PhantomOperator",
+    "repoPath": "SKILL.md",
+    "command": "Install the phantom-operator skill from https://github.com/normancomics/PhantomOperator/blob/main/SKILL.md"
+  }
+}
