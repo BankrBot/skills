@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "slug": "trollbridge",
+  "provider": "TrollBridge",
+  "providerUrl": "https://mini-tollbooth.onrender.com",
+  "description": "TrollBridge is an x402 pay-per-call intel gateway with 64 lanes — no subscription, USDC on Base or Solana. This skill exposes its five pre-trade safety lanes for Base tokens: /contract-check, a heuristic contract safety screen returning a 0-100 risk score (explicitly NOT an audit); /honeypot; /rug-score; /approval-screen; and /tx-dryrun. Each lane returns machine-readable JSON so a Bankr agent can decide whether a token, approval, or transaction is safe to touch before it trades.",
+  "shortDescription": "Pay-per-call x402 safety screens for Base tokens: contract check, honeypot, rug score, approval screen, tx dry-run",
+  "license": "Apache-2.0",
+  "logo": "logo.svg",
+  "tags": ["x402", "defi", "safety", "base", "risk", "pre-trade", "intel"],
+  "demo": {
+    "title": "trollbridge.sh",
+    "language": "bash",
+    "code": "# Screen a fresh Base token before buying (contract-check $0.10 + honeypot $0.02 + rug-score $0.02 = $0.14)\n# Step 1: request a lane - the service replies 402 with USDC payment instructions\ncurl -s -X POST https://mini-tollbooth.onrender.com/honeypot \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"chain\":\"base\",\"token_address\":\"0x...\"}'\n\n# Step 2: pay the quoted USDC amount on Base or Solana via your x402 stack,\n# then retry with the payment header - the service returns the screening result\n# (machine-readable JSON with risk scores and flags)\n\n# Chain the lanes: contract-check before a first buy, approval-screen before\n# signing an approval, tx-dryrun before submitting a transaction.\n# Screens are heuristic checks, NOT audits - a clean screen never proves a token is safe."
+  },
+  "install": {
+    "type": "external",
+    "description": "No installation needed — TrollBridge is a hosted x402 API. Call lanes over HTTPS at https://mini-tollbooth.onrender.com and pay per call in USDC on Base or Solana."
+  }
+}
