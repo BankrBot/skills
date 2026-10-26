@@ -211,7 +211,10 @@ topic 2. Read it by that layout, not by an event-signature hash.
 6. Build the copy as a NEW call:
    - `id`: a new id, e.g. `"copy_<ms timestamp>"`. Never reuse the source call's `id`: an id belongs to
      the wallet that published it first, so a reused id can never be published from this wallet.
-   - `symbol`, `direction`, `entryPrice`, `stopLoss`, `takeProfit1`, `takeProfit2` from the source
+   - `symbol`, `direction`, `entryPrice`, `stopLoss`, `takeProfit1`, `takeProfit2`, and `exitPlan`
+     (when the source has `exitPlan: "SPLIT_50"`) from the source. Keep them together: a copy with
+     `takeProfit2` but no `exitPlan` is graded TP1-only, a different trade. Entry 100, stop 90, TP1 120,
+     TP2 140, price hits TP1 and then the stop: the source grades +0.5R, a copy without `exitPlan` +2R.
    - `notes`: "Copied from [source name or wallet]" plus the source's notes
    - `createdAt: <now in ms>`, `status: "ACTIVE"`, `isPublic: false` (the user decides; publishing is permanent)
    - Sizing fields if you computed them (`accountSize`, `riskPercent`, `positionSize`, `leverage`)
