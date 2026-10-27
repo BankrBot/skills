@@ -244,7 +244,7 @@ agent has checked the chain itself:
 | Cancel order | `POST https://og.nexustradinglabs.com/cancel` | walletSig |
 | Order status | `POST https://og.nexustradinglabs.com/order-status` | walletSig |
 | Order history | `POST https://og.nexustradinglabs.com/order-history` | walletSig |
-| Refresh the Trade Tracker (on request, after an opt-in) | `/order-history` + `/positions` → snapshot in `appkv` | walletSig |
+| Refresh my orders (on request, after an opt-in) | `/order-history` + `/positions` → snapshot in the user's own drive | walletSig |
 | Positions | `POST https://og.nexustradinglabs.com/positions` | walletSig |
 | Balance | `POST https://og.nexustradinglabs.com/balance` | walletSig |
 | Set leverage | `POST https://og.nexustradinglabs.com/set-leverage` | walletSig |
