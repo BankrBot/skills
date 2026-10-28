@@ -1,360 +1,193 @@
 # Token Deployment Reference
 
-Deploy and manage tokens on Base and Robinhood Chain (via Doppler / Uniswap V4) and Solana (via Raydium LaunchLab). Older tokens launched through Clanker remain fully claimable; fee claims auto-detect Doppler vs Clanker.
+Launch ERC-20 tokens on **Base**, **Robinhood Chain** and **Arbitrum One** (Doppler, a Uniswap V4 pool) or on **Arc** (Bankr Launch v3). **Solana token launches are not supported.** Older Clanker tokens stay claimable — fee claims auto-detect Doppler, Clanker and Launch v3.
 
-## Supported Chains
+The deploy, quote-token and fee endpoints are in the [OpenAPI spec](https://docs.bankr.bot/openapi/api.yaml); the narrative guide is the [token launching overview](https://docs.bankr.bot/token-launching/overview).
 
-| Chain | Protocol | Token Standard | Best For |
-|-------|----------|----------------|----------|
-| **Base** (default) | Doppler (Uniswap V4) | ERC20 | Memecoins, social/agent tokens |
-| **Robinhood Chain** | Doppler (Uniswap V4) | ERC20 | Memecoins alongside tokenized stocks |
-| **Solana** | Raydium LaunchLab | SPL | High-speed trading, bonding curves |
+## Chains and providers
 
-> **Builder exits:** selling a token you earn creator fees on through Bankr's ordinary swap/limit/stop/DCA/TWAP tools is intentionally restricted (buying and transferring still work). To take profit, builders use a **Glidepath** — a capped, AI-paced gradual sell managed from the token page at [bankr.bot](https://bankr.bot). Glidepath is a web feature, not a CLI/API action. Details: https://docs.bankr.bot/token-launching/glidepath
+| Chain | Provider | Default quote | Other quotes | Retail launch gas |
+|---|---|---|---|---|
+| Base | Doppler | WETH | BNKR, ba3Pump, cbHYPE, cbZEC, TAO; Coinbase B20 stocks | Sponsored |
+| Robinhood Chain | Doppler | WETH | BNKR, musebook; Robinhood stocks | Wallet pays (ETH) |
+| Arbitrum One | Doppler (a launch that names no provider may be served by Launch v3 while v3 rolls out there) | WETH | — | Wallet pays (ETH) |
+| Arc | Launch v3 only | USDC | — | Wallet pays (USDC; hold at least 0.5 USDC) |
 
----
+- **The default chain differs by surface.** `bankr launch` and the web launch form preselect **Base**; the agent and `POST /token-launches/deploy` fall back to **Robinhood Chain**. Name the chain whenever it matters.
+- `bankr launch --chain` takes `base`, `robinhood` or `arbitrum`. Launch on Arc through the agent ("launch X on arc"), the web form or the deploy API (`"chain": "arc"`).
+- Launching needs no tokenized-stock location verification — not for a Robinhood Chain memecoin, not for a stock-paired pool; only trading the stock itself does. Launches have their own region gate (see [Limits](#limits-and-eligibility)).
 
-## Solana Token Launches (Raydium LaunchLab)
+## Launching
 
-Launch SPL tokens on Solana with a bonding curve mechanism that auto-migrates to a Raydium CPMM pool.
+```bash
+bankr agent prompt "Launch a token called MOON on base"
+bankr launch                                   # interactive wizard
+bankr launch --name MOON --chain base -y       # headless
+bankr launch --name MOON --simulate            # dry run: predicted address and fee split, nothing broadcast
+```
 
-### Deployment Parameters
+| Field (API / CLI) | Notes |
+|---|---|
+| `tokenName` / `--name` | Required |
+| `tokenSymbol` / `--symbol` | 1–20 characters; defaults to the first 4 characters of the name, uppercased |
+| `image` / `--image` | A direct raster image URL. An SVG or a web page (e.g. an x.com post link) is not pinned — the token launches without a logo |
+| `tweetUrl` / `--tweet`, `websiteUrl` / `--website`, `description` | Optional metadata; the tweet URL must be on x.com or twitter.com |
+| `feeRecipient` / `--fee` + `--fee-type` | `{ "type": "wallet" \| "x" \| "farcaster" \| "ens", "value": "…" }`; the CLI's type defaults to `x`. An X or Farcaster username resolves to that account's Bankr wallet, created if the account has none |
+| `simulateOnly` / `--simulate` | Dry run (see [Limits](#limits-and-eligibility)) |
+| Doppler options | `disableVesting` / `--no-vesting`, `quoteOnlyFees` / `--quote-only-fees`, `degenMode` (no CLI flag), `pairedTokenAddress` / `pairedStockAddress` (`--quote`) |
+| `provider` | Send the value `GET /token-launches/quote-tokens?chain=<chain>` reports: `doppler` on Base, Robinhood Chain and Arbitrum, `bankr_v3` on Arc. An Arbitrum launch that names no provider may be served by `bankr_v3` while v3 rolls out there, so send `"provider": "doppler"` to keep Doppler and read `provider` in the response |
+| Launch v3 options | `launchV3` (see [Bankr Launch v3](#bankr-launch-v3-arc)) |
 
-| Parameter | Required | Description | Example |
-|-----------|----------|-------------|---------|
-| **Name** | Yes | Token name (1-32 chars) | "MoonRocket" |
-| **Symbol** | No | Ticker (1-10 chars), defaults to name | "MOON" |
-| **Image** | No | Logo URL | "https://example.com/logo.png" |
-| **Decimals** | No | Token decimals (0-9), default 6 | 6 |
-| **Fee Recipient** | No | Wallet to receive 99.9% of creator fees | "7xKXtg..." |
-| **Cliff Period** | No | Vesting cliff in seconds | 2592000 (30 days) |
-| **Unlock Period** | No | Vesting period in seconds | 7776000 (90 days) |
-| **Locked Amount** | No | Tokens to lock for vesting | 500000000 |
+With `--ni`, `bankr launch` needs `--name`; everything else falls back to Base, 15% vesting, in-kind fees and WETH.
 
-### Prompt Examples
+## Doppler launches (Base, Robinhood Chain, Arbitrum)
 
-**Launch tokens:**
-- "Launch a token called MOON on Solana"
-- "Deploy a Solana memecoin called DOGE2"
-- "Launch SpaceRocket with symbol ROCK"
-- "Create a token with 30 day cliff and 90 day vesting"
-- "Launch BRAIN and route fees to 7xKXtg..."
+### Economics (fixed at launch)
 
-**Check fees:**
-- "How much fees can I claim for MOON?"
-- "Check fee status for my token"
-
-**Claim fees:**
-- "Claim my fees for MOON" (works for both creator and fee recipient)
-- "Claim creator fees for my token"
-
-**Fee Key NFTs:**
-- "Show my Fee Key NFTs"
-- "What tokens do I have fee rights for?"
-- "Transfer fees for MOON to 7xKXtg..."
-
-**Claim shared fee NFT (post-migration):**
-- "Claim my fee NFT for ROCKET"
-
-### Bonding Curve Mechanics
-
-1. **Launch**: Token starts with a bonding curve that determines price based on supply
-2. **Trading**: Early buyers get lower prices; price increases as more tokens are bought
-3. **Migration**: When bonding curve fills, token auto-migrates to Raydium CPMM pool
-4. **Post-Migration**: Trading continues on standard AMM with LP fee distribution
-
-**Benefits:**
-- Fair launch mechanism (no pre-allocation needed)
-- Price discovery through market demand
-- Automatic liquidity provision
-- No rug pull risk (liquidity is locked)
-
-### Fee Structure
-
-**During Bonding Curve Phase:**
-| Fee | Recipient | Description |
-|-----|-----------|-------------|
-| 1% | Bankr Platform | Platform fee |
-| 0.5% | Creator | Creator trading fee (or split with fee recipient) |
-
-**Fee Sharing (when feeRecipient specified):**
-| Share | Recipient | Description |
-|-------|-----------|-------------|
-| 99.9% | Fee Recipient | Main share of creator fees |
-| 0.1% | Creator | Referrer fee |
-
-**At Migration (when bonding curve completes):**
-| LP Share | Recipient | Description |
-|----------|-----------|-------------|
-| 40% | Bankr Platform | Locked platform LP |
-| 50% | Token Creator | Locked creator LP (Fee Key NFT) |
-| 10% | Burned | Deflationary mechanism |
-
-**Post-Migration:**
-- Token trades on Raydium CPMM pool
-- Fee Key NFT holders can claim 50% of LP trading fees
-
-### Fee Claiming
-
-**Checking Fee Status:**
-- Use "How much fees can I claim for TOKEN?" to check status
-- Shows pool status (bonding curve vs migrated)
-- Explains how to claim based on your role
-
-**Standard Tokens (No Fee Sharing):**
-- Creator claims all 0.5% trading fees
-- Use "Claim my fees for TOKEN"
-- Requires ~0.005 SOL gas
-
-**Tokens with Fee Sharing Arrangement:**
-- BOTH creator AND fee recipient can initiate claims
-- Fees automatically split: 99.9% to recipient, 0.1% to creator
-- Gas is sponsored by Bankr (free for users)
-- Use "Claim my fees for TOKEN" (works for either party)
-
-**Post-Migration Fee Claiming:**
-1. Fee recipient claims Fee Key NFT: "Claim my fee NFT for TOKEN"
-2. Then claim ongoing LP fees: "Claim CPMM fees for TOKEN"
-
-### Fee Key NFTs
-
-Fee Key NFTs represent the right to claim LP trading fees after migration.
-
-**How They Work:**
-- Created when token migrates from bonding curve to CPMM
-- Represent 50% share of LP trading fees
-- Standard SPL token (decimals=0, amount=1)
-- Transferable (with restrictions for permanent arrangements)
-
-**Managing Fee Rights:**
-- View your NFTs: "Show my Fee Key NFTs"
-- Transfer to another wallet: "Transfer fees for TOKEN to ADDRESS"
-- Claim if designated recipient: "Claim my fee NFT for TOKEN"
-
-### Fee Recipient (Permanent Arrangements)
-
-Specify a `feeRecipient` to route creator fees to a different wallet.
-
-**How It Works:**
-1. Launch token with `feeRecipient` address
-2. During bonding curve: EITHER party can claim fees
-3. Fees split automatically: 99.9% to recipient, 0.1% to creator
-4. After migration: recipient claims Fee Key NFT
-5. Recipient uses "Claim CPMM fees" for ongoing LP fees
-
-**Important:**
-- Creates a PERMANENT arrangement
-- Deployer CANNOT transfer their Fee Key NFT
-- Only the designated recipient can claim the NFT
-- Use for treasuries, DAOs, collaborators, or charity
-
-**Who Can Claim During Bonding Curve:**
-- Token creator (deployer)
-- Designated fee recipient
-- Either party initiates, fees split automatically
-
-### Vesting Parameters
-
-Optional vesting for team tokens or investor allocations.
-
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| Cliff Period | Time before any tokens unlock | 30 days = 2592000 seconds |
-| Unlock Period | Time for gradual unlock after cliff | 90 days = 7776000 seconds |
-| Locked Amount | Total tokens to lock | In token units with decimals |
-
-### Gas Fees
-
-| Operation | Cost | Sponsored? |
-|-----------|------|------------|
-| Token Launch | ~0.01-0.02 SOL | Yes (within limits) |
-| Standard Fee Claim | ~0.005 SOL | No |
-| Shared Fee Claim | ~0.005 SOL | Yes (always) |
-| Transfer Fee Rights | ~0.005 SOL | No |
-| Claim Fee NFT | ~0.005 SOL | No |
-
-Gas is sponsored for token launches within daily limits (1/day standard, 10/day Bankr Club).
-Shared fee claims are always sponsored to ensure atomic claim+transfer.
-
-### Rate Limits
-
-| User Type | Daily Limit | Gas Sponsored |
-|-----------|-------------|---------------|
-| Standard Users | Unlimited | 1 token/day |
-| Bankr Club Members | Unlimited | 10 tokens/day |
-
-Users can launch additional tokens beyond sponsored limits by paying ~0.01 SOL gas.
-
----
-
-## EVM Token Launches (Base & Robinhood Chain, via Doppler)
-
-Launch ERC20 tokens on Base or Robinhood Chain. New launches create a Uniswap V4 pool via Doppler with a fixed supply and a single swap-fee tier shared between you and the protocol. Tokens deploy to **Base by default**; pass a chain to launch on Robinhood Chain instead (`bankr launch --chain robinhood`, or "launch a token on robinhood"). Robinhood Chain memecoin launches need no location verification — that gate only applies to Robinhood-issued tokenized stocks.
-
-### Token Economics
-
-| Property | Value |
-|----------|-------|
-| **Supply** | Fixed 100 billion (not mintable after deployment) |
-| **Pool** | Uniswap V4 |
-| **Pool swap fee** | 0.7% per trade — **95% to the creator** |
-| **All-in swap fee** | 1.75% of volume (pool fee + hook-added legs) |
-
-Every trade pays a **0.7% swap fee on the pool, and 95% of it goes to you** — 0.665% of trading volume, paid directly and claimable anytime. On top of that the hook adds the Bankr protocol fee + BNKR buyback and LP fee:
+**Supply is 100 billion, non-mintable.** Every trade pays a **0.7% swap fee on the pool, 95% of it to the creator**; the hook adds the Bankr protocol fee, the BNKR buyback and an LP fee on top, **1.75% of volume all-in**:
 
 | Recipient | Share of volume |
 |-----------|-----------------|
-| **Creator (you)** — 95% of the 0.7% pool swap fee, claim anytime | **0.665%** |
-| **LP fee** (via hook) — a second creator-side fee: compounds as permanently locked liquidity in your own pool, strengthening your token's liquidity on every swap | **0.285%** |
+| **Creator** — 95% of the 0.7% pool fee, claimable anytime | **0.665%** |
+| **LP fee** (via hook) — compounds as permanently locked liquidity in your own pool | **0.285%** |
 | Bankr protocol fee (via hook) | 0.475% |
 | BNKR buyback (via hook) | 0.2375% |
 | Protocol (Doppler) | ~0.0875% |
 
-**Fee schedules are fixed at launch and never change retroactively.** Tokens launched before the current structure keep the schedule they launched with: the creator's 95% of the 0.7% pool fee works exactly the same, only the hook add-on differs. Claiming, redirecting, and transferring all behave identically on older tokens.
+Creator fees accrue in your token and the quote token (e.g. WETH). Fee schedules never change retroactively: older tokens keep the schedule they launched with — the creator's 95% of the 0.7% pool fee is the same, only the hook add-on differs.
 
-Fees accumulate in your token and WETH and can be claimed anytime.
+### Creator vesting (on by default)
 
-### Quote-Only Fees (optional, fixed at launch)
+Every non-partner Doppler launch premints **15% of supply to the fee recipient** and vests it over **1 year, including a 30-day cliff** (nothing unlocks for 30 days, then it vests continuously). The other 85% seeds the pool.
 
-By default creator fees accrue as a mix of the launched token and the quote token (e.g. WETH). At launch you can instead opt into **quote-only fees**, so the entire creator share is collected in the quote token. **Your total take is identical either way** — this is a denomination choice, not a rate change.
+- Turn it off with "deploy with no vesting", `disableVesting: true`, `bankr launch --no-vesting` or **No vesting** in the web form — 100% of supply then goes into the pool. There is no custom percentage.
+- The vesting recipient is fixed at launch; a later fee-rights transfer does **not** move the allocation.
+- Org Partner Key launches never vest.
 
-| How | Syntax |
-|-----|--------|
-| Natural language | "launch a token with quote-only fees" |
-| CLI | `bankr launch --name MyToken --quote-only-fees` |
-| Deploy API | `"quoteOnlyFees": true` |
-| Web | toggle in the launch form |
+Read and claim the allocation (the vesting endpoints serve Launch v3 escrows too):
 
-Two knock-on effects for anyone integrating against a quote-only token:
+| Endpoint | Auth | Purpose |
+|---|---|---|
+| `GET /token-launches/{tokenAddress}/vesting?beneficiary=0x…` | None | Schedule and position: `phase` (`cliff` \| `vesting` \| `complete`), `cliffEndsAt`, `vestingEndsAt`, `claimableAmount`, `lockedAmount`, `unlockedPercent`, and whether `beneficiary` is `eligible`. `404` for a non-Bankr token |
+| `POST /token-launches/{tokenAddress}/vesting/build-claim` | None | Unsigned `release()` for an external wallet (body `{ "beneficiaryAddress": "0x…" }`); `release()` pays only `msg.sender`, so holding the key is the authorization |
+| `POST /token-launches/{tokenAddress}/vesting/claim` | Same as fee claims | Custodial claim from your Bankr wallet |
 
-- **Claiming** — the creator's fee entry lives on the **hook contract's** fees manager rather than the pool initializer, and the whole claim arrives in the quote token with no launched-token leg. The claim APIs resolve the right contract automatically.
-- **Transferring fee rights** — a direct on-chain `updateBeneficiary` call must target the hook address, not the initializer. The Bankr transfer endpoints resolve this for you either way.
+A claim releases everything vested at the moment it mines. Agent: "How much of my MTK allocation has vested?", "Claim my vested MTK".
 
-Like the fee schedule, this option cannot be changed after launch.
+### Quote-only fees
 
-### Deployment Parameters
+Opt in at launch ("launch with quote-only fees", `quoteOnlyFees: true`, `--quote-only-fees`, or the web toggle) to collect the whole creator share in the quote token instead of a token + quote mix. The total take is identical. On these tokens the creator's fee entry lives on the **hook contract's** fees manager, not the pool initializer — a direct on-chain `updateBeneficiary` must target the hook; Bankr's claim and transfer endpoints resolve it for you. Not available on partner deploys.
 
-| Parameter | Required | Description | Example |
-|-----------|----------|-------------|---------|
-| **Name** | Yes | Full token name | "My Token" |
-| **Symbol** | No | Ticker; defaults to name if omitted | "MTK" |
-| **Description** | No | Token description | "A community token" |
-| **Image** | No | Logo URL or upload | URL or file |
-| **Website** | No | Project website | "myproject.com" |
-| **Twitter** | No | Associated tweet / X handle for social proof | "@myproject" |
-| **Telegram** | No | Telegram group | "@mytoken" |
-| **Fee Recipient** | No | Route creator fees to a wallet, ENS, or social handle | "@partner" |
-| **Quote-only fees** | No | Collect all creator fees in the quote token; fixed at launch | `quoteOnlyFees: true` |
+### Degen mode
 
-### Prompt Examples
+`degenMode: true` (or asking for "degen mode" by name) starts the token at a **$2,500 market cap**; supply, fees and vesting are unchanged. It is explicit opt-in only — a token *named* DEGEN or "make it risky" phrasing does not enable it. The figure is fixed, there is no CLI flag, and partner deploys that ask for it get a `400`.
 
-**Deploy tokens:**
-- "Deploy a token called BankrFan with symbol BFAN"
-- "Create a memecoin: name=DogeKiller, symbol=DOGEK"
-- "Deploy token with website myproject.com and Twitter @myproject"
-- "Create a token on Base"
-- "Launch a token called CoolBot on robinhood"
-- "Launch a token called CoolBot and route fees to @partner"
-- "Launch a token with quote-only fees"
+### Pairing the pool with another quote token
 
-**Claim fees:**
-- "Claim fees for my token MTK"
-- "How much can I claim for MyToken?"
-- "Claim legacy Clanker fees" (older tokens — claims auto-detect Doppler vs Clanker)
+`GET /token-launches/quote-tokens?chain=<chain>` (public; also `bankr launch quotes --chain <chain> [--json]`) lists what a launch can pair with: the chain default first, then the fixed allowlist, then every tokenized stock Bankr can price there. Each entry names its `deployField` — the deploy-body field that selects it — and the response names the `provider`.
 
-**Update metadata:**
-- "Update description for MyToken"
-- "Add Twitter link to my token"
-- "Update logo for MyToken"
+- **Send the entry's `address` in that field, together with the response's `provider`.** The API rejects a ticker; the CLI (`--quote <symbol|address>`) and the agent ("paired with TSLA") resolve symbols for you.
+- Stocks can carry `illiquid: true` (CLI: `[thin liquidity]`) — the launch still goes through, the pool is just hard to trade. Allowlist entries carry `readiness`; cbHYPE and cbZEC wait on reviewed quote-token liquidity, and a pair that isn't `live` is refused with `409` rather than falling back to WETH.
+- One pairing per launch: `pairedTokenAddress` and `pairedStockAddress` are mutually exclusive; omit both for WETH. Neither is available on Arbitrum or on partner deploys. An arbitrary ERC-20 is never accepted.
 
-### Rate Limits
+Fixed allowlist (each address is valid only on its own chain; `--quote BNKR` picks the right one for `--chain`):
 
-| User Type | Daily Limit | Gas |
-|-----------|-------------|-----|
-| Standard Users | 50 tokens/day | Sponsored within limit |
-| Bankr Club Members | 100 tokens/day | Sponsored within limit |
+| Chain | Token | `pairedTokenAddress` | Decimals |
+|---|---|---|---|
+| Base | BNKR | `0x22af33fe49fd1fa80c7149773dde5890d3c76f3b` | 18 |
+| Base | ba3Pump (Bankr-bridged $PUMP) | `0x5577a294ae5a21446a11b0e4100ca83803995720` | 18 |
+| Base | cbHYPE (Coinbase-wrapped HYPE) | `0xB200000000000000000000451d033a5000cb479e` | 18 |
+| Base | cbZEC (Coinbase-wrapped ZEC) | `0xB2000000000000000000008501b13360000cb2EC` | 8 |
+| Base | TAO (Bittensor) | `0xf3081494b87e8d5fb7960f066e931d1d0e6e3d67` | 18 |
+| Robinhood Chain | BNKR (a different contract from Base BNKR) | `0x178E54df3D091EE4D0B2534742eF9e3692b76526` | 18 |
+| Robinhood Chain | musebook (a Bankr-launched token) | `0x91A2DAe9699f0B82540B5886b0d8759C22820bA3` | 18 |
 
-High-volume or bot-like deploy patterns can trigger automated spam protections and temporary or permanent restrictions. For legitimate programmatic deploy use cases, open a support ticket before scaling up.
+cbHYPE and cbZEC are crypto wrappers, not stocks — they go in `pairedTokenAddress`. Stocks go in `pairedStockAddress`: Robinhood Stock Tokens on Robinhood Chain, Coinbase B20 equities on Base.
 
-### Fee Structure
+```json
+GET /token-launches/quote-tokens?chain=robinhood
+→ { "chain": "robinhood", "provider": "doppler", "quoteTokens": [ { "symbol": "WETH", "isDefault": true, "deployField": null, … }, { "symbol": "NVDA", "address": "0x…", "kind": "stock", "deployField": "pairedStockAddress", "illiquid": false, … } ] }
 
-- 0.7% swap fee on the pool, **95% of it to the creator** (0.665% of volume); the hook adds the Bankr protocol fee + BNKR buyback and LP fee on top, 1.75% all-in — see [Token Economics](#token-economics) for the full split
-- The 0.285% LP fee is creator-side as well, strengthening your token's liquidity on every swap — 0.95% of volume working for your side in total
-- Fees accrue in your token and WETH (quote token only on [quote-only](#quote-only-fees-optional-fixed-at-launch) launches); claimable anytime via "Claim fees for my token"
-- Fee schedules are fixed at launch — older tokens keep the schedule they launched with
-- Older tokens launched via Clanker are still claimable — the claim path auto-detects the protocol
+POST /token-launches/deploy
+{ "tokenName": "Semis", "chain": "robinhood", "provider": "doppler", "pairedStockAddress": "0x…" }
+```
 
-### Deployment Process
+### Five-minute balance cap
 
-1. **Specify Parameters**: Name (required); symbol, description, social links, fee recipient (optional)
-2. **Contract Deployment**: Doppler deploys the ERC20 and creates the Uniswap V4 pool with automatic liquidity
-3. **Verification**: Get the token address and pool metadata, view on a block explorer
+For the first five minutes after a non-partner Doppler launch, no wallet may hold more than **2% of total supply** — a buy or transfer that would push a recipient over 2% fails until the cap expires. This is separate from the 14-second anti-snipe fee decay at launch. The expiry is encoded on-chain.
 
-### Taking Profit (Glidepath)
+## Bankr Launch v3 (Arc)
 
-Selling a token you earn creator fees on through Bankr's swap/limit/stop/DCA/TWAP tools is restricted (buying and transferring are unaffected). To take profit, builders use a **Glidepath** — a capped, AI-paced gradual sell that feeds a committed slice of your tokens back into the pool over time instead of dumping. Glidepath is available for Base and Robinhood Chain launches and is managed from the token page at [bankr.bot](https://bankr.bot) (a web feature, not a CLI/API action). Details: https://docs.bankr.bot/token-launching/glidepath
+Arc launches always use Bankr Launch v3 (`provider: "bankr_v3"`), quoted in USDC, and an Arbitrum launch that names no provider may be served by v3 while it rolls out there. A `bankr_v3` pick on a chain where v3 isn't open is refused with `400 LAUNCH_PROVIDER_UNAVAILABLE`; the deploy response's `provider` field says which provider served a launch.
 
----
+**Economics:** one v3 pool at the 1% fee tier, LP fees split **creator 70% / Bankr 30%**, **1 billion** supply, no Bankr launch fee. **Vesting is off by default on the API and agent** (omit `vestPercent` for 0); the web launch form preselects 15%, which `GET /launch-v3/quotes` reports as `defaultVestPercent`.
 
-## Common Issues
+On a v3 launch, options go in the deploy body's `launchV3` object (the agent takes them as plain fields):
 
-| Issue | Chain | Resolution |
-|-------|-------|------------|
-| Rate limit reached | Both | Wait 24 hours or upgrade to Bankr Club |
-| Name/symbol taken | EVM | Choose different name |
-| Insufficient SOL | Solana | Add SOL for gas fees |
-| NFT not found | Solana | Token may still be on bonding curve |
-| Cannot transfer NFT | Solana | Permanent fee arrangement exists |
-| No fees to claim | Solana | No trades yet or recently claimed |
-| Token migrated | Solana | Use CPMM fee claiming instead |
+| Field | Meaning |
+|---|---|
+| `vestPercent` | 0–50; omitted means **0** on the API and agent (the web form preselects 15); 15 = the standard 15% / 1 year / 30-day cliff |
+| `devBuy: { amount }` | A buy in the quote token's units (USDC on Arc), executed as the pool's first swap; `POST /launch-v3/dev-buy-quote` prices it |
+| `holderSharePercent`, `holderMode` | Stream 1–100% of the creator fee leg to token holders, paid in `token`, `paired` (the quote) or `both` |
+| `holderVestPercent` | Stream part of the vested slice to holders (needs `vestPercent`, `holderSharePercent` and a `token` or `both` holder mode) |
+| `creatorFeeMode` | `quote` (default: Bankr's keeper converts the token-side fees into the quote, at most 5% price impact per fill), `both` (each leg in kind) or `token` |
 
-## Best Practices
+- **Doppler options don't apply.** On a v3 launch the deploy API answers `400` to `disableVesting`, `quoteOnlyFees` or `degenMode` set to `true`, and ignores `pairedTokenAddress` and `pairedStockAddress` (the agent rejects all five). Vesting is set with `vestPercent`, and the quote with `launchV3.quoteAddress` from `GET /launch-v3/quotes?chain=<chain>` — on Arc that list is USDC only.
+- **Fund gas and the dev buy up front.** A wallet that can't cover them is refused before signing, with the amounts.
+- `GET /launch-v3/{tokenAddress}/fees?account=0x…` reads a v3 token's claimable fees.
 
-### Before Deploying
-1. **Choose unique name/symbol** — Check availability
-2. **Prepare branding** — Logo, description ready
-3. **Choose right chain** — Solana for bonding curves, Base for ERC20
-4. **Understand fees** — Know the fee structure for your chain
+**Writes come in pairs** — an unauthenticated builder that returns an unsigned transaction (sign it yourself: `/wallet/sign` + `/wallet/submit`, or any wallet) and a custodial route that needs a signed-in Bankr Terminal session:
 
-### During Deployment
-1. **Solana**: Only tokenName is required — don't over-specify
-2. **EVM**: Add metadata and social links immediately
-3. **Save addresses** — Token address and any NFT mints
+| Builder (no auth) | Custodial (session) | Does |
+|---|---|---|
+| `POST /launch-v3/{token}/recipient/build` `{ account, newRecipient }` | `…/recipient/transfer` | Hands the fee recipient role to another address |
+| `POST /launch-v3/{token}/operator/build` | `…/operator/grant` | Lets an operator claim on your behalf (payout stays yours) |
+| `POST /launch-v3/{token}/holders/build-claim` | `…/holders/claim` | Holder-reward claim |
+| `POST /launch-v3/{token}/fees/build-claim` | — | Creator fee claim |
 
-### After Deployment
-1. **Check fee status** — "How much fees can I claim for TOKEN?"
-2. **Claim fees regularly** — Don't leave money unclaimed
-3. **Monitor migration** (Solana) — Fee Key NFT created at migration
-4. **Engage community** — Marketing and updates
+The builders take no credential (an `X-API-Key` is simply ignored); the transaction signature authorizes the write. The custodial routes never read `X-API-Key`, so a key-only request gets `401`. From an API key, use the builder — or `POST /token-launches/{tokenAddress}/fees/claim` for fees. Both recipient paths answer `403` unless the signer is the current recipient and `400` when `newRecipient` already is. Claim accrued fees first if they should stay with the old address; the creator-vesting allocation stays with the recipient recorded at launch.
 
-## Security Considerations
+## Limits and eligibility
 
-### Solana (LaunchLab)
-- Bonding curve prevents rug pulls (liquidity locked)
-- LP is automatically locked at migration
-- Fee Key NFTs are standard SPL tokens
-- Permanent fee arrangements are immutable
-- Shared fee claims use atomic transactions (claim+transfer)
+Both providers share these; the gates run on every launch path (API, web, agent and social).
 
-### EVM (Base / Doppler)
-- Standard ERC20 with a fixed, non-mintable 100B supply
-- Liquidity lives in a Uniswap V4 pool
-- Verifiable on block explorer
-- Creator controls metadata and fee routing
+| Rule | Value |
+|---|---|
+| Launch quota | **3 counted launches per wallet per rolling 24 h** — Standard, Bankr Club, partner-organization and provisioned wallets alike |
+| Rate | One deploy per minute per account, one in flight at a time |
+| Simulations | 20 per wallet per 24 h. They never consume a launch slot, but are refused once the wallet's 3 launches are used |
+| Same token name | 3 per account per hour; 10 across all accounts per hour |
+| Fee-recipient address | 20 launches per 24 h across all accounts |
+| Per network (IP) | About 10 successful non-partner deploys per client IP per 24 h (`429` "Too many token deployments from this network") — the ceiling a single deploying host hits first, so pace deploys |
+| Email-only wallet | Can't launch until 72 h old; linking an X, Farcaster or Telegram account lifts the wait |
+| Region | Launches are geo-gated |
+| Bankr Club gate | A runtime switch that may be on. When it is, a wallet without Bankr Club gets `403` "Token launches are available to Bankr Club members only."; partner deploys are exempt |
+| Wallet age / minimum ETH | Runtime switches that may be on (24 h wallet age, a minimum native balance) — handle `TOKEN_LAUNCH_WALLET_TOO_NEW` and `TOKEN_LAUNCH_MIN_BALANCE_REQUIRED`. Arc's 0.5 USDC minimum always applies |
 
-## Legal Considerations
+- **Only launches that went out consume budget.** Quota is reserved just before metadata pinning; validation, recipient-resolution and pricing failures before that never cost a slot. A launch that may have been broadcast keeps its slot (and its name and fee-recipient allowance) — never assume a failed deploy was free.
+- **A deploy request can time out while the launch completes.** Don't resubmit: while it runs, new deploys answer `429` "Deploy already in progress"; then check your recent launches.
+- Partner deploys are exempt from the IP cap, the simulation cap, the per-account name cap and the region / wallet gates — not from the 3-per-24h quota.
+- On X, repeatedly breaching the one-per-minute limit restricts the account for 24 hours (login, balances and withdrawals still work). For legitimate high-volume deploying, open a support ticket first.
 
-**Disclaimer:**
-- Token deployment may have legal implications
-- Consider securities laws in your jurisdiction
-- Consult legal counsel for serious projects
-- Be transparent with community
-- Don't make price promises
+| Response | Meaning | Do |
+|---|---|---|
+| `429` | A quota, rate, name, fee-recipient, IP, simulation or in-flight limit | Wait for the window; don't retry into it |
+| `403 TOKEN_LAUNCH_NOT_AVAILABLE` | Deliberately generic: a region block, or an email-only wallet inside its 72 h wait | Link X, Farcaster or Telegram if the wallet is email-only; otherwise treat as terminal |
+| `403 TOKEN_LAUNCH_MIN_BALANCE_REQUIRED` | Below the chain's minimum native balance | Fund the wallet |
+| `403 TOKEN_LAUNCH_WALLET_TOO_NEW` | The wallet is younger than the 24 h minimum (a runtime switch) | Wait it out, or launch from an older wallet |
+| `403` Token launches are available to Bankr Club members only | The Club-only gate is on | Launch from a Bankr Club wallet |
+| `403` Restricted API key | The key has a recipient allowlist and the fee recipient is neither the key's wallet nor on it | Use an allowed fee recipient |
+| `409` | Selected quote token not ready (cbHYPE / cbZEC) | Retry once it is `live` |
+| `503 TOKEN_LAUNCH_PRICE_UNAVAILABLE`, `TOKEN_LAUNCH_ELIGIBILITY_UNAVAILABLE`, `TOKEN_LAUNCH_MAINTENANCE` | Nothing was launched | Retry after ~60 s |
 
----
+## Gas sponsorship
 
-**Solana Tip**: Just say "Launch TOKEN_NAME" — only the name is required. Symbol defaults to name, and the bonding curve handles everything else.
+Retail launch gas is sponsored on **Base only**; on Robinhood Chain, Arbitrum and Arc the launch wallet pays. Partner launches follow their organization's policy. Across every sponsored path (launches, fee claims, transfers) a non-partner wallet gets at most **10 sponsored transactions and $3 of sponsored gas per 24-hour window** — past either, it pays its own gas.
 
-**Fee Claiming Tip**: Both creator and fee recipient can claim fees during bonding curve. Just say "Claim my fees for TOKEN" — the system handles the split automatically.
+## After launch
 
-**EVM Tip**: Add social links during deployment for better discoverability on aggregators.
+- **Claim fees:** "Claim fees for my token MTK", `bankr fees` / `bankr fees claim <tokenAddress>`, or `POST /token-launches/{tokenAddress}/fees/claim` (auto-detects Doppler, Clanker or Launch v3). "Claim legacy Clanker fees" covers older tokens.
+- **Transfer fee rights (Doppler):** see [Transferring fees](https://docs.bankr.bot/token-launching/transferring-fees). Fees not yet claimed go to whoever is the beneficiary at claim time, so claim first; the vesting allocation stays with the original recipient.
+- **Name and logo:** the fee recipient can set a Bankr-only display name and logo (Discover, the token page) from the web terminal's token drawer or `PATCH /token-launches/{tokenAddress}/metadata` with `name` and/or `imageUri` (`null` clears). The on-chain name, symbol and launch metadata are immutable. Legacy Clanker tokens can still have their image and metadata updated through the agent.
+- **Taking profit (Glidepath):** builders exit gradually with a **Glidepath** — a capped, AI-paced sell set up from the token page at [bankr.bot](https://bankr.bot) for Base and Robinhood Chain launches; a web feature, not a CLI/API action ([Glidepath docs](https://docs.bankr.bot/token-launching/glidepath)). On Base, Bankr may refuse to sell a token you earn fees on through its swap and order tools and point you to Glidepath instead; buying and transferring are never affected.
+- **Raydium CPMM lock NFTs (Solana):** "claim my Raydium CPMM fees" claims the trading fees of a Raydium CPMM locked-liquidity position whose lock NFT the wallet holds. It covers that position only, not tokens launched through Bankr, which use the fee claim above.

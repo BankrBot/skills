@@ -92,7 +92,7 @@ Token **name/symbol** stay from Bankr launch — not overwritten.
 ## Original tweets on Space UI
 
 Public: `GET https://api.bankr.bot/agent-profiles/{token}/tweets`  
-Spaces show **Original tweet** on the community page (same source as [Bankr discover](https://bankr.bot/terminal/discover/{token})).
+Spaces show **Original tweet** on the community page (same source as [Bankr discover](https://bankr.bot/discover/{token})).
 
 bankr.space `GET /api/communities/{token}` includes:
 

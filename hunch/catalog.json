@@ -3,22 +3,22 @@
   "slug": "hunch",
   "provider": "Hunch",
   "providerUrl": "https://www.playhunch.xyz",
-  "logo": null,
+  "logo": "logo.svg",
   "demo": {
-    "title": "hunch-bet.sh",
-    "language": "bash",
-    "code": "# Discover markets from a token or phrase\ncurl -s \"https://www.playhunch.xyz/api/partner/discover?q=$BNKR\"\n\n# Quote a side and size before betting\ncurl -s \"https://www.playhunch.xyz/api/partner/quote?marketId=bankr-100m-mcap-2026-06-30&side=yes&sizeUsd=5\"\n\n# Place a bet (x402 flow: initial 402 challenge, then resubmit with X-PAYMENT)\ncurl -s -X POST \"https://www.playhunch.xyz/api/partner/trade\"   -H \"Content-Type: application/json\"   -d '{\"marketId\":\"bankr-100m-mcap-2026-06-30\",\"side\":\"yes\",\"sizeUsd\":5,\"walletAddress\":\"0xYourWallet\",\"idemKey\":\"<uuid>\"}'"
+    "title": "hunch-chat.txt",
+    "language": "text",
+    "code": "You:   @bankrbot take YES on $BNKR hitting $100M, $5\nBankr: $BNKR → $100M · YES 12¢ / NO 88¢ · 142 bets · $1.2k pool · closes Jun 30\n       $52M now · +92% to $100M\n       Resolves from DexScreener market cap on Base. Not financial advice.\n       [Take YES] [Take NO] · size [$1] [$5] [$9]\nYou:   Take YES · $5\nBankr: Done: $5 on YES, paid in USDC on Base.\n       Proof: basescan.org/tx/0x…\n\n— later —\nYou:   did my Hunch market resolve?\nBankr: $BNKR → $100M resolved YES: your $5 on YES won.\n       Payout and proof: playhunch.xyz/markets/bankr-100m"
   },
   "setup": [
-    "Install: `install the hunch skill from https://github.com/BankrBot/skills/tree/main/hunch`",
-    "Use Base wallet + USDC; bets are constrained to `$1-$10` per trade",
-    "Discover first: `GET /api/partner/discover`, then quote with `GET /api/partner/quote`",
-    "Trade with idempotency key and x402 payment header via `POST /api/partner/trade`",
-    "Source: https://github.com/BankrBot/skills/tree/main/hunch"
+    "Install: `install the hunch skill from https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch`",
+    "Fund your Bankr wallet with USDC on Base; bets start at $1 with no Hunch maximum (Bankr's own limits apply)",
+    "Say \"what can I bet on about $BNKR?\" or \"odds on …\", then pick a side and a size",
+    "Say \"show my Hunch bets\" any time; every bet carries an on-chain proof"
   ],
   "install": {
-    "type": "bankr",
-    "repoPath": "hunch",
-    "command": "install the hunch skill from https://github.com/BankrBot/skills/tree/main/hunch"
+    "type": "external",
+    "provider": "Hunch",
+    "command": "install the hunch skill from https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch",
+    "reference": "https://github.com/rajkaria/hunch-skills/tree/cabe9508fc139a8d77985d4335ace2480604eb3a/hunch"
   }
 }

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="STAQ">
+  <rect width="64" height="64" rx="14" fill="#0B0D12"/>
+  <!-- three stacked bars: activity settling into savings -->
+  <rect x="16" y="38" width="32" height="8" rx="4" fill="#4ADE80"/>
+  <rect x="20" y="27" width="24" height="8" rx="4" fill="#4ADE80" opacity="0.72"/>
+  <rect x="24" y="16" width="16" height="8" rx="4" fill="#4ADE80" opacity="0.44"/>
+</svg>
