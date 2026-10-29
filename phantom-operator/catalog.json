@@ -5,14 +5,14 @@
   "providerUrl": "https://freysaai.freysa.dev",
   "logo": "phantom-operator.png",
   "demo": {
-    "title": "Discover and call PhantomOperator over x402",
+    "title": "Try PhantomOperator's free metadata preview",
     "language": "bash",
-    "code": "curl -s https://freysaai.freysa.dev/.well-known/x402\n# Inspect payment requirements, then POST to a skill endpoint with an x402 payment header."
+    "code": "curl -sS -X POST https://freysaai.freysa.dev/preview/metadata-audit \\\n  -H 'content-type: application/json' \\\n  --data '{\"url\":\"https://example.com\"}'\n\n# Full paid operations and exact x402 terms:\ncurl -sS https://freysaai.freysa.dev/.well-known/x402"
   },
   "setup": [
-    "No API key or account is required.",
-    "Discover payment requirements at https://freysaai.freysa.dev/.well-known/x402.",
-    "Pay in native USDC on Base (eip155:8453) through x402, then call a documented skill endpoint."
+    "Start with the free public metadata preview at https://freysaai.freysa.dev/preview/metadata-audit.",
+    "Discover paid Base-USDC x402 requirements at https://freysaai.freysa.dev/.well-known/x402.",
+    "Only assess URLs, identities, emails, and wallets you are authorized to assess."
   ],
   "install": {
     "type": "github",
