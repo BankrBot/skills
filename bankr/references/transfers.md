@@ -7,7 +7,7 @@ Send tokens to addresses, ENS names or social handles. The agent accepts every r
 | Format | Example | Agent | `bankr wallet transfer` | `POST /wallet/transfer` |
 |--------|---------|:-----:|:-----------------------:|:-----------------------:|
 | EVM address | `0x1234…abcd` | ✓ | ✓ | ✓ |
-| Solana address | `9xKc…abc` | ✓ | — | — |
+| Solana address | `9xKc…abc` | ✓ | ✓ (`--chain solana`) | ✓ (`chain: "solana"`) |
 | ENS / Basename / cb.id | `vitalik.eth`, `name.base.eth`, `name.cb.id` | ✓ | ✓ (resolved first) | — (resolve first) |
 | X / Farcaster / Telegram | `@handle` | ✓ | — | — |
 
@@ -41,9 +41,10 @@ bankr agent prompt "Send 1 SOL to 9xKc...abc"
 bankr wallet transfer --to 0x1234... --token USDC --amount 50
 bankr wallet transfer --to vitalik.eth --token USDC --amount 50 --chain base
 bankr wallet transfer --to name.base.eth --native --amount 0.01
+bankr wallet transfer --to 9xKc... --native --amount 0.1 --chain solana
 ```
 
-`--to` takes a 0x address or an ENS-style name (`.eth`, `.base.eth`, `.cb.id`), resolved via `/addresses/resolve` before anything is sent — without a chain, so a name's Base record wins even with `--chain polygon`; pass a 0x address when that matters. Handles are rejected; use the agent for those. `--token` takes a symbol or contract address (from 0.3.48 a symbol resolves to the token the agent would pick, and the gas token's ticker, such as `ETH`, sends it natively); `--native` sends the chain's gas token. `--chain` defaults to `base` and takes any EVM chain — there is no Solana support.
+`--to` takes a 0x address or an ENS-style name (`.eth`, `.base.eth`, `.cb.id`), resolved via `/addresses/resolve` before anything is sent — without a chain, so a name's Base record wins even with `--chain polygon`; pass a 0x address when that matters. Handles are rejected; use the agent for those. `--token` takes a symbol or contract address (from 0.3.48 a symbol resolves to the token the agent would pick, and the gas token's ticker, such as `ETH`, sends it natively); `--native` sends the chain's gas token. `--chain` defaults to `base` and takes any EVM chain or, from 0.3.49, `solana`, where `--to` is a Solana address, `--token` a symbol or mint, and `--native` sends SOL.
 
 ## Wallet API
 
