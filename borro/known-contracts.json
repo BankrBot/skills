@@ -1,0 +1,181 @@
+{
+  "_agentNote": "Pinned Borro contracts on Robinhood Chain (4663): the trust anchor for this skill. Every transaction the skill sends must target an address in this file. Network responses (the MCP server, JSON feeds) are checked against it, never the other way round. Checked live on 2026-10-24 against https://borro.markets/contracts.json, /markets.json, the MCP's credit_markets, and on chain (BorroBuilders.vaults, builders).",
+  "chainId": 4663,
+  "network": "Robinhood Chain",
+  "checked": "2026-10-24",
+  "endpoints": {
+    "mcp": "https://borro.markets/mcp",
+    "api": "https://borro.markets",
+    "openapi": "https://borro.markets/openapi.json",
+    "registry": "https://borro.markets/contracts.json"
+  },
+  "source": {
+    "repository": "https://github.com/Borro-Markets/contracts"
+  },
+  "agentTag": "0x424f52524f4d4350",
+  "bookrunner": {
+    "code": "bankr",
+    "payee": null,
+    "_note": "The skill credits deposits and bindings to this code only while BorroBuilders shows this payee for it. Codes are first come, first served, so a code registered by anyone else is never used. null: no payee is set yet, so the skill lends without a code and users earn the same."
+  },
+  "contracts": {
+    "BorroShort": "0xd2D686cEdf225c5C9815187A08812783904E62Eb",
+    "BorroBuilders": "0x082Ae609bdC7ccEec0C58B2361a21c49dc2aE291",
+    "BorroUSDGVault": "0xF8e0ab443098c0738489B5BAFFbd32A1341F2289",
+    "Morpho": "0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010",
+    "BorroSafe_owner": "0x8A22d6e75e9427b9D57e42a7984200029e7E173C",
+    "AgentCreditFactory": "0xdD218B1BBE9a3F6f379eBF960B9592Eb29774535",
+    "GasStationFactory": "0x15CDacF97CFfe8024Ee8449385Ed421f5661C2E2",
+    "BorroKeeper_credit_default": "0x3a17bfFF7c6FB05f8c49D3d7181849E531026896"
+  },
+  "usdg": {
+    "token": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168",
+    "decimals": 6,
+    "vault": "0xF8e0ab443098c0738489B5BAFFbd32A1341F2289",
+    "bookrunner_deposits": true
+  },
+  "stocks": {
+    "SPY": {
+      "name": "S&P 500",
+      "token": "0x117cc2133c37B721F49dE2A7a74833232B3B4C0C",
+      "decimals": 18,
+      "vault": "0xC3ED4a5A7dB4102F4Ed37Af26ef0d3f21e2360c1",
+      "short_market_id": "0x1cd22321a4d27054a8cd029c73c53432e8a231f8df1a3981b1ae1c274175d381",
+      "bookrunner_deposits": true
+    },
+    "QQQ": {
+      "name": "Nasdaq 100",
+      "token": "0xD5f3879160bc7c32ebb4dC785F8a4F505888de68",
+      "decimals": 18,
+      "vault": "0xbAD8A97dA1050092d6a14194D53E72D407D6cc17",
+      "short_market_id": "0xfbeb9596a8a0202dde46de7a49af15ee963c8678a71edb6dd1c8b283595cbdae",
+      "bookrunner_deposits": true
+    },
+    "NVDA": {
+      "name": "NVIDIA",
+      "token": "0xd0601CE157Db5bdC3162BbaC2a2C8aF5320D9EEC",
+      "decimals": 18,
+      "vault": "0x508E23274C39C60c345e35B1f0188bE180717CB9",
+      "short_market_id": "0x7ff4053d7caa99de7aa19febadcc2178377e8a31b163046539d6fb35c5abc08b",
+      "bookrunner_deposits": true
+    },
+    "TSLA": {
+      "name": "Tesla",
+      "token": "0x322F0929c4625eD5bAd873c95208D54E1c003b2d",
+      "decimals": 18,
+      "vault": "0x60b3d353E7e5bD12ED4Ea2589C11B5603dd4c988",
+      "short_market_id": "0x5c0a634f28ac0f699be3b2db5265a935d63cfb680fd28bc5b225adaaabda8b88",
+      "bookrunner_deposits": true
+    },
+    "MSTR": {
+      "name": "Strategy",
+      "token": "0xec262a75e413fAfD0dF80480274532C79D42da09",
+      "decimals": 18,
+      "vault": "0x2B74f8F2b76cd4e97265BC37FB2578a04B8437e9",
+      "short_market_id": "0x0fc6938b8b73689ee822ff59b775972931f33dfda49880b43b05a14396111a9d",
+      "bookrunner_deposits": true
+    },
+    "COIN": {
+      "name": "Coinbase",
+      "token": "0x6330D8C3178a418788dF01a47479c0ce7CCF450b",
+      "decimals": 18,
+      "vault": "0x7BA71BCCeCb12860aE7E141B6b6F1f8B96d31257",
+      "short_market_id": "0x7eb15a4033030e5cbf34ea1823545b918d29e5e59e7d8c1d35aee2df3e114c98",
+      "bookrunner_deposits": true
+    },
+    "PLTR": {
+      "name": "Palantir",
+      "token": "0x894E1EC2D74FFE5AEF8Dc8A9e84686acCB964F2A",
+      "decimals": 18,
+      "vault": "0xFE9419E70e5481F7a2dDddc18f856b09b3687B27",
+      "short_market_id": "0x85571555a4d98cb7efaf91ffd5a9d6b2db33d4a631c6b16633e537ac6cb4b590",
+      "bookrunner_deposits": true
+    },
+    "SPCX": {
+      "name": "SpaceX",
+      "token": "0x4a0E65A3EcceC6dBe60AE065F2e7bb85Fae35eEa",
+      "decimals": 18,
+      "vault": "0x1261210E19052157fCe2064D9aa9A2140Bd89791",
+      "short_market_id": "0x4219a85fc09ae2ff5d3aa29013c67c89142f80a9c71d5c15ed7dbf9f6e14ae81",
+      "bookrunner_deposits": true
+    },
+    "GME": {
+      "name": "GameStop",
+      "token": "0x1b0E319c6A659F002271B69dB8A7df2F911c153E",
+      "decimals": 18,
+      "vault": "0x328461fB01F54C2Ab73909EA947c583d0dC24C3d",
+      "short_market_id": "0xde233c6decb5b2ad4a2fd63ef8c95ee9b1934c0bd849e87fb5604e845ceb2c82",
+      "bookrunner_deposits": true
+    },
+    "AAPL": {
+      "name": "Apple",
+      "token": "0xaF3D76f1834A1d425780943C99Ea8A608f8a93f9",
+      "decimals": 18,
+      "vault": "0x24Fe7bCAEB75bC2202A42ECD48a177a27782c64a",
+      "short_market_id": "0x5242d7dcb608526f2f76b3f6914b9adf34634cdf67220c54bfce0718540c4550",
+      "bookrunner_deposits": false
+    },
+    "GOOGL": {
+      "name": "Alphabet",
+      "token": "0x2e0847E8910a9732eB3fb1bb4b70a580ADAD4FE3",
+      "decimals": 18,
+      "vault": "0xf0731B1022ABD1e3f543Cfd837C7eBA42ED60E4f",
+      "short_market_id": "0x5826469e3b7df54fe18c921aafe850865552bc79b366a90ad0dc23c330ee0b75",
+      "bookrunner_deposits": false
+    },
+    "MSFT": {
+      "name": "Microsoft",
+      "token": "0xe93237C50D904957Cf27E7B1133b510C669c2e74",
+      "decimals": 18,
+      "vault": "0x8032C80a7817a3C4C401b096515B27b2CedA4e71",
+      "short_market_id": "0x00f685fcd58b2a04c6953ac74b5d6b8f288e45e9a393077acf6711d6c51957bf",
+      "bookrunner_deposits": false
+    }
+  },
+  "credit_markets": {
+    "CREDIT": {
+      "market_id": "0x2aa426d3e5dca5b4fe44b6d4bb7bdb21c7ed103acdf96082ae144659f7747d35",
+      "token": "0xE33322DA1380e61E5Ae5DfB21e7f62924c73004C",
+      "decimals": 6
+    },
+    "rCREDIT": {
+      "market_id": "0x30cf673eebd91ac50e8a49dbdaf9c7531bbffba51dd8aa7a57540b1b8c7644c8",
+      "token": "0xab35e54D78C066f37eCE84636d7b03dc486e8Ac6",
+      "decimals": 6
+    }
+  },
+  "selectors": {
+    "approve": "0x095ea7b3",
+    "vault.deposit": "0x6e553f65",
+    "vault.withdraw": "0xb460af94",
+    "vault.redeem": "0xba087652",
+    "vault.previewDeposit": "0xef8b30f7",
+    "BorroShort.open": "0x57ec2fac",
+    "BorroShort.close": "0xcc9e82fb",
+    "BorroBuilders.deposit": "0xec2ac54e",
+    "BorroBuilders.builders": "0xf067eb21",
+    "BorroBuilders.vaults": "0xa622ee7c",
+    "AgentCreditFactory.open": "0x35936809",
+    "line.borrow": "0x4b3fd148",
+    "line.deposit": "0xb6b55f25",
+    "line.repay": "0x371fd8e6",
+    "line.close": "0xc74073a1",
+    "line.sellAndRepay": "0x2c3f5aef"
+  },
+  "gas": {
+    "_note": "Gas limits sent with each /wallet/submit, by call. Measured with eth_simulateV1 on live state on 2026-10-23 (approve 58k, bUSDG deposit 359k, BorroBuilders deposit 391k, bUSDG withdraw 354k, BorroShort.open NVDA 895k, BorroShort.close QQQ 608k, AgentCreditFactory.open rCREDIT 843k) and Borro's fork table (docs/INTEGRATE.md: open up to 1.197M), plus at least 30%: Morpho Vault V2 accrues interest lazily and a plain estimate can run out of gas. A limit is a ceiling; only gas used is paid.",
+    "0x095ea7b3": "100000",
+    "0x6e553f65": "650000",
+    "0xec2ac54e": "650000",
+    "0xb460af94": "600000",
+    "0xba087652": "600000",
+    "0x57ec2fac": "1800000",
+    "0xcc9e82fb": "1000000",
+    "0x35936809": "1400000",
+    "0xb6b55f25": "1200000",
+    "0x4b3fd148": "1200000",
+    "0x371fd8e6": "1200000",
+    "0xc74073a1": "1200000",
+    "0x2c3f5aef": "1200000"
+  }
+}
