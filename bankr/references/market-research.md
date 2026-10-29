@@ -19,12 +19,13 @@ bankr tokens info 0x...                   # name, symbol, decimals, price for a 
 "New pools on Base"                       "What is the contract for PEPE on Base?"
 "Do technical analysis on ETH"            "Twitter sentiment for PEPE"
 "What are the trending Bankr launches?"   "Where can I trade gold?"
+"Any news on BNKR this week?"             "Add NEAR to my watchlist" · "Show my watchlist"
 ```
 
 - **Name the chain** for on-chain queries — holders, trading pairs, new pools and chain-specific trending need one.
 - **Bankr-launched tokens:** questions about the Bankr ecosystem (trending, newest or biggest Bankr launches, or finding one by name) are answered from Bankr's own launch feed — the same data as [bankr.bot/discover](https://bankr.bot/discover) — not from generic market categories.
 - **Stocks and commodities:** asking about one ("where can I trade gold?") returns its candidates across venues — tokenized spot and Hyperliquid perps, plus Avantis for commodities — so name the venue when you act on it. See [tokenized-stocks.md](tokenized-stocks.md).
-- **Bankr Club:** technical analysis, social sentiment and web search need Bankr Club in chat, but are open to every Agent API (`/agent/prompt`) request. Bankr scores, the score leaderboard and trading PnL / volume analytics are Club-only everywhere.
+- **Bankr Club:** technical analysis, social sentiment, asset news and web search need Bankr Club in chat, but are open to every Agent API (`/agent/prompt`) request. Bankr scores, the score leaderboard and trading PnL / volume analytics are Club-only everywhere.
 
 ## Token holders
 
