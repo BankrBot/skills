@@ -41,7 +41,7 @@ All price + market data for a symbol in one call.
 | HTTP | Meaning |
 |---|---|
 | 400 | Bad request — missing params, validation failed, or Orderly error |
-| 401 | Auth failure — missing walletSig, wallet not registered, or invalid Bankr API key |
+| 401 | Auth failure — missing walletSig, missing/expired Lab signature (`labAuth`), wallet not registered, or invalid Bankr API key |
 | 403 | Forbidden — Bankr key has `allowedRecipients` set |
 | 404 | Not found — symbol, order, or resource doesn't exist |
 | 500 | Worker internal error — do not retry |
@@ -50,6 +50,8 @@ All price + market data for a symbol in one call.
 | `error` field | Cause | Fix |
 |---|---|---|
 | `walletSig_required` | Missing walletSig or walletAddress | Call sign_message first |
+| `sign_to_save` / `sign_to_read` (401) | Lab write, full Lab read, comment, reaction or notification change without a valid `labAuth`; `reason` says why | Sign the Lab message (feed-leaderboard.md → "The Lab signature"); nothing was written |
+| `published_permanent` (409) | Tried to delete a published call | Published calls are permanent; nothing to fix |
 | `wallet_not_registered` | No Orderly account in KV | Run registration flow |
 | `insufficient_margin` | Not enough free collateral | Reduce size, add leverage, or deposit |
 | `below_min_notional` | Order below Orderly minimum (~$10) | Increase notional |
