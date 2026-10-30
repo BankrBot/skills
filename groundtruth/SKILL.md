@@ -5,10 +5,11 @@ description: |
   (Solana pump.fun mint or Robinhood Chain 0x token) or a dev wallet. Returns the coin's outcome
   and the dev's counts: launched, rugged, faded, bonded. Use when the user asks "is this a rug",
   "who made this", "has this dev rugged before", "check this CA", or wants receipts on a coin they
-  lost on. Up to 10 coins in one basket call. $0.01 USDC a coin over x402 (Base or Solana); the first 5
-  calls a day per IP are free.
-tags: [solana, robinhood, memecoin, pump-fun, dev-wallet, rug, x402]
-version: 7
+  lost on. Up to 10 coins in one basket call. Also LINE CHECK: who is buying the prediction-market line
+  (Polymarket games next 72 h + the US midterm race board) and HEAT 0-100 with its N for one market.
+  $0.01 USDC a call over x402 (Base or Solana); the first 5 calls a day per IP are free.
+tags: [solana, robinhood, memecoin, pump-fun, dev-wallet, rug, polymarket, midterms, x402]
+version: 8
 visibility: public
 metadata:
   clawdbot:
@@ -29,6 +30,8 @@ This dev's other coins. Counted. That's it.
 |---|---|
 | `GET /v1/record?ca=<coin>` | `outcome`, `paired_with`, `creator`, the dev's `launches` and `failure_pct`, `card_url` |
 | `GET /v1/basket?ca=<coin>,<coin>,...` | 1 to 10 coins, Solana and Robinhood mixed: `rows[]`, one per coin, each the `/v1/record` answer plus `dev_named`; `n`, `price_usd` |
+| `GET /v1/linecheck` | LINE CHECK board: `games[]` (Polymarket games starting in 72 h) and `midterms[]` (race markets over $1,000 a side): `side`, `px`, `usd` + `n` wallets, `heat{heat, n, share}`, `stamp`; `asof` |
+| `GET /v1/heat?cid=<condition id>` | HEAT for one Polymarket market: `side`, `heat` (0-100), `n` (the baseline it ranks against), `share`, `usd`, `wallets`, `buyers`; `heat: null` + `why` when it has none |
 | `GET /v1/flag?addr=<dev wallet>` | `launched`, `rugged`, `died`, `active`, `survived`, `resolved`, `rug_rate`, `failure_rate`, `bonded_live`, `known_bad`, `last_mint_live` (unix seconds), `asof`, `card_url` |
 
 - The chain comes from the address shape.
@@ -43,6 +46,12 @@ This dev's other coins. Counted. That's it.
   `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/creator-record` and
   `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/coin-basket` ($0.10 a call for up to 10 coins: one cent a coin
   for a full basket; for fewer coins `/x402/v1/basket` charges exactly $0.01 a coin asked).
+- LINE CHECK on Bankr x402 Cloud ($0.01 each):
+  `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/line-check-board` and
+  `https://x402.bankr.bot/0xa70ff84a692002dcf49cbb9c61550fd01f766f44/market-heat?cid=<condition id>`.
+- HEAT = the share of a side's $ from fresh or clustered wallets, ranked 0-100 against sides with real money (>= $1,000 on the side and
+  some fresh-or-clustered $). Always say it with its N: "HEAT 99 (N=317 midterm race sides)". Counts, not a call. Information only,
+  not financial advice.
 
 ## Paying from the Bankr wallet
 
