@@ -7,7 +7,7 @@ description: Check whether an OpenAPI 3.0 change breaks API consumers. Send the 
 
 Breakra compares two OpenAPI 3.0 JSON contracts and tells you which changes may break existing callers, where they are, and what to do about them. Results are deterministic: the same two contracts always give the same `analysis_id` and the same findings.
 
-- **Endpoint:** `POST https://x402.bankr.bot/0xb98f0de777eea8c481b64e33d3e0066cea38fa91/breakra-analyze` (also `POST https://breakra.dev/api/analyze`, which forwards to it: same terms, same result)
+- **Endpoint:** `POST https://x402.bankr.bot/0xb98f0de777eea8c481b64e33d3e0066cea38fa91/breakra-analyze` (also `POST https://breakra.dev/api/analyze`, which forwards to it: same terms, same result). For a request body over **500 KB**, call the Bankr URL directly: the breakra.dev forward adds a network hop with its own proxy timeout, so a slow large call could be cut off after Bankr has already charged it.
 - **Price:** $0.02 USDC on Base (x402 v2, scheme `exact`, network `eip155:8453`, amount `20000`). **Only a 200 is charged.** Every error (4xx/5xx) is free.
 - **Contract:** [`openapi.json`](https://breakra.dev/openapi.json). Example request and response: [`examples/`](https://github.com/danbuildss/breakra/tree/main/examples).
 
@@ -43,19 +43,19 @@ Don't use it for: OpenAPI 3.1, Swagger 2.0, YAML (convert to JSON first), contra
    | `asset` | USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
    | `amount` | `20000` or less (USDC has 6 decimals, so $0.02) |
    | `payTo` | `0x8AEE621035D93Deb3C0C1177fac252dC2dd501a0` (Bankr's fee router, which forwards to the service owner in the same transaction) |
-   | `maxTimeoutSeconds` | `60` (how long your signature stays valid) |
+   | `maxTimeoutSeconds` | `60` or less (how long your signature stays valid) |
    | `extra.assetTransferMethod` | absent or `eip3009` (a USDC `TransferWithAuthorization`, not Permit2) |
 
 3. Sign **one** EIP-3009 USDC authorization and resend the **same body** with the `PAYMENT-SIGNATURE` header. With `@x402/core` + `@x402/evm`, call `x402HTTPClient.getPaymentRequiredResponse`, `createPaymentPayload` and `encodePaymentSignatureHeader` yourself. Don't use `wrapFetchWithPayment`, which can re-sign and resend on its own.
 
 Rules:
 - **One signature per call.** Don't let a client library re-sign and resend automatically: if the first paid attempt succeeded, a second signature is a second charge. A reused signature gets `402 Payment already used`.
-- No payment receipt header is returned. A 200 means you paid; any other status means you didn't.
-- Retrying after an error is safe and free until you get a 200. Only `ANALYSIS_FAILED` (500) is worth retrying with the same input; other errors will repeat. A retry starts over: unpaid request, new 402, new signature (the old signature can't be reused).
-- If the paid request dies in transit (timeout, reset) you can't know whether it was charged. Don't re-sign straight away: wait at least 60 s (the signature then expires and can't settle any more) and check your wallet's USDC transfers to `payTo` before trying again.
-- A whole call takes about 3–20 s depending on size (a 940 KB pair took 18 s end to end). Use a timeout of at least 30 s.
+- No payment receipt header is returned. A **200** with Breakra's JSON result means you paid. **Not charged** only when the response is Breakra's own JSON error (`{"status":"error","error":{"code":…}}`, one of the codes below) or an x402 `402`.
+- **Anything else is an unknown outcome, not a free error**: a gateway `502`/`503`/`504`, an HTML or plain-text body, a timeout or a reset. A proxy (such as the breakra.dev forward) can fail *after* Bankr has already charged. Don't re-sign: wait at least 60 s (the signature then expires and can't settle any more) and check your wallet's USDC transfers to `payTo` before trying again.
+- Retrying after one of Breakra's own errors is safe and free. Only `ANALYSIS_FAILED` (500) is worth retrying with the same input; other errors will repeat. A retry starts over: unpaid request, new 402, new signature (the old signature can't be reused).
+- A whole call takes about 3–20 s depending on size (a 940 KB pair took 18 s end to end). Use a timeout of at least 30 s, and the direct Bankr URL for bodies over 500 KB.
 
-A complete, safe client (checks terms, signs once): [`examples/client.ts`](https://raw.githubusercontent.com/danbuildss/breakra/main/examples/client.ts).
+A reference client that checks every term above, signs once and treats ambiguous failures as unknown: [`examples/client.ts`](https://raw.githubusercontent.com/danbuildss/breakra/main/examples/client.ts).
 
 ## Reading the result
 
