@@ -1,0 +1,10 @@
+{
+  "name": "onchainhoodies-bankr-skill",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Read-only OnChainHoodies inspection helper for the Bankr skill",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "inspect": "node scripts/hoodie-info.mjs", "check": "node --check scripts/hoodie-info.mjs && node scripts/hoodie-info.mjs --help" },
+  "dependencies": { "ethers": "^6.13.0" }
+}
