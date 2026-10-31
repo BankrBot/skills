@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "blossom-token-check",
+  "provider": "Blossom",
+  "providerUrl": "https://blossomtrade.dev",
+  "logo": "logo.png",
+  "demo": {
+    "title": "blossom-check.sh",
+    "language": "bash",
+    "code": "# BNB Chain safety verdict (no auth required)\ncurl -s 'https://blossomtrade.dev/api/bsc-safety?token=0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82' | jq '{verdict, risk, headline}'\n\n# Robinhood Chain or Arc drain check\ncurl -s 'https://blossomtrade.dev/api/evm-safety?chain=robinhood&token=<0x contract>' | jq '{verdict, headline}'\n\n# Agent flow\nbankr prompt \"Using the blossom-token-check skill, check 0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82 on BNB Chain\""
+  },
+  "setup": [
+    "Install: `npx skills add blossom-token-check`",
+    "No API key or wallet required: every endpoint is public, keyless and read-only (GET)",
+    "BNB Chain, Robinhood Chain (chain ID `4663`) and Arc (chain ID `5042`) take a 0x contract address; the Solana record takes a mint",
+    "Source: https://github.com/BankrBot/skills/tree/main/blossom-token-check"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "blossom-token-check",
+    "command": "install the blossom-token-check skill from https://github.com/BankrBot/skills/tree/main/blossom-token-check"
+  }
+}
