@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "giftedstock",
+  "provider": "Gifted Stock",
+  "providerUrl": "https://www.giftedstock.com",
+  "logo": "logo.png",
+  "demo": {
+    "title": "giftedstock.txt",
+    "language": "text",
+    "code": "You: buy 2 normal stock mystery boxes on Base with USDC on Gifted Stock\nAgent: (gets the plan from giftedstock.com and checks both steps: an exact 0.2 USDC approval for the normal box, then the buy)\n       2 normal boxes for 0.20 USDC on Base. Send?\nYou: yes\nAgent: Done: 2 sealed boxes in your wallet.\nYou: open them\nAgent: (opens both: each pays a stock token to your wallet)\nYou: gift $1 of NVDAc to a link for 3 friends\nAgent: (makes a fresh link key where it runs, checks the gift box steps, sends after your yes and gives you the share URL)"
+  },
+  "setup": [
+    "Install: `install the giftedstock skill from https://github.com/alitiknazoglu/giftedstock-skill/tree/ea3e1a4415689d1c00c6eac3b107d2133e2fc214`",
+    "Turn on MFA (a passkey or an authenticator app), then \"Enable arbitrary contract calls\" (bankr.bot, Security): every step is a contract call, and Bankr allows contract calls only with MFA on",
+    "Hold ETH for gas on the chain you use, Base or Robinhood Chain: raw transactions are not sponsored",
+    "Check your other Bankr Security settings before a gift, a send of boxes or a payment in ETH: the daily and per-transaction limits count the ETH a step sends, Allow NFT transfers can count boxes that leave the wallet",
+    "Ask: buy a normal stock mystery box on Base with USDC, open my boxes, swap 5 USDC to NVDAc on Gifted Stock or gift $1 of NVDAc to a wallet",
+    "Every step is checked before it is sent: pinned contracts and functions, exact approvals, the fee and its wallet (verify.mjs in the repo)"
+  ],
+  "install": {
+    "type": "external",
+    "provider": "Gifted Stock",
+    "command": "install the giftedstock skill from https://github.com/alitiknazoglu/giftedstock-skill/tree/ea3e1a4415689d1c00c6eac3b107d2133e2fc214",
+    "reference": "https://github.com/alitiknazoglu/giftedstock-skill/tree/ea3e1a4415689d1c00c6eac3b107d2133e2fc214"
+  }
+}
