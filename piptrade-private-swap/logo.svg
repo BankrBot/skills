@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="PipTradeDex logo">
+  <rect width="64" height="64" rx="16" fill="#10141d" stroke="rgba(255,255,255,0.1)"/>
+  <path d="M22 46V26M42 46V32" stroke="#f5a623" stroke-width="5.2" stroke-linecap="round"/>
+  <path d="M33 43c6.4-3 9.6-8.6 9.6-15.4 0-2-.4-3.8-.4-3.8s-3.4 1.2-6 4c-2.8 3.2-3.2 7.2-3.2 7.2" stroke="#4a72ff" stroke-width="4.2" stroke-linecap="round" fill="none"/>
+</svg>
