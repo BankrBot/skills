@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "endpoint-record",
+  "provider": "Endpoint Record",
+  "providerUrl": "https://endpointrecord.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "endpoint-record.sh",
+    "language": "bash",
+    "code": "# Decide before buying a fresh Base token ($0.02)\nbankr prompt \"Use endpoint-record to check 0x<token> on Base. Buy only if action is ALLOW, and tell me the reasons.\"\n\n# Was the liquidity already pulled?\nbankr prompt \"Run endpoint-record on 0x<token> and show contract.liquidityHistory and the sell simulation result\""
+  },
+  "setup": [
+    "No install required: one POST endpoint behind x402",
+    "Fund a Base wallet with USDC (0.02 per call)",
+    "Act on `action` (ALLOW / RECHECK / BLOCK), not on the verdict label",
+    "Check `dataAgeSeconds` before acting; ask again on RECHECK"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "endpoint-record",
+    "command": "install the endpoint-record skill from https://github.com/BankrBot/skills/tree/main/endpoint-record"
+  }
+}
