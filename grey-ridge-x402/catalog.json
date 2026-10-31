@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "grey-ridge-x402",
+  "provider": "Grey Ridge Signals",
+  "providerUrl": "https://x402-data-api.sigrunner.workers.dev",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "grey-ridge-x402.sh",
+    "language": "bash",
+    "code": "# Free preview, no wallet needed: go/hold/block gate for a Base token\ncurl -s \"https://x402-data-api.sigrunner.workers.dev/gate/swap/preview?token=weth\"\n\n# Full SAFE/CAUTION/AVOID token report (free preview)\ncurl -s \"https://x402-data-api.sigrunner.workers.dev/chain/token-report/preview?token=aero\"\n\n# Paid call ($0.008 USDC via x402, no API key)\nbankr prompt \"Call https://x402-data-api.sigrunner.workers.dev/gate/swap?token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&side=buy&notional_usd=100 and tell me go, hold or block\""
+  },
+  "setup": [
+    "No signup: pay $0.001-$0.05 USDC per call on Base via x402, no API key",
+    "Try free first: every route has a /preview variant with the same response shape",
+    "Fund a Base wallet with USDC; the x402 client pays and retries automatically",
+    "MCP server: add the streamable-http server at https://x402-data-api.sigrunner.workers.dev/mcp"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "grey-ridge-x402",
+    "command": "install the grey-ridge-x402 skill from https://github.com/BankrBot/skills/tree/main/grey-ridge-x402"
+  }
+}
