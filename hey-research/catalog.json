@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "hey-research",
+  "provider": "HEY Research Lab",
+  "providerUrl": "https://heyresearch.xyz",
+  "logo": "logo.png",
+  "demo": {
+    "title": "hey-research.sh",
+    "language": "bash",
+    "code": "# Who is building this Robinhood Chain token? One public call, no key\ncurl -s \"https://heyresearch.xyz/api/v1/scan?chain=4663&token=<0x address>\"\n\n# Find a project by name or $TICKER, then ask if it is still building\ncurl -s \"https://heyresearch.xyz/api/projects?q=<name or ticker>&limit=5\"\ncurl -s \"https://heyresearch.xyz/api/agent/builder_status?project=<slug>\"\n\n# What shipped on Robinhood Chain this week\ncurl -s \"https://heyresearch.xyz/api/agent/what_changed?days=7&building=only\""
+  },
+  "setup": [
+    "Install: `install the hey-research skill from https://github.com/BankrBot/skills/tree/main/hey-research`",
+    "No key, account or wallet: every read is a public GET to https://heyresearch.xyz",
+    "Optional MCP: https://heyresearch.xyz/mcp (Streamable HTTP, read-only)",
+    "API docs: https://heyresearch.xyz/developers"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "hey-research",
+    "command": "install the hey-research skill from https://github.com/BankrBot/skills/tree/main/hey-research"
+  }
+}
