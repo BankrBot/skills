@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="AskGrokWallet">
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1120"/>
+      <stop offset="1" stop-color="#14213D"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background plate -->
+  <rect width="1024" height="1024" rx="216" fill="url(#plate)"/>
+
+  <!-- lintel -->
+  <rect x="218" y="196" width="588" height="132" rx="56" fill="url(#beam)"/>
+
+  <!-- left pillar -->
+  <rect x="248" y="232" width="112" height="560" rx="46" fill="url(#beam)"/>
+
+  <!-- right pillar -->
+  <rect x="664" y="232" width="112" height="560" rx="46" fill="url(#beam)"/>
+
+  <!-- base -->
+  <rect x="248" y="756" width="528" height="52" rx="26" fill="url(#beam)"/>
+
+  <!-- approval badge -->
+  <circle cx="512" cy="492" r="150" fill="#FFFFFF"/>
+  <path d="M406 502 l72 72 l140 -152" fill="none" stroke="#10B981" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

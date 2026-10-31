@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "askgrokwallet",
+  "provider": "AskGrokWallet",
+  "providerUrl": "https://askgrokwallet.io",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "spend-guardrails.sh",
+    "language": "bash",
+    "code": "# Ask the policy engine before the wallet spends. No key needed.\ncurl -s -X POST https://askgrokwallet.io/api/approvals \\\n  -H 'content-type: application/json' \\\n  -d '{\"source\":\"demo\",\"requester\":\"bankr-agent\",\"summary\":\"swap 25 USDC for PUMPDUMP\",\"amountUsd\":25,\"target\":\"uniswap\",\"assets\":[\"PUMPDUMP\",\"USDC\"],\"intentKind\":\"trade\",\"policyText\":\"trades under $10 run automatically; over $10 ask me; daily budget $50; never trade PUMPDUMP\"}'\n\n# Read verdict.verdict from the BODY, never the status code.\n#   allow -> HTTP 200, execute.   ask -> HTTP 201, do NOT execute; the human\n#   decides at https://askgrokwallet.io/approvals.   deny -> HTTP 200, stop.\n#\n# Send the identity, not just the venue: target is where (uniswap), assets and\n# counterparty are what and with whom. This request is a deny because the asset is\n# named -- put the asset only in the summary and it is still caught.\n#\n# Pass \"logResolved\": true to keep a receipt for allow/deny decisions. Decisions\n# come back signed and are appended to a hash-chained log anyone can verify with the\n# released one-file verifier (check the sha256 before running it):\n#   BASE=https://github.com/richard7463/askgrokwallet/releases/download/verify-receipt-v1.0.1\n#   curl -LO $BASE/verify-receipt.mjs && curl -sLO $BASE/SHA256SUMS\n#   shasum -a 256 -c SHA256SUMS && node verify-receipt.mjs receipt.json"
+  },
+  "setup": [
+    "Nothing to install — the policy engine is an HTTP endpoint and the demo identity is keyless.",
+    "Ask the user for their rules in plain English (or pick a preset from `GET /api/presets`).",
+    "Before any spend, `POST /api/approvals` with the plan's identity — `target`, `assets`, `counterparty`, `summary` — and read `verdict.verdict` from the body: `allow` proceeds, `ask` waits for a real human decision at askgrokwallet.io/approvals, `deny` stops.",
+    "Never self-approve and never re-cut a denial. An approval covers one exact request; if the amount, asset, or counterparty changes, ask again.",
+    "After execution, keep the two records apart: the signed receipt says what was authorised and decided. The payment is confirmed by the transaction you check yourself — a four-tick receipt is not proof that money moved.",
+    "Keep Bankr's own spending limits and confirmations on. This skill is a check that runs before your wallet, not a limit installed inside it."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "askgrokwallet",
+    "command": "install the askgrokwallet skill from https://github.com/BankrBot/skills/tree/main/askgrokwallet"
+  }
+}
