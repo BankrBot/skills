@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "send-stock",
+  "provider": "Basemate",
+  "providerUrl": "https://basemate.app",
+  "logo": "logo.png",
+  "demo": {
+    "title": "send-stock.sh",
+    "language": "bash",
+    "code": "HOST=https://basemate-imessage-production.up.railway.app\n\n# Live list. Do not recite an old ticker list.\ncurl -s \"$HOST/api/muse/stocks\"\n\n# Start a send. No API key. Money moves only when this user Apple Pays.\ncurl -s -X POST \"$HOST/api/muse/sends\" \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"symbol\": \"AAPL\",\n    \"usd\": \"5\",\n    \"payer\": { \"name\": \"Alex\", \"phone\": \"+15551111111\" },\n    \"recipient\": { \"name\": \"Sarah\", \"phone\": \"+15552222222\" }\n  }'\n\n# Poll until sent or failed, then paste tellSender to the payer.\ncurl -s \"$HOST/api/muse/sends/SEND_ID\""
+  },
+  "setup": [
+    "No API key and no secrets. Do not ask the user for a URL or key.",
+    "GET /api/muse/stocks before naming what is available. Ten stocks: AAPL, AMZN, GOOGL, META, MSFT, MSTR, NVDA, SNDK, SPCX, TSLA.",
+    "Resolve the recipient from Muse Contacts to one E.164 number. Never invent a phone number.",
+    "POST /api/muse/sends, then paste sayThis and the payUrl. Money moves only when that user Apple Pays on Basemate.",
+    "Poll GET /api/muse/sends/{sendId} every second until sent or failed, then paste tellSender in the chat."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "send-stock",
+    "command": "install the send-stock skill from https://github.com/BankrBot/skills/tree/main/send-stock"
+  }
+}
