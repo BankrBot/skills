@@ -1,6 +1,6 @@
 ---
 name: aero-stock-lp
-description: LP tokenized stocks onchain — range-LP Coinbase tokenized equities (NVDA, AAPL, GOOGL, META) and AERO/USDC on Aerodrome Slipstream (Base) for trading-fee + AERO emission yield. Use when the user wants to LP stocks or Aerodrome pools on Base, open/recenter/exit a Slipstream position, check pool status, NAV, or yields, get a portfolio overview ("how are my LP positions doing?") with P&L and projected APR, run a manage pass, or set up scheduled/price-triggered LP automations in the Bankr console. Auto-routes every position to the higher-yielding side — staked (AERO emissions) vs unstaked (trading fees) — at entry and re-checks on every manage pass. Bundled node scripts do the chain reads, gate checks, and calldata; writes go via the Bankr arbitrary-transaction flow. NOT for perps, spot trading, or Uniswap.
+description: LP tokenized stocks onchain — range-LP Coinbase tokenized equities (NVDA, AAPL, GOOGL, META) and AERO/USDC on Aerodrome Slipstream (Base) for trading-fee + AERO emission yield. Use when the user wants to LP stocks or Aerodrome pools on Base, open/recenter/exit a Slipstream position, check pool status, NAV, or yields, get a portfolio overview ("how are my LP positions doing?") with P&L and projected APR, run the ledger ("what did my LP really earn?": fees + AERO vs value picked off by informed flow vs impermanent loss, per $1k, from DeltaDesk over x402), run a manage pass, or set up scheduled/price-triggered LP automations in the Bankr console. Auto-routes every position to the higher-yielding side — staked (AERO emissions) vs unstaked (trading fees) — at entry and re-checks on every manage pass. Bundled node scripts do the chain reads, gate checks, and calldata; writes go via the Bankr arbitrary-transaction flow. NOT for perps, spot trading, or Uniswap.
 recommended-models: [claude-fable-5, claude-opus-4.8, gpt-5.6-sol]
 ---
 
@@ -129,6 +129,8 @@ submit them in order via Bankr. `next` tells you the following command.
 | `node scripts/exit.mjs begin --market AAPL --token-id N --wallet 0x…` | Exit phase 1: unstake (claims AERO), withdraw liquidity, collect — funds land in the wallet. |
 | `node scripts/exit.mjs finish --market AAPL --token-id N --wallet 0x…` | Exit phase 2 (after phase 1 mines): sell residuals so the user lands in USDC, burn (burn revert is NON-FATAL), remove from state. |
 | `node scripts/exit.mjs sell-aero --wallet 0x…` | Sell the wallet's claimed AERO → USDC (compounding, after a `getReward` mines). |
+| `node scripts/ledger.mjs url --wallet 0x…` | Ledger phase 1: the DeltaDesk tearsheet URL for this wallet. Call it with Bankr's x402 capability ($0.05 USDC on Base, not charged if it fails) and save the JSON body. No keys, no paid call inside the script. |
+| `node scripts/ledger.mjs report --wallet 0x… --in <saved.json> [--token-id N,…] [--open]` | Ledger phase 2: fees kept + AERO vs informed flow vs IL vs gas, per $1k, for this skill's NVDA positions, staked and unstaked (§10). Names any held market DeltaDesk does not cover yet. |
 | `node scripts/selftest.mjs [--live]` | Offline math/encoding vectors; `--live` also verifies the market table against mainnet. Run `--live` once on first use of this skill. |
 
 Why entry and exit are phased: there are transaction boundaries. Your own
@@ -380,3 +382,46 @@ without a live real quote (the GOOGL pre-launch froth went $337 → $2,001
   sequence, then execute.
 - Silence a failure: every skipped step, estimated basis, degraded input,
   or stopped sequence is reported in plain language.
+
+## 10. Ledger: what an LP position actually earned (DeltaDesk)
+
+Fees and emissions overstate what LPing a stock pool pays: traders who
+already know where the price is going (Hyperliquid's 24/7 price moves
+first) take part of it back. The ledger answers "I made $80 in fees, how
+much did informed flow take?" per position and for the book, staked or
+unstaked. Run it when the user asks what their LP really earned, whether
+they are getting picked off, or after an exit. It never moves money, so the
+single-confirmation contract does not apply to it.
+
+1. `node scripts/ledger.mjs url --wallet 0x…` and relay its one `report`
+   line (the $0.05 price) in the same breath as the answer.
+2. Call `call.url` with Bankr's x402 capability (CLI:
+   `bankr x402 call '<url>' --max-payment 0.05`). Save the JSON body as
+   returned. One call per request; never loop on it.
+3. `node scripts/ledger.mjs report --wallet 0x… --in <file>` and relay the
+   `report` lines nearly verbatim. On `ok: false`, relay `detail` in one
+   line and stop (a failed x402 call is not charged).
+
+Reading it honestly:
+- Lead with the result vs simply holding the tokens, then fees + AERO
+  against informed flow (the "edge": above 1, income beat what informed flow
+  took).
+- Staked positions keep almost no fees: their fee share goes to veAERO
+  voters and they are paid in AERO instead. The ledger shows both, plus the
+  voters' share, so the route decision (§4) can be checked after the fact.
+- Informed flow is DeltaDesk's markout: value picked off by traders who knew
+  better, marked against Hyperliquid's price 1 hour after each swap. It
+  explains the result; it is not an extra cost on top of it. The result vs
+  holding is fees kept + AERO + impermanent loss − gas.
+- Per $1k lines are historical, never a forecast or an APR.
+- Coverage today: NVDA (NVDAc/USDC). AAPL, GOOGL, META and AERO are named as
+  not covered yet; never imply they were measured. Positions opened in the
+  last hour may not be listed yet (DeltaDesk rebuilds about hourly).
+
+The ledger is built on DeltaDesk's open LP truth layer (every NVDAc/USDC
+position rebuilt from chain logs; AERO attributed to positions equals AERO
+distributed, and for wallets with nothing still staked it matches on-chain
+claims plus penalties); method and study:
+https://web-production-10951.up.railway.app.
+This section extends Igor Yuzovitskiy's aero-stock-lp; the LP flows above
+are unchanged.

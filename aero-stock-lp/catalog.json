@@ -13,7 +13,8 @@
     "Install the skill with the button below",
     "Fund your Bankr wallet with USDC on Base",
     "Say: \"LP $50 into the AAPL pool\" — one confirmation, then it executes",
-    "Say \"check my LPs\" any time for value, range status, and P&L"
+    "Say \"check my LPs\" any time for value, range status, and P&L",
+    "Say \"what did my LP really earn?\" for the ledger: fees + AERO vs informed flow vs IL, per $1k (DeltaDesk, $0.05 USDC via x402; NVDA)"
   ],
   "install": {
     "type": "bankr",
