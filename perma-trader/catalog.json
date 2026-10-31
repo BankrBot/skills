@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "perma-trader",
+  "provider": "anondevv69",
+  "providerUrl": "https://github.com/anondevv69",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "perma-trader",
+    "command": "install the perma-trader skill from https://github.com/BankrBot/skills/tree/main/perma-trader"
+  }
+}
