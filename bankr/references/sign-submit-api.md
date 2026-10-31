@@ -19,7 +19,7 @@ curl -X POST "https://api.bankr.bot/wallet/sign" \
   -d '{"signatureType": "personal_sign", "message": "Sign in to MyApp\nNonce: abc123"}'
 ```
 
-A success returns `{ "success": true, "signature", "signer", "signatureType" }`. A key with a recipient allowlist can only `personal_sign` a plain message. The other two types, and a 32-byte `personal_sign` message (`0x` + 64 hex), which some order protocols accept as an order signature, answer `403 Restricted API key`, because none of them shows who it pays. A 32-byte message and an order that buys a stock-bearing index are refused from sanctioned regions (`403` `INDEX_REGION_BLOCKED`); a stock auction fill still needs the location check at bankr.bot (`INDEX_REGION_VERIFY` or `INDEX_REGION_BLOCKED`).
+A success returns `{ "success": true, "signature", "signer", "signatureType" }`. A key with a recipient allowlist gets `403 Restricted API key` for `eth_signTransaction`, `eth_signTypedData_v4` and a `personal_sign` message of exactly 32 bytes (or `0x` + 64 hex), which some order protocols accept as an order signature, because none of them shows who it pays; other messages, such as logins, still sign. A 32-byte message and an order that buys a stock-bearing index are refused from sanctioned regions (`403` `INDEX_REGION_BLOCKED`); a stock auction fill still needs the location check at bankr.bot (`INDEX_REGION_VERIFY` or `INDEX_REGION_BLOCKED`).
 
 ### Wallet security settings apply
 
@@ -27,7 +27,7 @@ Signing is checked against the wallet's security settings (see [safety.md](safet
 
 - A **paused** wallet refuses every signature with `403 Wallet paused`.
 - While **"Enable arbitrary contract calls"** is off, `eth_signTypedData_v4`, `eth_signTransaction` and a 32-byte `personal_sign` message answer `403 Arbitrary contract calls disabled`. Other messages, such as sign-ins, still sign.
-- While **permitted recipients** is on, only a standard token permit or transfer authorization (ERC-2612, DAI-style or ERC-4494 `Permit`, Permit2, EIP-3009) whose spender or recipient is the wallet or on the list signs. Everything else, `eth_signTransaction`, a 32-byte message, exchange and NFT orders whatever their `receiver`, and any other typed data, is refused because it doesn't show who it pays. These answer `403` with `errorCode` `RECIPIENT_NOT_PERMITTED` or `RECIPIENT_COOLDOWN`. Turn the list off to sign them ([docs](https://docs.bankr.bot/wallet-api/sign)).
+- While **permitted recipients** is on, typed data signs only as a standard token permit or transfer authorization (ERC-2612, DAI-style or ERC-4494 `Permit`, Permit2 approvals and transfers but not witness transfers, EIP-3009) whose spender or recipient is the wallet or on the list. `eth_signTransaction`, a 32-byte message, exchange and NFT orders whatever their `receiver`, and all other typed data are refused because they don't show who they pay; plain messages still sign. These answer `403` with `errorCode` `RECIPIENT_NOT_PERMITTED` or `RECIPIENT_COOLDOWN`. Turn the list off to sign them ([docs](https://docs.bankr.bot/wallet-api/sign)).
 
 As on submit, the pause and arbitrary-calls refusals carry no `errorCode`.
 

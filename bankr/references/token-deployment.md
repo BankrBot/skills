@@ -136,7 +136,7 @@ On a v3 launch, options go in the deploy body's `launchV3` object (the agent tak
 - **Fund gas and the dev buy up front.** A wallet that can't cover them is refused before signing, with the amounts.
 - `GET /launch-v3/{tokenAddress}/fees?account=0x…` reads a v3 token's claimable fees.
 
-**Writes come in pairs** — an unauthenticated builder that returns an unsigned transaction (sign it yourself: `/wallet/sign` + `/wallet/submit`, or any wallet) and a custodial route that needs a signed-in Bankr Terminal session:
+**Writes come in pairs** — an unauthenticated builder that returns an unsigned transaction (sign it yourself: `/wallet/sign` + `/wallet/submit`, or any wallet) and a custodial route that needs a signed-in Bankr Console session:
 
 | Builder (no auth) | Custodial (session) | Does |
 |---|---|---|
