@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "lp-truth",
+  "provider": "DeltaDesk",
+  "providerUrl": "https://web-production-10951.up.railway.app",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "lp-truth.txt",
+    "language": "text",
+    "code": "# real data from the live DeltaDesk endpoints, Sat Sep 19 2026\nYou:   is it safe to LP NVDA on Robinhood Chain right now?\nBankr: CAUTION — NVDA/USDG: US market closed: fair value is Hyperliquid's\n       internal price, Chainlink is frozen.\n       Pool 222.4483 vs fair 222.2367 (-9.5 bp), regime WEEKEND_DARK.\n       Conditions change Sun 07:50 PM ET (reopen window starts).\n\nYou:   when is it worst to LP NVDA?\nBankr: NVDA/USDG worst hours for LPs: Wed 09:00 ET (edge 0.33),\n       Mon 09:00 ET (edge 0.25), Wed 17:00 ET (edge 0.26).\n       (edge = fees ÷ value picked off; below 1, informed flow took more\n       than LPs earned)\n\nYou:   how did my LP actually do?\nBankr: [tearsheet: fees vs informed flow vs IL vs gas, per $1k, with the\n       reconciliation residual against on-chain collected fees]"
+  },
+  "setup": [
+    "Install the skill with the button below",
+    "Keep a little USDC on Base in your Bankr wallet (calls cost $0.002–$0.05; failed calls are not charged)",
+    "Say: \"is it safe to LP NVDA right now?\"",
+    "Say: \"how did my LP actually do?\" for a full tearsheet (Robinhood Chain Uniswap or Aerodrome on Base)"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "lp-truth",
+    "command": "install the lp-truth skill from https://github.com/BankrBot/skills/tree/main/lp-truth"
+  }
+}
