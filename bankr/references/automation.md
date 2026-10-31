@@ -41,7 +41,7 @@ The wallet must already hold the spend when an order is created: the full amount
 ## Managing Automations
 
 - "Show my automations" · "What limit orders do I have?" — lists open, running and paused automations, including each run's result
-- "Cancel my ETH limit order" · "Cancel all my stop losses" — takes effect immediately; a run that is executing right now can't be cancelled
+- "Cancel my ETH limit order" · "Cancel all my stop losses" — takes effect immediately, even for a command that is running right now; an order in the middle of a fill can't, so retry once it settles
 - To change an automation, cancel it and create a new one. Pausing, resuming and editing a command are done on the Automations page ([bankr.bot/automation](https://bankr.bot/automation)).
 - A scheduled command's results are kept in its run history (last 10 runs). One created in a Telegram or Farcaster DM also replies in that conversation; add "notify me on Telegram" to have results sent to your linked Telegram account.
 
