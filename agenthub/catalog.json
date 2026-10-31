@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "agenthub",
+  "provider": "AgentHub",
+  "providerUrl": "https://agenthub.gg",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "agenthub.sh",
+    "language": "bash",
+    "code": "# Quote and open a 5x ETH long with a 5% stop (you confirm before it executes)\nbankr prompt \"Using the agenthub skill, long \\$20 ETH 5x with a 5% stop\"\n\n# Positions, balance and limits\nbankr prompt \"Using the agenthub skill, show my positions and limits\"\n\n# Risk off\nbankr prompt \"Using the agenthub skill, close everything and pause trading\""
+  },
+  "setup": [
+    "Needs a Bankr wallet API key with walletApiEnabled (sign messages and EIP-712 typed data, submit transactions on Base)",
+    "The trading wallet must be a plain EOA: Veranta rejects smart-wallet signatures",
+    "One-time: a gasless delegation signature and USDC approvals on Base, both guided by the skill",
+    "Execution costs $0.01 USDC per executed trade via x402 on Base; quotes, reads and setup are free",
+    "Source: https://github.com/BankrBot/skills/tree/main/agenthub"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "agenthub",
+    "command": "install the agenthub skill from https://github.com/BankrBot/skills/tree/main/agenthub"
+  }
+}
