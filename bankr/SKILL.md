@@ -159,7 +159,7 @@ Most of these work by asking the agent (`bankr agent "..."` or `POST /agent/prom
 Capabilities without a reference file:
 
 - **Merkl rewards** on Base and Robinhood Chain: the agent can check what the user has earned, claim it (embedded Bankr wallets only), and list live campaigns by APR. For example: `bankr agent "Do I have any Merkl rewards to claim?"`.
-- **Web browsing:** for Bankr Club members, the agent can drive a headless browser from the web terminal or a Farcaster direct cast. It isn't available over the Agent API (so not from the CLI), in Telegram, or in public posts ([docs](https://docs.bankr.bot/browser/overview)).
+- **Web browsing:** for Bankr Club members, the agent can drive a headless browser from Bankr Console or a Farcaster direct cast. It isn't available over the Agent API (so not from the CLI), in Telegram, or in public posts ([docs](https://docs.bankr.bot/browser/overview)).
 - **Webhooks:** `bankr webhooks` deploys endpoints that trigger the agent from external events ([docs](https://docs.bankr.bot/webhooks/overview)).
 - **Questions about Bankr itself:** the agent answers from Bankr's own documentation (official links, channels, how features work) and abstains instead of guessing.
 
@@ -167,7 +167,7 @@ Capabilities without a reference file:
 
 - **Name the chain**, or paste the contract address, whenever a token exists on more than one chain. Launch defaults also differ by surface: the CLI and the web form preselect Base, while the agent and the deploy API fall back to Robinhood Chain.
 - **Spend limits are real.** Every wallet starts with a $500 daily limit and a $500 per-transaction limit. They are enforced on every path (agent, Wallet API, raw submit, x402, top-ups, Polymarket, launches) and fail closed when a price is unavailable. Only the user can change them, at bankr.bot → Security; an API key can't. See [safety.md](references/safety.md).
-- **Keys can be narrowed.** A read-only key keeps reads and prompts but gets `403` on every write: wallet writes, deploys and claims. A non-empty recipient allowlist also refuses anything whose recipient can't be checked: Polymarket trades, NFT buys, mints and listings, airdrops, scheduled prompts, raw `/wallet/submit`, and `/wallet/sign` for transactions and typed data. See [safety.md](references/safety.md).
+- **Keys can be narrowed.** A read-only key keeps reads and prompts but gets `403` on every write: wallet writes, deploys and claims. A non-empty recipient allowlist also refuses anything whose recipient can't be checked: Polymarket trades, NFT buys, mints and listings, airdrops, scheduled prompts, raw `/wallet/submit`, and `/wallet/sign` for transactions, typed data and 32-byte messages. See [safety.md](references/safety.md).
 - **Never retry a swap under a new key after it may have broadcast.** Send an `idempotencyKey` with every `/wallet/swap` and retry only with the same one. After a `504 receipt_pending`, `502 fill_unconfirmed` or `502 fill_failed`, check the wallet's activity first. See [error-handling.md](references/error-handling.md#retrying-swaps-safely).
 - **Creating an automation isn't idempotent.** If a create seemed to fail, list the existing automations before sending it again.
 - **Tokenized-stock trades need a one-time location verification** in the Bankr web app, which isn't available in the US, the UK or sanctioned regions. Quotes aren't gated; execution is.
@@ -194,7 +194,7 @@ More in [docs.bankr.bot/getting-started/supported-chains](https://docs.bankr.bot
 - `bankr llm credits` shows the balance. `bankr llm credits add <usd> [--token <symbol-or-address>]` tops up from the wallet, and `bankr llm credits auto` configures automatic top-ups.
 - `bankr claude` (alias of `bankr llm claude`) and `bankr llm opencode` launch those tools through the gateway. `bankr llm setup openclaw|opencode|claude|cursor` prints or installs their config.
 - Requests run at a privacy tier: `standard` (the default), `zdr` (zero data retention) or `private` (TEE). If no provider can serve the requested tier, the request fails rather than falling back to a weaker one.
-- **Max Mode** runs the Bankr agent itself on a model you pick from the frontier, flagship and balanced lines, billed from the same credits. Use `bankr agent -m <id> "..."`, or pick Max in the web terminal's mode menu.
+- **Max Mode** runs the Bankr agent itself on a model you pick from the frontier, flagship and balanced lines, billed from the same credits. Use `bankr agent -m <id> "..."`, or pick Max in Bankr Console's mode menu.
 
 Setup paths, SDK examples, credit transfers, spend budgets and deprecations are in [references/llm-gateway.md](references/llm-gateway.md).
 
@@ -202,7 +202,7 @@ Setup paths, SDK examples, credit transfers, spend budgets and deprecations are 
 
 Commands: `bankr club` (status), `bankr club signup [--yearly] [--token <USDC|BNKR|ETH|Base ERC-20>]` and `bankr club cancel`. It costs $20 a month or $198 a year, paid as the USD equivalent in the chosen token.
 
-- AI prompts work without Max Mode. Terminal messages go from 5 a day to unlimited, and Agent API prompts are capped at 1,000 a day instead of Max Mode's 100.
+- AI prompts work without Max Mode. Bankr Console messages go from 5 a day to unlimited, and Agent API prompts are capped at 1,000 a day instead of Max Mode's 100.
 - File storage grows from 1 GB to 10 GB.
 - It doesn't raise the token-launch cap.
 
