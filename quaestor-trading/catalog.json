@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "quaestor-trading",
+  "provider": "Quaestor",
+  "providerUrl": "https://quaestor-app.onrender.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "governed-trade.sh",
+    "language": "bash",
+    "code": "# What can I trade, and what does the price gate see for it right now?\nbankr prompt \"using the quaestor-trading skill, what can I trade and what does the market evidence say?\"\n\n# A governed quote: the floor it guarantees, measured against two independent price sources\nbankr prompt \"quote 2 USDC of dAAPLx through quaestor and show me the gate's verdict\"\n\n# With an agent key: quote -> preview -> execute, inside caps only the owner can change\nbankr prompt \"buy 2 USDC of dAAPLx through quaestor\"\n# -> settled, with a transaction signature. Ask for 20 and it reports PER_TRADE_CAP_EXCEEDED\n\n# Is a quote from ANY venue fair? ($0.005 over x402, USDC on Base via Bankr x402 Cloud)\nbankr prompt \"check this quote with quaestor quote-check: 5 USDC for 1000000 raw units of AAPLx\"\n# -> off-market: that floor implies ~$498 a share against an observed ~$335"
+  },
+  "setup": [
+    "Add the MCP server: `add an MCP server named \"quaestor\" at https://quaestor-stocks.onrender.com/mcp` (Streamable HTTP). With no key it serves the eight tools that read — instruments, venues, market evidence, prices, quotes, policy preview, orders, portfolio — and the execute tool is absent.",
+    "To execute, store the agent key as a secure variable and send it as a header: `X-API-Key: {{QUAESTOR_KEY}}`. Never put the key in the URL, in chat or in a tool argument.",
+    "The hosted hub is Solana devnet with live execution and small caps (5 USDC a trade, 25 a day). It is a free instance and can take up to a minute to wake.",
+    "To trade under your own limits, run your own hub and governor: https://github.com/N-45div/Quaestor (`npm run services:stocks`).",
+    "Optional paid checks settle over x402: USDC on Base through Bankr x402 Cloud, or USDC on Solana through PayAI. Governed quotes already include the check for free.",
+    "Source: https://github.com/N-45div/Quaestor/tree/main/skills/quaestor-trading"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "quaestor-trading",
+    "command": "install the quaestor-trading skill from https://github.com/BankrBot/skills/tree/main/quaestor-trading"
+  }
+}
