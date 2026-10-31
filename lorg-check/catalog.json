@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "lorg-check",
+  "provider": "Lorg Labs",
+  "providerUrl": "https://lorglabs.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "lorg-check.sh",
+    "language": "bash",
+    "code": "# Is this token a trap? ($0.03) A Base honeypot: block, the sell back reverts\nbankr x402 call https://x402.bankr.bot/0x04a78f755d1cb5a5ea7c0a945d70ea51e562887f/token-safety-check -X POST -d '{\"chain\":\"base\",\"address\":\"0x67c958d79ea11830e145d3508103cfb2d5d7c620\",\"amount_usd\":50}'\n\n# Is this address safe to pay? ($0.01) A sanctioned wallet: block\nbankr x402 call https://x402.bankr.bot/0x04a78f755d1cb5a5ea7c0a945d70ea51e562887f/address-safety-check -X POST -d '{\"chain\":\"base\",\"address\":\"0x0330070FD38Ec3bB94F58FA55D40368271E9e54A\"}'\n\n# Or let the agent decide when to check\nbankr prompt \"Buy $50 of 0x67c958d79ea11830e145d3508103cfb2d5d7c620 on Base\""
+  },
+  "setup": [
+    "No API key or account: each check is paid per call over x402 from your Bankr wallet ($0.03 a token, $0.01 an address, USDC on Base)",
+    "Keep a little USDC on Base in the wallet; you are charged only when an answer comes back",
+    "Base and Ethereum mainnet",
+    "Docs: https://lorglabs.com/docs.html · Source: https://github.com/BankrBot/skills/tree/main/lorg-check"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "lorg-check",
+    "command": "install the lorg-check skill from https://github.com/BankrBot/skills/tree/main/lorg-check"
+  }
+}
