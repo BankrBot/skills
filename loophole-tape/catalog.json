@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "loophole-tape",
+  "provider": "loophole tape",
+  "providerUrl": "https://api.loopholetape.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "loophole-tape.sh",
+    "language": "bash",
+    "code": "# Free: is the pump.fun mint inside the live window?\ncurl \"https://api.loopholetape.com/v1/check/coverage?mints=<MINT>\"\n\n# pump.fun verdict with calibrated odds ($0.01, USDC on Base; the agent asks you first)\nbankr prompt \"Using the loophole-tape skill, check pump.fun mint <MINT> before I buy\"\n\n# Robinhood Chain Pons V2 curve card with the ring screen ($0.02)\nbankr prompt \"Using the loophole-tape skill, show the holder structure of Pons V2 token <0x...>\""
+  },
+  "setup": [
+    "No API key or account: each call is paid per request over x402 from the Bankr wallet (USDC on Base, $0.005-$0.02)",
+    "The skill confirms every paid call with you first and pins the payee, chain, token and maximum amount",
+    "Covers pump.fun mints inside the live window (free coverage check first) and recent Pons V2 curves on Robinhood Chain (4663)",
+    "Read-only: never signs trades. Calibration tables at https://api.loopholetape.com/v1/calibration, daily scored record at https://api.loopholetape.com/track-record"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "loophole-tape",
+    "command": "install the loophole-tape skill from https://github.com/BankrBot/skills/tree/main/loophole-tape"
+  }
+}
