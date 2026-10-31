@@ -34,12 +34,12 @@ const invalids = {
   issuedAt: () => ({ issued_at: 'invalid' }),
 };
 for (const [name, mutate] of Object.entries(invalids)) {
-  test(`full-grant refusal before preview or signer: ${name}`, (t) => {
+  test(`full-grant refusal before preview or signer: ${name}`, async (t) => {
     const grant = grantFor(mutate());
     assert.equal(validateGrant(grant, Date.now()).ok, false, 'fixture must reproduce the SDK validator refusal');
     let signerCalls = 0;
     for (const lane of ['a', 'b']) {
-      const result = createPaymentContext({ grant, lane });
+      const result = (await createPaymentContext({ grant, lane }));
       if (result.ok) signerCalls++;
       assert.equal(result.reason, 'grant_invalid');
     }
@@ -58,9 +58,9 @@ const typedFor = context => {
   const { domain, types, primaryType, message } = context.authorization;
   return structuredClone({ domain, types, primaryType, message });
 };
-test('context retains a frozen full grant; caller mutation, copies and overrides cannot retarget it', () => {
+test('context retains a frozen full grant; caller mutation, copies and overrides cannot retarget it', async () => {
   const grant = grantFor();
-  const { context } = createPaymentContext({ grant, lane: 'b', amount: '60000' });
+  const { context } = (await createPaymentContext({ grant, lane: 'b', amount: '60000' }));
   assert.ok(context);
   const before = typedFor(context);
   grant.price_payee_account = grant.price_payer_account;
@@ -80,8 +80,8 @@ test('context retains a frozen full grant; caller mutation, copies and overrides
   assert.equal(checkSignRequest({ context, typedData: before }).ok, true);
 });
 
-test('malformed signing requests are refused before the external signer is asked', () => {
-  const { context } = createPaymentContext({ grant: grantFor(), lane: 'b' });
+test('malformed signing requests are refused before the external signer is asked', async () => {
+  const { context } = (await createPaymentContext({ grant: grantFor(), lane: 'b' }));
   const correct = typedFor(context);
   let asked = 0;
   const guardedSigner = typedData => {
@@ -107,10 +107,10 @@ test('malformed signing requests are refused before the external signer is asked
   assert.equal(asked, 1);
 });
 
-test('retained contexts expire at the signed second at every money boundary', t => {
+test('retained contexts expire at the signed second at every money boundary', async t => {
   const now = Date.now();
   const grant = grantFor({ issued_at: new Date(now - 60_000).toISOString(), expires_at: new Date(now + 60_999).toISOString() });
-  const { context } = createPaymentContext({ grant, lane: 'b' });
+  const { context } = (await createPaymentContext({ grant, lane: 'b' }));
   const typed = typedFor(context);
   const deadline = Number(typed.message.validBefore) * 1000;
   t.mock.method(Date, 'now', () => deadline - 1);
@@ -121,26 +121,26 @@ test('retained contexts expire at the signed second at every money boundary', t 
   assert.equal(checkRequestAgainstGrant({ context, request: {} }).reason, 'grant_expired');
 });
 
-test('historical submit responses require complete valid grants but remain checkable after expiry', () => {
+test('historical submit responses require complete valid grants but remain checkable after expiry', async () => {
   const grant = grantFor({ issued_at: new Date(Date.now() - 600_000).toISOString(), expires_at: new Date(Date.now() - 60_000).toISOString() });
   const response = { success: true, transactionHash: '0x' + 'ab'.repeat(32), status: 'success', chainId: 8453, signer: payer.address };
-  assert.equal(createPaymentContext({ grant, lane: 'b' }).reason, 'grant_expired');
+  assert.equal((await createPaymentContext({ grant, lane: 'b' })).reason, 'grant_expired');
   assert.equal(checkSubmitResponse({ grant, response }).ok, true);
   assert.equal(checkSubmitResponse({ grant: { ...grant, offer_hash: 'invalid' }, response }).reason, 'grant_invalid');
 });
 
-test('accessor and hidden grant fields are rejected without executing a getter', () => {
+test('accessor and hidden grant fields are rejected without executing a getter', async () => {
   const grant = grantFor(); let reads = 0;
   Object.defineProperty(grant, 'offer_hash', { enumerable: true, get() { reads++; return 'aa'.repeat(32); } });
-  assert.equal(createPaymentContext({ grant, lane: 'a' }).reason, 'grant_invalid');
+  assert.equal((await createPaymentContext({ grant, lane: 'a' })).reason, 'grant_invalid');
   assert.equal(reads, 0);
   const hidden = grantFor(); Object.defineProperty(hidden, 'unexpected', { value: null });
-  assert.equal(createPaymentContext({ grant: hidden, lane: 'a' }).reason, 'grant_invalid');
+  assert.equal((await createPaymentContext({ grant: hidden, lane: 'a' })).reason, 'grant_invalid');
 });
 
 for (const lane of ['a', 'b']) test(`locked grant builder uses retained context before offline signing: ${lane}`, async t => {
   const network = t.mock.method(globalThis, 'fetch', () => { throw new Error('offline fixture'); });
-  const { context } = createPaymentContext({ grant: grantFor(), lane });
+  const { context } = (await createPaymentContext({ grant: grantFor(), lane }));
   let calls = 0;
   const sign = async typedData => {
     const admitted = checkSignRequest({ context, typedData });
@@ -160,8 +160,8 @@ for (const lane of ['a', 'b']) test(`locked grant builder uses retained context 
   assert.equal(network.mock.callCount(), 0);
 });
 
-test('accepted signing payload is a frozen snapshot and accessor requests are never evaluated', () => {
-  const { context } = createPaymentContext({ grant: grantFor(), lane: 'b' });
+test('accepted signing payload is a frozen snapshot and accessor requests are never evaluated', async () => {
+  const { context } = (await createPaymentContext({ grant: grantFor(), lane: 'b' }));
   const input = typedFor(context);
   const admitted = checkSignRequest({ context, typedData: input });
   assert.equal(admitted.ok, true);
@@ -176,7 +176,7 @@ test('accepted signing payload is a frozen snapshot and accessor requests are ne
 });
 
 test('signature response capture verifies and returns the same bytes; accessors cannot swap them', async () => {
-  const { context } = createPaymentContext({ grant: grantFor(), lane: 'b' });
+  const { context } = (await createPaymentContext({ grant: grantFor(), lane: 'b' }));
   const { domain, types, message } = context.authorization;
   const signature = await payer.signTypedData(domain, types, message);
   const response = { success: true, signatureType: 'eth_signTypedData_v4', signer: payer.address, signature };
@@ -190,13 +190,25 @@ test('signature response capture verifies and returns the same bytes; accessors 
   assert.equal(reads, 0);
 });
 
-test('API wrappers reject malformed or accessor inputs without evaluating them', () => {
+test('API wrappers reject malformed or accessor inputs without evaluating them', async () => {
   for (const gate of [createPaymentContext, checkSignRequest, checkSignResponse, checkRequestAgainstGrant]) {
-    for (const malformed of [null, [], 'text', 42]) assert.equal(gate(malformed).reason, 'payment_input_not_object');
+    for (const malformed of [null, [], 'text', 42]) assert.equal((await gate(malformed)).reason, 'payment_input_not_object');
     let reads = 0;
     const field = gate === createPaymentContext ? 'grant' : 'context';
     const input = Object.defineProperty({}, field, { enumerable: true, get() { reads++; return {}; } });
-    assert.equal(gate(input).reason, 'payment_input_not_data');
+    assert.equal((await gate(input)).reason, 'payment_input_not_data');
     assert.equal(reads, 0);
   }
+});
+
+test('Bankr amount spelling is normalized once and Lane A stays outside raw submission', async () => {
+  const grant = grantFor();
+  const leading = await createPaymentContext({ grant, lane: 'b', amount: '00050000' });
+  assert.equal(leading.ok, true);
+  assert.equal(leading.context.amount, '50000');
+  assert.equal((await createPaymentContext({ grant, lane: 'b', amount: null })).context.amount, '50000');
+  for (const amount of [0, '0', '49999', '5000001', '1e5']) assert.equal((await createPaymentContext({ grant, lane: 'b', amount })).ok, false);
+  const { context } = await createPaymentContext({ grant, lane: 'a' });
+  assert.equal(checkRequestAgainstGrant({ context, request: {} }).reason, 'request_lane_mismatch');
+
 });

@@ -142,42 +142,33 @@ and grant envelopes with it. That key names you; it moves no money.
 read from the network; `verify-artifacts.mjs receipt` and the other three
 `preview-payment.mjs` modes are fully offline.
 
-Discovery, sealing, artifact verification and the payment-preview helper use
-four direct dependencies from the public npm registry: `@voidly/session@1.0.0`,
-`ethers@6.17.0`, `tweetnacl@1.0.3` and `tweetnacl-util@0.15.1`. Their exact
-versions, transitive dependencies and integrity hashes are recorded in this
-folder's committed `package-lock.json`.
+The commands use three runtime dependencies from the public npm registry:
+`@voidly/session@1.3.0`, `tweetnacl@1.0.3` and `tweetnacl-util@0.15.1`.
+The fourth direct dependency, `ethers@6.17.0`, is development-only for synthetic
+signing tests; payment recovery at runtime is provided by the published SDK.
+Their exact versions, transitive dependencies and integrity hashes are recorded
+in this folder's committed `package-lock.json`.
 
-**Installing needs the human's go-ahead.** It is the one step here that puts
-third-party code on the machine. Name the four direct dependencies and the registry, ask,
-and only then:
+**Installing needs the human's go-ahead.** Name all four direct dependencies
+and `registry.npmjs.org`, ask, and only then:
 
 ```bash
 npm ci --ignore-scripts   # inside this skill's folder
 ```
 
-`npm ci` installs exactly the versions the lockfile resolved, with their
-integrity hashes, and refuses to run at all (`EUSAGE`) when the lock cannot
-satisfy `package.json`; `--ignore-scripts` stops install-time code from
-running. Do not use bare `npm install` here — it is free to resolve a version
-the lock never recorded. The ranges in `package.json` are exact rather than
-caret for the same reason: a caret range the lock happens to satisfy installs
-cleanly today and drifts the moment the lock is regenerated.
+`npm ci` installs exactly the locked versions and verifies their integrity;
+it refuses an inconsistent manifest/lock. `--ignore-scripts` prevents lifecycle
+scripts. Do not use bare `npm install` or silently upgrade a dependency.
 
-`scripts/verify-settlement.mjs` needs no npm package — only Node and
-`scripts/lib/pins.mjs` and `scripts/lib/local-files.mjs` beside it — so the
-settlement proof in Leg 3 runs before anything is installed. Reach for it
-first; the install can wait for a yes.
+`verify-settlement.mjs` and `preview-payment.mjs` both require this approved
+install. The former delegates historical receipt verification to the SDK;
+the latter uses its immutable context, signing-request, recovered-payer and
+exact submission-request checks. Offline checks make no network requests,
+but still require the locked dependencies. Neither command signs or submits.
 
-`preview-payment.mjs` requires that approved install, including `ethers` for
-local EIP-712 signature recovery. Offline verification means no network request,
-not no dependency. The settlement checker remains the no-install first step.
-
-The README bundled with pinned `@voidly/session@1.0.0` carries an obsolete
-unpublished-package caveat. Check that exact published version and integrity
-with `npm view @voidly/session@1.0.0 version dist.integrity`, then compare the
-result with `package-lock.json`. An unversioned registry query follows the
-latest release; it does not verify the reviewed pin or authorize an upgrade.
+The reviewed public package is `@voidly/session@1.3.0`. Compare
+`npm view @voidly/session@1.3.0 version dist.integrity` with the committed lock;
+an unversioned query follows latest and does not verify this pin.
 
 ---
 
@@ -234,7 +225,7 @@ prints a placeholder, not a default — never invent one), and run it only on
 an explicit yes.
 
 **What this skill's scripts do NOT wrap: submitting the wire and opening the
-result.** `@voidly/session@1.0.0` exports those calls (`submitHire`,
+result.** `@voidly/session@1.3.0` exports those calls (`submitHire`,
 `authenticateHireAcceptance`, `recoverResult`, `openDeliveredResult`), and the
 keep file holds what they need — the wire, the session key, a pointer to the
 signing identity, and the provider's `accept_url` and worker base (the key
@@ -324,7 +315,7 @@ nothing else:
   `value: "0"` (Bankr takes wei as a decimal string; the SDK's request spells
   it `"0x0"` — re-spell it, do not pass it through), `waitForConfirmation:
   true`, and a `description` that names the grant hash. It returns the
-  transaction hash; the gates below run on the decoded `data` before this
+  transaction hash; the gates below run on the SDK-admitted `data` before this
   call is made.
 
 Both endpoints need a key with `walletApiEnabled`; a read-only key is
@@ -345,7 +336,7 @@ remains PREPARE and VERIFY; no third-party Bankr round trip is claimed.
 signs the `transfer` authorization itself — calling
 `buildTransferPaymentAuthorization` beside it is a second signature request
 for the same payment — and hands the calldata to your `broadcast` callback,
-which is the only point between the signature and the chain: the decode
+which is the only point between the signature and the chain: the SDK admission
 gates and the second preview below live there, before `/wallet/submit`.
 Then `submitSettlementHint`. You pay the gas and write the pointer yourself.
 Take this lane only when the provider does not relay; ask the operator which
@@ -398,7 +389,7 @@ These are alternative lane examples, not a sequence that authorizes both.
 Never feed a Lane A signature response into Lane B's request checker.
 
 For an imported integration, create one retained intent with
-`createPaymentContext({ grant, lane, amount? })` from `preview-payment.mjs`.
+`await createPaymentContext({ grant, lane, amount? })` from `preview-payment.mjs`.
 A successful result carries `context`: the complete SDK-validated grant,
 reviewed pins, recomputed hash, selected lane and amount, and exact typed
 authorization, held as an immutable snapshot. This is machine validation,
@@ -425,13 +416,21 @@ Use that same context throughout the authorized operation:
   amount or expiry overrides are refused; another intent requires a new
   context, preview and human approval.
 
-`typedMessageFor` and `typedAuthorizationFor` are low-level pure builders,
-not validation or approval gates. The locked SDK's full grant validator does
-not itself reject current expiry; the payment context and subsequent gates
-also check the current validity window. Separate CLI invocations validate
-their inputs anew and do not persist or prove human approval. An integration
-must retain the context the human approved rather than reconstructing it from
-a changed file between steps. `checkSubmitResponse({ grant, response })`
+The retained context is created asynchronously by the SDK. The CLI keeps its
+existing decimal amount input (including leading zeros), normalizes it once,
+and binds the resulting value. Signing and submission gates remain synchronous.
+Fresh payment authority expires at the signed second; historical receipt and
+submit-response checks remain distinct. The old standalone typed builders and
+calldata decoder are removed: the SDK builds and admits the complete payload.
+SDK request refusals now use `payment_submit_request_mismatch` for altered
+chain, target, value, calldata or signature fields. Its canonical lowercase
+`0x` prefix requirement also applies to zero-value and calldata inputs.
+
+The locked SDK's full grant validator does not itself reject current expiry;
+the payment context and subsequent gates also check the current validity window.
+Separate CLI invocations validate their inputs anew and do not persist or prove
+human approval. Retain the context the human approved instead of reconstructing
+it from a changed file between steps. `checkSubmitResponse({ grant, response })`
 checks the complete grant and pins for reconciliation but permits historical
 expired grants; it does not authorize a fresh payment.
 
@@ -440,7 +439,7 @@ signs — and refuses `grant_expired` once the window has passed. Its three
 check modes are the gates named in the sections that follow:
 `check-sign-response` (the `/wallet/sign` response, before the signature is
 handed back), `check-request` (the SDK's `TransactionRequest` inside the
-`broadcast` callback, decoded offline against the grant — the amount must be
+`broadcast` callback, checked offline against the retained SDK context — the amount must be
 the previewed floor unless `--amount` names another in-band value the human
 approved), and `check-submit-response` (the `/wallet/submit` response, before
 its hash is treated as evidence). Each refuses by name and exits 1; nothing
@@ -500,7 +499,7 @@ summary is not a preview:
 - **Lane B only — the submission transaction.** Before signing: target
   contract, function selector, and `value` (zero: gas is paid in ETH, the
   payment moves in USDC). The calldata exists only after the signature —
-  `preview-payment.mjs check-request` decodes it inside the `broadcast`
+  `preview-payment.mjs check-request` checks it inside the `broadcast`
   callback, before `/wallet/submit`, and prints a fee line from typical gas ×
   the live gas price. It never sends the calldata to anyone.
 
@@ -555,8 +554,8 @@ resolved address into the preview as the **Payer** line.
 
 ### Bankr transaction safety gates (Lane B, before `/wallet/submit`)
 
-The SDK-built transaction is untrusted until locally decoded and checked
-immediately before submission; an intent summary is not a decode. For the one
+The SDK-built transaction is untrusted until locally checked by the SDK
+immediately before submission; an intent summary is not request admission. For the one
 transaction Lane B submits, require all of:
 
 - **exactly one** transaction, in this order: it, alone — no `approve`, no
@@ -565,7 +564,7 @@ transaction Lane B submits, require all of:
   (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`); `value == 0` — the payment
   moves in USDC, gas is paid in ETH;
 - selector `0xe3ee160e` (`transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,uint8,bytes32,bytes32)`),
-  and the ABI-decoded arguments **equal to the typed message the human
+  and the SDK-admitted arguments **equal to the typed message the human
   approved**: `from` = the resolved payer, `to` = the payee off the verified
   manifest, `value` = the previewed atomic amount, `validAfter` = `0`,
   `validBefore` = the previewed window, `nonce` = the previewed binding nonce,
@@ -584,7 +583,7 @@ on 2026-09-05; documentation is not a read of this wallet's actual policy.
 - A non-empty `allowedRecipients` restriction blocks typed-data signing in
   **both lanes**. It also blocks **all raw submissions**, including Lane B's
   `/wallet/submit`, even when this skill pins the intended payee. These are
-  endpoint refusals, not local decoder failures. See Bankr's
+  endpoint refusals, not local admission failures. See Bankr's
   [sign access control](https://docs.bankr.bot/wallet-api/sign/) and
   [submit access control](https://docs.bankr.bot/wallet-api/submit/).
 - **Arbitrary contract calls are on by default**, according to Bankr's
@@ -604,7 +603,7 @@ switch wallet, submitter or lane to make this payment proceed. Report the
 specific restriction to the operator; a separate policy review is not this
 skill's payment authorization. A successful local preview never bypasses Bankr.
 
-Any decode, chain, target, selector, argument, value, ordering, or count
+Any admission, chain, target, selector, argument, value, ordering, or count
 mismatch rejects the whole transaction. **If `/wallet/submit` refuses with a
 security-scan reason, stop.** (Bankr's own reference does not name the codes;
 other BankrBot/skills entries report `untrusted_address` from that call.)
@@ -710,7 +709,7 @@ than two *distinct* HTTPS operators from the allowlist in
 `scripts/lib/pins.mjs` is refused before a single packet leaves
 (`insufficient_rpc_quorum`), and naming one operator twice is still one
 operator. Every operator must report Base mainnet (`eth_chainId` `0x2105`),
-return a byte-identical receipt, and hold the receipt's own block hash at that
+return the same canonical receipt document, and hold the receipt's own block hash at that
 height; confirmations are counted from the **lowest latest** head across the
 quorum. These are observations from the queried operators, not independent
 chain derivation. The result's `assurance` identifies `rpc-quorum-inclusion`,
@@ -731,7 +730,7 @@ PROVEN
   block:         50498854  confirmations: 252575 (lowest head of 2 operators)
   assurance:     quorum-observed inclusion; latest-head confirmations only; safe/finalized not checked
   chain:         0x2105 (Base mainnet, 8453) — confirmed by every operator, receipt bound to its block hash
-  quorum:        2/2 agreed — base.gateway.tenderly.co + base-mainnet.public.blastapi.io, receipts byte-identical
+  quorum:        2/2 agreed — base.gateway.tenderly.co + base-mainnet.public.blastapi.io, canonical receipt documents agree
   terms:         as typed on the command line — NOT read off a grant; pass --grant ./keep.grant.json to bind them
   scope:         this tx spent the nonce derived from grant_hash and moved exactly that transfer.
                  Whether payer, payee and amount are that grant's TERMS was not checked — no --grant was given.

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { LocalFileError, readFileCapped, writeNewVerifiedFile } from "../scripts/lib/local-files.mjs";
+import { LocalFileError, readFileCapped, writeNewVerifiedFile } from "@voidly/session/node-files";
 
 function fixture(t) {
   const dir = fs.mkdtempSync(join(tmpdir(), "voidly-files-"));
