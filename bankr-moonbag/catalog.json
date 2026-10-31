@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "bankr-moonbag",
+  "provider": "dutchiono",
+  "providerUrl": "https://github.com/dutchiono/skills",
+  "logo": null,
+  "demo": {
+    "title": "moonbag-example.sh",
+    "language": "bash",
+    "code": "# Buy normally, then immediately sweep the configured moonbag slice to a separate wallet\\nbankr agent prompt \"Buy $500 of TOKEN on Base\"\\nbankr wallet portfolio\\nbankr agent prompt \"Send exactly <moonbag-amount> TOKEN on Base to <moonbag-wallet>\""
+  },
+  "setup": [
+    "Install Bankr CLI: `npm install -g @bankr/cli`",
+    "Login to Bankr: `bankr login email you@example.com`",
+    "Configure a separate moonbag wallet/address",
+    "Default: vault 10% or $50 of each buy, whichever protects more tokens",
+    "Normal exits never touch the moonbag; emergency/rug exits require explicit moonbag liquidation intent"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "bankr-moonbag",
+    "command": "install the bankr-moonbag skill from https://github.com/dutchiono/skills/tree/main/bankr-moonbag"
+  }
+}
