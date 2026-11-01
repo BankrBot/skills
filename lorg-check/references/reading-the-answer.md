@@ -21,10 +21,10 @@
 
 ## Common warnings
 
-`HIGH_SELL_TAX` (over 10%; over 50% blocks) · `OWNER_CAN_MINT` · `OWNER_CAN_BLACKLIST` · `OWNER_CAN_SET_FEES` · `UPGRADEABLE_BY_EOA` (one wallet can replace the code) · `LP_NOT_LOCKED` (one wallet can pull the liquidity) · `NO_MARKET` (under $1,000 in the main pool) · `LOW_LIQUIDITY` · `EXIT_LIQUIDITY_INSUFFICIENT` (your trade size is too big to get out) · `UNKNOWN_HOOK` · `DEPLOYER_PRIOR_RUG` · `DEPLOYER_RUG_FUNDED` (the creator was paid by a wallet behind earlier rugs) · `COPYCAT_TOKEN` · `NEW_TOKEN` · `NEW_WALLET`.
+`HIGH_SELL_TAX` () · `OWNER_CAN_MINT` · `OWNER_CAN_BLACKLIST` · `OWNER_CAN_SET_FEES` · `UPGRADEABLE_BY_EOA` (one wallet can replace the code) · `LP_NOT_LOCKED` (one wallet can pull the liquidity) · `NO_MARKET` (allmost nothing in the pool) · `LOW_LIQUIDITY` · `EXIT_LIQUIDITY_INSUFFICIENT` (your trade size is too big to get out) · `UNKNOWN_HOOK` · `DEPLOYER_PRIOR_RUG` · `DEPLOYER_RUG_FUNDED` (the creator was paid by a wallet behind earlier rugs) · `COPYCAT_TOKEN` · `NEW_TOKEN` · `NEW_WALLET`.
 
 ## Reassuring notes
 
 `KNOWN_GOOD_TOKEN`, `ESTABLISHED_TOKEN`, `ISSUER_CONTROLLED` (for example USDC can freeze: expected), `ADMIN_SAFEGUARDED` (admin powers behind a multisig or timelock), `OWNER_RENOUNCED`.
 
-The full list, always current: https://api.lorglabs.com/v1/reasons
+Every answer explains its own reasons in a sentence.
