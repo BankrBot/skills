@@ -7,7 +7,6 @@
 | `verdict` | `allow`, `caution` or `block` |
 | `action` | What to do: `proceed`, `limit_exposure` or `do_not_proceed`. Read this one |
 | `summary` | One sentence to show the user |
-| `risk_score` | 0 to 100: caution from 30, block from 70 |
 | `confidence` | `high`, `medium` or `low`: how complete the evidence was |
 | `reasons` | Each finding, most serious first: `code`, `severity` (critical, high, medium, low, info) and a sentence |
 | `token` | For a token: name, symbol, age in days, its main pool and liquidity, and the simulated buy and sell (taxes, whether it sold) |
