@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "hello-dolly",
+  "provider": "McIntoshiS",
+  "providerUrl": "https://github.com/McIntoshiS",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "hello-dolly",
+    "command": "install the hello-dolly skill from https://github.com/BankrBot/skills/tree/main/hello-dolly"
+  }
+}
