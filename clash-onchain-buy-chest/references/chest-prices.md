@@ -1,5 +1,20 @@
 # Chest Prices Reference
 
+## These are the BASE prices — read the contract for the live price
+
+The table below is the Base mainnet pricing. The authoritative price is
+contract state:
+
+```solidity
+function chestCosts(uint8 chestType) external view returns (uint256);
+function getUpgradeCost(uint256 fromLevel) external view returns (uint256);
+```
+
+A chain with a different `$CLASH` supply (for example Robinhood Chain, which
+runs its own `$CLASH` token) has its own prices. Always read `chestCosts`
+from the contract of the chain you are trading on, and never reuse the Base
+numbers there.
+
 ## ⚠️ Smart Contract Mapping
 
 The ChestManager smart contract uses `uint8` for chest type. **Always pass numeric values**.

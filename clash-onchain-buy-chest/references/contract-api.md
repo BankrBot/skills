@@ -2,9 +2,28 @@
 
 ## Network
 
-- **Chain**: Base Mainnet
-- **Chain ID**: 8453
-- **RPC**: `https://mainnet.base.org` (or custom via `VITE_BASE_RPC_URL`)
+The addresses below are the **Base mainnet** deployment.
+
+| Chain | Chain ID | RPC | Status |
+|-------|----------|-----|--------|
+| Base Mainnet | 8453 | `https://mainnet.base.org` (or `VITE_BASE_RPC_URL`) | Live |
+| Robinhood Chain | 4663 | `https://rpc.mainnet.chain.robinhood.com` (or `ROBINHOOD_RPC_URL`) | **Contracts not deployed yet** |
+
+### Robinhood Chain addresses
+
+Read them from the environment — they do not exist as constants yet:
+
+```
+RH_CLASH_CARDS_ADDRESS     # ClashCards (ERC-1155) on Robinhood Chain
+RH_CARD_MANAGER_ADDRESS    # ClashCardManager on Robinhood Chain
+RH_CLASH_TOKEN_ADDRESS     # $CLASH on Robinhood Chain (own supply)
+```
+
+Until those are set, the MCP server and the edge functions refuse to serve
+the Robinhood Chain instead of falling back to Base. On Robinhood Chain the
+`$CLASH` token is a separate token with its own supply, so read `chestCosts`
+and `getUpgradeCost` from the Robinhood contracts rather than reusing the
+Base numbers.
 
 ## ⚠️ Chest Type Enum
 

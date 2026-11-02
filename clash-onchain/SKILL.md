@@ -5,6 +5,25 @@ version: 0.3.32
 last_updated: 2026-06-18
 ---
 
+## Chains
+
+Clash Onchain runs on two EVM chains. The chain is chosen by the OPERATOR
+(whoever runs the agent), not by the agent itself.
+
+| Chain | id | Status | Notes |
+|-------|----|--------|-------|
+| Base | 8453 | **Live** | Default. All tools read Base contracts unless told otherwise. |
+| Robinhood Chain | 4663 | **Prepared, not deployed yet** | Contracts are not deployed. The MCP server refuses to serve this chain until `RH_CLASH_CARDS_ADDRESS` / `RH_CARD_MANAGER_ADDRESS` / `RH_CLASH_TOKEN_ADDRESS` are configured. |
+
+Pass `chain: "robinhood"` to `get_my_card_inventory` and `set_deck` to read
+the Robinhood Chain contracts. Omit it (or pass `"base"`) for Base.
+
+Card ownership is always per chain — the same wallet owns different NFTs on
+each chain, so the deck you validate on Base is not the deck you validate on
+Robinhood Chain.
+
+---
+
 ## TL;DR — The 4 Steps (and 2 ground rules)
 
 ```

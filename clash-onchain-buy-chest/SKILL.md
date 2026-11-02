@@ -32,6 +32,30 @@ Match the smart contract enum exactly. Use the numeric type when calling the con
 
 ⚠️ **CRITICAL**: Smart contract uses `uint8` for chest type. Always pass the numeric value (0, 1, or 2), not the string.
 
+### Prices come from the contract, not from this table
+
+The table above is the **Base** pricing. The authoritative price is always
+read from the contract of the chain you are on:
+
+- chest price → `chestCosts(uint8 chestType)`
+- card upgrade price → `getUpgradeCost(uint256 fromLevel)`
+
+Both are contract state, so a chain with a different `$CLASH` supply has its
+own prices. Read them before approving anything; do not hardcode the numbers
+above when trading on another chain.
+
+### Chains
+
+| Chain | id | Status | Addresses |
+|-------|----|--------|-----------|
+| Base | 8453 | Live | `VITE_CLASH_CARDS_ADDRESS` / card manager / `$CLASH` — see `references/contract-api.md` |
+| Robinhood Chain | 4663 | **Not deployed yet** | Read from `RH_CLASH_CARDS_ADDRESS`, `RH_CARD_MANAGER_ADDRESS`, `RH_CLASH_TOKEN_ADDRESS` |
+
+On Robinhood Chain the `$CLASH` token is a separate token with its own
+supply, so the chest prices are expected to differ from the Base table.
+Never reuse the Base price for Robinhood Chain — read `chestCosts` from the
+Robinhood contract instead.
+
 ## Prerequisites
 
 This skill uses **BankrBot Agent API** for wallet and transaction signing.
