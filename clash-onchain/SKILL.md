@@ -13,7 +13,19 @@ Clash Onchain runs on two EVM chains. The chain is chosen by the OPERATOR
 | Chain | id | Status | Notes |
 |-------|----|--------|-------|
 | Base | 8453 | **Live** | Default. All tools read Base contracts unless told otherwise. |
-| Robinhood Chain | 4663 | **Prepared, not deployed yet** | Contracts are not deployed. The MCP server refuses to serve this chain until `RH_CLASH_CARDS_ADDRESS` / `RH_CARD_MANAGER_ADDRESS` / `RH_CLASH_TOKEN_ADDRESS` are configured. |
+| Robinhood Chain | 4663 | **Live** | Own `$CLASH` token (1B supply). Economy is scaled 1/100 vs Base: chest 10k/30k/50k, upgrade 100k→25.6M, reward per win 100–1,000 `$CLASH`. |
+
+Robinhood Chain contracts:
+
+| Contract | Address |
+|----------|---------|
+| `$CLASH` (18 decimals) | `0xbD719784F6BF693E20bA520dF81FDa6B202249Aa` |
+| ClashCards (ERC-1155) | `0x92f1185a7668c3730a2b3222db3047ae6135beca` |
+| ClashCardManager | `0x83547652ba08aa70ba7c96b8369bd2bcfe4fefd2` |
+| ClashRewardClaim | `0xf5d330d5b8e0f332ef453ea50b8ac947a0430a87` |
+
+The EIP-712 domain on Robinhood uses chain id **4663** — a Base signature is
+not valid there, and the other way round.
 
 Pass `chain: "robinhood"` to `get_my_card_inventory` and `set_deck` to read
 the Robinhood Chain contracts. Omit it (or pass `"base"`) for Base.
