@@ -37,7 +37,9 @@ During the Sat–Sun fishing competition (hosted by Isabella), each fish a playe
 | 7.5%    | Town Treasury                  |
 | 2.5%    | Burned                         |
 
-The stakers' 10% accumulates across the weekend and is pushed onchain as one `depositRevenue(amount, "fishing")` call **by 12:00 UTC Monday** (often earlier). It shows up instantly as `pendingRewards` for every staker whose `isUnlocking == false` at the time of the call.
+The stakers' 10% accumulates across the weekend and is pushed onchain as one `depositRevenue(amount, "fishing")` call **by 12:00 UTC Monday** (often earlier). It shows up instantly as pending rewards for every staker whose `isUnlocking == false` at the time of the call.
+
+Verified onchain: the 2 Nov 2026 fishing deposit (69,542 KIBBLE) is exactly 10% of that weekend's competition `prizePool` (695,423), and the 26 Oct deposit (59,498) is 10% of the prior weekend's (594,988). `FishingGame` only forwards identification KIBBLE to the competition contract while a competition is active, so weekday spend never reaches stakers. (Older docs.cat.town copy said "any day of the week" — that was wrong.)
 
 Practical implication for agents: Monday morning UTC is the natural moment to prompt users to `claim()` or `claimAndRestake()` — that's when their pending rewards jump after the weekend's competition revenue lands.
 
@@ -56,7 +58,7 @@ Paulie's Fish Raffle runs weekly.
 - **5 winners per draw**, chosen via Chainlink VRF. Prize pool is split **equally** among the 5 — ranks are ordering only, not prize weighting.
 - Prize pool is a tier-based fraction of the `FreeToPlayPool` balance. 8 tiers keyed to `totalTickets` sold that round, paying 30 bps (0.3%) at 0 tickets up to 100 bps (1.0%) once sales cross 5,500. More tickets sold → bigger cut of the pool paid out.
 
-Full contract + API reference, free-ticket claim flow, tier table, and chance-to-win math: [../fish-raffle/contract.md](../fish-raffle/contract.md), [../fish-raffle/api.md](../fish-raffle/api.md).
+Full contract + API reference, free-ticket claim flow, tier table, and chance-to-win math: [fish-raffle.md](fish-raffle.md), [fish-raffle-api.md](fish-raffle-api.md).
 
 ## Weekly fishing competition (Sat–Sun) — Isabella
 
@@ -80,7 +82,7 @@ Isabella hosts the weekend fishing competition. Only catches made during her win
 
 - The leaderboard is only meaningful Saturday–Monday; outside that window it reflects the prior week's results.
 
-Full contract + API reference, prize-pool math (10% top-10 / 80% treasures / 10% stakers), and active/inactive response patterns: [../fishing/competition.md](../fishing/competition.md).
+Full contract + API reference, prize-pool math (10% top-10 / 80% treasures / 10% stakers), and active/inactive response patterns: [fishing-competition.md](fishing-competition.md).
 
 ---
 
