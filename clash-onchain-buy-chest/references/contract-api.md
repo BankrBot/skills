@@ -7,23 +7,26 @@ The addresses below are the **Base mainnet** deployment.
 | Chain | Chain ID | RPC | Status |
 |-------|----------|-----|--------|
 | Base Mainnet | 8453 | `https://mainnet.base.org` (or `VITE_BASE_RPC_URL`) | Live |
-| Robinhood Chain | 4663 | `https://rpc.mainnet.chain.robinhood.com` (or `ROBINHOOD_RPC_URL`) | **Contracts not deployed yet** |
+| Robinhood Chain | 4663 | `https://rpc.mainnet.chain.robinhood.com` (or `ROBINHOOD_RPC_URL`) | Live |
 
 ### Robinhood Chain addresses
 
-Read them from the environment — they do not exist as constants yet:
+| Contract | Address |
+|----------|---------|
+| `$CLASH` (18 decimals, 1B supply) | `0xbD719784F6BF693E20bA520dF81FDa6B202249Aa` |
+| ClashCards (ERC-1155) | `0x92f1185a7668c3730a2b3222db3047ae6135beca` |
+| ClashCardManager | `0x83547652ba08aa70ba7c96b8369bd2bcfe4fefd2` |
+| ClashRewardClaim | `0xf5d330d5b8e0f332ef453ea50b8ac947a0430a87` |
 
-```
-RH_CLASH_CARDS_ADDRESS     # ClashCards (ERC-1155) on Robinhood Chain
-RH_CARD_MANAGER_ADDRESS    # ClashCardManager on Robinhood Chain
-RH_CLASH_TOKEN_ADDRESS     # $CLASH on Robinhood Chain (own supply)
-```
+They are also published as `RH_CLASH_CARDS_ADDRESS`, `RH_CARD_MANAGER_ADDRESS`,
+`RH_CLASH_TOKEN_ADDRESS` and `RH_REWARD_CONTRACT_ADDRESS`.
 
-Until those are set, the MCP server and the edge functions refuse to serve
-the Robinhood Chain instead of falling back to Base. On Robinhood Chain the
-`$CLASH` token is a separate token with its own supply, so read `chestCosts`
-and `getUpgradeCost` from the Robinhood contracts rather than reusing the
-Base numbers.
+On Robinhood Chain the `$CLASH` token is a separate token with its own supply,
+so read `chestCosts` and `getUpgradeCost` from the Robinhood contracts rather
+than reusing the Base numbers — the whole Robinhood economy is scaled 1/100
+(chest 10,000 / 30,000 / 50,000, upgrade 100,000 → 25,600,000, reward per win
+100 – 1,000). The EIP-712 domain uses chain id 4663, so a Base signature is
+never valid on Robinhood Chain.
 
 ## ⚠️ Chest Type Enum
 
