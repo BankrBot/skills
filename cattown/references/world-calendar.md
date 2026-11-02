@@ -37,7 +37,9 @@ During the Sat–Sun fishing competition (hosted by Isabella), each fish a playe
 | 7.5%    | Town Treasury                  |
 | 2.5%    | Burned                         |
 
-The stakers' 10% accumulates across the weekend and is pushed onchain as one `depositRevenue(amount, "fishing")` call **by 12:00 UTC Monday** (often earlier). It shows up instantly as `pendingRewards` for every staker whose `isUnlocking == false` at the time of the call.
+The stakers' 10% accumulates across the weekend and is pushed onchain as one `depositRevenue(amount, "fishing")` call **by 12:00 UTC Monday** (often earlier). It shows up instantly as pending rewards for every staker whose `isUnlocking == false` at the time of the call.
+
+Verified onchain: the 2 Nov 2026 fishing deposit (69,542 KIBBLE) is exactly 10% of that weekend's competition `prizePool` (695,423), and the 26 Oct deposit (59,498) is 10% of the prior weekend's (594,988). `FishingGame` only forwards identification KIBBLE to the competition contract while a competition is active, so weekday spend never reaches stakers. (Older docs.cat.town copy said "any day of the week" — that was wrong.)
 
 Practical implication for agents: Monday morning UTC is the natural moment to prompt users to `claim()` or `claimAndRestake()` — that's when their pending rewards jump after the weekend's competition revenue lands.
 

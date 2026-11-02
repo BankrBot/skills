@@ -135,7 +135,7 @@ This contract breaks the 99%-of-ERC-20 default. If you reflexively wei-encode th
 | `revenueShare.stake(uint256 amount)`      | **integer KIBBLE**        | `1`                               |
 | `revenueShare.unstake(uint256 amount)`    | **integer KIBBLE**        | `1`                               |
 
-Reads are also integer KIBBLE: `getUserStaked`, `pendingRewards`, `getTotalStaked`, `getTotalActiveStaked`.
+The convenience reads are also integer KIBBLE, **floored**: `getUserStaked`, `pendingRewards`, `getTotalStaked`, `getTotalActiveStaked`. The raw storage getters `userStaked`, `rewardDebt`, `totalStaked`, `totalActiveStaked` return **wei**. `pendingRewards` reads `0` for anything under 1 KIBBLE even though `claim()` will pay it — see [references/staking.md](references/staking.md) for the exact formula.
 
 ### Raw calldata — right vs. wrong
 
@@ -172,17 +172,17 @@ Single pool, single reward token — KIBBLE in, KIBBLE out. No reward-token sele
 
 **1. Stake** (mixed units — re-read the CRITICAL section above if uncertain)
 1. `kibble.approve(revenueShare, amount_wei)` — `amount_wei = N * 10^18` where `N` is the KIBBLE count. Required once if `allowance(user, revenueShare) < amount_wei`.
-2. `revenueShare.stake(uint256 N)` — **`N` is the integer KIBBLE count, NOT wei.** If this reverts with `ERC20: transfer amount exceeds balance`, you wei-encoded — pass the plain integer instead. Emits `Staked(user, amount)`.
+2. `revenueShare.stake(uint256 N)` — **`N` is the integer KIBBLE count, NOT wei.** If this reverts with `ERC20: transfer amount exceeds balance`, you wei-encoded — pass the plain integer instead. Emits `Staked(user, amount)`. It pays any pending rewards to the user first. **If the user is unlocking, `stake()` cancels the unlock**: the whole stake goes back to earning, and leaving again needs a new `unlock()` and a fresh 14 days. Warn before topping up during an unlock.
 
 **2. Claim** (after each fishing/gacha deposit)
-- `revenueShare.claim()` — transfers `pendingRewards(user)` to the user. Emits `Claimed(user, amount)`.
-- `revenueShare.claimAndRestake()` — claims and auto-adds to the user's stake in one tx. Emits `ClaimedAndRestaked(user, restakedAmount, totalStakedNow)`.
+- `revenueShare.claim()` — transfers the full pending amount (wei precision) to the user. Emits `Claimed(user, amount)` with the amount floored to whole KIBBLE. Reverts `No rewards` when nothing is pending and `No rewards while unlocking` during an unlock.
+- `revenueShare.claimAndRestake()` — claims and auto-adds to the user's stake in one tx. Emits `ClaimedAndRestaked(user, restakedAmount, totalStakedNow)`. Reverts `No rewards` during an unlock, so it cannot cancel one. Rewards are added at wei precision, so the stake can become fractional; on a full exit the sub-1 KIBBLE remainder can't be unstaked (`unstake` only takes whole KIBBLE).
 
 **3. Exit (unlock → wait → unstake)**
-1. `revenueShare.unlock()` — emits `UnlockInitiated(user, unlockEndTime)`. Sets `isUnlocking[user] = true`. **Always tell the user two things when they unlock:** (a) the wait is **14 days** (`LOCK_PERIOD` = 1,209,600 seconds, snapshotted so later changes don't affect them), and (b) their pool share just dropped from whatever-it-was to **0%** — they won't earn fishing or gacha deposits during the wait. Read the pre-unlock share first via `getPoolShareFraction(user) / 1e18 * 100`.
+1. `revenueShare.unlock()` — emits `UnlockInitiated(user, unlockEndTime)`. Sets `isUnlocking[user] = true` and pays out any pending rewards first. **Always tell the user two things when they unlock:** (a) the wait is **14 days** (`LOCK_PERIOD` = 1,209,600 seconds, snapshotted so later changes don't affect them), and (b) their pool share just dropped from whatever-it-was to **0%** — they won't earn fishing or gacha deposits during the wait. Read the pre-unlock share first via `getPoolShareFraction(user) / 1e18 * 100`.
 2. Wait until `block.timestamp >= unlockEndTime(user)`. The 14-day value is safe to quote at the point of unlock. Read `LOCK_PERIOD()` live only if you want defensive protection against future upgrades (the contract is UUPS-upgradeable).
-3. `revenueShare.unstake(uint256 N)` — **`N` is the integer KIBBLE count, same convention as stake.** Reverts before the wait ends. Emits `Unstaked(user, amount)`.
-- `revenueShare.relock()` — at any time during the wait, cancels the unlock and puts the user back into the earning pool. Emits `Relocked(user, amount)`.
+3. `revenueShare.unstake(uint256 N)` — **`N` is the integer KIBBLE count, same convention as stake.** Reverts before the wait ends (`Unlock not finished`) or without an unlock (`Must call unlock() first`). Partial amounts are allowed; the remainder stays unlocking and can be withdrawn later without a new wait. Emits `Unstaked(user, amount)`.
+- `revenueShare.relock()` — at any time during the wait, cancels the unlock and puts the user back into the earning pool. Emits `Relocked(user, amount)`. `stake()` also cancels the unlock (see Stake above).
 
 #### Checking remaining unlock time
 
@@ -217,7 +217,7 @@ Why the share drop matters: while `isUnlocking == true`, the user's stake is **r
 ```
  [staking, earning] ──unlock()──▶ [unlocking, NOT earning] ──wait LOCK_PERIOD──▶ [unstake available]
          ▲                               │                                              │
-         └────────── relock() ───────────┘                                              │
+         └───── relock() or stake() ─────┘                                              │
          │                                                                              │
          └────────────────────── unstake(amount) ◀──────────────────────────────────────┘
 ```
@@ -226,8 +226,10 @@ While `isUnlocking[user] == true`:
 - The user's balance is in `totalStaked()` but **excluded from `totalActiveStaked()`**.
 - Reward math divides by `totalActiveStaked`, so the user **does not accrue rewards** during the unlock window.
 - `unstake()` reverts until `unlockEndTime(user)` has passed.
+- `claim()` and `claimAndRestake()` revert — nothing accrues.
+- **`stake()` cancels the unlock** and returns the whole stake to earning; a later exit needs a new `unlock()` and a fresh 14 days. Warn before any top-up.
 
-Recommend users `claim()` any pending rewards first, then `unlock()`, then `unstake()` once the wait is over. If they change their mind mid-wait, `relock()` is free and returns them to the earning pool instantly.
+`unlock()` pays out pending rewards automatically, so there's no need to `claim()` first; then `unstake()` once the wait is over. If they change their mind mid-wait, `relock()` is free and returns them to the earning pool instantly.
 
 ### Reading a user's position
 
