@@ -38,9 +38,15 @@ Views: `flashFee(amount)` `0xa7af467a` = `ceil(amount * 30 / 10000)`, `maxFlashL
 
 CLI: `revshare-status [--wallet W]` (staked FLASH, pending ETH, totals, revenue, flash-loan liquidity, any retired-vault position), `revshare-deposit --amount N|all`, `revshare-claim`, `revshare-withdraw [--amount N|all]` (reports `flashReturned` and `ethPaid`), `revshare-migrate [--exit-only]` (retired vault to Revenue Share). API: `GET /v1/stack/revenue-share?range=7d&limit=50&account=0x..` returns `totals`, `depositors`, `lifetime`, `kpis` (`apr7d`, `apr30d`, `earned7dUsd`...), `points` (chart), `recent` (activity) and, with `account`, that wallet's deposits, claims and withdrawals. `GET /v1/stack/live` carries the same `totals` as `revenueShare`.
 
+### Details and the fee map
+
+`withdraw` returns the ETH paid and pays all claimable ETH even on a partial withdraw. Each arrival streams 24-25 h, ending on an hour boundary. What streams while nothing is staked streams again. `TREASURY_FEE_BPS()` = 300. Sending raw ETH reverts `Protected()`. `addAssetReward` reverts `WrongMarket()` for the wrong market. `revshare-claim` also claims retired-vault WETH and token rewards.
+
+Perp fees (issuer, rail, liquidation, backstop LP) go to the fee sink, then the buyback `0xFd57cE2838E1CE696d3626A6Ff9ca27B1E8D3264`. Bought FLASH splits 10% top 100, 62.1% owner churn, 27.9% Revenue Share. TP/SL take goes to the keeper (up to $1), the rest to the buyback, or the treasury if the buyback refuses.
+
 ## Tokenized stocks
 
-Tokenized stocks are third-party tokens (B20, 18 decimals) that Flash uses as **STOCK-pair launch quotes**, **reward assets** and the underlyings of the 24/7 stock perps. Flash does not sell the stocks themselves. A user who wants stock exposure on Flash buys a stock perp (META2xL, AAPL2xL, GOOGL2xL, SPCX2xL, NVDA2xL) or launches a STOCK-paired token.
+Tokenized stocks are third-party tokens (B20, 8 decimals) that Flash uses as **STOCK-pair launch quotes**, **reward assets** and the underlyings of the 24/7 stock perps. Flash does not sell the stocks themselves. A user who wants stock exposure on Flash buys a stock perp (META2xL, AAPL2xL, GOOGL2xL, SPCX2xL, NVDA2xL) or launches a STOCK-paired token.
 
 | Symbol | Name | Address |
 | --- | --- | --- |
@@ -56,10 +62,20 @@ Tokenized stocks are third-party tokens (B20, 18 decimals) that Flash uses as **
 | TSLAc | Tesla | `0xb2000000000000000000001e800a7f5189430cD0` |
 | MUc | Micron | `0xb200000000000000000000Fd2f87532B90095211` |
 | PLTRc | Palantir | `0xb2000000000000000000007d16372840dF4dAbbe` |
+| SKHYc | SK hynix | `0xb200000000000000000000187f7071D6E321a7d2` |
+| AMDc | AMD | `0xB2000000000000000000000d8Ce462E99ee7A47B` |
+| NFLXc | Netflix | `0xb20000000000000000000058B8c947e44011dFE6` |
+| AVGOc | Broadcom | `0xB200000000000000000000Fc737aeA6196aB5a4c` |
+| ORCLc | Oracle | `0xb200000000000000000000347AFbA223D7B6b63C` |
+| LLYc | Eli Lilly | `0xB200000000000000000000f1a0F91e34892E4718` |
 
 A stock can graduate a STOCK-pair launch only when `launchConfig.quoteRouteOf(stock).pool != 0x0`. Prices and the US session: `GET /v1/markets/stocks?symbols=NVDA,AAPL` (regular, extended and overnight), logos at `/v1/markets/stocks/:ticker/logo`.
 
+All stocks have a graduation route today (`quoteRouteOf(stock)`). The app's Stocks screens are hidden; stock exposure in the app is through launches and stock perps.
+
 ## Portfolio
+
+The app's panels are Balances (including Staked and Old vault rows), Claims (Revenue Share, retired WETH, invite rewards, war allocation / refund / fees, presale tokens, curve refund, creator fees, limit-order and churn proceeds, each one call or Claim all) and Orders (limit orders and TP/SL, with cancel).
 
 - `GET /v1/wallet/:account/balances` returns the wallet's ETH, FLASH, WETH, perp tokens, QUANT, stocks and launched tokens with quantities. Add `?fresh=1` to bypass the cache.
 - `GET /v1/stack/perps/positions/:account` returns perps cost basis, unrealized and realized PnL, and trades.

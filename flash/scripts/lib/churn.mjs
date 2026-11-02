@@ -8,7 +8,7 @@ import * as A from './abis.mjs';
 import { K } from './contracts.mjs';
 import { CHURN_CLASS_PUBLIC } from './abis.mjs';
 import { priceToLevelTick, tickToPrice, curveBins } from './encode.mjs';
-import { client, call, approval, simulate, estimate, plan, fmt } from './plan.mjs';
+import { client, call, approval, simulate, estimate, plan, fmt, api } from './plan.mjs';
 
 const C = K.churn.core;
 const MIN_TICK = -887_272;
@@ -54,11 +54,18 @@ export async function limitMarkets() {
   return { ok: true, status: 'info', action: 'limit-markets', markets: out, note: 'Prices are quote per token (both 18 decimals). A level fills only at or above its floor, inside buys that cross it; the depositor keeps 69% of any fill surplus above the floor.' };
 }
 
+/** The wallet's ticks on a market: the backend index (levels() drops fully sold levels, which can still hold proceeds) plus the on-chain scan. */
+async function walletLevels(account, marketId) {
+  const [index, scan] = await Promise.all([api(`/v1/stack/churn/${account}`).catch(() => undefined), read(C, A.churn, 'levels', [marketId, MIN_TICK, 64n])]);
+  const entry = Array.isArray(index) ? index.find((row) => String(row.marketId).toLowerCase() === marketId.toLowerCase()) : undefined;
+  return [...new Set([...(entry?.levels || []).map((row) => Number(row.tick)), ...scan])];
+}
+
 export async function limitOrders(options) {
   const account = wallet(options);
   const out = [];
   for (const [name, m] of Object.entries(MARKETS)) {
-    const [levels, full, fullClaim] = await Promise.all([read(C, A.churn, 'levels', [m.id, MIN_TICK, 64n]), read(C, A.churn, 'positions', [m.id, account, CHURN_CLASS_PUBLIC]), read(C, A.churn, 'previewClaim', [m.id, account, CHURN_CLASS_PUBLIC])]);
+    const [levels, full, fullClaim] = await Promise.all([walletLevels(account, m.id), read(C, A.churn, 'positions', [m.id, account, CHURN_CLASS_PUBLIC]), read(C, A.churn, 'previewClaim', [m.id, account, CHURN_CLASS_PUBLIC])]);
     const rows = [];
     for (const level of levels) {
       const [position, unsold, claimable] = await Promise.all([read(C, A.churn, 'levelPosition', [m.id, level, account]), read(C, A.churn, 'previewLevelTokens', [m.id, level, account]), read(C, A.churn, 'previewLevelClaim', [m.id, level, account])]);
@@ -126,7 +133,7 @@ export async function limitClaim(options) {
   const m = market(options);
   let levels = options.levels ? String(options.levels).split(',').map(Number) : undefined;
   if (!levels) {
-    const all = await read(C, A.churn, 'levels', [m.id, MIN_TICK, 64n]);
+    const all = await walletLevels(account, m.id);
     levels = [];
     for (const level of all) if (await read(C, A.churn, 'previewLevelClaim', [m.id, level, account])) levels.push(level);
   }

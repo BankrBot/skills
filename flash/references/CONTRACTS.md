@@ -98,7 +98,8 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | QUANT treasury | `0x669Ef174655d011aE80f66aFeF97b6C8Cec3B568` |
 | Treasury shares (creator cut per treasury, `FlashTreasuryShares`, ownerless) | `0x98C29eC362A4e76975002778Bb2E91B99e4A288F` |
 | Revenue Share (`FlashRevenueShareV4` proxy, Safe-owned; stake FLASH, earn ETH streamed over 24 h, FLASH flash loans) | `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` |
-| Revenue Share V3 implementation | `0x7Ba4b0d63fc449D130F7259C231A7204ddcC7820` |
+| Revenue Share implementation (V4) | `0x22efBE492289a0b158fB83B5bc7583eb35DACf24` |
+| Keeper flash-loan executor (`FlashKeeperLoanExecutor`) | `0x71E8043A562C476C5E0e3c07A1904d993e988794` |
 | Retired Revenue Share vault (`FlashPoolStaking`, withdraw-only, no new revenue) | `0x5cf120b13086277f83f901ea4df4fA8A45d577b0` |
 
 ## Pool keys

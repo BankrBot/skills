@@ -192,6 +192,7 @@ export const CHURN_CLASS_PUBLIC = 0;
 // ---------------------------------------------------------------- launch-v5
 
 export const launchpad = parseAbi([
+  'function defaultShape() view returns (uint8 mode,uint8 preset)',
   'function launchesLength() view returns (uint256)',
   'function launchAt(uint256 i) view returns (address)',
   'function launchOf(address token) view returns ((address creator,address curve,bytes32 salt,bytes32 poolId,uint8 pair,bool graduated,bool aborted,uint16 launchToleranceBps,string name,string symbol,(bytes32 w0,bytes32 w1,bytes32 w2,bytes32 w3) shape,address quote))',
@@ -250,6 +251,7 @@ export const shapes = parseAbi([
 
 export const launchConfig = parseAbi([
   'function quoteRouteOf(address quote) view returns ((address adapter,address pool))',
+  'function entryFeeFlash() view returns (uint256)',
   'function ethUsdPrice() view returns (uint256)',
   'function flashUsdPriceChecked() view returns (uint256)',
 ]);
@@ -278,6 +280,8 @@ export const tokenWar = parseAbi([
   'function jump(uint256 fromId,uint256 toId,uint256 units,uint256 minUnitsOut) returns (uint256 unitsOut)',
   'function openWar() returns (uint256 warId)',
   'function finalize()',
+  'function poke(uint256 warId) returns (bool locked)',
+  'function airdrop(uint256 warId,uint256 from,uint256 count) returns (uint256 sent,uint256 skipped)',
   'function claim(uint256 warId,address recipient) returns (uint256 winnerTokens,uint256 loserTokens)',
   'function claimCreatorFees(uint256 warId,address recipient) returns (uint256 amount)',
   'function refundAborted(uint256 warId,uint256 id,address recipient) returns (uint256 flashOut)',
@@ -404,7 +408,15 @@ export const timedLaunch = parseAbi([
   'function abortDelay() view returns (uint32)',
 ]);
 
+const DIRECT_INPUT = `(string name,string symbol,uint8 pair,address quote,${SHAPE} shape)`;
+const DIRECT_BOUNDS = '(uint256 feeIn,uint256 minFeeFlash,uint256 minQuote,uint256 minTokens)';
+
 export const directLaunch = parseAbi([
+  `function launchWithEth(${DIRECT_INPUT} input,${DIRECT_BOUNDS} b) payable returns (address token)`,
+  `function launchWithToken(${DIRECT_INPUT} input,${DIRECT_BOUNDS} b,address tokenIn,uint256 amountIn) returns (address token)`,
+  'function minFirstBuyUsd18() view returns (uint256)',
+  'function paused() view returns (bool)',
+  'event DirectLaunch(address indexed token,address indexed creator,bytes32 indexed poolId,uint8 pair,address quote,address treasury,address payWith,uint256 fee,uint256 quoteIn,uint256 tokensOut,uint256 targetCapUsd18)',
   'function launchOf(address token) view returns ((address creator,uint8 pair,address quote,bytes32 poolId,address treasury,uint64 launchedAt))',
 ]);
 

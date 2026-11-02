@@ -39,9 +39,10 @@ export async function minFlashForEth(ethIn, bps) {
 
 export function validateName(options) {
   const name = String(options.name || '').trim();
-  const symbol = String(options.symbol || '').trim();
+  const symbol = String(options.symbol || '').trim().toUpperCase();
   if (!name) throw new Error('--name is required');
-  if (!/^[A-Za-z0-9]{1,12}$/.test(symbol)) throw new Error('--symbol must be 1-12 letters or digits');
+  if (Buffer.byteLength(name, 'utf8') > 32) throw new Error('--name must be at most 32 bytes');
+  if (!/^[A-Z0-9]{2,10}$/.test(symbol) || symbol === 'FLASH') throw new Error('--symbol must be 2-10 letters or digits, and not FLASH');
   return { name, symbol };
 }
 
@@ -65,13 +66,46 @@ export async function resolvePair(options) {
   return { pair, quote: perp.token, quoteSymbol: perp.symbol };
 }
 
-export function shapeOf(options, pair, quote) {
-  const mode = Number(options.mode ?? 0);
-  const preset = Number(options.preset ?? 0);
+// Registry ids (the launch form's labels). Unset = launchpad.defaultShape(), which is what the form starts on.
+const MODE_NAMES = ['Medium', 'Degen', 'Deep'];
+const PRESET_NAMES = ['Long-term', 'Fast burn', 'Soft'];
+
+function shapeId(value, names, flag) {
+  const text = String(value).toLowerCase().replace(/[\s_-]/g, '');
+  const id = /^\d+$/.test(text) ? Number(text) : names.findIndex((name) => name.toLowerCase().replace(/\s/g, '') === text);
+  if (!names[id]) throw new Error(`--${flag} must be one of: ${names.map((name, index) => `${index} ${name}`).join(', ')}`);
+  return id;
+}
+
+export async function shapeOf(options, pair, quote) {
+  const [defaultMode, defaultPreset] = await read(L.launchpad, A.launchpad, 'defaultShape');
+  const mode = options.mode === undefined ? defaultMode : shapeId(options.mode, MODE_NAMES, 'mode');
+  const preset = options.preset === undefined ? defaultPreset : shapeId(options.preset, PRESET_NAMES, 'preset');
   let reward = options.reward ? getAddress(options.reward) : zeroAddress;
   const pairDefault = pair === 0 ? K.tokens.WETH.address : pair === 1 ? K.tokens.FLASH.address : quote;
   if (reward.toLowerCase() === pairDefault.toLowerCase()) reward = zeroAddress;
-  return { mode, preset, rewardAsset: reward };
+  return { mode, preset, rewardAsset: reward, isDefault: mode === defaultMode && preset === defaultPreset, label: `${MODE_NAMES[mode]} + ${PRESET_NAMES[preset]}` };
+}
+
+/** Every liquidity depth and holder reward curve a launch can pick, read live from the registry. */
+export async function launchShapes() {
+  const pct = (bps) => bps / 100;
+  const ids = MODE_NAMES.map((_, id) => id);
+  const [[defaultMode, defaultPreset], modes, presets] = await Promise.all([
+    read(L.launchpad, A.launchpad, 'defaultShape'),
+    Promise.all(ids.map((id) => read(L.shapes, A.shapes, 'mode', [id]))),
+    Promise.all(ids.map((id) => read(L.shapes, A.shapes, 'preset', [id]))),
+  ]);
+  return {
+    ok: true, status: 'info', action: 'launch-shapes', registry: L.shapes,
+    default: { mode: defaultMode, preset: defaultPreset, label: `${MODE_NAMES[defaultMode]} + ${PRESET_NAMES[defaultPreset]}` },
+    modes: modes.map(([split, , enabled], id) => ({ id, name: MODE_NAMES[id], enabled, participantsPct: pct(split.participantBps), liquidityPct: pct(split.liquidityBps), creatorPct: pct(split.creatorChurnBps), protocolPct: pct(split.protocolChurnBps) })),
+    presets: presets.map(([shape, stockpileBps, , enabled], id) => {
+      const bins = shape.segments.slice(0, shape.count).reduce((sum, segment) => sum + segment.bins, 0);
+      const multiple = (delta) => Number((1.0001 ** (delta * shape.widthTicks)).toPrecision(3));
+      return { id, name: PRESET_NAMES[id], enabled, stockpilePct: pct(stockpileBps), bins, lowX: multiple(-shape.binsBelowLaunch), highX: multiple(bins - shape.binsBelowLaunch) };
+    }),
+  };
 }
 
 // ------------------------------------------------------------------ launches
@@ -112,10 +146,10 @@ export async function launchCreate(options) {
   const account = wallet(options);
   const input = { ...validateName(options) };
   const { pair, quote, quoteSymbol } = await resolvePair(options);
-  const shape = shapeOf(options, pair, quote);
-  const shaped = shape.mode !== 0 || shape.preset !== 0 || shape.rewardAsset !== zeroAddress;
+  const shape = await shapeOf(options, pair, quote);
+  const shaped = !shape.isDefault || shape.rewardAsset !== zeroAddress;
   const warnings = [
-    'Launches are permanent and public. The token art / description are set in the app (tryflash.app); this call creates the token and its curve.',
+    'Launches are permanent and public. Save the signed token profile with art before this transaction (LAUNCHES.md): the token takes its art from it.',
   ];
   if (pair === 0 || pair >= 2) warnings.push('ETH / STOCK / PERP launches graduate by selling backing through the FLASH/ETH pool; graduation waits until that pool has enough ETH depth.');
   if (!shaped) {
@@ -127,10 +161,11 @@ export async function launchCreate(options) {
     const tx = pair >= 2
       ? call({ to: L.routerQ, abi: A.launchRouter, functionName: 'createWithEthQuoted', args: [{ ...input, pair }, quote, minFlash, 0n, account], value: ethIn, description: `Launch ${input.symbol} (${PAIR_NAMES[pair]} pair, quote ${quoteSymbol}) with a first buy` })
       : call({ to: L.routerQ, abi: A.launchRouter, functionName: 'createWithEth', args: [{ ...input, pair }, minFlash, 0n, account], value: ethIn, description: `Launch ${input.symbol} (${PAIR_NAMES[pair]} pair) with a first buy` });
-    return finish(account, 'launch-create', { ...input, pair: PAIR_NAMES[pair], quote: quoteSymbol, ethIn: fmt(ethIn), creationFeeFlash: fmt(fee), minFlashFromEth: fmt(minFlash), shape: 'default (mode 0 Deep, preset 0 Long-term, pair-default reward)' }, [tx], warnings,
+    return finish(account, 'launch-create', { ...input, pair: PAIR_NAMES[pair], quote: quoteSymbol, ethIn: fmt(ethIn), creationFeeFlash: fmt(fee), minFlashFromEth: fmt(minFlash), shape: shape.label, rewardAsset: 'pair default' }, [tx], warnings,
       ['The new token and curve addresses are in the launchpad LaunchCreated(token, curve, creator, pair, goalFlash0, flashUsd18) event of the receipt.']);
   }
   // A shaped launch (mode / preset / reward asset) goes straight to the launchpad, paying the fee in FLASH; no first buy.
+  if (options.eth) warnings.push(`--eth ${options.eth} is not spent here: a shaped launch has no first buy. After this confirms, run launch-buy --token <new token> --eth ${options.eth}.`);
   const fee = await read(L.launchpad, A.launchpad, 'currentCreationFee');
   const budget = slippageLimit('exactOut', fee, 1_000); // +10% for the live FLASH price moving
   const flashBalance = await read(K.tokens.FLASH.address, A.erc20, 'balanceOf', [account]);
@@ -138,9 +173,53 @@ export async function launchCreate(options) {
   const create = pair >= 2
     ? call({ to: L.launchpad, abi: A.launchpad, functionName: 'createLaunchQuoted', args: [{ ...input, pair }, quote, launchShape(shape)], description: `Launch ${input.symbol} (shaped, ${PAIR_NAMES[pair]} pair, quote ${quoteSymbol})` })
     : call({ to: L.launchpad, abi: A.launchpad, functionName: 'createLaunchShaped', args: [{ ...input, pair }, launchShape(shape)], description: `Launch ${input.symbol} (shaped, ${PAIR_NAMES[pair]} pair)` });
-  return finish(account, 'launch-create', { ...input, pair: PAIR_NAMES[pair], quote: quoteSymbol, mode: shape.mode, preset: shape.preset, rewardAsset: shape.rewardAsset === zeroAddress ? 'pair default' : shape.rewardAsset, creationFeeFlash: fmt(fee) },
+  return finish(account, 'launch-create', { ...input, pair: PAIR_NAMES[pair], quote: quoteSymbol, shape: shape.label, mode: shape.mode, preset: shape.preset, rewardAsset: shape.rewardAsset === zeroAddress ? 'pair default' : shape.rewardAsset, creationFeeFlash: fmt(fee) },
     [...await approval(account, K.tokens.FLASH.address, L.launchpad, budget > flashBalance ? flashBalance : budget, 'FLASH', 'the launchpad'), create], warnings,
     ['Make the first buy afterwards with launch-buy --token <new token> (the address is in the LaunchCreated event).']);
+}
+
+// Skip graduation (FlashDirectLaunchV5): no curve, one transaction. Mirrors app/src/directLaunch.ts: the payment is
+// the fee part (ETH / USDC buy the FLASH fee with a 30% margin, the spare comes back) plus the first buy.
+const DIRECT_PAY = { ETH: { decimals: 18 }, USDC: { address: K.tokens.USDC.address, decimals: 6 }, FLASH: { address: K.tokens.FLASH.address, decimals: 18 } };
+
+export async function launchDirect(options) {
+  const account = wallet(options);
+  const input = validateName(options);
+  const { pair, quote, quoteSymbol } = await resolvePair(options);
+  const shape = await shapeOf(options, pair, quote);
+  if (pair >= 2 && shape.rewardAsset !== zeroAddress) throw new Error('--reward only applies to ETH and FLASH pairs: a STOCK or PERP launch earns in its quote');
+  const pay = String(options.pay || 'ETH').toUpperCase();
+  const meta = DIRECT_PAY[pay];
+  if (!meta) throw new Error('--pay must be ETH, USDC or FLASH');
+  if (!options.amount) throw new Error('--amount is required: the first buy, in --pay units (the creation fee is added on top)');
+  const buyIn = parseUnits(String(options.amount), meta.decimals);
+  const [ethUsd, flashUsd, feeFlash, minUsd, paused] = await Promise.all([
+    read(L.config, A.launchConfig, 'ethUsdPrice'), read(L.config, A.launchConfig, 'flashUsdPriceChecked'), read(L.config, A.launchConfig, 'entryFeeFlash'),
+    read(L.direct, A.directLaunch, 'minFirstBuyUsd18'), read(L.direct, A.directLaunch, 'paused'),
+  ]);
+  if (paused) throw new Error('Skip graduation is paused');
+  const buyUsd = pay === 'USDC' ? buyIn * 10n ** 12n : (buyIn * (pay === 'ETH' ? ethUsd : flashUsd)) / 10n ** 18n;
+  if (buyUsd < minUsd) throw new Error(`The first buy is worth $${fmt(buyUsd)}; the minimum is $${fmt(minUsd)}`);
+  const feeUsd = (feeFlash * flashUsd) / 10n ** 18n;
+  const fee = pay === 'FLASH' || !feeFlash ? (pay === 'FLASH' ? feeFlash : 0n) : (((pay === 'ETH' ? (feeUsd * 10n ** 18n) / ethUsd : feeUsd / 10n ** 12n) * 13_000n) / 10_000n) + 1n;
+  // ETH -> FLASH (a FLASH pair paid in ETH) is the one conversion with a pool quote: floor it like the router.
+  const minQuote = pair === 1 && pay === 'ETH' ? (await minFlashForEth(buyIn, slip(options))).minFlash : 0n;
+  const directInput = { ...input, pair, quote, shape: launchShape(shape) };
+  const bounds = { feeIn: pay === 'FLASH' ? 0n : fee, minFeeFlash: 0n, minQuote, minTokens: 1n };
+  const total = fee + buyIn;
+  const summary = { ...input, pair: PAIR_NAMES[pair], quote: quoteSymbol, shape: shape.label, rewardAsset: shape.rewardAsset === zeroAddress ? 'pair default' : shape.rewardAsset, payWith: pay, firstBuy: fmt(buyIn, meta.decimals), feePart: fmt(fee, meta.decimals), total: fmt(total, meta.decimals), creationFeeFlash: fmt(feeFlash) };
+  const warnings = ['Launches are permanent and public. Save the signed token profile with art before this transaction (LAUNCHES.md): the token takes its art from it.'];
+  const notes = ['The new token is in DirectLaunch(token, creator, poolId, pair, quote, treasury, payWith, fee, quoteIn, tokensOut, targetCapUsd18). It trades right away: swap --market <token>.'];
+  if (pay === 'ETH') {
+    const args = [directInput, bounds];
+    const predicted = await client.simulateContract({ address: L.direct, abi: A.directLaunch, functionName: 'launchWithEth', args, value: total, account }).then((sim) => sim.result).catch(() => undefined);
+    return finish(account, 'launch-direct', { ...summary, ...(predicted ? { predictedToken: predicted } : {}) },
+      [call({ to: L.direct, abi: A.directLaunch, functionName: 'launchWithEth', args, value: total, description: `Launch ${input.symbol} with no curve, first buy included` })], warnings, notes);
+  }
+  return finish(account, 'launch-direct', summary, [
+    ...await approval(account, meta.address, L.direct, total, pay, 'the direct launcher'),
+    call({ to: L.direct, abi: A.directLaunch, functionName: 'launchWithToken', args: [directInput, bounds, meta.address, total], description: `Launch ${input.symbol} with no curve, first buy included` }),
+  ], warnings, notes);
 }
 
 export async function launchBuy(options) {
@@ -211,7 +290,7 @@ const W = L.tokenWar;
 export async function warStatus(options) {
   const warId = await read(W, A.tokenWar, 'currentWarId');
   const [fee, goal] = await Promise.all([read(W, A.tokenWar, 'currentEntryFee'), read(W, A.tokenWar, 'goalNow')]);
-  if (!warId) return { ok: true, status: 'info', action: 'war-status', war: null, entryFeeFlash: fmt(fee), next: 'No war yet: anyone can call war-open.' };
+  if (!warId) return { ok: true, status: 'info', action: 'war-status', war: null, entryFeeFlash: fmt(fee), next: 'No war yet: the owner or a keeper opens the first one.' };
   const [state, page] = await Promise.all([read(W, A.tokenWar, 'warState', [warId]), read(W, A.tokenWar, 'candidatesPage', [warId, 0n, 50n])]);
   const account = options.wallet ? getAddress(options.wallet) : undefined;
   const candidates = [];
@@ -241,10 +320,11 @@ export async function warEnter(options) {
   const account = wallet(options);
   const input = validateName(options);
   const { pair, quote, quoteSymbol } = await resolvePair(options);
-  const shape = launchShape(pair >= 2 ? { ...shapeOf(options, pair, quote), rewardAsset: zeroAddress } : shapeOf(options, pair, quote));
+  const picked = await shapeOf(options, pair, quote);
+  const shape = launchShape(pair >= 2 ? { ...picked, rewardAsset: zeroAddress } : picked);
   const fee = await read(W, A.tokenWar, 'currentEntryFee');
   const pay = String(options.pay || 'ETH').toUpperCase();
-  const summary = { ...input, pair: PAIR_NAMES[pair], quote: quoteSymbol, entryFeeFlash: fmt(fee) };
+  const summary = { ...input, pair: PAIR_NAMES[pair], quote: quoteSymbol, shape: picked.label, entryFeeFlash: fmt(fee) };
   if (pay === 'FLASH') {
     return finish(account, 'war-enter', summary, [
       ...await approval(account, K.tokens.FLASH.address, W, slippageLimit('exactOut', fee, DEFAULT_SLIPPAGE_BPS), 'FLASH', 'Token Wars'),
@@ -335,6 +415,8 @@ export const warClaim = (options) => warSimple(options, 'war-claim', 'claim', as
 export const warRefund = (options) => warSimple(options, 'war-refund', 'refundAborted', async (account) => [await currentOr(options), BigInt(options.id || 0), account], 'Refund backing from an aborted war');
 export const warCreatorClaim = (options) => warSimple(options, 'war-creator-claim', 'claimCreatorFees', async (account) => [await currentOr(options), account], 'Claim candidate creator fees');
 export const warOpen = (options) => warSimple(options, 'war-open', 'openWar', async () => [], 'Open the next Token War (permissionless once the last one launched or aborted)');
+export const warPoke = (options) => warSimple(options, 'war-poke', 'poke', async () => [await currentOr(options)], 'Re-check the war lock at the live price (permissionless)');
+export const warAirdrop = (options) => warSimple(options, 'war-airdrop', 'airdrop', async () => [await currentOr(options), BigInt(options.from || 0), BigInt(options.count || 200)], 'Airdrop the launched token to war backers (permissionless, at most 400 per call)');
 export const warFinalize = (options) => warSimple(options, 'war-finalize', 'finalize', async () => [], 'Lock the war and launch the leader (permissionless once eligible)');
 
 export { NATIVE };

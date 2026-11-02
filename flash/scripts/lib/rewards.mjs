@@ -183,6 +183,7 @@ export async function perpUnwind(options) {
   const amount = options.amount === 'all' || !options.amount ? balance : parseUnits(String(options.amount), 18);
   if (!amount || amount > balance) throw new Error(`Balance ${fmt(balance)} ${market.symbol}`);
   const nav = await read(ISSUER, A.perpsIssuer, 'navPerToken', [BigInt(market.id)]);
+  if (!nav) throw new Error(`${market.symbol} NAV reads 0 (its oracle may be down), so no safe minimum can be set. Retry later.`);
   const expected = (amount * nav) / 10n ** 18n;
   const minOut = slippageLimit('exactIn', expected, Number(options['slippage-bps'] ?? 500));
   return finish(account, 'perp-unwind', { market: market.symbol, amount: fmt(amount), expectedUsdc: fmt(expected, 6), minUsdc: fmt(minOut, 6) },
@@ -255,8 +256,8 @@ export async function perpTpSl(options) {
   }
   const allowanceNeeded = qty + reserved;
   const warnings = [];
-  if (tp && nav >= tp) warnings.push(`The take-profit ${fmt(tp, 6)} is at or below the current NAV ${fmt(nav, 6)}: a keeper can fill it right away.`);
-  if (sl && nav <= sl) warnings.push(`The stop-loss ${fmt(sl, 6)} is at or above the current NAV ${fmt(nav, 6)}: a keeper can fill it right away.`);
+  if (tp && tp <= nav) throw new Error(`The take-profit ${fmt(tp, 6)} must be above the current NAV ${fmt(nav, 6)}`);
+  if (sl && sl >= nav) throw new Error(`The stop-loss ${fmt(sl, 6)} must be below the current NAV ${fmt(nav, 6)}`);
   if (allowanceNeeded > balance) warnings.push(`Open orders on ${market.symbol} add up to more than the balance: whichever fills first may leave the others unfillable.`);
   const action = tp && sl
     ? call({ to: ORDERS, abi: A.perpOrders, functionName: 'placePair', args: [id, qty, tp, sl, slMin, expiry], description: `List a linked take-profit at ${fmt(tp, 6)} and stop-loss at ${fmt(sl, 6)} USDC NAV for ${fmt(qty)} ${market.symbol}` })
@@ -341,7 +342,7 @@ export async function revshareStatus(options) {
   const [t, rev, liquidity, live] = await Promise.all([v3('totals'), v3('revenue'), v3('availableLiquidity'), api('/v1/stack/revenue-share?range=7d&limit=1').catch(() => undefined)]);
   const [totalStaked, flashInChurn, , ethDistributed, ethPaid, flashRewarded, , positionId] = t;
   const out = {
-    ok: true, status: 'info', action: 'revshare-status', contract: V, version: '3', stake: 'FLASH', earns: 'ETH', minDepositFlash: fmt(MIN_DEPOSIT),
+    ok: true, status: 'info', action: 'revshare-status', contract: V, version: '4', stake: 'FLASH', earns: 'ETH', minDepositFlash: fmt(MIN_DEPOSIT),
     pool: {
       flashStaked: fmt(totalStaked), revenueFlashInChurn: fmt(flashInChurn), revenueFlashIdle: fmt(rev[0]),
       ethDistributed: fmt(ethDistributed), ethPaid: fmt(ethPaid), flashRevenueLifetime: fmt(flashRewarded), flashLoanFeesLifetime: fmt(rev[1]), flashChurnedLifetime: fmt(rev[2]),

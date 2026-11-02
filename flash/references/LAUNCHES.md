@@ -7,8 +7,8 @@ Contracts:
 | | |
 | --- | --- |
 | Launchpad | `0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0` |
-| Launch router Q (use it for every new launch) | `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` |
-| Skip-graduation direct launcher (no bonding curve; see the Skip graduation section) | `0x63AeDafc52368A97db0B452D527FE963F18BC47e` |
+| Launch router Q (default-shape curve launches) | `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` |
+| Skip-graduation direct launcher (no bonding curve; see [Skip graduation](#skip-graduation-direct-launcher-no-bonding-curve)) | `0x63AeDafc52368A97db0B452D527FE963F18BC47e` |
 | Timed launch (see [Timed launch](#timed-launch-no-bonding-curve-launches-at-a-set-time)) | `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` |
 | Executor T (timed launches, `poolKeyForQuote`) | `0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2` |
 | Shapes registry | `0x79644eC342881E40efab1401eb5ceF265F93aE7D` |
@@ -19,19 +19,47 @@ Contracts:
 | Field | Values |
 | --- | --- |
 | `pair` | `0` ETH (graduated pool quote = WETH), `1` FLASH / "SUB" (quote = FLASH), `2` STOCK (quote = a tokenized stock), `3` PERP (quote = a live perp token) |
-| `quote` | STOCK: NVDAc, METAc, AAPLc, GOOGLc, AMZNc, MSFTc, MSTRc, SNDKc, SPCXc, TSLAc, MUc, PLTRc (addresses in [REVENUE-STOCKS-PORTFOLIO.md](REVENUE-STOCKS-PORTFOLIO.md)); usable only when `config.quoteRouteOf(stock).pool != 0`. PERP: live perp ids 0-14 only (never the retired generation). `0x0` for ETH / FLASH. |
-| `name`, `symbol` | symbol 1-12 letters or digits |
-| `mode` (curve split) | `0` Deep (participants 10% / liquidity 50% / creator churn 35% / protocol churn 5%), `1` Degen. Read `shapes.mode(id)` for the live split and the `enabled` flag. |
-| `preset` (owner Lattice / burn shape) | `0` Long-term, `1` Fast burn. Read `shapes.preset(id)`. |
+| `quote` | STOCK: NVDAc, METAc, AAPLc, GOOGLc, AMZNc, MSFTc, MSTRc, SNDKc, SPCXc, TSLAc, MUc, PLTRc, SKHYc, AMDc, NFLXc, AVGOc, ORCLc, LLYc (addresses in [REVENUE-STOCKS-PORTFOLIO.md](REVENUE-STOCKS-PORTFOLIO.md)); usable only when `config.quoteRouteOf(stock).pool != 0`. PERP: live perp ids 0-14 only (never the retired generation). `0x0` for ETH / FLASH. |
+| `name`, `symbol` | See [Name and ticker](#name-and-ticker) |
+| `mode` (liquidity depth) | `2` Deep (default), `0` Medium, `1` Degen. See [Launch shape](#launch-shape). |
+| `preset` (holder reward curve) | `2` Soft (default), `0` Long-term, `1` Fast burn. See [Launch shape](#launch-shape). |
 | `rewardAsset` | What the token's treasury buys and pays holders. `0x0` = the pair default (WETH, FLASH, or the stock / perp quote). Any token is accepted for ETH / FLASH pairs. A Token War STOCK / PERP entry must use 0 or its quote. |
 
-Creation fee: $0.169 in FLASH (`launchpad.currentCreationFee()`, FLASH wei; ~0.124 FLASH today).
+Creation fee: $0.169 in FLASH (`launchpad.currentCreationFee()`, FLASH wei).
 
 PERP-pair launches earn **creator QUANT** from losses realized in their pool ([PERPS-QUANT.md](PERPS-QUANT.md)).
 
+## Name and ticker
+
+Name is 1-32 UTF-8 bytes. Ticker is 2-10 characters, A-Z and 0-9, and not `FLASH`. Every launch kind and war entry enforces the length on chain (`InvalidIdentity()`); the profile API also requires upper-case letters and digits.
+
+## Launch shape
+
+The Advanced tab of the launch form, and `--mode` / `--preset` in the CLI (name or id). Leave both out to get the form's default, `launchpad.defaultShape()`: **Deep + Soft**. Read the live values with `launch-shapes` or MCP `list_pairing_options`, or from the registry `0x79644eC342881E40efab1401eb5ceF265F93aE7D` (`mode(id)`, `preset(id)`).
+
+Liquidity depth (`mode`), the supply split:
+
+| id | Form label | Participants | Liquidity | Creator | Protocol |
+| --- | --- | --- | --- | --- | --- |
+| `2` | Deep (default) | 10% | 70% | 15% | 5% |
+| `0` | Medium | 10% | 50% | 35% | 5% |
+| `1` | Degen | 10% | 35% | 50% | 5% |
+
+Holder reward curve (`preset`), how the creator share is released through a Lattice as the price rises:
+
+| id | Form label | Price range | Released by 2x | By 10x | By 100x | Stockpile |
+| --- | --- | --- | --- | --- | --- | --- |
+| `2` | Soft (default) | 0.1x to 420x | 4.88% | 19.91% | 58.58% | 60% |
+| `0` | Long-term | 0.1x to 2000x | 21.24% | 55.71% | 83.41% | 60% |
+| `1` | Fast burn | 0.1x to 1000x | 35.12% | 76.18% | 95.22% | 30% |
+
+Multiples are of the launch price. The form's "Rewards" figure is Creator + Protocol.
+
+Modes reject splits unless participants are 10%, protocol is 5%, liquidity is at least participants, and the sum is 100%. Disabled ids revert `Disabled(id)`. A shape is snapshotted at the start, so later registry edits never touch a launch.
+
 ## Create
 
-**Default shape (mode 0, preset 0, pair-default reward): one transaction.** The router converts the ETH to FLASH through the FLASH/ETH pool, pays the creation fee, and spends the rest as the creator's first buy.
+**Default shape (`launchpad.defaultShape()`, pair-default reward): one transaction.** The router carries no shape, so the launchpad applies its default. The router converts the ETH to FLASH through the FLASH/ETH pool, pays the creation fee, and spends the rest as the creator's first buy.
 
 - ETH / FLASH pair: `routerQ.createWithEth((name, symbol, pair), minFlashOut, minTokens, recipient)`, payable, selector `0xce6c7a89`.
 - STOCK / PERP pair: `routerQ.createWithEthQuoted((name, symbol, pair), quote, minFlashOut, minTokens, recipient)`, payable, selector `0xbd104112`.
@@ -88,7 +116,23 @@ Without a shell, the Flash MCP server (`https://api.tryflash.app/mcp`) does step
 
 Gas is **not constant**. A create measured 8.0M-8.7M gas, a first buy ~526k, later buys ~164k. A **locking** buy auto-graduates in the same transaction and needs at least 9M gas left (`AUTO_GRADUATE_GAS`), otherwise it reverts `InsufficientGasForGraduation()`. Use `eth_estimateGas`; it handles this.
 
-CLI: `launch-create --name "My Coin" --symbol MYC --pair PERP --quote ETH2xL --eth 0.01 --wallet W`, and add `--mode 1 --preset 1 --reward 0x...` for a shaped launch.
+CLI: `launch-create --name "My Coin" --symbol MYC --pair PERP --quote ETH2xL --eth 0.01 --wallet W`, and add `--mode degen --preset fast-burn --reward 0x...` for a shaped launch.
+
+Limits: PNG or JPEG only, up to 10 MB source, published at most 1024 px and 2 MB with metadata stripped. 12 uploads per IP and 6 per account per 10 min. Description up to 1000 characters. `twitterUrl` must be twitter.com or x.com; `websiteUrl` http(s). `/tokens?launch=1|perp|stock&quote=<token>` opens the app's launch form preset.
+
+## Skip graduation (direct launcher, no bonding curve)
+
+The Advanced option "Skip graduation" launches straight into the coin's FlashV3 pool. There is no curve and no presale; the creator's first buy is the first trade into the new pool, in the same transaction. Same treasury, reward asset, modes and owner ladder as a curve launch.
+
+- Contract `0x63AeDafc52368A97db0B452D527FE963F18BC47e`. Pay with ETH, USDC or FLASH; the creation fee is taken from the payment. Minimum first buy $10 (`minFirstBuyUsd18()`), checked after the fee and before conversion.
+- `launchWithEth((name, symbol, pair, quote, shape), (feeIn, minFeeFlash, minQuote, minTokens))`, payable, `0xcf3e4e98`.
+- `launchWithToken((name, symbol, pair, quote, shape), (feeIn, minFeeFlash, minQuote, minTokens), tokenIn, amountIn)`, `0xe48ff9b6`. `tokenIn` is USDC or FLASH; approve `amountIn` first.
+- CLI: `launch-direct --name N --symbol S --pair ETH --pay ETH|USDC|FLASH --amount X [--quote] [--mode --preset --reward]`. `--amount` is the first buy, at least $10, and the fee is added on top. MCP: `build_direct_launch`, after `prepare_launch`. `--reward` is refused on STOCK and PERP pairs.
+- Opening market cap: `targetCapUsd18(shape)` = goal / participant share = $6,900. The participant 10% joins locked one-sided depth.
+- Pay `amountIn = feeIn + firstBuy`. The app sizes `feeIn` at the fee's value x 1.3, and overshoot FLASH is refunded. FLASH payments need `amountIn > entryFeeFlash()`. `minTokens` must yield more than 0 (the app sends 1). Check `paused()`.
+- The new token is in `DirectLaunch(token, creator, poolId, pair, quote, treasury, payWith, fee, quoteIn, tokensOut, targetCapUsd18)`. `launchOf(token).quote` is the asset actually used (WETH for ETH pairs).
+- Errors: `FirstBuyTooSmall`, `FeeShort(flashOut, fee)`, `BelowMinTokens`, `NoFirstBuy`, `InvalidPayment`, `InvalidIdentity`, `InvalidQuote`, `Paused`.
+- Reads: `launchesLength()`, `launchAt(i)`, `launchOf(token)` -> (creator, pair, quote, poolId, treasury, launchedAt).
 
 ## Timed launch (no bonding curve, launches at a set time)
 
@@ -116,6 +160,32 @@ Save the token profile first ([Token profile](#token-profile-image-required-wall
 Keepers airdrop tokens after launch, so a claim is only needed to get them sooner. If the FLASH/ETH pool cannot take the whole sale, keepers use `launchPartial` and the unsold FLASH goes back to entrants with their tokens.
 
 A launch becomes abortable once entries close if its first buy would be under $10, or 3 days after its time if it still has not launched. Refunds can be sent by anyone, for any entrant.
+
+- The opening market cap is fixed at $6,900 for every mode (`LAUNCH_CAP_USD18`).
+- `minEntryUsd18()` ($1) is checked on the FLASH delivered after conversion, so an entry paid near $1 in ETH or USDC can revert `EntryTooSmall`. Pay a margin.
+- ETH-side pairs require spot within 10% of TWAP (`spotDeviationBps()`). At launch the sale must clear at most 15% under the oracle price (`toleranceBps()`). `minBuyUsd18()` is $10.
+- There is no claim fee. `airdrop` takes at most 100 per call. `launchPartial(token, sellFlash, minQuote, minTokens)` is keeper or owner only.
+- An abort refunds your reserved half in FLASH plus your own churn outcome in FLASH and WETH. The Safe can abort any open launch at any time. A FLASH-pair raise has no pool limit.
+
+## Curve fees and lifecycle
+
+Fees are snapshotted per launch from `config.feeParams()`; `currentFeeBps()` reads the live fee.
+
+- **Buy fee:** rises from 1% to 4% with market progress. An impact fee applies to buys of 5% of the goal or more: 1%, rising to 3% at 100% of the goal.
+- **Sell fee:** 1.3x the buy fee, at least +0.3%. A sell surcharge comes from a rolling 1 h window: pressure x 50% / principal.
+- **Wash fee:** up to 5% (10 min window, full at round trips worth 20% of principal, same-block x3).
+- **Age cooldown:** cuts fees up to 50% over 30 days. The wash fee is never cooled.
+- **Clamps:** buy 0.5-10%, sell up to 15%.
+- **Split:** the creator gets 69% + bonus x 31%. On a curve the bonus is 1%, so 69.31%; on a war it reaches 30% at the cap. Of the rest, 10% goes to the top 100, then 69% to owner churn and 31% to Revenue Share.
+- **Creation fee** ($0.169, `entryFeeFlash()`): the same top 100 / owner churn / Revenue Share split (`vault.splitFlash`).
+
+Claims and airdrops pay a 1% fee in tokens (`claimFeeBps()`, snapshotted), sent to the token's churn owner split. Airdrops skip positions under $1 (`airdropMinUsd18()`), which must claim. The minimum trade is 100 wei.
+
+Graduation must realise at least 70% of the goal (`launchToleranceBps()` 3000) or it reverts `BelowGoal`. A FLASH price drop can unlock a READY curve; re-locking needs a 2% premium.
+
+Abort: the Safe at any time; a keeper once a READY curve has waited `config.abortDelay()` (1 day). Refunds pay each account's own outcome. `FLASH.approve` targets the curve, and the fee and principal go to the churn vault `0x4344e5D6C2D5d29FcD77bc89A41f9C2478478094`.
+
+Creator fees are pushed to the creator at graduation and at abort. `claimCreatorFees` only collects them early.
 
 ## Trade the curve (phase 1, TRADING)
 
@@ -155,14 +225,51 @@ Run `launch-earnings --token T --wallet W` (MCP `get_launch_earnings`) after any
 | Income | Which launches | How it arrives | Action |
 | --- | --- | --- | --- |
 | Half of the raise, in FLASH | Timed | Paid to the creator at launch | None |
-| Curve creator fees, in FLASH | Curve | Claim | `launch-creator-claim --token T`, MCP `build_curve_trade` action `creator_claim`, `curve.claimCreatorFees(recipient)` `0xd6ae6e44` |
+| Curve creator fees, in FLASH | Curve | Pushed at graduation and abort; claim to collect early | `launch-creator-claim --token T`, MCP `build_curve_trade` action `creator_claim`, `curve.claimCreatorFees(recipient)` `0xd6ae6e44` |
 | Your tokens from your own buy | Curve, timed | Keeper airdrop, or claim | `launch-claim --token T` works on both. MCP `build_curve_trade` or `build_timed_launch` action `claim` |
 | Creator cut of the token's treasury income | All | Keepers pay it to the recipient | None. Change the split or recipient with `treasury-shares --token T --reward-bps N --lp-bps N [--recipient A]`, MCP `build_treasury_shares` |
 | QUANT | PERP pairs | Minted to the creator on a sweep | `quant-sweep --token T`, or `sweep(poolId)` on the FlashV3 ledger `0xB6267C0bFcbBEE354723f9f97b255Da287729A07`. Anyone can send it |
 
+Of a 1% pool fee, 90% reaches the treasury, so the default 80% cut is 0.72% of volume. Keeper outflows also pay 0.3% (`keeperRateBps()`). A custom recipient pays only while the controller that set it is still in control; after a transfer the cut follows the new controller. Treasuries controlled by the Safe ignore this contract. `treasury-shares --clear` (MCP `clear`) resets to the default.
+
+## Treasury agent mode (your own keeper)
+
+The app shows the mode read-only, on purpose: one wrong address hands the treasury to someone else. All calls come from the controller wallet.
+
+1. Read the treasury: `treasuryFactory.treasuryOf(token)` on `0x128fab9a1f356868feb355858cc7CbdA7F296b91`. It is deployed at graduation or launch; `predictTreasury(token)` works before that.
+2. `setAgent(address,bool)` `0x97d8c676` with your agent and `true`.
+3. `setMode(uint8)` `0x21175b4a` with `1`. It starts at once. `0` is keepers, `1` is agents.
+4. Check: `mode()` is 1 and `canExecute(agent)` returns `(true, rateBps)`.
+
+Agents run `execute((address target,uint256 value,bytes data)[] calls, address[] measure)` `0xeedc3c50`. The controller is not an agent unless added.
+
+While agent mode is on:
+
+- Flash keepers are locked out, including from LP vault claims.
+- No conversions, holder airdrops or creator-cut payouts happen, and the cut is not enforced.
+- Tracked tokens (quote, churn-approved, FLASH) pay 0.3% (`rateBps()`) on leaving and on passive inflows, booked on `sync` / `deposit`.
+- No lingering allowances on tracked tokens. Moves to the treasury's own churn positions are fee-free.
+
+Back to keepers: `setMode(0)`, then `setAgent(agent, false)`. Keepers resume within about 4 hours.
+
+Other controller calls: `setRewardAsset(address)` `0x1bc3465c` (any token, 0 = the pair default), `transferController(address)` `0xe8ea054b`, then `acceptController()` `0x9bc21c0c` from the new wallet.
+
+An agent can move everything, and a lost controller key cannot be recovered.
+
+## Liquidity and the LP fee vault
+
+Allocation: participants 10% (unsold joins liquidity), protocol 5% in the fixed owner ladder (128 bins, 0.1x to 1000x; 0.3 / 1 / 3 / 5% of supply at 1 / 10 / 100 / 1000x; not editable), liquidity per mode, and the creator share split into stockpile and Lattice per preset.
+
+The launch position holds all the quote, with its floor where every sold token can exit and its ceiling at x100,000. The rest is one-sided depth from the launch price to the same ceiling.
+
+Vault `0x91a7123d0c402B5E8f5Dfd9C81f1575C05dBE060`: `claim(tokenId)` `0x379607f5`, `claimBatch(uint256[])` `0x62abebce`, `canClaim(account, tokenId)`, `positionOf(tokenId)` -> `(beneficiary, currency0, currency1, held)`. Find ids from `Deposited(tokenId, from, beneficiary)`.
+
+- Claimers in keeper mode: keepers, controller, treasury or owner. In agent mode: agents, controller, treasury or owner.
+- The vault is not sealed (`isSealed()` false), so the Safe can withdraw positions today. Migration routes have a 90-day notice (`routeDelay()`) and a 14-day window.
+
 ## Per-token treasuries (treasury-v3)
 
-Every launch gets a treasury at `treasuryFactory.predictTreasury(token)` (`isTreasury(addr)` once it exists). The FlashV3 hook pays the creator share of swap fees there in-swap. Keepers convert fee tokens through the churn cascade and pay holder rewards in `rewardAsset`. Reads: `treasury.token()`, `quote()`, `controller()`, `mode()`, `rewardAsset()`. Controller-only settings (`setRewardAsset`, `setMode`, `setAgent`) are outside this skill. CLI: `treasury --token T`.
+Every launch gets a treasury at `treasuryFactory.predictTreasury(token)` (`isTreasury(addr)` once it exists). The FlashV3 hook pays the creator share of swap fees there in-swap. Keepers convert fee tokens through the churn cascade and pay holder rewards in `rewardAsset`. Reads: `treasury.token()`, `quote()`, `controller()`, `mode()`, `rewardAsset()`. Controller-only settings are in [Treasury agent mode](#treasury-agent-mode-your-own-keeper). CLI: `treasury --token T`.
 
 **Creator cut** (`FlashTreasuryShares` `0x98C29eC362A4e76975002778Bb2E91B99e4A288F`, ownerless): a treasury's income has two buckets, and the creator keeps a share of each; the rest goes to holder rewards.
 

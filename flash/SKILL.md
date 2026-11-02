@@ -78,8 +78,10 @@ Addresses: [CONTRACTS.md](references/CONTRACTS.md) and [`known-contracts.json`](
 | Launch a token (save the signed profile with art first: [LAUNCHES.md](references/LAUNCHES.md#token-profile-image-required-wallet-signed)) | `launch-create --name N --symbol S --pair ETH\|FLASH\|STOCK\|PERP [--quote NVDAc\|ETH2xL] --eth 0.01 [--mode 1 --preset 1 --reward 0x..]` |
 | Timed launch: set a time, entries become one first buy ([LAUNCHES.md](references/LAUNCHES.md#timed-launch-no-bonding-curve-launches-at-a-set-time)) | `timed-create --name N --symbol S --pair ETH --in-minutes 60`, `timed-enter --token T --pay ETH\|USDC\|FLASH --amount N`, `timed-info`, `timed-list`, `timed-claim`, `timed-refund`, `timed-airdrop`, `timed-launch`, `timed-abort` |
 | What a launch pays its creator, and changing the cut ([LAUNCHES.md](references/LAUNCHES.md#what-a-launch-pays-its-creator)) | `launch-earnings --token T --wallet W`, `treasury-shares --token T --reward-bps N --lp-bps N [--recipient A]` |
+| Skip graduation: straight into the pool ([LAUNCHES.md](references/LAUNCHES.md#skip-graduation-direct-launcher-no-bonding-curve)) | `launch-direct --name N --symbol S --pair ETH --pay ETH\|USDC\|FLASH --amount X` |
+| Every launch option and its live values ([LAUNCHES.md](references/LAUNCHES.md#launch-shape)) | `launch-shapes`, then `--mode deep\|medium\|degen --preset soft\|long-term\|fast-burn` |
 | Trade and manage a launch | `launch-info`, `launch-buy --eth\|--flash`, `launch-sell`, `launch-graduate`, `launch-claim`, `launch-refund`, `launch-creator-claim`, `launch-airdrop`, `treasury` |
-| Token Wars | `war-status`, `war-enter`, `war-back --id N --pay ETH\|USDC\|FLASH --amount X`, `war-sell`, `war-jump`, `war-claim`, `war-refund`, `war-creator-claim`, `war-open`, `war-finalize` |
+| Token Wars | `war-status`, `war-enter`, `war-back --id N --pay ETH\|USDC\|FLASH --amount X`, `war-sell`, `war-jump`, `war-claim`, `war-refund`, `war-creator-claim`, `war-open`, `war-finalize`, `war-poke`, `war-airdrop` |
 | Revenue Share | `revshare-status`, `revshare-deposit --amount N`, `revshare-claim`, `revshare-withdraw` (full stake + ETH), `revshare-migrate` (retired vault) |
 | Misc | `wrap-eth --amount N` (ETH-pair launches trade against WETH), `contracts`, `api /v1/stack/live` |
 
@@ -96,7 +98,7 @@ Addresses: [CONTRACTS.md](references/CONTRACTS.md) and [`known-contracts.json`](
   - a take-profit or stop-loss trigger that the current NAV already meets (fills right away)
   - exit-only perp markets
   - graduation waiting on FLASH/ETH depth
-- **Risk honesty:** perps are leveraged and can lose most of their value fast. New launches and war tokens are illiquid. A referral bind and a launch are permanent. Never auto-buy.
+- **Risk honesty:** perps are leveraged and can lose most of their value fast. New launches and war tokens are illiquid. A referral bind and a launch are permanent.
 - **Respect wallet protections** (Bankr limits and scans, Wallet MCP approvals). If one blocks a transaction, stop and say why.
 
 ## Examples

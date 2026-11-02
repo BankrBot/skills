@@ -2,7 +2,7 @@
 
 Public, read-only, GET, JSON, no key. `/v1/stack/*` is an alias of `/v1/ecosystem/*`. Snapshots refresh about once a minute (stack.live is event-driven), so cache them. On HTTP 429 wait for `Retry-After`. Do not send a browser `Origin` header other than `https://tryflash.app`. Amount fields ending in `Wei` or `Raw`, and bare integer strings, are base units. `*Float`, `*Eth` and `*Usd` fields are human numbers. The API is a convenience: the chain is the source of truth before any write.
 
-There are **no** quote or transaction-building endpoints for the live stack. Quote with the V4 Quoter and build calldata with `scripts/flash.mjs`. The `/v1/launch-v2/*` reads, `/v1/bonding/*`, `/v1/perps*` and the `/mcp` build tools serve the retired stack: do not use them to trade. The exceptions are the two token-profile writes below, which every launch-v5 launch and war entry needs.
+There are **no** quote or transaction-building endpoints for the live stack. Quote with the V4 Quoter and build calldata with `scripts/flash.mjs`. The `/v1/launch-v2/*` reads, `/v1/bonding/*`, `/v1/perps*` serve the retired stack: do not use them to trade. The exceptions are the two token-profile writes below, which every launch-v5 launch and war entry needs.
 
 | Route | Returns |
 | --- | --- |
@@ -40,7 +40,7 @@ There are **no** quote or transaction-building endpoints for the live stack. Quo
 Known data caveats, as of 2026-10-24:
 
 - `/v1/stack/quant` `mints.lossUsdFloat` is divided by 1e18, but `lossUsd` is USDC with 6 decimals.
-- `/v1/stack/v3/pools` reports the QUANT pool creator as the treasury `0xD1EC...`. On chain, `v3Hook.poolInfoOf(poolId).creator` is now the QUANT treasury `0x6A7f...55E5`. Trust the chain.
+- `/v1/stack/v3/pools` reports the QUANT pool creator as the treasury `0xD1EC...`. On chain, `v3Hook.poolInfoOf(poolId).creator` is now the QUANT treasury `0x669Ef174655d011aE80f66aFeF97b6C8Cec3B568`. Trust the chain.
 
 Writes (token profiles only; see [LAUNCHES.md](LAUNCHES.md#token-profile-image-required-wallet-signed)):
 

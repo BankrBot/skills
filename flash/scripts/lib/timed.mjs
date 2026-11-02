@@ -104,10 +104,10 @@ export async function timedCreate(options) {
   const { pair, quote, quoteSymbol } = await resolvePair(options);
   const [minDelay, maxDelay, fee, { ethUsd, flashUsd }] = await Promise.all([readT('minDelay'), readT('maxDelay'), readT('currentCreationFee'), prices()]);
   const at = launchTime(options, minDelay, maxDelay);
-  const shape = shapeOf(options, pair, quote);
+  const shape = await shapeOf(options, pair, quote);
   const input = { ...identity, pair, quote, shape: launchShape(shape), launchAt: BigInt(at) };
   const pay = String(options.pay || 'ETH').toUpperCase();
-  const summary = { ...identity, pair: PAIR_NAMES[pair], quote: quoteSymbol, launchAt: iso(at), creationFeeFlash: fmt(fee), mode: shape.mode, preset: shape.preset, rewardAsset: shape.rewardAsset === zeroAddress ? 'pair default' : shape.rewardAsset };
+  const summary = { ...identity, pair: PAIR_NAMES[pair], quote: quoteSymbol, launchAt: iso(at), creationFeeFlash: fmt(fee), shape: shape.label, mode: shape.mode, preset: shape.preset, rewardAsset: shape.rewardAsset === zeroAddress ? 'pair default' : shape.rewardAsset };
   const warnings = ['Launches are permanent and public. Save the signed token profile with art first (LAUNCHES.md).'];
   const notes = ['The token address is in TimedLaunchCreated(token, creator, pair, quote, launchAt, fee, salt) and can be shared right away.', 'After the launch time keepers launch it. Half of all entries is paid to the creator then.'];
   if (pay === 'FLASH') {
@@ -256,7 +256,8 @@ export async function treasurySharesSet(options) {
   const lpBps = Number(options['lp-bps']);
   if (!Number.isInteger(rewardBps) || rewardBps < 0 || rewardBps > 1000) throw new Error('--reward-bps must be 0-1000 (0-10%)');
   if (!Number.isInteger(lpBps) || lpBps < 0 || lpBps > 8000) throw new Error('--lp-bps must be 0-8000 (0-80%)');
-  const recipient = options.recipient ? getAddress(options.recipient) : zeroAddress;
+  // Unset keeps a custom recipient the controller already chose (0 = paid to the controller).
+  const recipient = options.recipient ? getAddress(options.recipient) : cut.recipient.toLowerCase() === cut.controller.toLowerCase() ? zeroAddress : cut.recipient;
   return finish(account, 'treasury-shares', { treasury: cut.treasury, rewardSharePct: rewardBps / 100, lpSharePct: lpBps / 100, recipient: recipient === zeroAddress ? 'the controller' : recipient },
     [call({ to: K.treasuryV3.shares, abi: A.treasuryShares, functionName: 'setShares', args: [cut.treasury, rewardBps, lpBps, recipient], description: 'Set the creator cut and who receives it' })]);
 }

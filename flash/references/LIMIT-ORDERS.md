@@ -16,7 +16,7 @@ Markets the app trades (token / quote, both 18 decimals):
 | FLASH/ETH (quote = WETH; proceeds paid in WETH) | `0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b` | `-rcHook.poolState().tick` (FLASH is currency1) |
 | QUANT/FLASH | `0xda2edfc201813ec11a6b8e6271dae076e5ec3a3e7d244bdffe1e62638f65b65a` | `v3Hook.poolState(QUANT key).tick` (QUANT is currency0) |
 
-**Prices and ticks:** price (quote per token) = `1.0001^tick` in the **token orientation** above. A level floor is a token-orientation tick snapped **up** to the market's `levelConfig(id).stepTicks` (100 today): `floorTick = ceil(ln(price) / ln(1.0001) / step) * step`. The churn snaps the same way. Example: FLASH at 0.0006 ETH is tick ≈ -74,180. A floor of 0.01 ETH per FLASH is tick -46,000.
+**Prices and ticks:** price (quote per token) = `1.0001^tick` in the **token orientation** above. A level floor is a token-orientation tick snapped **up** to the market's `levelConfig(id).stepTicks` (100 on FLASH/ETH, 200 on QUANT/FLASH): `floorTick = ceil(ln(price) / ln(1.0001) / step) * step`. The churn snaps the same way. Example: FLASH at 0.0006 ETH is tick ≈ -74,180. A floor of 0.01 ETH per FLASH is tick -46,000.
 
 ## Reads
 
@@ -61,6 +61,16 @@ CLI:
 - `limit-claim --market FLASH --wallet W`
 - `fullrange-deposit|fullrange-withdraw|fullrange-claim --market QUANT ...`
 
+## Fees, limits and the app form
+
+Every fill pays `sellerFeeBps` of the gross (100 = 1% on both markets, settable 100-500), full range and Lattices included. Then 31% of `(net - floor value)` goes to the protocol. A fully filled order pays at least `floor value x 99%`.
+
+- Minimum per level: 1 FLASH on FLASH/ETH. QUANT's `minDeposit` is 0, with a dust floor of 1e9 wei. A level below `max(minDeposit, dust)` never fills.
+- Per buy: churn at most 50% of the swap, full range at most `fillBps` (690 = 6.9%), at most 200 levels. `depositLevels` and `claimLevels` take at most 256 entries. At most 4 Lattices per market.
+- `withdrawLevel` returns tokens only, so claim proceeds separately. Batch cancel: `withdrawLevels(id, levels, receiver)` `0xc429df2e`.
+- A `levels()` scan misses sold-out levels. Find a wallet's ticks with `GET /v1/stack/churn/{account}`.
+- App form. **Price** mode presets are +10%, +25%, +50%, 2x. **Curve** mode: From 0.9, 1, 1.05, 1.1, 1.25, 1.5x (default 1.1x); To 1.5, 2, 3, 5, 10, 25x (default 10x); Bins 4, 8, 16, 24, 32, 48 (default 16). Shape weights over t in 0..1: flat 1, front `1-0.8t`, back `0.2+0.8t`, exp `1.6^(6t)/1.6^6`. Bars can be hand-drawn. URLs: `?ref=`, `?buy=<eth>`, `?limit=1`, `?mode=curve`.
+
 ## Lattices
 
 `openLattice(bytes32 id, (int24 startTick, uint24 widthTicks, uint8 count, uint128 total, (uint16 bins, int24 exponentTicks, uint32 sharePpm)[8] segments) p, address owner)` (selector `0x94324107`) is **restricted**. Only these callers may open one: churn operators, approved openers (`isLatticeOpener`, e.g. the launch-v5 executor that opens each launch's Lattice), the churn owner, and the market's `creator` / `treasury`. A normal wallet gets `NotOperator()`. It should place a **curve order** with `depositLevels` instead: same idea, any user.
@@ -76,7 +86,7 @@ The Lattice **owner** can manage an existing one:
 
 CLI: `lattice-list --market FLASH|QUANT`, `lattice-show --id N`, `lattice-withdraw --id N [--amount X]`, `lattice-transfer --id N --to 0x`, `lattice-reformat --id N --params '<json>'`, `lattice-open --market M --params '<json>'` (creators and treasuries only).
 
-Live today: Safe-owned FLASH Lattices #5 (10,500 FLASH from the FLASH spot price up) and #6 (9,000 FLASH from ~$300k to $1M FLASH market cap), plus the QUANT treasury's Lattice #1 on QUANT/FLASH. Their proceeds go to the treasury inside each fill.
+Live today: Safe-owned FLASH Lattices #5 (10,500 FLASH from the FLASH spot price up) and #6 (9,000 FLASH from ~$300k to $1M FLASH market cap), plus the QUANT treasury's Lattice #17 on QUANT/FLASH. Their proceeds go to the treasury inside each fill.
 
 ## The cascade (why fills convert, not dump)
 

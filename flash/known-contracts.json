@@ -61,6 +61,7 @@
   },
   "launchV5": {
     "launchpad": "0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0",
+    "router": "0x7aB1a5EAd75e53d8FbD61a0F8EA3123cC5059a17",
     "routerQ": "0x2e6640bca34BC34f3F4EF31cb19527EA80987911",
     "direct": "0x63AeDafc52368A97db0B452D527FE963F18BC47e",
     "timed": "0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67",
@@ -83,7 +84,7 @@
   },
   "revenueShare": {
     "v3": "0x7c36Ac8bec2D206984702790dB158fcAAFe69490",
-    "v3Implementation": "0x7Ba4b0d63fc449D130F7259C231A7204ddcC7820",
+    "v3Implementation": "0x22efBE492289a0b158fB83b5bc7583eb35DACf24",
     "keeperLoanExecutor": "0x71E8043A562C476C5E0e3c07A1904d993e988794",
     "keeperLoanExecutorNote": "FlashKeeperLoanExecutor: registry keepers with capability bit 12 borrow the staked FLASH, profit sweeps to the treasury",
     "churnMarket": "FLASH/ETH",
@@ -157,7 +158,7 @@
     ]
   },
   "stocks": {
-    "note": "Tokenized stocks (B20). Launch STOCK-pair quote assets and reward assets; portfolio holdings. Flash does not sell stocks itself.",
+    "note": "Tokenized stocks (B20, 8 decimals). Launch STOCK-pair quote assets and reward assets; portfolio holdings. Flash does not sell stocks itself.",
     "list": [
       { "symbol": "NVDAc", "name": "Nvidia", "address": "0xb20000000000000000000078ee7ce2fE4908108C" },
       { "symbol": "METAc", "name": "Meta", "address": "0xb2000000000000000000008bC8786B856E61707C" },
@@ -170,7 +171,13 @@
       { "symbol": "SPCXc", "name": "SpaceX", "address": "0xb2000000000000000000007b9fcbd005511aCBd5" },
       { "symbol": "TSLAc", "name": "Tesla", "address": "0xb2000000000000000000001e800a7f5189430cD0" },
       { "symbol": "MUc", "name": "Micron", "address": "0xb200000000000000000000Fd2f87532B90095211" },
-      { "symbol": "PLTRc", "name": "Palantir", "address": "0xb2000000000000000000007d16372840dF4dAbbe" }
+      { "symbol": "PLTRc", "name": "Palantir", "address": "0xb2000000000000000000007d16372840dF4dAbbe" },
+      { "symbol": "SKHYc", "name": "SK hynix", "address": "0xb200000000000000000000187f7071D6E321a7d2" },
+      { "symbol": "AMDc", "name": "AMD", "address": "0xB2000000000000000000000d8Ce462E99ee7A47B" },
+      { "symbol": "NFLXc", "name": "Netflix", "address": "0xb20000000000000000000058B8c947e44011dFE6" },
+      { "symbol": "AVGOc", "name": "Broadcom", "address": "0xB200000000000000000000Fc737aeA6196aB5a4c" },
+      { "symbol": "ORCLc", "name": "Oracle", "address": "0xb200000000000000000000347AFbA223D7B6b63C" },
+      { "symbol": "LLYc", "name": "Eli Lilly", "address": "0xB200000000000000000000f1a0F91e34892E4718" }
     ]
   },
   "api": {

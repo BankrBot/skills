@@ -4,7 +4,7 @@ A Token War is a group launch. Anyone enters a candidate: name, ticker, and **it
 
 | | |
 | --- | --- |
-| Token War V6 (the only live war; war #1 open) | `0x793D3730040582fc58F3699F51396Dc6cD00dD3f` |
+| Token War V6 (the only live war) | `0x793D3730040582fc58F3699F51396Dc6cD00dD3f` |
 | War router V6 (ETH / USDC in) | `0x470e310f02625DAdaea471579f5ccC66fd606638` |
 
 Back and enter only through these two contracts. Launch routers do not back V6 candidates.
@@ -30,13 +30,27 @@ Back and enter only through these two contracts. Launch routers do not back V6 c
 
 API: `GET /v1/stack/wars`, `GET /v1/stack/wars/:warId`.
 
+## Goal, extensions and payouts
+
+- **Goal:** $690 base, re-derived in FLASH at the live price on every touch, capped at 10x (`capFactorBps` 100000, a $69,000 market cap).
+- **Extensions** (`config.extensionParams()`): +1% per entrant after the first; +5% on a tie at the barrier; +10% per leader flip once 10% or less of the goal remains, escalating +50% per repeat; buys of 10% of the goal or more extend up to +25%.
+- **Decay:** 2 h grace, then a 12 h half-life, floor at the base goal.
+- **Lock:** needs principal at or above the barrier, no exact tie, a clear 600 s settle timer and an OK price path.
+- **Names and tickers** are unique per war, case-insensitive.
+- **Creator fees:** every candidate's creator earns fees on its own market. The winner's creator is pushed at finalize, the others in airdrop batches; `claimCreatorFees` collects early.
+- **Finalize** requires READY and at least 70% of the locked USD goal realised.
+- **Claims** pay 1% in tokens. If the losers' launch-block buy failed (`loserPoolIsQuote(warId)`), losers are paid in the war's quote with no claim fee (`warQuote(warId)`).
+- **Airdrop and poke:** `airdrop(warId, from, count)` `0x8c195122` (max 400, skips under $1) and `poke(warId)` `0x32145f90` are permissionless. CLI: `war-airdrop [--war N --from N --count N]`, `war-poke [--war N]`. MCP: `build_war_action` actions `airdrop` and `poke`.
+- **Open:** `openWar` is price-gated (`TooVolatile`). While IDLE only the owner or a config keeper can open; anyone can after a war LAUNCHED or ABORTED.
+- **Abort:** the Safe at any time, a keeper after READY + 1 day. Refunds pay in kind with no fee.
+
 ## Actions
 
 | Action | Call | Selector |
 | --- | --- | --- |
 | Enter, paying the fee in ETH | `router.submitWithEth((name, symbol), pair, quote, shape, minFlashOut)`, payable. `minFlashOut` = the FLASH entry fee; `value` = an exact-out ETH quote for it + 5%. Leftover FLASH is refunded. | `0x619aca05` |
 | Enter, paying the fee in FLASH | `FLASH.approve(war, fee + 5%)`, then `war.registerCandidatePaired((name, symbol), pair, quote, shape)` | `0x019a20c9` |
-| Enter, paying with another token | `router.submitWithToken(input, pair, quote, shape, tokenIn, amountIn, minFlashOut)` after `tokenIn.approve(router)` | `0xaf84df24` |
+| Enter, paying with USDC or FLASH through the router | `router.submitWithToken(input, pair, quote, shape, tokenIn, amountIn, minFlashOut)` after `tokenIn.approve(router)` | `0xaf84df24` |
 | Back with ETH | `router.backWithEth(candidateId, minFlashOut, minUnits, recipient)`, payable | `0xe82665d7` |
 | Back with USDC | `USDC.approve(router, amount)`, then `router.backWithToken(candidateId, USDC, amount, minFlashOut, minUnits, recipient)` | `0xb02ad7dd` |
 | Back with FLASH | `FLASH.approve(war, gross)`, then `war.buy(id, gross, minUnits, recipient)` | `0x0bb5eaf3` |
@@ -57,7 +71,7 @@ Rules and gotchas:
 
 CLI:
 - `war-status [--wallet W]`
-- `war-enter --name "Name" --symbol TKR --pair ETH|FLASH|STOCK|PERP [--quote NVDAc|ETH2xL] [--pay ETH|FLASH] --wallet W`
+- `war-enter --name "Name" --symbol TKR --pair ETH|FLASH|STOCK|PERP [--quote NVDAc|ETH2xL] [--mode deep|medium|degen --preset soft|long-term|fast-burn --reward 0x] [--pay ETH|FLASH] --wallet W`
 - `war-back --id 1 --pay ETH|USDC|FLASH --amount 0.01 --wallet W`
 - `war-sell --id 1 [--units all]`
 - `war-jump --from 1 --to 2 [--units all]`

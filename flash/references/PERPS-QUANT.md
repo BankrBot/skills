@@ -32,11 +32,11 @@ Pool key: `(USDC, perpToken, 8388608, tickSpacing 1, perps hook)`. USDC sorts be
 
 The full list with vaults is in [`../known-contracts.json`](../known-contracts.json).
 
-The hook floor can be raised by the owner: read `perpsHook.pools(poolId)`, which returns `(marketId, registered, usdcIs0, gasFloor)`, and keep the gas limit above floor + ~450k. Prefer `eth_estimateGas x 1.1`.
+The hook floor can be raised by the owner: read `perpsHook.pools(poolId)`, which returns `(marketId, registered, usdcIs0, gasFloor)`, and keep the gas limit above floor x 1.076 + 50k (BTC2xL needs floor + 670k, AERO2xL floor + 780k). Prefer `eth_estimateGas x 1.1`.
 
 ## Buy, sell, read
 
-- **Quote:** `V4Quoter.quoteExactInputSingle((key, zeroForOne, amount, 0x))` with `gas: 15000000`. Quotes are never refused for size: capacity the issuer cannot fill comes from the hook's backstop. `issuer.buyCapacityUsdc(id)` shows the engine's room.
+- **Quote:** `V4Quoter.quoteExactInputSingle((key, zeroForOne, amount, 0x))` with `gas: 15000000`. See [Real cost and capacity](#real-cost-and-capacity).
 - **Buy with USDC:** Permit2 approvals, then `execute` with actions `0x06 0c 0f` (see [TRADING.md](TRADING.md)). **With ETH or FLASH:** the pay routes ETH -> USDC -> perp and FLASH -> ETH -> USDC -> perp.
 - **Sell:** `zeroForOne = false`, input = the perp token (Permit2 approvals for the perp token).
 - **Position:** `perp.balanceOf(user)`, value = balance x NAV. `issuer.positionOf(id, user)` returns `(shares, basisUsdc, avgCostPerToken)`, so PnL = value - basisUsdc. `GET /v1/stack/perps/positions/:account` adds the trade history ledger. `GET /v1/stack/perps/:id/nav` is the NAV chart.
@@ -46,6 +46,28 @@ CLI:
 - `swap --market ETH2xL --side sell --amount all --wallet W` sells the whole balance.
 - `perp-positions --wallet W`
 - `perp-unwind --market <retired token> --amount all --wallet W` exits a retired market to USDC.
+
+## Real cost and capacity
+
+Every issuer fill pays 0.05% (`issuer.FEE_PIPS()` = 500) plus 5 bps on the rail leg (`FEE_BPS()` = 5), plus venue slippage on the levered notional. Measured all-in cost against NAV runs from about -0.3% to +0.8% per side, and more on thin venues. Only the quote is binding, not NAV. Paying with FLASH also sells it through FLASH/ETH at 6.9% (1.69% referred) plus impact tax. ETH routes through the hookless ETH/USDC pool.
+
+`issuer.buyCapacityUsdc(id)` is what the issuer can fill at NAV, and on some markets it is under $100. Anything above it goes to the hook's very thin backstop (a further 0.05% fee) and can lose over 80%. The same applies to selling more than the supply the issuer can redeem. **Read capacity first, keep a buy under it, and compare the quote with `amount / NAV` before signing.** Exact-out above the backstop reverts `CurveExhausted()`.
+
+Exact-out exists on direct USDC trades only (`--exact-out`); routed pay is exact-in. A sell always pays USDC in the app and CLI. The app's picks are 25 / 50 / 75 / Max, with 0.0003 ETH reserved when paying ETH.
+
+## Leverage, funding and risk
+
+Target / max leverage is in `/v1/stack/live`: ETH2xL and BTC2xL 2x / 2.4x, ETHMAXL 3.2x / 3.45x, ETH2xS 2x / 2.8x, every other market 2x / 2.35x.
+
+There is no funding transaction: Morpho borrow interest and venue fees lower NAV continuously. The holder gets no liquidation call, but the vault's Morpho position can be liquidated, with a 0.1% fee on liquidated notional, and that hits NAV.
+
+`issuer.maintain(id)` `0xa7881138` is permissionless and never reverts. Governance can `disableIssuance` (new buys only); exits stay open.
+
+## Direct issuer path (no pool, no gas floor)
+
+`issuer.issue(id, usdcIn, minOut, to)` `0x03a3bc6e` needs USDC approved to the issuer. `issuer.unwind(id, amount, minUsdcOut, to)` `0xa56df42b` needs the perp approved to the issuer. Nobody can block `unwind`: no pause, no owner gate, no hook dependency. The minimum issue is $0.01.
+
+PnL follows issuance attribution, and transfers do not move basis. An unwind realizes PnL only on min(sold, issued), so tokens received by transfer earn no QUANT, and `value - basisUsdc` overstates their PnL.
 
 ## Take-profit and stop-loss (limit orders)
 
@@ -60,7 +82,7 @@ CLI:
 
 | Action | Call | Selector |
 | --- | --- | --- |
-| Approve (once, covering every open order's qty) | `perpToken.approve(0xf5d9...0824, qty)` | `0x095ea7b3` |
+| Approve (once, covering every open order's qty) | `perpToken.approve(0x6b9337131739D7C368dFFc08E6b2f4D007961f06, qty)` | `0x095ea7b3` |
 | One order | `place(marketId, kind, qty, triggerNav, minOut, expiry)` (`minOut` is ignored for TP) | `0xfb582da7` |
 | Linked TP + SL on the same qty (one fill cancels the other) | `placePair(marketId, qty, tpNav, slNav, slMinOut, expiry)`, `slNav < tpNav` | `0x5976f9d6` |
 | Re-price / re-size | `update(id, qty, triggerNav, minOut, expiry)` | `0x86904ccf` |
@@ -73,7 +95,13 @@ CLI:
 - `perp-tpsl --market ETH2xL --amount all --tp 1.25 --sl 0.85 [--sl-min 120] [--expiry-days 30] --wallet W` (`--tp` or `--sl` alone places one order; NAVs are USDC per token)
 - `perp-order-cancel --ids 12,13 --wallet W`
 
+**How fills really work.** A take-profit pays exactly `qty x trigger x 99.9%`, and everything above that is protocol surplus: if NAV gaps past the trigger, the holder gets the trigger price, not the market. The sale must also cover the guarantee or it reverts `BelowGuarantee` and stays open, so a TP can wait until NAV is about 0.2-0.7% above trigger. A stop whose net proceeds fall under `minOut` reverts `BelowFloor` and stays open while NAV keeps falling, so the default floor gives no fill in a gap of more than about 2%.
+
+Keepers fill only when protocol earnings are at least 1.5x the Base gas cost, so small orders can wait. `orders(id)` `0xa85c38ef` reads an order. `check(id)` does not cover proceeds or the floor. A pause stops listing, updating and filling; only cancel works. Linked orders share one qty. The app defaults to both, with TP presets +5 / +10 / +25 / +50%, stop presets -5 / -10 / -20 / -30%, expiry 0 and an editable stop floor.
+
 ## QUANT
+
+Supply cap 6,942,000: 2,776,800 initial liquidity, 1,388,400 owner Lattice (both minted at launch) and R = 2,776,800 minted by losses. `quantRateNow()` is the gross rate; the trader keeps 80%. The protocol's 20% goes to `QuantOwnerSink` `0x1296988A7807866842D1aeeFdbbA8A4E0bD9e9Df`, which deposits into the QUANT/FLASH owner split and churns to FLASH. The QUANT treasury `0x669Ef174655d011aE80f66aFeF97b6C8Cec3B568` has reward asset FLASH, so holders earn FLASH. Sell QUANT with `swap --side sell` or a limit order (`limit-place --market QUANT`).
 
 QUANT (`0xB2000000000000000000008a865BAD54481CD395`, max supply 6,942,000) is the perps loss-reward token. It trades against FLASH on the QUANT/FLASH FlashV3 pool, and its fees fund the QUANT treasury `0x669Ef174655d011aE80f66aFeF97b6C8Cec3B568`.
 
@@ -113,6 +141,8 @@ API: `GET /v1/stack/quant` returns supply, issuer mints, price, volume and mint 
 `quant-status` reads it.
 
 ## Migrating from the earlier perps
+
+`migrate(items, deadline)` `0x2b2fa348`. `routeIndexPlusOne(token)` `0x2fc98098` returns 0 if a token has no route; there are 57 routes (32 v1, 25 retired). Minimums: `minUsdcOut` = exit quote minus 5% (a further 1.5% on redeem exits), `minV5Out` = buy quote of `minUsdcOut` minus 5%. Deadline 30 min (3 days for Safe calls). Gas = estimate x 1.15, batches up to 13.9M. A `0xb200...` token is pulled with an EIP-2612 permit; others use Permit2 SignatureTransfer when its allowance covers the balance, otherwise `approve(migrator)`, and pull `3` is Permit2 AllowanceTransfer. A Safe uses an exact approve plus `migrate` with pull 0, one token per call. The app's flow is at [tryflash.app/migrate](https://tryflash.app/migrate).
 
 Holders of v1 perps (the `0x4f57...` hook's B20 tokens and legacy vault shares) and of the retired V5 generation (sold on its old pool through `0x2f4a713980425DF85b2B756C7484565A9b8778C8`) move into the live markets with the stateless migrator `0x297D61F5F231bb2E512f11f332Ea6B9E2709b9D3`:
 

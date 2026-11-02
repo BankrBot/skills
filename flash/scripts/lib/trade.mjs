@@ -173,6 +173,7 @@ export async function swapCommand(options) {
     if (p.pool.kind !== 'rc' && !(p.route && p.route.hops.some((hop) => hop.rc))) throw new Error('--ref-code binds only on a swap that touches the FLASH/ETH pool');
     if (!options['ref-signature'] || !options['ref-deadline']) throw new Error('An in-swap bind needs --ref-signature and --ref-deadline from the EIP-712 Bind (run referral-bind first to get the typed data), or bind with referral-bind before swapping');
     hookData = encodeBindHookData({ account: p.account, code: BigInt(options['ref-code']), deadline: BigInt(options['ref-deadline']), signature: options['ref-signature'] });
+    warnings.push('The quote and minimum out are at this wallet\'s fee before the bind (6.9% if unreferred). The bind lowers it in this swap, so you receive more than quoted and the real slippage tolerance is wider than --slippage-bps.');
   }
   let swap;
   let inputToken;
@@ -208,12 +209,22 @@ export async function swapCommand(options) {
   }
   const transactions = [...approvals, swapTx];
   const simulation = await simulate(p.account, transactions);
-  if (p.pool.kind === 'rc' && p.buy) {
+  // A pay route through FLASH/ETH is a real trade there: an ETH -> FLASH hop can take the throne, a FLASH -> ETH hop is a sell.
+  const rcBuyHop = p.route ? p.route.hops.findIndex((hop) => hop.rc && same(hop.out, K.tokens.FLASH.address)) : -1;
+  if ((p.pool.kind === 'rc' && p.buy && !p.route) || rcBuyHop >= 0) {
     const game = await client.readContract({ address: K.referralCoin.koth, abi: A.rcKoth, functionName: 'nextTrigger' }).catch(() => 0n);
-    const gross = p.mode === 'exactIn' ? p.amount : p.quoted;
-    if (game && gross >= game) warnings.push(`This buy (>= ${fmt(game)} ETH) takes the King of the Hill throne.`);
+    const gross = !p.route ? (p.mode === 'exactIn' ? p.amount : p.quoted)
+      : rcBuyHop === 0 ? p.amountIn : await quotePath({ input: p.route.input, hops: p.route.hops.slice(0, rcBuyHop) }, p.amountIn, p.account).catch(() => 0n);
+    if (game && gross >= game) warnings.push(`This buy (>= ${fmt(game)} ETH on FLASH/ETH) takes the King of the Hill throne.`);
   }
-  if (p.pool.kind === 'rc' && !p.buy) warnings.push('Selling FLASH while you lead King of the Hill forfeits your leader share to the protocol owner.');
+  if (p.pool.kind === 'perps' && p.buy) {
+    const [nav, capacity] = await Promise.all([K.perps.issuer, K.perps.issuer].map((address, index) => client.readContract({ address, abi: A.perpsIssuer, functionName: index ? 'buyCapacityUsdc' : 'navPerToken', args: [BigInt(p.pool.marketId)] }).catch(() => undefined)));
+    const tokens = p.route || p.mode === 'exactIn' ? p.quoted : p.amount;
+    const usdcIn = p.route ? 0n : p.mode === 'exactIn' ? p.amount : p.quoted;
+    const value = nav === undefined ? 0n : (tokens * nav) / 10n ** 18n;
+    if (capacity !== undefined && (value > capacity || usdcIn > capacity)) warnings.push(`This buy is above the ${p.pool.tokenSymbol} issuer capacity (${fmt(capacity, 6)} USDC): the excess fills on a thin backstop and can lose over 80%. Buy less, or compare the quote to amount / NAV.`);
+  }
+  if ((p.pool.kind === 'rc' && !p.buy) || (p.route && p.route.hops.some((hop) => hop.rc && same(hop.out, NATIVE)))) warnings.push('Selling FLASH while you lead King of the Hill forfeits your leader share to the protocol owner.');
   if (p.pool.kind === 'perps' && !p.buy) warnings.push('Selling a perp at a loss mints QUANT to you in the same transaction (80% you, 20% protocol).');
   if (p.pool.kind === 'rc') {
     const referred = await client.readContract({ address: K.referralCoin.registry, abi: A.rcRegistry, functionName: 'isReferred', args: [p.account] }).catch(() => undefined);

@@ -119,8 +119,10 @@ const COMMANDS = {
   'lattice-reformat': C.latticeReformat,
   'lattice-transfer': C.latticeTransfer,
   'launch-list': L.launchList,
+  'launch-shapes': L.launchShapes,
   'launch-info': T.forTimed(T.timedInfo, L.launchInfo),
   'launch-create': L.launchCreate,
+  'launch-direct': L.launchDirect,
   'launch-buy': L.launchBuy,
   'launch-sell': L.launchSell,
   'launch-claim': T.forTimed(T.timedClaim, L.launchClaim),
@@ -142,6 +144,8 @@ const COMMANDS = {
   'treasury-shares': T.treasurySharesSet,
   'war-status': L.warStatus,
   'war-enter': L.warEnter,
+  'war-poke': L.warPoke,
+  'war-airdrop': L.warAirdrop,
   'war-back': L.warBack,
   'war-sell': L.warSell,
   'war-jump': L.warJump,
@@ -163,13 +167,14 @@ QUANT:   quant-status | quant-sweep --pool <id>|--token <launch>
 Limits:  limit-markets | limit-orders | limit-place --market FLASH|QUANT --amount N (--price P | --low P --high P [--bins 16 --shape exp] | --low-mult 1.5 --high-mult 10)
          limit-cancel --market M --level T | limit-claim --market M | fullrange-deposit|withdraw|claim --market M
 Lattice: lattice-list --market M | lattice-show --id N | lattice-withdraw --id N [--amount] | lattice-transfer --id N --to 0x | lattice-reformat --id N --params JSON | lattice-open (creators/treasuries only)
-Launch:  launch-list | launch-info --token | launch-create --name --symbol --pair ETH|FLASH|STOCK|PERP [--quote NVDAc|ETH2xL] [--mode 0|1 --preset 0|1 --reward 0x] --eth N
+Launch:  launch-list | launch-info --token | launch-shapes | launch-create --name --symbol --pair ETH|FLASH|STOCK|PERP [--quote NVDAc|ETH2xL] [--mode deep|medium|degen --preset soft|long-term|fast-burn --reward 0x] --eth N
+         launch-direct --name --symbol --pair .. [--quote] --pay ETH|USDC|FLASH --amount N [--mode --preset --reward]   (Skip graduation: no curve, first buy of at least $10)
          launch-buy --token (--eth N|--flash N) | launch-sell --token [--amount N|all] | launch-claim | launch-refund | launch-creator-claim | launch-graduate | launch-poke | launch-airdrop
 Timed:   timed-list | timed-info --token | timed-create --name --symbol --pair .. [--quote] (--at <unix|ISO> | --in-minutes N) [--pay ETH|FLASH] [--mode --preset --reward]
          timed-enter --token --pay ETH|USDC|FLASH --amount N | timed-launch --token | timed-abort --token | timed-claim --token | timed-refund --token [--account 0x] | timed-airdrop --token [--from --count]
 Earn:    launch-earnings --token [--wallet] (what a launch pays its creator, any launch kind) | treasury-shares --token (--reward-bps N --lp-bps N [--recipient 0x] | --clear)
-Wars:    war-status | war-enter --name --symbol --pair .. [--quote] [--pay ETH|FLASH] | war-back --id N --pay ETH|USDC|FLASH --amount N | war-sell --id N [--units] | war-jump --from A --to B [--units]
-         war-claim [--war N] | war-refund --war N --id N | war-creator-claim [--war N] | war-open | war-finalize
+Wars:    war-status | war-enter --name --symbol --pair .. [--quote] [--mode --preset --reward] [--pay ETH|FLASH] | war-back --id N --pay ETH|USDC|FLASH --amount N | war-sell --id N [--units] | war-jump --from A --to B [--units]
+         war-claim [--war N] | war-refund --war N --id N | war-creator-claim [--war N] | war-open | war-finalize | war-poke [--war N] | war-airdrop [--war N --from N --count N]
 Misc:    wrap-eth --amount N (ETH-pair launches trade against WETH)
 Revenue: revshare-status | revshare-deposit --amount N|all (stake FLASH, earns ETH) | revshare-claim (ETH, keeps the stake) | revshare-withdraw [--amount N|all] (full FLASH stake + ETH out)
          revshare-migrate [--exit-only] [--amount N] (retired vault -> Revenue Share) | treasury --token 0x

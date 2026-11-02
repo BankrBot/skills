@@ -11,7 +11,7 @@ CLI: `node scripts/flash.mjs quote|swap --market <M> --side buy|sell --amount <N
 | Pool | Fee | Notes |
 | --- | --- | --- |
 | FLASH/ETH | 6.9% unreferred, 1.69% referred (`policy.FEE_UNREFERRED_BPS()` = 690, `FEE_REFERRED_BPS()` = 169) | Always taken in ETH. Referred 1.69% = 1% to the referrer + 0.69% to King of the Hill. Unreferred 6.9% = 0.9% KOTH + 4.14% top-100 pool + 1.86% treasury. |
-| FLASH/ETH sells | + impact tax in FLASH (0% at 0% impact, ~0.3% at 1%, ~4.1% at 10%, up to 11% at 20% impact) + a rolling decline tax in ETH | Fee plus taxes are capped at `policy.MAX_TOTAL_BPS()` = 2,500 (25%). Preview with `policy.quoteSellTax(amount, exactIn)`. |
+| FLASH/ETH sells | + impact tax in FLASH (0% at 0% impact, ~0.3% at 1%, ~4.1% at 10%, up to 11% at 20% impact) + a rolling decline tax in ETH | Impact + rolling is at most 11% today (see below); `policy.MAX_TOTAL_BPS()` = 2,500 only bounds fee + ETH taxes. Preview with `policy.quoteSellTax(amount, exactIn)`. |
 | FlashV3 (QUANT, launched tokens) | 1% in the quote token | 90% to the token's creator / treasury, 10% to the protocol (quote fees feed the FLASH buyback). Same impact-tax curve on large sells. |
 | Perps | 0.05% | All of it goes to the fee sink, which feeds the FLASH buyback. |
 
@@ -80,10 +80,36 @@ The app uses 5% (500 bps) on every trade. For exact-in, `minOut = quoted * (1000
 
 ## Graduated launch tokens
 
-- An ETH-pair launch trades against **WETH**, not native ETH. Wrap first (`wrap-eth`, `WETH.deposit()`), then swap with WETH.
+- An ETH-pair launch trades against **WETH**, not native ETH. The CLI wraps first (`wrap-eth`, `WETH.deposit()`), then swaps with WETH; the app and MCP pay native ETH in one transaction (see below).
 - A FLASH-pair (SUB) launch trades against FLASH. Pay with ETH or USDC through a pay route.
 - STOCK and PERP pairs trade against that stock or perp token.
 - Always derive the key from `executorQ.poolKeyForQuote` and check the pool id (see [CONTRACTS.md](CONTRACTS.md)).
+
+## FLASH sell tax in detail
+
+The impact tax is a curve on this sell's own impact: knee 100 bps -> 30 bps, cap 2,000 bps -> 1,100 bps. The rolling tax is a catch-up rate over a 3,600 s window, and an isolated sell after idle pays none. Impact + rolling is at most 11%, so the most a sell pays today is 17.9% unreferred or 12.69% referred. The low-volume tax is off.
+
+`policy.quoteSellTax(amount, exactIn)` -> `(impactBps, impactTaxBps, ethTaxBps)`, computed at the referred fee. Also `policy.impactTaxCurve(bps)` and `policy.rollingState()` -> `(declineBps, sells, rollingBps)`.
+
+Splits: impact tax (FLASH) 31% owner churn, 23% top 100, 23% Revenue Share, 23% KOTH. Rolling tax (ETH) 69% top 100, 31% KOTH.
+
+## Pay routes and native ETH
+
+Any route through FLASH/ETH pays that pool's fee at your tier and triggers its side effects: throne, code issue, in-swap bind. FLASH-funded routes are sells, so they pay sell taxes and forfeit a lead. ETH-pair, STOCK and PERP launches have no routes. The app's default pay asset is your largest holding by USD, and its Max keeps 0.0003 ETH.
+
+WETH pools take native ETH in one transaction. Buy: UR commands `0x0b` WRAP_ETH(`0x..02`, ethIn), `0x10`, plus `0x0c` UNWRAP(`0x..01`, 0) on exact-out; actions `06|08 0b 0f`, SETTLE(WETH, amount|0, false), `value = ethIn`. Sell: `0x10` then `0x0c` UNWRAP(`0x..01`, min); actions `06|08 0c 0e`, TAKE(WETH, `0x..02`, 0). The MCP and the app do this for you; the CLI wraps first.
+
+## Token pools in detail
+
+Kinds: ETH=1 (WETH), SUB=2 (FLASH), STOCK=3, PERP=4, CUSTOM=5. All have a 6,500,000 gas floor and LP fee 0 (`v3Hook.kinds(n)`). Sells also pay a rolling tax in quote, split 90/10. Impact tax (token side): the creator's 90% and protocol's 10% are deposited as 25% full range, 25% at price, 50% at 2x. Read it with `quoteSellTax(poolId, amount, exactIn, tokenIs0)` on the kind's module.
+
+A buy fills at most 48 levels. The buyback triggers at about $5 per asset, in-swap, or via permissionless `run(asset)` `0x522bb704` on `0xFd57cE2838E1CE696d3626A6Ff9ca27B1E8D3264`. Its FLASH splits 10% top 100, 62.1% owner churn, 27.9% Revenue Share.
+
+On a concentrated pool an exact-in past the edge does not revert: it fills to the edge and charges the fee on the full input. The Quoter refuses such a size with `NotEnoughLiquidity`, so bisect for the maximum.
+
+A custom B20 quote must be factory-created, 6-18 decimals, unpaused, transfer policies 0, with `totalSupply == supplyCap`.
+
+MCP trades are exact-in only, with a 1% default slippage (range 0.01-20%); the app and CLI use 5%.
 
 ## Trade-side effects to tell the user
 

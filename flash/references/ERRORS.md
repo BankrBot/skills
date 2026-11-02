@@ -51,3 +51,18 @@ API errors (HTTP JSON `error`) on the token-profile step (`POST /v1/launch-v2/pr
 | `TOKEN_PROFILE_SIGNATURE_INVALID` | 401 | The signature does not match the `x-flash-uploader` wallet and these exact fields. |
 | `TOKEN_PROFILE_SIGNATURE_REPLAYED` | 409 | Nonce reused, or an older signature than the stored profile. Sign again with a new nonce. |
 | `TOKEN_CONTENT_REJECTED` | 422 | Name, ticker or description failed moderation. |
+
+## More reverts by area
+
+| Area | Errors |
+| --- | --- |
+| Launch | `InvalidIdentity` (name or ticker), `InvalidQuote`, `InvalidPayment`, `FirstBuyTooSmall`, `FeeShort`, `BelowMinTokens`, `NoFirstBuy`, `InvalidLaunchTime`, `WrongStatus`, `UnknownLaunch`, `NothingToDo`, `QuoteSlippage`, `PartialFill` |
+| War | `TooVolatile`, `SameCandidate`, `AlreadyClaimed`, `BatchTooLarge`, `UnsupportedInput` (router takes only USDC or FLASH), `InsufficientForFee` |
+| Treasury | `NotController`, `ShareTooHigh`, `NotExecutor`, `Locked`, `InvalidMode`, `FeeUnpaid`, `FeeUnpayable`, `LingeringAllowance`, `ChurnCallNotAllowed`, `ChurnReceiverNotTreasury` |
+| LP vault | `NotAuthorized`, `NotHeld` |
+| Referrals, KOTH | `NotEOA` (a contract called `bind`: use `bindWithSig`), `NotAuthorized`, `KothGas` |
+| Limit orders | `BelowMinDeposit`, `BatchTooLarge`, `TickOutOfRange`, `LevelsNotConfigured`, `CombinedCapExceeded`, `FullRangeCapExceeded` |
+| Perps | `CurveExhausted` (exact-out above the backstop), `FillOutOfGas` (re-estimate), `ExternalLiquidity`, `InvalidParam`, `UnknownMarket` |
+| TP/SL fills | `BelowGuarantee(proceeds, guaranteed)`, `BelowFloor(userOut, minOut)`, `TriggerNotMet`, `OracleDown`, `Expired`, `PartialFill`, `PoolNotBound`, `NotKeeper` |
+| Upload API | `IMAGE_REQUIRED` 400, `IMAGE_TOO_LARGE` 413, `INVALID_IMAGE` / `UNSUPPORTED_IMAGE` 415, `IMAGE_REJECTED_BY_MODERATION` 422, `MODERATION_RATE_LIMITED` 429 |
+| Prepare API | `TOKEN_IDENTITY_RESERVED`, `INVALID_TWITTER_URL`, `INVALID_WEBSITE_URL` |
