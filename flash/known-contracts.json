@@ -1,7 +1,7 @@
 {
   "chainId": 8453,
   "chain": "base",
-  "source": "Flash_Protocol/ecosystem/deployments/base-mainnet.json and app/src/stackContracts.ts, lv5.ts, contracts.ts, perpV5Migrator.ts (stack live 2026-10-22, Token Wars V6 live 2026-10-23, perps TP/SL + lens + treasury shares live 2026-10-24, Revenue Share V3 live 2026-10-25)",
+  "source": "Flash_Protocol/ecosystem/deployments/base-mainnet.json and app/src/stackContracts.ts, lv5.ts, contracts.ts, perpV5Migrator.ts (stack live 2026-10-22, Token Wars V6 live 2026-10-23, perps TP/SL + lens + treasury shares live 2026-10-24, Revenue Share V3 live 2026-10-25; D-PROD-7 hook redeploy: app/src/stackManifest.generated.ts)",
   "owner": {
     "safe": "0x29C1BF0c85a9a479c1B47B847cd3Fb1C6dC5e5bD",
     "treasury": "0xD1EC8245c8850A151843ce8a3AFdca3b19747706"
@@ -11,7 +11,7 @@
     "WETH": { "address": "0x4200000000000000000000000000000000000006", "decimals": 18 },
     "USDC": { "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "decimals": 6 },
     "FLASH": { "address": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "decimals": 18, "totalSupply": "69420" },
-    "QUANT": { "address": "0xb2000000000000000000006a9881C01617b77B08", "decimals": 18 }
+    "QUANT": { "address": "0xB2000000000000000000008a865BAD54481CD395", "decimals": 18 }
   },
   "uniswap": {
     "poolManager": "0x498581fF718922c3f8e6A244956aF099B2652b2b",
@@ -21,7 +21,7 @@
     "multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11"
   },
   "referralCoin": {
-    "hook": "0x57b18C5f0e028aB86a0888d578dE23e65F072ACC",
+    "hook": "0x77424a443429Be042afd9D88421945eFA38E6acC",
     "policy": "0xc89e82f32832f995F992202ce78EA6F02ac2e1e4",
     "registry": "0x20E37314A4D52Ba1FB55a675a834665Cf2515857",
     "koth": "0x2556ffbAb00D1993aD1BDA44fb6c0dc15fde7457",
@@ -29,34 +29,43 @@
     "sigValidator": "0x1C5263A8C32d5AFe55b379c1DfaC889b648172B3"
   },
   "flashV3": {
-    "hook": "0xf4b67452C04017c706BEC809f39209f770Ef28Cc",
+    "hook": "0x6aeABB2029DCc4758c168A0651Dc4F49aD9928CC",
     "registry": "0xCbddfe729982fadc5ff27e94db7fB4D76785377e",
     "ledger": "0xB6267C0bFcbBEE354723f9f97b255Da287729A07",
     "launcher": "0x347cC3B729116B5bf7d55501F7F5D6dAf4Ce5c5f",
-    "perpRouter": "0x4d1BD5F54432FEcBC1fCfE42746921d80680e2f1",
+    "perpRouter": "0xd3c45B855BB71cfFF9F77732a6f1C1e3feF1f80e",
     "buyback": "0xFd57cE2838E1CE696d3626A6Ff9ca27B1E8D3264"
   },
   "perps": {
-    "hook": "0x2f4a713980425DF85b2B756C7484565A9b8778C8",
-    "issuer": "0x56a3e32134521Cefe75a2B8dB25D29a45E331BdD",
-    "feeSink": "0x88CcF70524822c0Eb2A7e4824A6a9e57410aF76D",
-    "quantOwnerSink": "0xebb672403005A20Ef914b13487505E08Aa05F760",
-    "migrator": "0x87c9784070C4E134F7dE7627dA0038CA9f0473D6",
-    "limitOrders": "0xf5d94BE034944C8706a12B6B4d4dE0dbEbc10824",
-    "lens": "0x7D06a5C37fd91B85D6dC2f212467f1803895d0C2"
+    "hook": "0xc4dF67D58fb02Ecc2499FDAcC4D1d71fEa4FB8C8",
+    "issuer": "0x1BBd2F85191d2D94fA51bc26e5AB70c2eB7c5941",
+    "feeSink": "0x0b95dcF3B69644Ab108E7f17bC703616f7da06D9",
+    "quantOwnerSink": "0x1296988A7807866842D1aeeFdbbA8A4E0bD9e9Df",
+    "migrator": "0x297D61F5F231bb2E512f11f332Ea6B9E2709b9D3",
+    "limitOrders": "0x6b9337131739D7C368dFFc08E6b2f4D007961f06",
+    "lens": "0xCdF61E2DF06d19cbc95889Bcf454C8BCEBD916cB",
+    "retired": {
+      "note": "The previous perps generation (D-PROD-7 replaced it). Its markets are exitOnly below; its QUANT is abandoned (no migration).",
+      "hook": "0x2f4a713980425DF85b2B756C7484565A9b8778C8",
+      "issuer": "0x56a3e32134521Cefe75a2B8dB25D29a45E331BdD",
+      "quant": "0xb2000000000000000000006a9881C01617b77B08"
+    }
   },
   "churn": {
     "core": "0x35F1b89f4FEb2897CC1a6efF381d518D05824008",
     "registry": "0x2EF26c31bC5160A748d066DBa1e26ab14E85D2ac",
     "markets": {
       "FLASH/ETH": "0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b",
-      "QUANT/FLASH": "0xe4f1a55cd9ae77c991cb80e5d1ddb27e36e6371a8717feca8d0998724fc58292"
+      "QUANT/FLASH": "0xda2edfc201813ec11a6b8e6271dae076e5ec3a3e7d244bdffe1e62638f65b65a"
     }
   },
   "launchV5": {
     "launchpad": "0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0",
     "routerQ": "0x2e6640bca34BC34f3F4EF31cb19527EA80987911",
-    "executorQ": "0x0C155b5FfBaa04f753d7D287D6bc4fBE0BcAf625",
+    "direct": "0x63AeDafc52368A97db0B452D527FE963F18BC47e",
+    "timed": "0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67",
+    "executorT": "0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2",
+    "executorQ": "0xF643E3ecc9966f02A270D487635D19EB2722479e",
     "executor": "0xEcaF4080bEe402263C1eA5628bf2530437573bC9",
     "config": "0x64B866F63053680F14Da2f98a67C7b2BdFf960e6",
     "shapes": "0x79644eC342881E40efab1401eb5ceF265F93aE7D",
@@ -69,7 +78,7 @@
   "treasuryV3": {
     "factory": "0x128fab9a1f356868feb355858cc7CbdA7F296b91",
     "config": "0xc7151Ee6458f3AAdD1B32aF05Be690c7d3669754",
-    "quantTreasury": "0x6A7faA6B8F0C7f66dFCa2Bb5dd1BCa0915bc55E5",
+    "quantTreasury": "0x669Ef174655d011aE80f66aFeF97b6C8Cec3B568",
     "shares": "0x98C29eC362A4e76975002778Bb2E91B99e4A288F"
   },
   "revenueShare": {
@@ -86,14 +95,14 @@
   },
   "pools": {
     "FLASH/ETH": {
-      "id": "0x8da9f93b7b96efd2091b9e2cc8cddf921d0237635adc5f046956576714a2824c",
-      "key": { "currency0": "0x0000000000000000000000000000000000000000", "currency1": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "fee": 8388608, "tickSpacing": 60, "hooks": "0x57b18C5f0e028aB86a0888d578dE23e65F072ACC" },
+      "id": "0x170ca02dfd2fe3aff821378f163b47082db366340dbe655dc999fe78b41e33d9",
+      "key": { "currency0": "0x0000000000000000000000000000000000000000", "currency1": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "fee": 8388608, "tickSpacing": 60, "hooks": "0x77424a443429Be042afd9D88421945eFA38E6acC" },
       "token": "FLASH", "quote": "ETH", "gasFloorTx": 3200000, "bindExtraGas": 88000
     },
     "QUANT/FLASH": {
-      "id": "0x91fe9428ae1ed2938acef94d466f7f40603cdfb47cdb33cf6639fb4c6dffba8c",
-      "key": { "currency0": "0xb2000000000000000000006a9881C01617b77B08", "currency1": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "fee": 8388608, "tickSpacing": 200, "hooks": "0xf4b67452C04017c706BEC809f39209f770Ef28Cc" },
-      "token": "QUANT", "quote": "FLASH", "gasFloorTx": 6975725
+      "id": "0xda58d5f7017459cb8e3825fbfeec1229d6b7487fa26b8a58216c6ed0fbf619b6",
+      "key": { "currency0": "0xB2000000000000000000008a865BAD54481CD395", "currency1": "0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84", "fee": 8388608, "tickSpacing": 200, "hooks": "0x6aeABB2029DCc4758c168A0651Dc4F49aD9928CC" },
+      "token": "QUANT", "quote": "FLASH", "gasFloorTx": 7039000
     },
     "ETH/USDC hookless (pay-route leg)": [
       { "currency0": "0x0000000000000000000000000000000000000000", "currency1": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "fee": 3000, "tickSpacing": 60, "hooks": "0x0000000000000000000000000000000000000000" },
@@ -101,31 +110,50 @@
     ]
   },
   "perpMarkets": {
-    "note": "Pool key: currency0 USDC, currency1 the perp token, fee 8388608, tickSpacing 1, hooks perps.hook. gasTx = measured tx gas limit (call figure + 50k for ids >= 6). Trade only status live (ids 6-11, 16-24). Ids 0-5 are exit-only; 12-15 were never seeded.",
+    "note": "Pool key: USDC and the perp token (lower address = currency0), fee 8388608, tickSpacing 1, hooks perps.hook (exitOnly: perps.retired.hook). gasTx = measured tx gas limit (call figure + 50k). Trade only status live (ids 0-14). exitOnly = the retired generation (ids 0-24 on perps.retired.issuer): holders exit with perp-unwind or move into `successor` with perps.migrator.",
     "live": [
-      { "id": 6, "symbol": "ETH2xL", "token": "0xB2000000000000000000009644514B1eAC20d754", "vault": "0xe1A0503cd4Fb9fAcfD6615CE7145C5481a47331B", "poolId": "0xd32c5c8820daffedcd738efc1390364caa6271267c1f210c9bfb15a0a3714740", "gasFloor": 5250000, "gasTx": 5687346 },
-      { "id": 7, "symbol": "BTC2xL", "token": "0xB200000000000000000000BfDAb3110AA73808B1", "vault": "0xf7909dc3eE0828873517CaD53dE6fB6b0a5BA410", "poolId": "0x48fae8038953262a8f2fcbc689b2ff1c420519e46f596cb2c33570fc09e67d86", "gasFloor": 8700000, "gasTx": 9361528 },
-      { "id": 8, "symbol": "ETHMAXL", "token": "0xB200000000000000000000481F439A9be136f219", "vault": "0xCFB2A31e26ae20001f84871d406af138Dc925EAb", "poolId": "0xad8e84241670d7177f1e5a304087f25e0ceee837c1caa3aba3313d3adc4856f1", "gasFloor": 5150000, "gasTx": 5581152 },
-      { "id": 9, "symbol": "XRP2xL", "token": "0xB2000000000000000000005645a1D8b9AFcC8248", "vault": "0xB31d75E4FEe5A10D4876dd4f8DCda743b4526E31", "poolId": "0x4df1107e0fdfed1d6462a8bf2567a743991efc54eb0a17f77affda77b9e801b6", "gasFloor": 7450000, "gasTx": 8030328 },
-      { "id": 10, "symbol": "NVDA2xL", "token": "0xb200000000000000000000563d2cA1451d746f9F", "vault": "0xe93F7CAD02B70B404227244B56ec9cCeb24fAF14", "poolId": "0xc5ff9e9bb8750d3c1ea6df1a5abedc676fa0a1d1c7e2b410c051bbe3e70538ba", "gasFloor": 6400000, "gasTx": 6912352 },
-      { "id": 11, "symbol": "ETH2xS", "token": "0xB200000000000000000000f4091be2E8DB3a1896", "vault": "0xBa381736f972961b6e07dBB31bb3929093b2bEce", "poolId": "0x9e015d71030c197527a58608da0eaa085581ae14bb2e7de619e1593666fae88c", "gasFloor": 6500000, "gasTx": 7018546, "side": "short" },
-      { "id": 16, "symbol": "HYPE2xL", "token": "0xB200000000000000000000801E479e58E1a90D01", "vault": "0xeC3d2Ec284128b1648Ac79A965ed066B8DB55FF6", "poolId": "0x29309d0a7a13819cc26748ca3639d40e68081c7507ec53925009cd1b3432b721", "gasFloor": 4700000, "gasTx": 5101183 },
-      { "id": 17, "symbol": "SOL2xL", "token": "0xB200000000000000000000130f5fb5d65ccF99fd", "vault": "0xf5c9E66125eF8A564C64F5C55459a1320B568F5B", "poolId": "0x67fa8e0ab2679c79eeb89f6940ce30894459c7b5332e2df20ac1a506b3874be3", "gasFloor": 7950000, "gasTx": 8562975 },
-      { "id": 18, "symbol": "ZEC2xL", "token": "0xb200000000000000000000263519E3A799902bC5", "vault": "0xfa11b6892003d23E5617306A7545EbEc0a92E4D4", "poolId": "0x17e2fc66a768fecc3a40eabe092c4f661e0c67cca63511281d9727e849085ec7", "gasFloor": 4250000, "gasTx": 4622051 },
-      { "id": 19, "symbol": "AERO2xL", "token": "0xb200000000000000000000C26EDebFDF721e65aD", "vault": "0xE90a27d4B119fBC4172b535d7DDFA750FDB6dB57", "poolId": "0x34472ee38b2ea40dce9a95314abf5a1e7794e87b7e751c77d677839fee28e8d9", "gasFloor": 9500000, "gasTx": 10213597 },
-      { "id": 20, "symbol": "DOGE2xL", "token": "0xb200000000000000000000AdA095D32710fe96C1", "vault": "0xE67Bc5816E063A5aa5E5ee34A2B05Fba4bDCd809", "poolId": "0xf622e7b4efc235194f4131422d8f31829346dd8e9dcb9676384cd8a443d2bda8", "gasFloor": 5600000, "gasTx": 6060283 },
-      { "id": 21, "symbol": "META2xL", "token": "0xB200000000000000000000B1c6b3E5FA1852f63a", "vault": "0xc10463aFd62dc2E1dDe30be1e9B1465ac63fB690", "poolId": "0x6cf88bf5eb244a8546b17b150068ed1cccf359e382da598d9976b62965b2abea", "gasFloor": 6200000, "gasTx": 6699126 },
-      { "id": 22, "symbol": "AAPL2xL", "token": "0xB20000000000000000000051Ae96aa4abc47dE20", "vault": "0xBC7F2e7ce0d077A0ED40e238226C0d9fcC2FBd46", "poolId": "0xad67e819cd1afb730340d99f11dfadc9e6d1fc54caacd9e47fdf8963d2229018", "gasFloor": 4600000, "gasTx": 4994988 },
-      { "id": 23, "symbol": "GOOGL2xL", "token": "0xb20000000000000000000020162d13881075382e", "vault": "0xFa52d07D0C4feFb6d11F53A85d6D3F65fA07C748", "poolId": "0xaa2409e6f2f84adde5e489d8081fc8296d3b469692321665fb9ae968738b906e", "gasFloor": 6400000, "gasTx": 6912352 },
-      { "id": 24, "symbol": "SPCX2xL", "token": "0xb200000000000000000000046e16550458738e91", "vault": "0xF8c2886c7d882f703FCb77FCD3608B434442Cbe1", "poolId": "0xcd7f12c7115661c319b609c5411323069c7e3a08ddc594e38398e3e7a6ce37b2", "gasFloor": 4800000, "gasTx": 5208214 }
+      { "id": 0, "symbol": "ETH2xL", "token": "0xB20000000000000000000045645B86D331D437d6", "vault": "0xe1A0503cd4Fb9fAcfD6615CE7145C5481a47331B", "poolId": "0xc728602ddd657a32f49552fd2fc5677c43323503eecd49848cc7ca7f9c3f1e5e", "gasFloor": 5250000, "gasTx": 5687346 },
+      { "id": 1, "symbol": "BTC2xL", "token": "0xB2000000000000000000005a7B792e9ba8E4E2A7", "vault": "0xf7909dc3eE0828873517CaD53dE6fB6b0a5BA410", "poolId": "0x07fec85dd7b933793736f7d9d556bb8a91924370e583336ef1ca76c11a3dca4d", "gasFloor": 8700000, "gasTx": 9370000 },
+      { "id": 2, "symbol": "ETHMAXL", "token": "0xb20000000000000000000055b2BAA2A007561f28", "vault": "0xCFB2A31e26ae20001f84871d406af138Dc925EAb", "poolId": "0x864aebb0f51a31dcc7cd272f02926661a736e1eca17ff88c28c5820b73bfe8c2", "gasFloor": 5150000, "gasTx": 5581152 },
+      { "id": 3, "symbol": "XRP2xL", "token": "0xb20000000000000000000051fB852b1e49874EAB", "vault": "0xB31d75E4FEe5A10D4876dd4f8DCda743b4526E31", "poolId": "0x41985b76231e04e4ad7287c27ef91de0279edf90ccade8b54c2ec3e793881ba8", "gasFloor": 7450000, "gasTx": 8030328 },
+      { "id": 4, "symbol": "NVDA2xL", "token": "0xB2000000000000000000003Ef9c53D3d360fBC35", "vault": "0xe93F7CAD02B70B404227244B56ec9cCeb24fAF14", "poolId": "0xf7c1c5ca3a3029d05237f2442277d2a95e37ebed9fed23e736928a886da27066", "gasFloor": 6400000, "gasTx": 6912352 },
+      { "id": 5, "symbol": "ETH2xS", "token": "0xb20000000000000000000067D3a1F52414FbA767", "vault": "0xBa381736f972961b6e07dBB31bb3929093b2bEce", "poolId": "0x2b71f2301930fee90b33c3870f53fde2669ea3c5890bc43eace4ac8163e0290c", "gasFloor": 6500000, "gasTx": 7031000, "side": "short" },
+      { "id": 6, "symbol": "HYPE2xL", "token": "0xb200000000000000000000a2017cDBe6C67943f2", "vault": "0xeC3d2Ec284128b1648Ac79A965ed066B8DB55FF6", "poolId": "0xf03fae0b6186127a75a0199ec2206fc484d87d771249eaaa3273feb8eeaa1201", "gasFloor": 4700000, "gasTx": 5101183 },
+      { "id": 7, "symbol": "SOL2xL", "token": "0xB200000000000000000000D96958F9f5261C833E", "vault": "0xf5c9E66125eF8A564C64F5C55459a1320B568F5B", "poolId": "0x4779a46f329dd648a988231b61269699846216fdba6774ba3fee116ef917dff2", "gasFloor": 7950000, "gasTx": 8562975 },
+      { "id": 8, "symbol": "ZEC2xL", "token": "0xB20000000000000000000058330Df506882E5414", "vault": "0xfa11b6892003d23E5617306A7545EbEc0a92E4D4", "poolId": "0xf8afa4f573d77256858a9c2a235788ac3c7ac43f59a8085c170e9e658d7328cc", "gasFloor": 4250000, "gasTx": 4626000 },
+      { "id": 9, "symbol": "AERO2xL", "token": "0xb200000000000000000000c9b1245A5dfA2B0330", "vault": "0xE90a27d4B119fBC4172b535d7DDFA750FDB6dB57", "poolId": "0x25e1b3e5cbbefe400bfe8734af3649e01c625ab21684a438c398f0fd03dad181", "gasFloor": 9500000, "gasTx": 10280000 },
+      { "id": 10, "symbol": "DOGE2xL", "token": "0xb200000000000000000000EC9F09Aac2EF156A30", "vault": "0xE67Bc5816E063A5aa5E5ee34A2B05Fba4bDCd809", "poolId": "0x73392a539251c1e078bcb39496e4396e872c45b6f3eee110275b62d043567901", "gasFloor": 5600000, "gasTx": 6060283 },
+      { "id": 11, "symbol": "META2xL", "token": "0xB200000000000000000000424C01815023337579", "vault": "0xc10463aFd62dc2E1dDe30be1e9B1465ac63fB690", "poolId": "0x01bac7813803bb976b0331b4194354e14e77052b6c9bc97911de37373559796a", "gasFloor": 6200000, "gasTx": 6706000 },
+      { "id": 12, "symbol": "AAPL2xL", "token": "0xB2000000000000000000000F0e67e61cB92DfcD7", "vault": "0xBC7F2e7ce0d077A0ED40e238226C0d9fcC2FBd46", "poolId": "0xb975aebd20666080c6e4744adb5afc2d338b0a85e8c4c57b461ee25b068e7003", "gasFloor": 4600000, "gasTx": 4994988 },
+      { "id": 13, "symbol": "GOOGL2xL", "token": "0xB2000000000000000000009d4d399289638fc54A", "vault": "0xFa52d07D0C4feFb6d11F53A85d6D3F65fA07C748", "poolId": "0xc5cedee5a52a50e7d98bae592390ac552f4f63bb778c73d68587e1a2b975f884", "gasFloor": 6400000, "gasTx": 6912352 },
+      { "id": 14, "symbol": "SPCX2xL", "token": "0xb2000000000000000000006141c3C67B314CBFc4", "vault": "0xF8c2886c7d882f703FCb77FCD3608B434442Cbe1", "poolId": "0xf0f44ea451f2f5a310d42b9345a1b3cb4a73d6e1d6338bbaea5a83ea44377e58", "gasFloor": 4800000, "gasTx": 5211000 }
     ],
     "exitOnly": [
-      { "id": 0, "symbol": "ETH2x", "token": "0xB20000000000000000000020a813f90628801EF6", "poolId": "0x4369f279f480dcbc26a792f32daa61a6a9378188ac0f2c79a7a87e3fa84b02f2", "gasTx": 5585951, "exit": "sell on its pool" },
-      { "id": 1, "symbol": "BTC2x", "token": "0xB2000000000000000000008207a8DB1C28D7bC12", "poolId": "0x1cfdf1958b279fc775f69a3a0730e35edc4c1501ab8adf002a9e9d405049e9d6", "gasTx": 9313474, "exit": "issuer.unwind" },
-      { "id": 2, "symbol": "ETHMAX", "token": "0xB2000000000000000000004b58F1E1D5948Cc0d9", "poolId": "0x67f05cd5ab11de5acf252c4483b4a63b8e52e0913b52de63cd5bb7fa43c978c5", "gasTx": 5533286, "exit": "issuer.unwind" },
-      { "id": 3, "symbol": "XRP2x", "token": "0xb2000000000000000000008143e22c048c7660DD", "poolId": "0x89f272497aa36b67871b0be5967c7a1ad28d4fe9b1894ac4462cc0cb423be5b3", "gasTx": 7982216, "exit": "issuer.unwind" },
-      { "id": 4, "symbol": "NVDA2x", "token": "0xb200000000000000000000c1e2B5F65f62543985", "poolId": "0xcfd0e15a8ead3fa51408be81c676e55da87960516e4a39bab4141d2bd6e1a1f0", "gasTx": 5000782, "exit": "issuer.unwind" },
-      { "id": 5, "symbol": "ETH2xS (v1)", "token": "0xB200000000000000000000A2Ed0aF8aB81eC0f51", "poolId": "0x1b9cf1e2fd46e414875aa1b058118e3563b3522b7ec5d555f3829ec398919560", "gasTx": 6970849, "exit": "issuer.unwind" }
+      { "id": 0, "symbol": "ETH2x", "token": "0xB20000000000000000000020a813f90628801EF6", "poolId": "0x4369f279f480dcbc26a792f32daa61a6a9378188ac0f2c79a7a87e3fa84b02f2", "successor": 0, "exit": "issuer.unwind" },
+      { "id": 1, "symbol": "BTC2x", "token": "0xB2000000000000000000008207a8DB1C28D7bC12", "poolId": "0x1cfdf1958b279fc775f69a3a0730e35edc4c1501ab8adf002a9e9d405049e9d6", "successor": 1, "exit": "issuer.unwind" },
+      { "id": 2, "symbol": "ETHMAX", "token": "0xB2000000000000000000004b58F1E1D5948Cc0d9", "poolId": "0x67f05cd5ab11de5acf252c4483b4a63b8e52e0913b52de63cd5bb7fa43c978c5", "successor": 2, "exit": "issuer.unwind" },
+      { "id": 3, "symbol": "XRP2x", "token": "0xb2000000000000000000008143e22c048c7660DD", "poolId": "0x89f272497aa36b67871b0be5967c7a1ad28d4fe9b1894ac4462cc0cb423be5b3", "successor": 3, "exit": "issuer.unwind" },
+      { "id": 4, "symbol": "NVDA2x", "token": "0xb200000000000000000000c1e2B5F65f62543985", "poolId": "0xcfd0e15a8ead3fa51408be81c676e55da87960516e4a39bab4141d2bd6e1a1f0", "successor": 4, "exit": "issuer.unwind" },
+      { "id": 5, "symbol": "ETH2xS", "token": "0xB200000000000000000000A2Ed0aF8aB81eC0f51", "poolId": "0x1b9cf1e2fd46e414875aa1b058118e3563b3522b7ec5d555f3829ec398919560", "successor": 5, "exit": "issuer.unwind" },
+      { "id": 6, "symbol": "ETH2xL", "token": "0xB2000000000000000000009644514B1eAC20d754", "poolId": "0xd32c5c8820daffedcd738efc1390364caa6271267c1f210c9bfb15a0a3714740", "successor": 0, "exit": "issuer.unwind" },
+      { "id": 7, "symbol": "BTC2xL", "token": "0xB200000000000000000000BfDAb3110AA73808B1", "poolId": "0x48fae8038953262a8f2fcbc689b2ff1c420519e46f596cb2c33570fc09e67d86", "successor": 1, "exit": "issuer.unwind" },
+      { "id": 8, "symbol": "ETHMAXL", "token": "0xB200000000000000000000481F439A9be136f219", "poolId": "0xad8e84241670d7177f1e5a304087f25e0ceee837c1caa3aba3313d3adc4856f1", "successor": 2, "exit": "issuer.unwind" },
+      { "id": 9, "symbol": "XRP2xL", "token": "0xB2000000000000000000005645a1D8b9AFcC8248", "poolId": "0x4df1107e0fdfed1d6462a8bf2567a743991efc54eb0a17f77affda77b9e801b6", "successor": 3, "exit": "issuer.unwind" },
+      { "id": 10, "symbol": "NVDA2xL", "token": "0xb200000000000000000000563d2cA1451d746f9F", "poolId": "0xc5ff9e9bb8750d3c1ea6df1a5abedc676fa0a1d1c7e2b410c051bbe3e70538ba", "successor": 4, "exit": "issuer.unwind" },
+      { "id": 11, "symbol": "ETH2xS", "token": "0xB200000000000000000000f4091be2E8DB3a1896", "poolId": "0x9e015d71030c197527a58608da0eaa085581ae14bb2e7de619e1593666fae88c", "successor": 5, "exit": "issuer.unwind" },
+      { "id": 12, "symbol": "META2xL", "token": "0xb200000000000000000000973d8c2B1533fa44F6", "poolId": "0xd478c6e178196da6b4f91c7f97c252bafdac552d9c25897305ad244e76eb86ba", "successor": 11, "exit": "issuer.unwind" },
+      { "id": 13, "symbol": "AAPL2xL", "token": "0xb200000000000000000000cA5Ab1Bf0d611B2c64", "poolId": "0x736cc8ad03c20fdc9bef41d10d08495ecb392102f3b93c0c7196ca2f840ab3d2", "successor": 12, "exit": "issuer.unwind" },
+      { "id": 14, "symbol": "GOOGL2xL", "token": "0xb2000000000000000000006c5A21ACB79635af68", "poolId": "0x5cbcaf84b0c42c576c68b09067542f14c98f61711a960ffbdf93a112011f1a33", "successor": 13, "exit": "issuer.unwind" },
+      { "id": 15, "symbol": "SPCX2xL", "token": "0xb200000000000000000000EE63863e313262659c", "poolId": "0xdf3245cc216789ac0fa2b27cef5a1fda00d7e3e3ed540ece76ad16775adbf4a3", "successor": 14, "exit": "issuer.unwind" },
+      { "id": 16, "symbol": "HYPE2xL", "token": "0xB200000000000000000000801E479e58E1a90D01", "poolId": "0x29309d0a7a13819cc26748ca3639d40e68081c7507ec53925009cd1b3432b721", "successor": 6, "exit": "issuer.unwind" },
+      { "id": 17, "symbol": "SOL2xL", "token": "0xB200000000000000000000130f5fb5d65ccF99fd", "poolId": "0x67fa8e0ab2679c79eeb89f6940ce30894459c7b5332e2df20ac1a506b3874be3", "successor": 7, "exit": "issuer.unwind" },
+      { "id": 18, "symbol": "ZEC2xL", "token": "0xb200000000000000000000263519E3A799902bC5", "poolId": "0x17e2fc66a768fecc3a40eabe092c4f661e0c67cca63511281d9727e849085ec7", "successor": 8, "exit": "issuer.unwind" },
+      { "id": 19, "symbol": "AERO2xL", "token": "0xb200000000000000000000C26EDebFDF721e65aD", "poolId": "0x34472ee38b2ea40dce9a95314abf5a1e7794e87b7e751c77d677839fee28e8d9", "successor": 9, "exit": "issuer.unwind" },
+      { "id": 20, "symbol": "DOGE2xL", "token": "0xb200000000000000000000AdA095D32710fe96C1", "poolId": "0xf622e7b4efc235194f4131422d8f31829346dd8e9dcb9676384cd8a443d2bda8", "successor": 10, "exit": "issuer.unwind" },
+      { "id": 21, "symbol": "META2xL", "token": "0xB200000000000000000000B1c6b3E5FA1852f63a", "poolId": "0x6cf88bf5eb244a8546b17b150068ed1cccf359e382da598d9976b62965b2abea", "successor": 11, "exit": "issuer.unwind" },
+      { "id": 22, "symbol": "AAPL2xL", "token": "0xB20000000000000000000051Ae96aa4abc47dE20", "poolId": "0xad67e819cd1afb730340d99f11dfadc9e6d1fc54caacd9e47fdf8963d2229018", "successor": 12, "exit": "issuer.unwind" },
+      { "id": 23, "symbol": "GOOGL2xL", "token": "0xb20000000000000000000020162d13881075382e", "poolId": "0xaa2409e6f2f84adde5e489d8081fc8296d3b469692321665fb9ae968738b906e", "successor": 13, "exit": "issuer.unwind" },
+      { "id": 24, "symbol": "SPCX2xL", "token": "0xb200000000000000000000046e16550458738e91", "poolId": "0xcd7f12c7115661c319b609c5411323069c7e3a08ddc594e38398e3e7a6ce37b2", "successor": 14, "exit": "issuer.unwind" }
     ]
   },
   "stocks": {

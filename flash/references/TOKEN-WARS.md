@@ -50,7 +50,7 @@ API: `GET /v1/stack/wars`, `GET /v1/stack/wars/:warId`.
 
 Rules and gotchas:
 - **One entry per wallet per war** (`AlreadyEntered()`).
-- STOCK and PERP candidates must use reward 0 (= their quote). The quote rules match [LAUNCHES.md](LAUNCHES.md): live perps 6-11 and 16-24, stocks with a route.
+- STOCK and PERP candidates must use reward 0 (= their quote). The quote rules match [LAUNCHES.md](LAUNCHES.md): live perps 0-14, stocks with a route.
 - The war's FLASH backing graduates through the FLASH/ETH pool. ETH, STOCK and PERP winners wait for ETH depth there.
 - `minFlashOut` for an ETH or USDC back = simulate the router call with zero minimums from the user's wallet, then subtract slippage. The CLI does this with `eth_simulateV1`.
 - Gas is not constant (enter ~2M, ETH back ~1.9M, FLASH back ~1.0M, a locking buy far more). Use `eth_estimateGas`.

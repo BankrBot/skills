@@ -11,17 +11,17 @@ import { quoteSingle } from './trade.mjs';
 
 const L = K.launchV5;
 const PAIRS = { ETH: 0, FLASH: 1, SUB: 1, STOCK: 2, PERP: 3 };
-const PAIR_NAMES = ['ETH', 'FLASH', 'STOCK', 'PERP'];
-const CURVE_PHASES = ['PENDING', 'TRADING', 'READY', 'GRADUATED', 'ABORTED'];
+export const PAIR_NAMES = ['ETH', 'FLASH', 'STOCK', 'PERP'];
+export const CURVE_PHASES = ['PENDING', 'TRADING', 'READY', 'GRADUATED', 'ABORTED'];
 const WAR_PHASES = ['IDLE', 'TRADING', 'READY', 'LAUNCHED', 'ABORTED'];
 const read = (address, abi, functionName, args = []) => client.readContract({ address, abi, functionName, args });
-const wallet = (options) => {
+export const wallet = (options) => {
   if (!options.wallet) throw new Error('--wallet is required');
   return getAddress(options.wallet);
 };
-const slip = (options) => Number(options['slippage-bps'] ?? DEFAULT_SLIPPAGE_BPS);
+export const slip = (options) => Number(options['slippage-bps'] ?? DEFAULT_SLIPPAGE_BPS);
 
-async function finish(account, action, summary, transactions, warnings = [], notes = []) {
+export async function finish(account, action, summary, transactions, warnings = [], notes = []) {
   const simulation = await simulate(account, transactions);
   const last = transactions[transactions.length - 1];
   if (transactions.length === 1 && simulation.ok) {
@@ -32,12 +32,12 @@ async function finish(account, action, summary, transactions, warnings = [], not
 }
 
 /** FLASH the ETH leg delivers at least: an unattributed RC quote (6.9% fee) minus slippage; the router's vault is referred, so it gets more. */
-async function minFlashForEth(ethIn, bps) {
+export async function minFlashForEth(ethIn, bps) {
   const flash = await quoteSingle(RC_POOL, true, 'exactIn', ethIn);
   return { flash, minFlash: slippageLimit('exactIn', flash, bps) };
 }
 
-function validateName(options) {
+export function validateName(options) {
   const name = String(options.name || '').trim();
   const symbol = String(options.symbol || '').trim();
   if (!name) throw new Error('--name is required');
@@ -46,7 +46,7 @@ function validateName(options) {
 }
 
 /** --pair ETH|FLASH|STOCK|PERP and, for STOCK / PERP, --quote <symbol|address>. */
-async function resolvePair(options) {
+export async function resolvePair(options) {
   const pairName = String(options.pair || 'ETH').toUpperCase();
   const pair = PAIRS[pairName];
   if (pair === undefined) throw new Error('--pair must be ETH, FLASH, STOCK or PERP');
@@ -65,7 +65,7 @@ async function resolvePair(options) {
   return { pair, quote: perp.token, quoteSymbol: perp.symbol };
 }
 
-function shapeOf(options, pair, quote) {
+export function shapeOf(options, pair, quote) {
   const mode = Number(options.mode ?? 0);
   const preset = Number(options.preset ?? 0);
   let reward = options.reward ? getAddress(options.reward) : zeroAddress;
@@ -86,7 +86,7 @@ async function launchRecord(tokenText) {
   if (!tokenText) throw new Error('--token is required');
   const token = getAddress(tokenText);
   const record = await read(L.launchpad, A.launchpad, 'launchOf', [token]);
-  if (record.curve === zeroAddress) throw new Error(`${token} is not a launch-v5 launch`);
+  if (record.curve === zeroAddress) throw new Error(`${token} has no bonding curve. Timed launch: timed-info --token ${token}. After launch or Skip graduation: swap --market ${token}. Creator income: launch-earnings --token ${token}`);
   return { token, record };
 }
 

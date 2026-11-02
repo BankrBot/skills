@@ -28,8 +28,8 @@ Each hook requires `gasleft() >= floor` at the start of the swap and reverts wit
 | Pool | Live floor (read) | Tx gas limit constant |
 | --- | --- | --- |
 | FLASH/ETH | `policy.gasFloor()` = 2,800,000 | 3,200,000 (+88,000 when the swap carries an in-swap referral bind) |
-| FlashV3 pools | per kind (6,500,000) | 6,975,725 |
-| Perps | `perpsHook.pools(poolId).gasFloor` | per market, 4.6M to 10.2M (see [PERPS-QUANT.md](PERPS-QUANT.md)) |
+| FlashV3 pools | per kind (6,500,000) | 7,039,000 |
+| Perps | `perpsHook.pools(poolId).gasFloor` | per market, 4.6M to 10.3M (see [PERPS-QUANT.md](PERPS-QUANT.md)) |
 | Multi-hop pay routes | every hook on the path checks its own floor | estimate x 1.1 floored at the heaviest hop, or the sum of hop constants without an estimate |
 
 Quotes need gas too: run Quoter `eth_call`s with `gas: 15000000`.

@@ -12,6 +12,15 @@ export const RPC_URL = process.env.FLASH_RPC_URL || 'https://base-rpc.publicnode
 export const API_URL = process.env.FLASH_API_URL || 'https://api.tryflash.app';
 export const client = createPublicClient({ chain: base, transport: http(RPC_URL, { retryCount: 2, timeout: 30_000 }) });
 
+// Flash's Base builder code (ERC-8021, owner 2026-10-31): every transaction this skill builds carries it, so
+// trades made through the Flash stack attribute to Flash on Base. The suffix is appended to calldata (contracts
+// ignore trailing bytes; simulated with it) and offered to 5792 wallets as the `dataSuffix` capability.
+// = Attribution.toDataSuffix({ codes: ['bc_e2nfzv63'] }) from ox/erc8021. FLASH_BUILDER_SUFFIX overrides (hex).
+export const BUILDER_CODE = 'bc_e2nfzv63';
+export const BUILDER_SUFFIX = (process.env.FLASH_BUILDER_SUFFIX || '0x62635f65326e667a7636330b0080218021802180218021802180218021').toLowerCase();
+/** Calldata with the builder suffix appended exactly once. */
+export const attributed = (data) => (data.toLowerCase().endsWith(BUILDER_SUFFIX.slice(2)) ? data : `${data}${BUILDER_SUFFIX.slice(2)}`);
+
 export const DEADLINE_SECONDS = 20 * 60;
 export const now = () => BigInt(Math.floor(Date.now() / 1000));
 export const deadline = () => now() + BigInt(DEADLINE_SECONDS);
@@ -114,7 +123,7 @@ export async function permit2Approvals(owner, token, amount, symbol) {
  */
 export async function simulate(account, transactions) {
   try {
-    const { results } = await client.simulateCalls({ account, calls: transactions.map(({ to, data, value, gas }) => ({ to, data, value, ...(gas ? { gas } : {}) })) });
+    const { results } = await client.simulateCalls({ account, calls: transactions.map(({ to, data, value, gas }) => ({ to, data: attributed(data), value, ...(gas ? { gas } : {}) })) });
     const failed = results.findIndex((entry) => entry.status !== 'success');
     if (failed >= 0) return { method: 'eth_simulateV1', ok: false, failedIndex: failed, reason: revertReason(results[failed].error) };
     return { method: 'eth_simulateV1', ok: true, gasUsed: results.map((entry) => entry.gasUsed.toString()) };
@@ -122,7 +131,7 @@ export async function simulate(account, transactions) {
     if (transactions.length !== 1) return { method: 'none', ok: false, unsupported: true, reason: `eth_simulateV1 unavailable: ${revertReason(error)}` };
     const [tx] = transactions;
     try {
-      await client.call({ account, to: tx.to, data: tx.data, value: tx.value, gas: BASE_TX_GAS_CAP });
+      await client.call({ account, to: tx.to, data: attributed(tx.data), value: tx.value, gas: BASE_TX_GAS_CAP });
       return { method: 'eth_call', ok: true };
     } catch (inner) {
       return { method: 'eth_call', ok: false, failedIndex: 0, reason: revertReason(inner) };
@@ -133,7 +142,7 @@ export async function simulate(account, transactions) {
 /** eth_estimateGas of one call (only meaningful when nothing precedes it). */
 export async function estimate(account, tx) {
   try {
-    return await client.estimateGas({ account, to: tx.to, data: tx.data, value: tx.value });
+    return await client.estimateGas({ account, to: tx.to, data: attributed(tx.data), value: tx.value });
   } catch {
     return undefined;
   }
@@ -157,12 +166,17 @@ export function plan({ action, summary, transactions, simulation, warnings = [],
     ...(ok ? {} : { error: `Simulation failed at transaction ${simulation.failedIndex + 1}: ${simulation.reason}` }),
     transactions: transactions.map((tx) => ({
       to: tx.to,
-      data: tx.data,
+      data: attributed(tx.data),
       value: (tx.value || 0n).toString(),
       ...(tx.gas ? { gas: tx.gas.toString() } : {}),
       description: tx.description,
     })),
-    sendCalls: { chain: 'base', calls: transactions.map((tx) => ({ to: tx.to, value: numberToHex(tx.value || 0n), data: tx.data })) },
+    sendCalls: {
+      chain: 'base',
+      calls: transactions.map((tx) => ({ to: tx.to, value: numberToHex(tx.value || 0n), data: attributed(tx.data) })),
+      capabilities: { dataSuffix: { value: BUILDER_SUFFIX, optional: true } },
+    },
+    builderCode: BUILDER_CODE,
     simulation,
     notes,
     chainId: 8453,

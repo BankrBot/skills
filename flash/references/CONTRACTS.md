@@ -12,7 +12,7 @@ The Safe `0x29C1BF0c85a9a479c1B47B847cd3Fb1C6dC5e5bD` owns every upgradeable con
 | WETH | `0x4200000000000000000000000000000000000006` | 18 |
 | USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | 6 |
 | FLASH (total supply 69,420) | `0xD1Be6E31B44C3365Db5BE514ba570ac4fEc63d84` | 18 |
-| QUANT | `0xb2000000000000000000006a9881C01617b77B08` | 18 |
+| QUANT | `0xB2000000000000000000008a865BAD54481CD395` | 18 |
 
 Perp tokens and tokenized stocks are listed in [PERPS-QUANT.md](PERPS-QUANT.md) and [REVENUE-STOCKS-PORTFOLIO.md](REVENUE-STOCKS-PORTFOLIO.md).
 
@@ -32,7 +32,7 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 
 | | |
 | --- | --- |
-| Hook (immutable shell) | `0x57b18C5f0e028aB86a0888d578dE23e65F072ACC` |
+| Hook (immutable shell) | `0x77424a443429Be042afd9D88421945eFA38E6acC` |
 | Swap policy (fees, taxes, gas floor) | `0xc89e82f32832f995F992202ce78EA6F02ac2e1e4` |
 | Referral registry (codes, binds, buckets, top-100) | `0x20E37314A4D52Ba1FB55a675a834665Cf2515857` |
 | King of the Hill module | `0x2556ffbAb00D1993aD1BDA44fb6c0dc15fde7457` |
@@ -43,24 +43,24 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 
 | | |
 | --- | --- |
-| Hook | `0xf4b67452C04017c706BEC809f39209f770Ef28Cc` |
+| Hook | `0x6aeABB2029DCc4758c168A0651Dc4F49aD9928CC` |
 | Registry (`poolOfToken`) | `0xCbddfe729982fadc5ff27e94db7fB4D76785377e` |
 | Ledger (fee sweep, creator QUANT) | `0xB6267C0bFcbBEE354723f9f97b255Da287729A07` |
 | Launcher | `0x347cC3B729116B5bf7d55501F7F5D6dAf4Ce5c5f` |
-| Perp router | `0x4d1BD5F54432FEcBC1fCfE42746921d80680e2f1` |
+| Perp router | `0xd3c45B855BB71cfFF9F77732a6f1C1e3feF1f80e` |
 | FLASH buyback | `0xFd57cE2838E1CE696d3626A6Ff9ca27B1E8D3264` |
 
 ## Tokenized Perps V2 (contracts named FlashPerpsV5*)
 
 | | |
 | --- | --- |
-| Perps hook | `0x2f4a713980425DF85b2B756C7484565A9b8778C8` |
-| Issuer (permanent; NAV, positions, QUANT minting, unwind) | `0x56a3e32134521Cefe75a2B8dB25D29a45E331BdD` |
-| Fee sink | `0x88CcF70524822c0Eb2A7e4824A6a9e57410aF76D` |
-| QUANT owner sink | `0xebb672403005A20Ef914b13487505E08Aa05F760` |
-| Migrator (earlier perps to V2) | `0x87c9784070C4E134F7dE7627dA0038CA9f0473D6` |
-| Limit orders (take-profit / stop-loss, `FlashPerpsV5LimitOrders`) | `0xf5d94BE034944C8706a12B6B4d4dE0dbEbc10824` |
-| Lens (QUANT rate, protocol / account / market KPIs, `FlashPerpsV5Lens`) | `0x7D06a5C37fd91B85D6dC2f212467f1803895d0C2` |
+| Perps hook | `0xc4dF67D58fb02Ecc2499FDAcC4D1d71fEa4FB8C8` |
+| Issuer (permanent; NAV, positions, QUANT minting, unwind) | `0x1BBd2F85191d2D94fA51bc26e5AB70c2eB7c5941` |
+| Fee sink | `0x0b95dcF3B69644Ab108E7f17bC703616f7da06D9` |
+| QUANT owner sink | `0x1296988A7807866842D1aeeFdbbA8A4E0bD9e9Df` |
+| Migrator (v1 and retired perps to the live markets) | `0x297D61F5F231bb2E512f11f332Ea6B9E2709b9D3` |
+| Limit orders (take-profit / stop-loss, `FlashPerpsV5LimitOrders`) | `0x6b9337131739D7C368dFFc08E6b2f4D007961f06` |
+| Lens (QUANT rate, protocol / account / market KPIs, `FlashPerpsV5Lens`) | `0xCdF61E2DF06d19cbc95889Bcf454C8BCEBD916cB` |
 
 ## Churn (limit orders, Lattices)
 
@@ -69,7 +69,7 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | Churn core (proxy) | `0x35F1b89f4FEb2897CC1a6efF381d518D05824008` |
 | Churn registry | `0x2EF26c31bC5160A748d066DBa1e26ab14E85D2ac` |
 | Market FLASH/ETH (WETH quote) | `0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b` |
-| Market QUANT/FLASH | `0xe4f1a55cd9ae77c991cb80e5d1ddb27e36e6371a8717feca8d0998724fc58292` |
+| Market QUANT/FLASH | `0xda2edfc201813ec11a6b8e6271dae076e5ec3a3e7d244bdffe1e62638f65b65a` |
 
 ## launch-v5 (bonding curves and Token Wars)
 
@@ -77,7 +77,10 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | --- | --- |
 | Launchpad | `0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0` |
 | Launch router Q (ETH / FLASH / STOCK / PERP launches; use this) | `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` |
-| Executor Q (`poolKeyForQuote`) | `0x0C155b5FfBaa04f753d7D287D6bc4fBE0BcAf625` |
+| Skip-graduation direct launcher (no curve; ETH / USDC / FLASH pay, $10 min first buy) | `0x63AeDafc52368A97db0B452D527FE963F18BC47e` |
+| Timed launch (no curve; token exists before its launch time; entries pooled into one first buy) | `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` |
+| Executor T (timed launches, `poolKeyForQuote`) | `0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2` |
+| Executor Q (`poolKeyForQuote`) | `0xF643E3ecc9966f02A270D487635D19EB2722479e` |
 | Config (`quoteRouteOf`) | `0x64B866F63053680F14Da2f98a67C7b2BdFf960e6` |
 | Shapes registry (modes, presets) | `0x79644eC342881E40efab1401eb5ceF265F93aE7D` |
 | Curve factory | `0x69A1230A0b1bB326Cf3ebAAa4DAFDBC7eC627CeF` |
@@ -92,7 +95,7 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | --- | --- |
 | treasury-v3 factory (`predictTreasury(token)`) | `0x128fab9a1f356868feb355858cc7CbdA7F296b91` |
 | treasury-v3 config | `0xc7151Ee6458f3AAdD1B32aF05Be690c7d3669754` |
-| QUANT treasury | `0x6A7faA6B8F0C7f66dFCa2Bb5dd1BCa0915bc55E5` |
+| QUANT treasury | `0x669Ef174655d011aE80f66aFeF97b6C8Cec3B568` |
 | Treasury shares (creator cut per treasury, `FlashTreasuryShares`, ownerless) | `0x98C29eC362A4e76975002778Bb2E91B99e4A288F` |
 | Revenue Share (`FlashRevenueShareV4` proxy, Safe-owned; stake FLASH, earn ETH streamed over 24 h, FLASH flash loans) | `0x7c36Ac8bec2D206984702790dB158fcAAFe69490` |
 | Revenue Share V3 implementation | `0x7Ba4b0d63fc449D130F7259C231A7204ddcC7820` |
@@ -104,8 +107,8 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 
 | Pool | currency0 | currency1 | tickSpacing | hooks | Pool id |
 | --- | --- | --- | --- | --- | --- |
-| FLASH/ETH | ETH `0x0` | FLASH | 60 | Referral Coin hook | `0x8da9f93b7b96efd2091b9e2cc8cddf921d0237635adc5f046956576714a2824c` |
-| QUANT/FLASH | QUANT | FLASH | 200 | FlashV3 hook | `0x91fe9428ae1ed2938acef94d466f7f40603cdfb47cdb33cf6639fb4c6dffba8c` |
+| FLASH/ETH | ETH `0x0` | FLASH | 60 | Referral Coin hook | `0x170ca02dfd2fe3aff821378f163b47082db366340dbe655dc999fe78b41e33d9` |
+| QUANT/FLASH | QUANT | FLASH | 200 | FlashV3 hook | `0xda58d5f7017459cb8e3825fbfeec1229d6b7487fa26b8a58216c6ed0fbf619b6` |
 | Perp `X` | USDC | perp token | 1 | Perps hook | see [PERPS-QUANT.md](PERPS-QUANT.md) |
 | Launched token | lower of (token, quote) | higher | `executorQ.tickSpacing` (200 today) | FlashV3 hook | `launchpad.launchOf(token).poolId` |
 | ETH/USDC pay leg (hookless) | ETH | USDC | 60 (fee 3000) or 10 (fee 500) | `0x0` | |

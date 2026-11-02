@@ -21,6 +21,11 @@ The CLI decodes reverts with the ABIs plus `scripts/lib/errors.json`, which maps
 | `InsufficientGasForGraduation()` | Curve / war buy | A locking buy needs at least 9M gas left. Use `eth_estimateGas`. |
 | `SlippageExceeded()` | Curve | Tokens out below `minTokens`, or FLASH out below `minFlashOut`. Re-quote. |
 | `InsufficientPosition()` / `NothingToClaim()` | Curve | Selling more than you hold / nothing to claim |
+| `TooEarly(launchAt)` / `EntriesClosed()` | Timed launch | Launching before the time / entering after it |
+| `NotKeeper()` | Timed launch | Only Flash keepers can launch during the first hour after the time |
+| `EntryTooSmall(usd18, min)` / `BelowMinBuy(usd18, min)` | Timed launch | An entry under $1 / a first buy under $10 (the launch can then be aborted) |
+| `SpotDeviates(spot, twap)` | Timed launch | The FLASH/ETH price is over 10% from its TWAP. Retry later. |
+| `NotAbortable()` | Timed launch | `abortable(token)` is false |
 | `AlreadyEntered()` | Token War | One candidate per wallet per war |
 | `InvalidCandidate()` | Token War | Wrong candidate id, or the war is not trading. |
 | `BelowGoal(requiredUsd18, realisedUsd18)` | `launchpad.finalize` | Graduation waits for ETH depth on the FLASH/ETH pool. |

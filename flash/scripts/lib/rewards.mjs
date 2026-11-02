@@ -162,26 +162,31 @@ export async function perpPositions(options) {
   const rows = await Promise.all(markets.map(async (market) => {
     const balance = await read(market.token, A.erc20, 'balanceOf', [account]);
     if (!balance) return undefined;
-    const [nav, position] = await Promise.all([read(K.perps.issuer, A.perpsIssuer, 'navPerToken', [BigInt(market.id)]), read(K.perps.issuer, A.perpsIssuer, 'positionOf', [BigInt(market.id), account])]);
+    const issuer = market.exit ? K.perps.retired.issuer : K.perps.issuer;
+    const [nav, position] = await Promise.all([read(issuer, A.perpsIssuer, 'navPerToken', [BigInt(market.id)]), read(issuer, A.perpsIssuer, 'positionOf', [BigInt(market.id), account])]);
     const value = (balance * nav) / 10n ** 18n;
-    return { id: market.id, symbol: market.symbol, exitOnly: Boolean(market.exit), balance: fmt(balance), navUsdc: fmt(nav, 6), valueUsdc: fmt(value, 6), basisUsdc: fmt(position[1], 6), pnlUsdc: fmt(value - position[1], 6) };
+    return { id: market.id, symbol: market.symbol, token: market.token, exitOnly: Boolean(market.exit), ...(market.exit ? { migratesTo: K.perpMarkets.live.find((m) => m.id === market.successor)?.symbol } : {}), balance: fmt(balance), navUsdc: fmt(nav, 6), valueUsdc: fmt(value, 6), basisUsdc: fmt(position[1], 6), pnlUsdc: fmt(value - position[1], 6) };
   }));
   return { ok: true, status: 'info', action: 'perp-positions', account, positions: rows.filter(Boolean), note: 'PnL here = balance x NAV - issuer basis. The backend ledger (GET /v1/stack/perps/positions/:account) adds trade history.' };
 }
 
 export async function perpUnwind(options) {
   const account = wallet(options);
-  const market = K.perpMarkets.exitOnly.find((entry) => entry.symbol.toUpperCase() === String(options.market || '').toUpperCase());
-  if (!market) throw new Error(`perp-unwind is for the exit-only markets: ${K.perpMarkets.exitOnly.filter((entry) => entry.exit === 'issuer.unwind').map((entry) => entry.symbol).join(', ')}. Live markets sell with swap --side sell.`);
-  if (market.exit !== 'issuer.unwind') throw new Error(`${market.symbol} exits by selling on its pool: swap --market ${market.symbol} --side sell`);
+  // Retired symbols repeat (and match live ones): match the token address, or a symbol that is unique among the retired.
+  const want = String(options.market || '').toLowerCase();
+  const matches = K.perpMarkets.exitOnly.filter((entry) => entry.token.toLowerCase() === want || entry.symbol.toLowerCase() === want);
+  if (matches.length > 1) throw new Error(`${options.market} matches several retired markets: pass the token address (${matches.map((entry) => entry.token).join(', ')})`);
+  const market = matches[0];
+  if (!market) throw new Error('perp-unwind is for the retired perps (perp-positions lists them). Live markets sell with swap --side sell.');
+  const ISSUER = K.perps.retired.issuer;
   const balance = await read(market.token, A.erc20, 'balanceOf', [account]);
   const amount = options.amount === 'all' || !options.amount ? balance : parseUnits(String(options.amount), 18);
   if (!amount || amount > balance) throw new Error(`Balance ${fmt(balance)} ${market.symbol}`);
-  const nav = await read(K.perps.issuer, A.perpsIssuer, 'navPerToken', [BigInt(market.id)]);
+  const nav = await read(ISSUER, A.perpsIssuer, 'navPerToken', [BigInt(market.id)]);
   const expected = (amount * nav) / 10n ** 18n;
   const minOut = slippageLimit('exactIn', expected, Number(options['slippage-bps'] ?? 500));
   return finish(account, 'perp-unwind', { market: market.symbol, amount: fmt(amount), expectedUsdc: fmt(expected, 6), minUsdc: fmt(minOut, 6) },
-    [...await approval(account, market.token, K.perps.issuer, amount, market.symbol, 'the perps issuer'), call({ to: K.perps.issuer, abi: A.perpsIssuer, functionName: 'unwind', args: [BigInt(market.id), amount, minOut, account], description: `Unwind ${market.symbol} to USDC through the issuer` })]);
+    [...await approval(account, market.token, ISSUER, amount, market.symbol, 'the retired perps issuer'), call({ to: ISSUER, abi: A.perpsIssuer, functionName: 'unwind', args: [BigInt(market.id), amount, minOut, account], description: `Unwind retired ${market.symbol} to USDC through the retired issuer` })]);
 }
 
 // ------------------------------------------------------------------ perps take-profit / stop-loss
@@ -206,7 +211,7 @@ export async function perpOrdersList(options) {
     api(`/v1/stack/perps/orders/${account}${options.status ? `?status=${encodeURIComponent(options.status)}` : ''}`),
     read(ORDERS, A.perpOrders, 'minOrderUsdc'),
   ]);
-  const symbolOf = (id) => [...K.perpMarkets.live, ...K.perpMarkets.exitOnly].find((m) => m.id === id)?.symbol;
+  const symbolOf = (id) => K.perpMarkets.live.find((m) => m.id === id)?.symbol;
   return {
     ok: true, status: 'info', action: 'perp-orders', account, contract: ORDERS, live: config.live, feePct: 0.1, minOrderUsdc: fmt(minOrder, 6),
     orders: (book.orders || []).map((o) => ({ ...o, symbol: symbolOf(o.marketId), qtyTokens: fmt(BigInt(o.qty)), triggerNavUsdc: fmt(BigInt(o.triggerNav), 6), minOutUsdc: fmt(BigInt(o.minOut), 6) })),
@@ -437,8 +442,8 @@ export async function treasuryInfo(options) {
   const address = await read(K.treasuryV3.factory, A.treasuryFactory, 'predictTreasury', [token]);
   const exists = await read(K.treasuryV3.factory, A.treasuryFactory, 'isTreasury', [address]);
   if (!exists) return { ok: true, status: 'info', action: 'treasury', token, treasury: address, deployed: false };
-  const [quote, controller, mode, reward] = await Promise.all([read(address, A.treasury, 'quote'), read(address, A.treasury, 'controller'), read(address, A.treasury, 'mode'), read(address, A.treasury, 'rewardAsset')]);
-  return { ok: true, status: 'info', action: 'treasury', token, treasury: address, deployed: true, quote, controller, mode: Number(mode), rewardAsset: reward, note: 'Per-token treasury (treasury-v3): swap fees reach it inside swaps; keepers convert and distribute. Controller-only settings are out of scope for this skill.' };
+  const [quote, controller, mode, reward, shares] = await Promise.all([read(address, A.treasury, 'quote'), read(address, A.treasury, 'controller'), read(address, A.treasury, 'mode'), read(address, A.treasury, 'rewardAsset'), read(K.treasuryV3.shares, A.treasuryShares, 'sharesOf', [address])]);
+  return { ok: true, status: 'info', action: 'treasury', token, treasury: address, deployed: true, quote, controller, mode: Number(mode), rewardAsset: reward, creatorCut: { rewardSharePct: Number(shares[0]) / 100, lpSharePct: Number(shares[1]) / 100, recipient: /^0x0+$/.test(shares[2]) ? controller : shares[2] }, note: 'Per-token treasury (treasury-v3): swap fees reach it inside swaps; keepers convert and distribute. Controller-only settings are out of scope for this skill.' };
 }
 
 export { maxUint256 };

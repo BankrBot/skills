@@ -35,8 +35,28 @@ async function resolveLaunchedToken(token) {
     client.readContract({ address: K.launchV5.launchpad, abi: A.launchpad, functionName: 'launchOf', args: [token] }),
     client.readContract({ address: K.flashV3.registry, abi: A.v3Registry, functionName: 'poolOfToken', args: [token] }),
   ]);
-  if (record.curve === zeroAddress) throw new Error(`${token} is not a Flash launch`);
+  if (record.curve === zeroAddress) return resolveCurvelessToken(token, registryId);
   if (!record.graduated) throw new Error(`${record.symbol} has not graduated: it trades on its bonding curve (use launch-buy / launch-sell)`);
+  return launchedPool(token, record, registryId);
+}
+
+/** A launch with no curve: Skip graduation (direct launcher), or a timed launch once it has launched. */
+async function resolveCurvelessToken(token, registryId) {
+  const [direct, timed] = await Promise.all([
+    client.readContract({ address: K.launchV5.direct, abi: A.directLaunch, functionName: 'launchOf', args: [token] }),
+    client.readContract({ address: K.launchV5.timed, abi: A.timedLaunch, functionName: 'launchOf', args: [token] }),
+  ]);
+  if (direct.creator !== zeroAddress) {
+    const symbol = await client.readContract({ address: token, abi: A.erc20, functionName: 'symbol' });
+    return launchedPool(token, { ...direct, symbol }, registryId);
+  }
+  if (timed.status === 0) throw new Error(`${token} is not a Flash launch`);
+  if (timed.status === 1) throw new Error(`${timed.symbol} has not launched yet: enter it with timed-enter --token ${token}`);
+  if (timed.status === 3) throw new Error(`${timed.symbol} was aborted: timed-refund --token ${token}`);
+  return launchedPool(token, timed, registryId);
+}
+
+async function launchedPool(token, record, registryId) {
   const quote = record.pair === 0 ? K.tokens.WETH.address : record.pair === 1 ? K.tokens.FLASH.address : record.quote;
   const [key] = await client.readContract({ address: K.launchV5.executorQ, abi: A.launchExecutor, functionName: 'poolKeyForQuote', args: [token, quote] });
   const id = poolIdOf(key);
@@ -92,7 +112,7 @@ async function prepare(options) {
   if (side !== 'buy' && side !== 'sell') throw new Error('--side buy|sell is required');
   const buy = side === 'buy';
   if (buy && pool.exitOnly) throw new Error(`${pool.tokenSymbol} is exit-only: holders can only sell${pool.exitOnly === 'issuer.unwind' ? ' through perp-unwind' : ''}`);
-  if (!buy && pool.exitOnly === 'issuer.unwind') throw new Error(`${pool.tokenSymbol} exits through the issuer: use perp-unwind --market ${pool.tokenSymbol}`);
+  if (!buy && pool.exitOnly === 'issuer.unwind') throw new Error(`${pool.tokenSymbol} exits through the issuer: use perp-unwind --market ${pool.token}`);
   const mode = options['exact-out'] ? 'exactOut' : 'exactIn';
   const nativePay = pool.quote === NATIVE ? 'ETH' : same(pool.quote, K.tokens.USDC.address) ? 'USDC' : same(pool.quote, K.tokens.FLASH.address) ? 'FLASH' : undefined;
   const pay = buy ? (options.pay || nativePay || pool.quoteSymbol).toUpperCase() : undefined;

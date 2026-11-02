@@ -70,7 +70,9 @@ for (const [name, pool] of Object.entries(K.pools)) {
   else results.poolIdMismatch.push(name);
 }
 for (const market of [...K.perpMarkets.live, ...K.perpMarkets.exitOnly]) {
-  const key = { currency0: K.tokens.USDC.address, currency1: market.token, fee: 0x800000, tickSpacing: 1, hooks: K.perps.hook };
+  const usdc = K.tokens.USDC.address;
+  const [currency0, currency1] = BigInt(usdc) < BigInt(market.token) ? [usdc, market.token] : [market.token, usdc];
+  const key = { currency0, currency1, fee: 0x800000, tickSpacing: 1, hooks: market.exit ? K.perps.retired.hook : K.perps.hook };
   if (poolId(key).toLowerCase() === market.poolId.toLowerCase()) results.ok.poolIds += 1;
   else results.poolIdMismatch.push(market.symbol);
 }
@@ -96,6 +98,8 @@ const writes = [
   [K.churn.core, A.churn, ['deposit', 'withdraw', 'claim', 'depositLevel', 'depositLevels', 'withdrawLevel', 'claimLevels', 'openLattice', 'withdrawLattice', 'withdrawLatticeAmount', 'reformatLattice', 'transferLattice'], churnFacets],
   [K.launchV5.launchpad, A.launchpad, ['createLaunchShaped', 'createLaunchQuoted', 'finalize'], []],
   [K.launchV5.routerQ, A.launchRouter, ['createWithEth', 'createWithEthQuoted', 'buyWithEth'], []],
+  [K.launchV5.timed, A.timedLaunch, ['create', 'createWithEth', 'enterWithEth', 'enterWithToken', 'launch', 'claim', 'airdrop', 'abort', 'refund'], []],
+  [K.treasuryV3.shares, A.treasuryShares, ['setShares', 'clearShares'], []],
   // curves are deployed per launch by the factory: their runtime code is embedded in the factory
   [K.launchV5.tokenWar, A.tokenWar, ['registerCandidatePaired', 'buy', 'sell', 'jump', 'openWar', 'finalize', 'claim', 'claimCreatorFees', 'refundAborted'], warModules],
   [K.launchV5.warRouter, A.warRouter, ['submitWithEth', 'submitWithToken', 'backWithEth', 'backWithToken'], []],
@@ -158,9 +162,9 @@ const views = [
   [K.flashV3.hook, A.v3Hook, 'poolState', [Q.key]],
   [K.flashV3.hook, A.v3Hook, 'poolInfoOf', [Q.id]],
   [K.flashV3.registry, A.v3Registry, 'poolOfToken', [K.tokens.QUANT.address]],
-  [K.perps.issuer, A.perpsIssuer, 'navPerToken', [6n]],
-  [K.perps.issuer, A.perpsIssuer, 'buyCapacityUsdc', [6n]],
-  [K.perps.issuer, A.perpsIssuer, 'positionOf', [6n, who]],
+  [K.perps.issuer, A.perpsIssuer, 'navPerToken', [BigInt(m6.id)]],
+  [K.perps.issuer, A.perpsIssuer, 'buyCapacityUsdc', [BigInt(m6.id)]],
+  [K.perps.issuer, A.perpsIssuer, 'positionOf', [BigInt(m6.id), who]],
   [K.perps.issuer, A.perpsIssuer, 'quantMinted', []],
   [K.perps.issuer, A.perpsIssuer, 'memeRoutes', [Q.id]],
   [K.perps.hook, A.perpsHook, 'pools', [m6.poolId]],
@@ -182,6 +186,15 @@ const views = [
   [K.launchV5.launchpad, A.launchpad, 'launchesLength', []],
   [K.launchV5.launchpad, A.launchpad, 'currentCreationFee', []],
   [K.launchV5.routerQ, A.launchRouter, 'currentCreationFee', []],
+  [K.launchV5.config, A.launchConfig, 'ethUsdPrice', []],
+  [K.launchV5.config, A.launchConfig, 'flashUsdPriceChecked', []],
+  [K.launchV5.timed, A.timedLaunch, 'launchesLength', []],
+  [K.launchV5.timed, A.timedLaunch, 'currentCreationFee', []],
+  [K.launchV5.timed, A.timedLaunch, 'minEntryUsd18', []],
+  [K.launchV5.timed, A.timedLaunch, 'minDelay', []],
+  [K.launchV5.timed, A.timedLaunch, 'maxDelay', []],
+  [K.launchV5.timed, A.timedLaunch, 'keeperWindow', []],
+  [K.launchV5.timed, A.timedLaunch, 'abortDelay', []],
   [K.launchV5.shapes, A.shapes, 'mode', [0]],
   [K.launchV5.shapes, A.shapes, 'preset', [0]],
   [K.launchV5.config, A.launchConfig, 'quoteRouteOf', [K.stocks.list[0].address]],

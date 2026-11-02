@@ -14,7 +14,7 @@ Markets the app trades (token / quote, both 18 decimals):
 | Market | id | Token tick |
 | --- | --- | --- |
 | FLASH/ETH (quote = WETH; proceeds paid in WETH) | `0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b` | `-rcHook.poolState().tick` (FLASH is currency1) |
-| QUANT/FLASH | `0xe4f1a55cd9ae77c991cb80e5d1ddb27e36e6371a8717feca8d0998724fc58292` | `v3Hook.poolState(QUANT key).tick` (QUANT is currency0) |
+| QUANT/FLASH | `0xda2edfc201813ec11a6b8e6271dae076e5ec3a3e7d244bdffe1e62638f65b65a` | `v3Hook.poolState(QUANT key).tick` (QUANT is currency0) |
 
 **Prices and ticks:** price (quote per token) = `1.0001^tick` in the **token orientation** above. A level floor is a token-orientation tick snapped **up** to the market's `levelConfig(id).stepTicks` (100 today): `floorTick = ceil(ln(price) / ln(1.0001) / step) * step`. The churn snaps the same way. Example: FLASH at 0.0006 ETH is tick ≈ -74,180. A floor of 0.01 ETH per FLASH is tick -46,000.
 

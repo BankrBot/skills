@@ -12,6 +12,7 @@ import { quoteCommand, swapCommand } from './lib/trade.mjs';
 import * as R from './lib/rewards.mjs';
 import * as C from './lib/churn.mjs';
 import * as L from './lib/launch.mjs';
+import * as T from './lib/timed.mjs';
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
@@ -118,16 +119,27 @@ const COMMANDS = {
   'lattice-reformat': C.latticeReformat,
   'lattice-transfer': C.latticeTransfer,
   'launch-list': L.launchList,
-  'launch-info': L.launchInfo,
+  'launch-info': T.forTimed(T.timedInfo, L.launchInfo),
   'launch-create': L.launchCreate,
   'launch-buy': L.launchBuy,
   'launch-sell': L.launchSell,
-  'launch-claim': L.launchClaim,
-  'launch-refund': L.launchRefund,
+  'launch-claim': T.forTimed(T.timedClaim, L.launchClaim),
+  'launch-refund': T.forTimed(T.timedRefund, L.launchRefund),
   'launch-creator-claim': L.launchCreatorClaim,
   'launch-graduate': L.launchGraduate,
   'launch-poke': L.launchPoke,
-  'launch-airdrop': L.launchAirdrop,
+  'launch-airdrop': T.forTimed(T.timedAirdrop, L.launchAirdrop),
+  'launch-earnings': T.launchEarnings,
+  'timed-list': T.timedList,
+  'timed-info': T.timedInfo,
+  'timed-create': T.timedCreate,
+  'timed-enter': T.timedEnter,
+  'timed-launch': T.timedLaunchNow,
+  'timed-abort': T.timedAbort,
+  'timed-claim': T.timedClaim,
+  'timed-refund': T.timedRefund,
+  'timed-airdrop': T.timedAirdrop,
+  'treasury-shares': T.treasurySharesSet,
   'war-status': L.warStatus,
   'war-enter': L.warEnter,
   'war-back': L.warBack,
@@ -153,6 +165,9 @@ Limits:  limit-markets | limit-orders | limit-place --market FLASH|QUANT --amoun
 Lattice: lattice-list --market M | lattice-show --id N | lattice-withdraw --id N [--amount] | lattice-transfer --id N --to 0x | lattice-reformat --id N --params JSON | lattice-open (creators/treasuries only)
 Launch:  launch-list | launch-info --token | launch-create --name --symbol --pair ETH|FLASH|STOCK|PERP [--quote NVDAc|ETH2xL] [--mode 0|1 --preset 0|1 --reward 0x] --eth N
          launch-buy --token (--eth N|--flash N) | launch-sell --token [--amount N|all] | launch-claim | launch-refund | launch-creator-claim | launch-graduate | launch-poke | launch-airdrop
+Timed:   timed-list | timed-info --token | timed-create --name --symbol --pair .. [--quote] (--at <unix|ISO> | --in-minutes N) [--pay ETH|FLASH] [--mode --preset --reward]
+         timed-enter --token --pay ETH|USDC|FLASH --amount N | timed-launch --token | timed-abort --token | timed-claim --token | timed-refund --token [--account 0x] | timed-airdrop --token [--from --count]
+Earn:    launch-earnings --token [--wallet] (what a launch pays its creator, any launch kind) | treasury-shares --token (--reward-bps N --lp-bps N [--recipient 0x] | --clear)
 Wars:    war-status | war-enter --name --symbol --pair .. [--quote] [--pay ETH|FLASH] | war-back --id N --pay ETH|USDC|FLASH --amount N | war-sell --id N [--units] | war-jump --from A --to B [--units]
          war-claim [--war N] | war-refund --war N --id N | war-creator-claim [--war N] | war-open | war-finalize
 Misc:    wrap-eth --amount N (ETH-pair launches trade against WETH)

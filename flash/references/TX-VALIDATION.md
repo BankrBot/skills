@@ -15,11 +15,13 @@ A Flash plan may only contain these `(to, selector)` pairs. Anything else: stop.
 | Referral registry `0x20E37314A4D52Ba1FB55a675a834665Cf2515857` | `0xd9cd8b6e` bind, `0x7899c516` bindWithSig, `0x4e71d92d` claim, `0x75433fed` distributeTop100 |
 | King of the Hill `0x2556ffbAb00D1993aD1BDA44fb6c0dc15fde7457` | `0x11da60b4` settle |
 | FlashV3 ledger `0xB6267C0bFcbBEE354723f9f97b255Da287729A07` | `0x248eb4ec` sweep |
-| Perps issuer `0x56a3e32134521Cefe75a2B8dB25D29a45E331BdD` | `0xa56df42b` unwind |
-| Perps limit orders `0xf5d94BE034944C8706a12B6B4d4dE0dbEbc10824` | `0xfb582da7` place, `0x5976f9d6` placePair, `0x86904ccf` update, `0x2e340823` cancel |
+| Perps issuer `0x1BBd2F85191d2D94fA51bc26e5AB70c2eB7c5941` | `0xa56df42b` unwind |
+| Perps limit orders `0x6b9337131739D7C368dFFc08E6b2f4D007961f06` | `0xfb582da7` place, `0x5976f9d6` placePair, `0x86904ccf` update, `0x2e340823` cancel |
 | Churn core `0x35F1b89f4FEb2897CC1a6efF381d518D05824008` | `0x6ebf181b` deposit, `0x3adab09c` withdraw, `0x96c144f0` claim, `0xd41a2912` depositLevel, `0x8c0041ae` depositLevels, `0xaec18bd0` withdrawLevel, `0x9bdf33ff` claimLevels, `0x94324107` openLattice, `0xc5a44ee0` withdrawLattice, `0x3b82423d` withdrawLatticeAmount, `0x20493fae` reformatLattice, `0x5d10ff4b` transferLattice |
 | Launchpad `0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0` | `0x29458fbd` createLaunchShaped, `0x41701c70` createLaunchQuoted, `0x4ef39b75` finalize |
 | Launch router Q `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` | `0xce6c7a89` createWithEth, `0xbd104112` createWithEthQuoted, `0x8f36afcb` buyWithEth |
+| Direct launcher `0x63AeDafc52368A97db0B452D527FE963F18BC47e` | `0xcf3e4e98` launchWithEth, `0xe48ff9b6` launchWithToken |
+| Timed launch `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` | `0x8e1a656a` create, `0x1a94062f` createWithEth, `0x509e40f3` enterWithEth, `0x6213c708` enterWithToken, `0xeea21274` launch, `0x17192143` launchPartial, `0x1e83409a` claim, `0xe1bc2967` airdrop, `0x90cbfa19` abort, `0x5e30b8a6` refund |
 | A launch curve (only `launchpad.launchOf(token).curve`) | `0x59a87bc1` buy, `0xd04c6983` sell, `0x18178358` poke, `0x1e83409a` claim, `0x6f243a9c` airdrop, `0x46b2a95e` refundAborted, `0xd6ae6e44` claimCreatorFees |
 | Token War V6 `0x793D3730040582fc58F3699F51396Dc6cD00dD3f` | `0x019a20c9` registerCandidatePaired, `0x0bb5eaf3` buy, `0xdc234f5a` sell, `0x9c6665d0` jump, `0x5bd99c7f` openWar, `0x4bb278f3` finalize, `0xddd5e1b2` claim, `0x90ccadd3` claimCreatorFees, `0xa3a3b741` refundAborted |
 | War router V6 `0x470e310f02625DAdaea471579f5ccC66fd606638` | `0x619aca05` submitWithEth, `0xaf84df24` submitWithToken, `0xe82665d7` backWithEth, `0xb02ad7dd` backWithToken |

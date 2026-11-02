@@ -4,7 +4,7 @@
 
 A perp is an ERC-20 (B20) token, 18 decimals, that tracks a leveraged long or short. Buy it with USDC to open the position and sell it back to close. The position is simply the token balance: there is no margin account, no liquidation call and no funding transaction. Price = `issuer.navPerToken(id)` (USDC 6 dp per 1e18 tokens). Leverage targets the label (2x, or "Max" ~3.2x for ETHMAXL) and drifts inside a band before the vault rebalances. That drift is the main risk: a leveraged token can lose most of its value in a sharp move. The trading fee is 0.05% each way.
 
-Contracts: hook `0x2f4a713980425DF85b2B756C7484565A9b8778C8`, issuer `0x56a3e32134521Cefe75a2B8dB25D29a45E331BdD`.
+Contracts: hook `0xc4dF67D58fb02Ecc2499FDAcC4D1d71fEa4FB8C8`, issuer `0x1BBd2F85191d2D94fA51bc26e5AB70c2eB7c5941`.
 
 ## Markets
 
@@ -12,27 +12,23 @@ Pool key: `(USDC, perpToken, 8388608, tickSpacing 1, perps hook)`. USDC sorts be
 
 | id | Symbol | Token | Pool id | gasTx |
 | --- | --- | --- | --- | --- |
-| 6 | ETH2xL | `0xB2000000000000000000009644514B1eAC20d754` | `0xd32c5c8820daffedcd738efc1390364caa6271267c1f210c9bfb15a0a3714740` | 5,687,346 |
-| 7 | BTC2xL | `0xB200000000000000000000BfDAb3110AA73808B1` | `0x48fae8038953262a8f2fcbc689b2ff1c420519e46f596cb2c33570fc09e67d86` | 9,361,528 |
-| 8 | ETHMAXL | `0xB200000000000000000000481F439A9be136f219` | `0xad8e84241670d7177f1e5a304087f25e0ceee837c1caa3aba3313d3adc4856f1` | 5,581,152 |
-| 9 | XRP2xL | `0xB2000000000000000000005645a1D8b9AFcC8248` | `0x4df1107e0fdfed1d6462a8bf2567a743991efc54eb0a17f77affda77b9e801b6` | 8,030,328 |
-| 10 | NVDA2xL | `0xb200000000000000000000563d2cA1451d746f9F` | `0xc5ff9e9bb8750d3c1ea6df1a5abedc676fa0a1d1c7e2b410c051bbe3e70538ba` | 6,912,352 |
-| 11 | ETH2xS (short) | `0xB200000000000000000000f4091be2E8DB3a1896` | `0x9e015d71030c197527a58608da0eaa085581ae14bb2e7de619e1593666fae88c` | 7,018,546 |
-| 16 | HYPE2xL | `0xB200000000000000000000801E479e58E1a90D01` | `0x29309d0a7a13819cc26748ca3639d40e68081c7507ec53925009cd1b3432b721` | 5,101,183 |
-| 17 | SOL2xL | `0xB200000000000000000000130f5fb5d65ccF99fd` | `0x67fa8e0ab2679c79eeb89f6940ce30894459c7b5332e2df20ac1a506b3874be3` | 8,562,975 |
-| 18 | ZEC2xL | `0xb200000000000000000000263519E3A799902bC5` | `0x17e2fc66a768fecc3a40eabe092c4f661e0c67cca63511281d9727e849085ec7` | 4,622,051 |
-| 19 | AERO2xL | `0xb200000000000000000000C26EDebFDF721e65aD` | `0x34472ee38b2ea40dce9a95314abf5a1e7794e87b7e751c77d677839fee28e8d9` | 10,213,597 |
-| 20 | DOGE2xL | `0xb200000000000000000000AdA095D32710fe96C1` | `0xf622e7b4efc235194f4131422d8f31829346dd8e9dcb9676384cd8a443d2bda8` | 6,060,283 |
-| 21 | META2xL (24/7) | `0xB200000000000000000000B1c6b3E5FA1852f63a` | `0x6cf88bf5eb244a8546b17b150068ed1cccf359e382da598d9976b62965b2abea` | 6,699,126 |
-| 22 | AAPL2xL (24/7) | `0xB20000000000000000000051Ae96aa4abc47dE20` | `0xad67e819cd1afb730340d99f11dfadc9e6d1fc54caacd9e47fdf8963d2229018` | 4,994,988 |
-| 23 | GOOGL2xL (24/7) | `0xb20000000000000000000020162d13881075382e` | `0xaa2409e6f2f84adde5e489d8081fc8296d3b469692321665fb9ae968738b906e` | 6,912,352 |
-| 24 | SPCX2xL (24/7) | `0xb200000000000000000000046e16550458738e91` | `0xcd7f12c7115661c319b609c5411323069c7e3a08ddc594e38398e3e7a6ce37b2` | 5,208,214 |
+| 0 | ETH2xL | `0xB20000000000000000000045645B86D331D437d6` | `0xc728602ddd657a32f49552fd2fc5677c43323503eecd49848cc7ca7f9c3f1e5e` | 5,687,346 |
+| 1 | BTC2xL | `0xB2000000000000000000005a7B792e9ba8E4E2A7` | `0x07fec85dd7b933793736f7d9d556bb8a91924370e583336ef1ca76c11a3dca4d` | 9,370,000 |
+| 2 | ETHMAXL | `0xb20000000000000000000055b2BAA2A007561f28` | `0x864aebb0f51a31dcc7cd272f02926661a736e1eca17ff88c28c5820b73bfe8c2` | 5,581,152 |
+| 3 | XRP2xL | `0xb20000000000000000000051fB852b1e49874EAB` | `0x41985b76231e04e4ad7287c27ef91de0279edf90ccade8b54c2ec3e793881ba8` | 8,030,328 |
+| 4 | NVDA2xL | `0xB2000000000000000000003Ef9c53D3d360fBC35` | `0xf7c1c5ca3a3029d05237f2442277d2a95e37ebed9fed23e736928a886da27066` | 6,912,352 |
+| 5 | ETH2xS (short) | `0xb20000000000000000000067D3a1F52414FbA767` | `0x2b71f2301930fee90b33c3870f53fde2669ea3c5890bc43eace4ac8163e0290c` | 7,031,000 |
+| 6 | HYPE2xL | `0xb200000000000000000000a2017cDBe6C67943f2` | `0xf03fae0b6186127a75a0199ec2206fc484d87d771249eaaa3273feb8eeaa1201` | 5,101,183 |
+| 7 | SOL2xL | `0xB200000000000000000000D96958F9f5261C833E` | `0x4779a46f329dd648a988231b61269699846216fdba6774ba3fee116ef917dff2` | 8,562,975 |
+| 8 | ZEC2xL | `0xB20000000000000000000058330Df506882E5414` | `0xf8afa4f573d77256858a9c2a235788ac3c7ac43f59a8085c170e9e658d7328cc` | 4,626,000 |
+| 9 | AERO2xL | `0xb200000000000000000000c9b1245A5dfA2B0330` | `0x25e1b3e5cbbefe400bfe8734af3649e01c625ab21684a438c398f0fd03dad181` | 10,280,000 |
+| 10 | DOGE2xL | `0xb200000000000000000000EC9F09Aac2EF156A30` | `0x73392a539251c1e078bcb39496e4396e872c45b6f3eee110275b62d043567901` | 6,060,283 |
+| 11 | META2xL (24/7) | `0xB200000000000000000000424C01815023337579` | `0x01bac7813803bb976b0331b4194354e14e77052b6c9bc97911de37373559796a` | 6,706,000 |
+| 12 | AAPL2xL (24/7) | `0xB2000000000000000000000F0e67e61cB92DfcD7` | `0xb975aebd20666080c6e4744adb5afc2d338b0a85e8c4c57b461ee25b068e7003` | 4,994,988 |
+| 13 | GOOGL2xL (24/7) | `0xB2000000000000000000009d4d399289638fc54A` | `0xc5cedee5a52a50e7d98bae592390ac552f4f63bb778c73d68587e1a2b975f884` | 6,912,352 |
+| 14 | SPCX2xL (24/7) | `0xb2000000000000000000006141c3C67B314CBFc4` | `0xf0f44ea451f2f5a310d42b9345a1b3cb4a73d6e1d6338bbaea5a83ea44377e58` | 5,211,000 |
 
-**Exit-only markets (do not buy):**
-
-- id 0 ETH2x (`0xB20000000000000000000020a813f90628801EF6`) can still be sold on its pool.
-- ids 1-5 (BTC2x, ETHMAX, XRP2x, NVDA2x, the earlier ETH2xS) exit through `issuer.unwind(id, amount, minUsdcOut, to)`, after `token.approve(issuer, amount)`.
-- ids 12-15 were never seeded.
+**Retired generation (do not buy):** old ids 0-24 on the retired hook `0x2f4a713980425DF85b2B756C7484565A9b8778C8` and issuer `0x56a3e32134521Cefe75a2B8dB25D29a45E331BdD`. Holders move into the live market with the migrator (below), or exit with `token.approve(retiredIssuer, amount)` then `retiredIssuer.unwind(oldId, amount, minUsdcOut, to)`. Each entry's `successor` in `known-contracts.json` is its live market id.
 
 The full list with vaults is in [`../known-contracts.json`](../known-contracts.json).
 
@@ -49,11 +45,11 @@ CLI:
 - `swap --market ETH2xL --side buy --amount 25 --wallet W` (USDC). Add `--pay ETH` to pay in ETH.
 - `swap --market ETH2xL --side sell --amount all --wallet W` sells the whole balance.
 - `perp-positions --wallet W`
-- `perp-unwind --market BTC2x --amount all --wallet W` for exit-only ids 1-5.
+- `perp-unwind --market <retired token> --amount all --wallet W` exits a retired market to USDC.
 
 ## Take-profit and stop-loss (limit orders)
 
-`FlashPerpsV5LimitOrders` `0xf5d94BE034944C8706a12B6B4d4dE0dbEbc10824` lists TP / SL orders on chain, like an NFT listing: the tokens stay in the wallet, and the holder approves the contract for the perp token. Allowlisted keepers fill an order when the **issuer's on-chain NAV** (`navPerToken(id)`) meets its trigger, by selling exactly `qty` in the market's perps pool on the holder's behalf. Cost basis, realized PnL and the QUANT loss reward move exactly as for a normal sell.
+`FlashPerpsV5LimitOrders` `0x6b9337131739D7C368dFFc08E6b2f4D007961f06` lists TP / SL orders on chain, like an NFT listing: the tokens stay in the wallet, and the holder approves the contract for the perp token. Allowlisted keepers fill an order when the **issuer's on-chain NAV** (`navPerToken(id)`) meets its trigger, by selling exactly `qty` in the market's perps pool on the holder's behalf. Cost basis, realized PnL and the QUANT loss reward move exactly as for a normal sell.
 
 - **Take profit** (`kind 0`): fills at NAV >= `triggerNav`. The holder receives exactly `qty x triggerNav x 99.9%` (`takeProfitOut(qty, triggerNav)`); the fill reverts if the sale pays less.
 - **Stop loss** (`kind 1`): fills at NAV <= `triggerNav`. The holder receives the sale proceeds minus 0.1%, never less than their own `minOut` floor (the app default is 2% under `qty x stop`).
@@ -79,7 +75,7 @@ CLI:
 
 ## QUANT
 
-QUANT (`0xb2000000000000000000006a9881C01617b77B08`, max supply 6,942,000) is the perps loss-reward token. It trades against FLASH on the QUANT/FLASH FlashV3 pool, and its fees fund the QUANT treasury `0x6A7faA6B8F0C7f66dFCa2Bb5dd1BCa0915bc55E5`.
+QUANT (`0xB2000000000000000000008a865BAD54481CD395`, max supply 6,942,000) is the perps loss-reward token. It trades against FLASH on the QUANT/FLASH FlashV3 pool, and its fees fund the QUANT treasury `0x669Ef174655d011aE80f66aFeF97b6C8Cec3B568`.
 
 **How traders earn it (automatic, no claim):** selling or unwinding a perp at a **realized loss** makes the issuer mint QUANT to the seller in that same transaction.
 
@@ -103,7 +99,7 @@ CLI:
 
 API: `GET /v1/stack/quant` returns supply, issuer mints, price, volume and mint stats. Its `mints.lossUsdFloat` field is mis-scaled; use `mints.lossUsd`, which is USDC with 6 decimals.
 
-**QUANT stats lens:** `FlashPerpsV5Lens` `0x7D06a5C37fd91B85D6dC2f212467f1803895d0C2` reads the live issuer:
+**QUANT stats lens:** `FlashPerpsV5Lens` `0xCdF61E2DF06d19cbc95889Bcf454C8BCEBD916cB` reads the live issuer:
 
 | Call | Returns |
 | --- | --- |
@@ -116,9 +112,9 @@ API: `GET /v1/stack/quant` returns supply, issuer mints, price, volume and mint 
 
 `quant-status` reads it.
 
-## Migrating from the earlier perps (v1 -> V2)
+## Migrating from the earlier perps
 
-Holders of the retired generation (the `0x4f57...` hook's B20 tokens and legacy vault shares) move with the stateless migrator `0x87c9784070C4E134F7dE7627dA0038CA9f0473D6`:
+Holders of v1 perps (the `0x4f57...` hook's B20 tokens and legacy vault shares) and of the retired V5 generation (sold on its old pool through `0x2f4a713980425DF85b2B756C7484565A9b8778C8`) move into the live markets with the stateless migrator `0x297D61F5F231bb2E512f11f332Ea6B9E2709b9D3`:
 
 ```
 migrate((address token,uint256 amount,uint8 pull,uint256 permitDeadline,uint8 v,bytes32 r,bytes32 s,

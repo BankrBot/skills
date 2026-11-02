@@ -8,6 +8,9 @@ Contracts:
 | --- | --- |
 | Launchpad | `0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0` |
 | Launch router Q (use it for every new launch) | `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` |
+| Skip-graduation direct launcher (no bonding curve; see the Skip graduation section) | `0x63AeDafc52368A97db0B452D527FE963F18BC47e` |
+| Timed launch (see [Timed launch](#timed-launch-no-bonding-curve-launches-at-a-set-time)) | `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` |
+| Executor T (timed launches, `poolKeyForQuote`) | `0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2` |
 | Shapes registry | `0x79644eC342881E40efab1401eb5ceF265F93aE7D` |
 | Config | `0x64B866F63053680F14Da2f98a67C7b2BdFf960e6` |
 
@@ -16,7 +19,7 @@ Contracts:
 | Field | Values |
 | --- | --- |
 | `pair` | `0` ETH (graduated pool quote = WETH), `1` FLASH / "SUB" (quote = FLASH), `2` STOCK (quote = a tokenized stock), `3` PERP (quote = a live perp token) |
-| `quote` | STOCK: NVDAc, METAc, AAPLc, GOOGLc, AMZNc, MSFTc, MSTRc, SNDKc, SPCXc, TSLAc, MUc, PLTRc (addresses in [REVENUE-STOCKS-PORTFOLIO.md](REVENUE-STOCKS-PORTFOLIO.md)); usable only when `config.quoteRouteOf(stock).pool != 0`. PERP: live perp ids 6-11 and 16-24 only (never 0-5 or 12-15). `0x0` for ETH / FLASH. |
+| `quote` | STOCK: NVDAc, METAc, AAPLc, GOOGLc, AMZNc, MSFTc, MSTRc, SNDKc, SPCXc, TSLAc, MUc, PLTRc (addresses in [REVENUE-STOCKS-PORTFOLIO.md](REVENUE-STOCKS-PORTFOLIO.md)); usable only when `config.quoteRouteOf(stock).pool != 0`. PERP: live perp ids 0-14 only (never the retired generation). `0x0` for ETH / FLASH. |
 | `name`, `symbol` | symbol 1-12 letters or digits |
 | `mode` (curve split) | `0` Deep (participants 10% / liquidity 50% / creator churn 35% / protocol churn 5%), `1` Degen. Read `shapes.mode(id)` for the live split and the `enabled` flag. |
 | `preset` (owner Lattice / burn shape) | `0` Long-term, `1` Fast burn. Read `shapes.preset(id)`. |
@@ -81,11 +84,38 @@ Every launch and war entry needs token art. The API stores a profile keyed by (k
 
 Errors: `TOKEN_IMAGE_REQUIRED` (400), `TOKEN_PROFILE_SIGNATURE_REQUIRED` (401, no `profileAuth`), `TOKEN_PROFILE_SIGNATURE_EXPIRED` / `_INVALID` (401), `_REPLAYED` (409), `TOKEN_CONTENT_REJECTED` (422). See [ERRORS.md](ERRORS.md).
 
-Without a shell, the Flash MCP server (`https://api.tryflash.app/mcp`) does steps 2 and 4 for a launch: call `prepare_launch` with `from`, name, symbol, a non-empty description, imageUrl, `quoteToken` FLASH and a stock `rewardAsset` (e.g. NVDA); the first call returns `signMessage` plus `profileAuth { nonce, issuedAt }`; sign `signMessage` and call again with `profileAuth.signature` added. Use only that tool. The MCP `build_launch`, `build_war_action` and `prepare_war_entry` read an earlier launchpad and war, not launch-v5 / Token Wars V6: save a war profile with the direct POST (`"action": "war"`).
+Without a shell, the Flash MCP server (`https://api.tryflash.app/mcp`) does steps 2 and 4 for a launch: call `prepare_launch` with `from`, name, symbol, a non-empty description, imageUrl, `quoteToken` FLASH and a stock `rewardAsset` (e.g. NVDA); the first call returns `signMessage` plus `profileAuth { nonce, issuedAt }`; sign `signMessage` and call again with `profileAuth.signature` added. The MCP `build_launch`, `build_war_action` and `prepare_war_entry` target launch-v5 and Token Wars V6.
 
 Gas is **not constant**. A create measured 8.0M-8.7M gas, a first buy ~526k, later buys ~164k. A **locking** buy auto-graduates in the same transaction and needs at least 9M gas left (`AUTO_GRADUATE_GAS`), otherwise it reverts `InsufficientGasForGraduation()`. Use `eth_estimateGas`; it handles this.
 
 CLI: `launch-create --name "My Coin" --symbol MYC --pair PERP --quote ETH2xL --eth 0.01 --wallet W`, and add `--mode 1 --preset 1 --reward 0x...` for a shaped launch.
+
+## Timed launch (no bonding curve, launches at a set time)
+
+The Advanced option under "Skip graduation". The token is created immediately, so its address can be shared before it trades. Until the launch time anyone can enter; at the time, everything entered becomes one first buy.
+
+- Contract `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` (verified on Basescan and Sourcify), pools through executor `0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2`. Same treasury, reward asset, modes and owner ladder as a curve launch. Each launch has its own accounting.
+- Every launch opens at a $6,900 market cap. The first buy sets the price after that, and there is no cap on the raise.
+- Half of the FLASH entered goes to the creator at launch. The other half churns toward ETH during the countdown, then funds the first buy.
+- Tokens are shared in proportion to the FLASH each entrant put in. There is a $1 minimum entry, and entries close at `launchAt`.
+- `launchAt` must be 5 minutes to 30 days ahead. Flash keepers launch at that time; after one hour anyone can.
+
+| Action | CLI | MCP `build_timed_launch` action | Contract call |
+| --- | --- | --- | --- |
+| Create | `timed-create --name N --symbol S --pair ETH --in-minutes 60` (or `--at <unix or ISO>`, `--pay FLASH`, `--quote`, `--mode`, `--preset`, `--reward`) | `create` (after `prepare_launch`) | `createWithEth(input, minFeeFlash)` payable `0x1a94062f`, or `create(input)` `0x8e1a656a` after approving `currentCreationFee()` FLASH. `input` is `(name, symbol, pair, quote, shape, launchAt)` |
+| Enter | `timed-enter --token T --pay ETH\|USDC\|FLASH --amount N` | `enter` | `enterWithEth(token, minFlash)` payable `0x509e40f3`, or `enterWithToken(token, tokenIn, amountIn, minFlash)` `0x6213c708` after approving `amountIn` |
+| Launch | `timed-launch --token T` | `launch` | `launch(token, minQuote, minTokens)` `0xeea21274` |
+| Claim tokens and leftovers | `timed-claim --token T` | `claim` | `claim(token)` `0x1e83409a` |
+| Airdrop to entrants | `timed-airdrop --token T [--from N --count 100]` | `airdrop` | `airdrop(token, from, count)` `0xe1bc2967` |
+| Abort | `timed-abort --token T` | `abort` | `abort(token)` `0x90cbfa19` |
+| Refund | `timed-refund --token T [--account A]` | `refund` | `refund(token, account)` `0x5e30b8a6` |
+| Read | `timed-list`, `timed-info --token T --wallet W` | `get_timed_launch` | `launchOf(token)` (status: 1 open, 2 launched, 3 aborted), `enteredOf`, `claimableOf`, `leftoverOf`, `leftoverQuoteOf`, `abortable` |
+
+Save the token profile first ([Token profile](#token-profile-image-required-wallet-signed)). The new address is in `TimedLaunchCreated(token, creator, pair, quote, launchAt, fee, salt)`, and `timed-create` also returns `predictedToken`. After launch it trades like any launch: `swap --market T`.
+
+Keepers airdrop tokens after launch, so a claim is only needed to get them sooner. If the FLASH/ETH pool cannot take the whole sale, keepers use `launchPartial` and the unsold FLASH goes back to entrants with their tokens.
+
+A launch becomes abortable once entries close if its first buy would be under $10, or 3 days after its time if it still has not launched. Refunds can be sent by anyone, for any entrant.
 
 ## Trade the curve (phase 1, TRADING)
 
@@ -117,6 +147,18 @@ After graduation the token trades on its FlashV3 pool: `swap --market <token>` (
 CLI: `launch-graduate`, `launch-poke`, `launch-claim`, `launch-airdrop --from 0 --count 200`, `launch-refund`, `launch-creator-claim` (each `--token T --wallet W`).
 
 Verified 2026-10-24 by `eth_simulateV1` on Base: shaped create, then approve, `curve.buy`, `quoteSell`, `curve.sell`, `creatorFeesOwed`, `claimCreatorFees`, and `routerQ.buyWithEth`, all in one simulated block. Router creates for all four pairs (ETH, FLASH, STOCK NVDAc, PERP ETH2xL) also simulated.
+
+## What a launch pays its creator
+
+Run `launch-earnings --token T --wallet W` (MCP `get_launch_earnings`) after any launch. It lists each item below with its amount.
+
+| Income | Which launches | How it arrives | Action |
+| --- | --- | --- | --- |
+| Half of the raise, in FLASH | Timed | Paid to the creator at launch | None |
+| Curve creator fees, in FLASH | Curve | Claim | `launch-creator-claim --token T`, MCP `build_curve_trade` action `creator_claim`, `curve.claimCreatorFees(recipient)` `0xd6ae6e44` |
+| Your tokens from your own buy | Curve, timed | Keeper airdrop, or claim | `launch-claim --token T` works on both. MCP `build_curve_trade` or `build_timed_launch` action `claim` |
+| Creator cut of the token's treasury income | All | Keepers pay it to the recipient | None. Change the split or recipient with `treasury-shares --token T --reward-bps N --lp-bps N [--recipient A]`, MCP `build_treasury_shares` |
+| QUANT | PERP pairs | Minted to the creator on a sweep | `quant-sweep --token T`, or `sweep(poolId)` on the FlashV3 ledger `0xB6267C0bFcbBEE354723f9f97b255Da287729A07`. Anyone can send it |
 
 ## Per-token treasuries (treasury-v3)
 

@@ -96,11 +96,18 @@ const Q = K.pools['QUANT/FLASH'];
 export const QUANT_POOL = { name: 'QUANT/FLASH', kind: 'v3', id: Q.id, key: Q.key, token: K.tokens.QUANT.address, quote: K.tokens.FLASH.address, tokenSymbol: 'QUANT', quoteSymbol: 'FLASH', tokenDecimals: 18, quoteDecimals: 18, gas: BigInt(Q.gasFloorTx) };
 export const V3_GAS = BigInt(Q.gasFloorTx);
 
+/** USDC / perp pool key, currencies sorted; a retired (exitOnly) market sits on the retired hook. */
+export function perpKey(market) {
+  const usdc = K.tokens.USDC.address;
+  const [currency0, currency1] = BigInt(usdc) < BigInt(market.token) ? [usdc, market.token] : [market.token, usdc];
+  return { currency0, currency1, fee: 0x800000, tickSpacing: 1, hooks: market.exit ? K.perps.retired.hook : K.perps.hook };
+}
+
 export function perpPool(market) {
   return {
     name: market.symbol, kind: 'perps', marketId: market.id, id: market.poolId,
-    key: { currency0: K.tokens.USDC.address, currency1: market.token, fee: 0x800000, tickSpacing: 1, hooks: K.perps.hook },
-    token: market.token, quote: K.tokens.USDC.address, tokenSymbol: market.symbol, quoteSymbol: 'USDC', tokenDecimals: 18, quoteDecimals: 6, gas: BigInt(market.gasTx),
+    key: perpKey(market),
+    token: market.token, quote: K.tokens.USDC.address, tokenSymbol: market.symbol, quoteSymbol: 'USDC', tokenDecimals: 18, quoteDecimals: 6, gas: BigInt(market.gasTx ?? 0),
   };
 }
 

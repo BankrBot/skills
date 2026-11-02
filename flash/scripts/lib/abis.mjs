@@ -250,6 +250,8 @@ export const shapes = parseAbi([
 
 export const launchConfig = parseAbi([
   'function quoteRouteOf(address quote) view returns ((address adapter,address pool))',
+  'function ethUsdPrice() view returns (uint256)',
+  'function flashUsdPriceChecked() view returns (uint256)',
 ]);
 
 // ---------------------------------------------------------------- Token Wars V6
@@ -369,3 +371,45 @@ export const revenueShareRetired = parseAbi([
 ]);
 
 export { POOL_KEY, SHAPE, LATTICE_PARAMS };
+
+// ---------------------------------------------------------------- timed launches and creator cuts
+
+const TIMED_INPUT = `(string name,string symbol,uint8 pair,address quote,${SHAPE} shape,uint64 launchAt)`;
+
+export const timedLaunch = parseAbi([
+  `function create(${TIMED_INPUT} input) returns (address token)`,
+  `function createWithEth(${TIMED_INPUT} input,uint256 minFeeFlash) payable returns (address token)`,
+  'function enterWithEth(address token,uint256 minFlash) payable returns (uint256 flashIn)',
+  'function enterWithToken(address token,address tokenIn,uint256 amountIn,uint256 minFlash) returns (uint256 flashIn)',
+  'function launch(address token,uint256 minQuote,uint256 minTokens) returns (uint256 tokensOut)',
+  'function claim(address token) returns (uint256 tokens)',
+  'function airdrop(address token,uint256 from,uint256 count) returns (uint256 sent)',
+  'function abort(address token)',
+  'function refund(address token,address account) returns (uint256 reserved,uint256 churnFlash,uint256 churnWeth)',
+  'function launchesLength() view returns (uint256)',
+  'function launchAt(uint256 i) view returns (address)',
+  'function launchOf(address token) view returns ((address creator,uint64 launchAt,uint8 status,uint8 pair,address quote,uint64 createdAt,uint256 raised,uint256 creatorFlash,uint256 tokensOut,uint256 leftoverFlash,address quoteAsset,uint256 leftoverQuote,bytes32 poolId,address treasury,string name,string symbol))',
+  'function participantsLength(address token) view returns (uint256)',
+  'function enteredOf(address token,address account) view returns (uint256)',
+  'function claimableOf(address token,address account) view returns (uint256)',
+  'function leftoverOf(address token,address account) view returns (uint256)',
+  'function leftoverQuoteOf(address token,address account) view returns (uint256)',
+  'function settled(address token,address account) view returns (bool)',
+  'function abortable(address token) view returns (bool)',
+  'function currentCreationFee() view returns (uint256)',
+  'function minEntryUsd18() view returns (uint256)',
+  'function minDelay() view returns (uint32)',
+  'function maxDelay() view returns (uint32)',
+  'function keeperWindow() view returns (uint32)',
+  'function abortDelay() view returns (uint32)',
+]);
+
+export const directLaunch = parseAbi([
+  'function launchOf(address token) view returns ((address creator,uint8 pair,address quote,bytes32 poolId,address treasury,uint64 launchedAt))',
+]);
+
+export const treasuryShares = parseAbi([
+  'function sharesOf(address treasury) view returns (uint16 creatorRewardBps,uint16 creatorLpBps,address recipient,bool custom)',
+  'function setShares(address treasury,uint16 creatorRewardBps,uint16 creatorLpBps,address recipient)',
+  'function clearShares(address treasury)',
+]);
