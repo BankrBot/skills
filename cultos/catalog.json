@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "cultos",
+  "provider": "Cult OS",
+  "providerUrl": "https://www.cultos.dev",
+  "logo": "logo.png",
+  "demo": {
+    "title": "POST /wallet/x402-pay",
+    "language": "json",
+    "code": "{\n  \"url\": \"https://www.cultos.dev/services/builder-code-validator\",\n  \"method\": \"POST\",\n  \"body\": {\n    \"builderCode\": \"bc_rtkgzsuf\"\n  },\n  \"headers\": {\n    \"Content-Type\": \"application/json\"\n  },\n  \"maxPaymentUsd\": 0.001\n}"
+  },
+  "setup": [
+    "Fund your Bankr wallet with USDC on Base. No Cult OS account or API key is required.",
+    "Use a non-read-only Bankr API key with Wallet API access. Call the standard Wallet API with a JSON body and explicit application/json target header.",
+    "Choose a service and approve its spending cap. Aeon audits return a job to poll without another payment."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "cultos",
+    "command": "install the cultos skill from https://github.com/BankrBot/skills/tree/main/cultos"
+  }
+}
