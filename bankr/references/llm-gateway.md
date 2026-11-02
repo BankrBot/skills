@@ -20,15 +20,15 @@ Use bare, dotted IDs (`claude-opus-5.5`) in API calls and `bankr/<id>` in OpenCl
 
 | Provider | Examples |
 |----------|----------|
-| Anthropic | `claude-fable-5.1`, `claude-opus-5.5`, `claude-sonnet-5`, `claude-haiku-4.5` |
+| Anthropic | `claude-fable-5.1`, `claude-opus-5.5`, `claude-sonnet-5.5`, `claude-haiku-5.5` |
 | Google | `gemini-3.8-flash` (the Bankr agent's default model), `gemini-4-argon`, `gemini-3.1-pro`, `gemma-4-31b-it` |
 | Meta | `muse-wonder` |
-| OpenAI | `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` |
+| OpenAI | `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-luna`, `gpt-5.6-terra` |
 | xAI | `grok-4.7`, `grok-4.20` |
 | DeepSeek | `deepseek-v4-pro-0813`, `deepseek-v4.1-flash` |
 | Alibaba | `qwen3.8-max`, `qwen3.8-flash`, `qwen3-coder` |
-| Moonshot AI | `kimi-k3`, `kimi-k2.7-code` |
-| MiniMax | `minimax-m3`, `minimax-m2.7-highspeed` |
+| Moonshot AI | `kimi-k3.1-pro`, `kimi-k2.7-code` |
+| MiniMax | `minimax-m3.1-flash`, `minimax-m3` |
 | Z.ai | `glm-5.3`, `glm-5.3-flash`, `glm-5.3-flashx` (a faster, pricier sibling of Flash, not its successor) |
 
 - Anthropic-style IDs work too: `claude-opus-4-8` and date-suffixed IDs map to the dotted form, and Claude Code's `[1m]` suffix is stripped.
@@ -77,7 +77,7 @@ Max Mode runs the Bankr agent itself on a gateway model instead of its default (
 
 - **Only frontier, flagship and balanced lines are offered.** Light models such as `claude-haiku-4.5`, `gpt-5.6-luna` or `glm-5.3-flash` stay available on the gateway API, but the Agent API answers `400` if you ask for one in Max Mode.
 - **Per request:** `bankr agent "analyze my portfolio" --model claude-opus-5.5` (or `-m`), or `maxMode: { "enabled": true, "model": "<id>" }` on `POST /agent/prompt`. The CLI accepts only the two newest releases of each offered line and rejects other IDs before sending. The API also accepts an older release of an offered line while the gateway still serves it.
-- **Wallet-wide:** choosing **Max** in Bankr Console's composer mode menu, and a model in its picker, saves the choice on the wallet; on X, Telegram, Farcaster or text, asking Bankr to switch to a named model (or back to Fast) does the same. It then applies everywhere: web, X, Farcaster, Telegram, automations, and CLI or API prompts sent without `--model`. If the gateway later removes the saved model, the saved choice moves to its replacement or the newest model in the same line; if Max Mode stops offering it, Max Mode is switched off. A removed model named explicitly in a request gets the `410` instead.
+- **Wallet-wide:** choosing **Max** in Bankr Console's composer mode menu, and a model in its picker, saves the choice on the wallet; in Bankr Console, on X, Telegram, Farcaster or text, asking Bankr to switch to a named model (or back to Fast) does the same. It then applies everywhere: web, X, Farcaster, Telegram, automations, and CLI or API prompts sent without `--model`. If the gateway later removes the saved model, the saved choice moves to its replacement or the newest model in the same line; if Max Mode stops offering it, Max Mode is switched off. A removed model named explicitly in a request gets the `410` instead.
 - **Credits are enforced per LLM call.** Your effective balance (spendable credit minus usage metered but not yet deducted) must be positive to start, and it becomes the run's budget, re-checked before every model call. When it runs out, the turn stops with its progress saved. The daily spend budget stops runs the same way.
 - **Out of credits at the start:** the agent asks you to top up rather than answer. On X it quietly uses the default model instead of posting a public top-up reply.
 - **Deduction is all-or-nothing.** A batch the balance can't fully cover leaves the balance untouched and the usage owed, and a later top-up settles it.

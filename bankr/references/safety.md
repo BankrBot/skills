@@ -13,7 +13,7 @@ These are enforced where transactions are signed, so they cover chat, the agent,
 | Daily spending limit | $500 per rolling 24h | Rejects a transaction that would push USD outflow past the limit |
 | Per-transaction limit | $500 | Rejects any single transaction priced above the limit |
 | Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%) |
-| Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown. While on, `/wallet/sign` and `sign_data` refuse transactions and 32-byte messages, whose recipient can't be checked, and token permits, transfer authorizations and CoW or 1inch orders to an unlisted address. Raw calls are checked on their `to` address only when they send native value; one that sends none isn't checked, because Bankr doesn't decode the recipient from calldata. Turn off arbitrary contract calls to block those |
+| Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown. While on, `/wallet/sign` and `sign_data` sign typed data only as a standard token permit or transfer authorization whose spender or recipient is listed (or your own), and refuse transactions, 32-byte messages and all other typed data (orders and NFT listings included), since their recipient can't be checked; plain messages still sign. Raw calls are checked on their `to` address only when they send native value; one that sends none isn't checked, because Bankr doesn't decode the recipient from calldata. Turn off arbitrary contract calls to block those |
 | Allow NFT transfers | On, 5 per rolling 24h | Off blocks NFT sends, direct ERC-721/1155 transfer calls, operator approvals (`setApprovalForAll`, ERC-721 `approve`) and signed NFT permits, raw ones included; on allows a set count (1–1,000). Marketplace sales and revocations aren't counted; NFTs moved inside a batch or smart-wallet call (multicall, Safe, ERC-7579) are. No timer |
 | Response channels | All on | Per channel (X, Farcaster, Telegram). Bankr stops replying on a disabled channel; Telegram `/start` and wallet linking stay live |
 
@@ -87,7 +87,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 - Hyperliquid perp and spot trades, closes and deposits, and opening Avantis positions. Withdrawing from Hyperliquid to your own wallet still works.
 - NFT purchases, Seadrop and Manifold mints, listings, accepting offers and creating collection offers.
 - Airdrops (both the general and the top-members tool), and scheduled prompt automations.
-- Over the Wallet API: every `/wallet/submit`, and `/wallet/sign` for `eth_signTransaction` and `eth_signTypedData_v4` (`personal_sign` still works). These answer `403 Restricted API key`.
+- Over the Wallet API: every `/wallet/submit`, and `/wallet/sign` for `eth_signTransaction`, `eth_signTypedData_v4` and a 32-byte `personal_sign` message (`403 Restricted API key`). The agent's `sign_data` refuses typed data and 32-byte messages the same way. Other messages, such as logins, still sign.
 
 The agent's error names the action and points at the key administrator. It isn't transient, so retrying won't help. Swaps are unaffected because their output returns to the wallet. If an agent needs these operations, give it a key without an allowlist and bound it with wallet spend limits and an IP allowlist instead.
 

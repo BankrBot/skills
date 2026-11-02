@@ -1,6 +1,6 @@
 # File Storage Reference
 
-Every Bankr wallet has a persistent filesystem. Documents the agent generates for you, files you upload, installed CLI skills and the agent's memory all live there, browsable, editable and shared across every surface the agent runs on. Because state lives on the wallet, the CLI, the web terminal, the API and the social platforms all see the same files. Docs: [docs.bankr.bot/agent/files](https://docs.bankr.bot/agent/files).
+Every Bankr wallet has a persistent filesystem. Documents the agent generates for you, files you upload, installed CLI skills and the agent's memory all live there, browsable, editable and shared across every surface the agent runs on. Because state lives on the wallet, the CLI, Bankr Console, the API and the social platforms all see the same files. Docs: [docs.bankr.bot/agent/files](https://docs.bankr.bot/agent/files).
 
 ## Tiers
 
