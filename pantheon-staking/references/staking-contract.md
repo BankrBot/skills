@@ -1,26 +1,23 @@
 # Pantheon StakingVault — contract reference (Base)
 
-Vault (V4 proxy): `0xBf52Aaf8b6C82FaD0220B5378022eA4fC0a98fDb` — Base mainnet, chain id 8453.
-Live implementation behind the proxy: **`0x1a614b8fa3971be5bd96d31c1b42a1d0040f1974`** (24,103
-bytes, solc 0.8.28). `VERSION()` returns **8**.
+Vault (proxy): `0xBf52Aaf8b6C82FaD0220B5378022eA4fC0a98fDb` — Base mainnet, chain id 8453.
+Live implementation behind the proxy: **`0xcBD6E8300676a0a2bdaE2A5f66E3f7F11939b75c`** (24,433
+bytes, solc 0.8.28, verified on Basescan). `VERSION()` returns **9** since 2026-10-28. The same
+implementation address and bytes are live on Robinhood Chain.
 
-> **Errata, 2026-08-25.** This file previously named `0xe0c448b467db7c65ed8a0827e057d81d526919b2`
-> as the live implementation and predated `VERSION` 8. That address was the **V7** build; the proxy
-> was upgraded on 2026-08-24 and the EIP-1967 implementation slot now reads `0x1a614b8f…`. The V7
-> build is still live — on Robinhood Chain, byte-for-byte ex-metadata; see
-> `staking-contract-rh.md`.
->
-> **The v1 verb signatures are unchanged, verified rather than assumed.** All five selectors used by
-> this skill were recomputed from their signatures and confirmed present in the new V8 runtime, and
-> `stakes()` still returns the same 9-field tuple:
+> **Errata, 2026-10-30 (V9).** Previous implementations: V7 `0xe0c448b4…19b2` (to 2026-08-24),
+> V8 `0x1a614b8f…1974` (to 2026-10-28). **The verb signatures this skill uses are unchanged across
+> V7 → V8 → V9, verified rather than assumed.** All five selectors were recomputed and confirmed
+> present in the V9 runtime on both chains, and `stakes()` still returns the same 9-field tuple:
 > `stake` `0x946debd5` · `accruedReward` `0x814b57b3` · `claimReward` `0x4953c782` ·
 > `pools` `0xa4063dbc` · `stakes` `0xa4e47b66`.
-> V8 adds delegated-staking verbs this skill does not call (`stakeOnBehalf` `0x45f54bfd`,
-> `addToStakeOnBehalf` `0x9b316ed6`, `initializeV5` `0x16e1f015`, `STAKER_FOR_ROLE` `0x0660bbee`) —
-> present on Base, absent on RH.
+> V9 adds `exitStamp(address,address)` `0x94adf580` (used in the position view) and
+> `claimMany(address,address[])` `0x80302060` (max 16 reward tokens; not used by this skill, which
+> claims one token per call). The delegated-staking verbs (`stakeOnBehalf` `0x45f54bfd`,
+> `addToStakeOnBehalf` `0x9b316ed6`) are now present on both chains.
 
-All signatures below were checked against the deployed ABI on 2026-08-07 and re-confirmed against
-the V8 runtime on 2026-08-25 at block 50,420,044.
+All signatures below were re-confirmed against the V9 runtime on 2026-10-30 at Base block
+53,281,080 and RH block 101,613,531.
 
 ## ABI fragments (call these exactly)
 
@@ -40,6 +37,7 @@ function stakes(address user, address stakingToken) view returns (
     uint32  stakeMonthIndex,
     bool    compounderEnabled
 )
+function exitStamp(address user, address stakingToken) view returns (uint256 exitMonth, uint8 kind)   // V9; kind 1 = requested unstake, 2 = emergency exit; (0,0) = not exited this cycle, including any exit requested before V9
 ```
 
 Selectors, if you need to match them: `stake` `0x946debd5` · `accruedReward` `0x814b57b3` · `claimReward` `0x4953c782` · `pools` `0xa4063dbc` · `stakes` `0xa4e47b66`.
@@ -55,11 +53,16 @@ Rules:
 ## Reading a position
 
 - `stakes(user, stakingToken)` returns the tuple above. Field `0` is the staked amount; field `7` (`stakeMonthIndex`) is the calendar-month anchor for every date the user cares about. Field `4` (`stakeTime`) is the raw stake timestamp — do **not** compute the lock end from it by adding six months; see `timing-and-fees.md`.
-- A position is empty when `amount == 0`.
+- **V9 exit states.** `amount == 0` with `unstakeTime` set = exited; the wallet may still hold
+  claimable rewards for months before the exit — check `accruedReward`. `amount > 0` with
+  `unstakeRequestTime` set = in the 7-day cooling-off; earning has already stopped. In both cases
+  `exitStamp(user, token)` gives the month earning stopped, for exits made under V9; an exit
+  requested before the 2026-10-28 upgrade returns `(0,0)` and has no month to quote. A position with `amount == 0` and
+  `exitStamp == (0,0)` is genuinely empty.
 
 ## Reward tokens — a pool can have several
 
-`accruedReward` and `claimReward` are **per reward token**. There is no "claim everything" call.
+`accruedReward` and `claimReward` are **per reward token**. V9 adds `claimMany(stakingToken, rewardTokens[])` for up to 16 tokens per call; this skill keeps claiming one token per call so every transaction stays single-purpose (one Base pool pays 18 tokens, above the batch limit anyway).
 
 **The only valid source is the registry's `reward_tokens` field.** Use it.
 
@@ -73,12 +76,17 @@ Measured on Base mainnet, 2026-08-07:
 
 | Pool | `poolRewardTokens` says | Actually also paying |
 |---|---|---|
-| FADED `0x21F9…3fEB` | 1 token (USDC) | **FADED itself — 19,791,666/mo, 475,000,000 total**, `isRewardTokenForPool` returns `false` |
-| BWIL `0xd830…f289` | 5 tokens | **BWIL itself — 11,875,000/mo, 285,000,000 total**, `isRewardTokenForPool` returns `false` |
+| FADED `0x21F9…3fEB` | 1 token (USDC) | **FADED itself — 19,791,666/mo, 475,000,000 total** |
+| BWIL `0xd830…f289` | 5 tokens | **BWIL itself — 11,875,000/mo, 285,000,000 total** |
+
+Re-read 2026-10-30 under V9: BWIL now appears in its own array, and the V9 upgrade registered every
+funded pair so `isRewardTokenForPool` now returns `true` for FADED/FADED — but FADED is **still
+absent from its `poolRewardTokens` array** (length 4). The rule stands: the array is not a
+complete list.
 
 An agent that enumerated the array on the FADED pool would report USDC only and miss the single largest reward stream in that pool.
 
-`isRewardTokenForPool(pool, token)` has the same defect — a `false` return is **not** evidence the pool doesn't pay that token.
+`isRewardTokenForPool(pool, token)` was backfilled for every funded pair at the V9 upgrade, but it is a registration flag, not a payout list — do not use it to enumerate either.
 
 **If the registry is unreachable:** tell the user you cannot confirm their full reward list right now and send them to https://pantheonvaults.com. A partial list presented as complete is worse than no list. You may still claim a specific reward token if the user names one — `accruedReward` and `claimReward` work correctly for any token, listed or not.
 
@@ -94,16 +102,15 @@ An agent that enumerated the array on the FADED pool would report USDC only and 
 | `0x1f2a2005` | ZeroAmount() | The stake amount was zero. |
 | `0x7cac15fa` | StakeAlreadyActive() | This wallet already has an active stake in that vault. Pantheon allows one position per wallet per vault; add to it on pantheonvaults.com. |
 | `0x3498ce58` | RestakeCooldownNotFinished() | This wallet unstaked from that vault recently and must wait 7 days before staking again. |
-| `0xb509bbcf` | CliffNotPassed() | The 6-month lock hasn't ended, so a normal unstake can't be requested yet. Give the lock-end date. Do not offer emergency exit as a workaround unless the user asks. |
-| `0x08c379a0` | Error(string) | **Not a vault error.** Decode the string and relay it. In practice this is the *token* contract, e.g. `"Insufficient allowance"` — the approve step was missed or was too small. Re-approve the exact amount. |
+| `0xb509bbcf` | CliffNotPassed() | An unstake was requested in the **same calendar month as the stake**. It is not a lock-end check: a normal unstake can be requested from the next month on, with the 10% principal penalty if before lock end. Do not offer emergency exit as a workaround unless the user asks. |
+| `0x08c379a0` | Error(string) | **Not a vault error.** Decode the string and relay it. From an older *token* contract this is typically `"Insufficient allowance"` — the approve step was missed or was too small. Re-approve the exact amount. |
+| `0xfb8f41b2` | ERC20InsufficientAllowance(address,uint256,uint256) | **Not a vault error.** The same allowance failure from an OpenZeppelin v5 token (most newer Base creator coins). Re-approve the exact amount. |
+| `0x13be252b` | InsufficientAllowance() | **Not a vault error.** Older-style allowance failure from the token contract (observed on WOLF). Re-approve the exact amount. |
+| `0xd93c0665` | EnforcedPause() | The vault is paused by its operators. Do not retry; check pantheonvaults.com. |
+| `0x42cc0c02` | MigrationPausedError() | Staking is temporarily paused during a vault migration. Do not retry; check pantheonvaults.com. |
 
-**Which error you get on a pool that doesn't exist depends on the call.** `stake` checks the pool first and reverts `InvalidPool` (`0x2083cd40`). `claimReward` checks the *position* first, so an unknown pool reverts `NoActiveStake` (`0xfb348942`), not `InvalidPool`. Don't read `NoActiveStake` from a claim as proof the vault is fine.
+**Which error you get depends on the call and its check order.** `stake` checks `ZeroAmount`, then `InvalidLockMonths`, then `InvalidPool` (`0x2083cd40`). `claimReward` checks the *position* first, so an unknown pool reverts `NoActiveStake` (`0xfb348942`), not `InvalidPool`. A wallet that exited under V9 skips the claim gates and gets `NoRewardToClaim` once its pre-exit months are claimed. Don't read `NoActiveStake` from a claim as proof the vault is fine.
 
-The last two rows were added 2026-08-25 from the Robinhood Chain pack, where both were observed
-live via `eth_call`. They are carried to Base on the strength of the shared contract lineage (byte-identical ex-metadata
-across chains, proven in `staking-contract-rh.md`) and the
-recomputed selectors above — `CliffNotPassed` is declared in the deployed Base ABI, and
-`Error(string)` `0x08c379a0` is the ERC-20 standard string revert, not a vault error at all. Flagged
-as carried-over rather than presented as separately measured on Base.
+Every row above was observed live on Base via `eth_call` on 2026-11-02 except `RestakeCooldownNotFinished`, `EnforcedPause` and `MigrationPausedError`, which are confirmed from the V9 source, and `Error(string)`, which was observed on Robinhood Chain (34 of 35 Base registry tokens returned `0xfb8f41b2`; WOLF returned `0x13be252b`).
 
 Any other revert: report the raw selector and link the user to pantheonvaults.com support. Do not improvise an explanation.

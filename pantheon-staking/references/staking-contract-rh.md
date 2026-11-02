@@ -1,30 +1,26 @@
 # Pantheon StakingVault — contract reference (Robinhood Chain)
 
 Vault (proxy): `0x541E0a67558bAd0FFb5CD61C7BA2ebB392F33edB` — Robinhood Chain, **chain id 4663**.
-Live implementation behind the proxy: `0xb43e88d96c1c99c7949a32b4996b84181126176d`.
-`VERSION()` returns **7**. All facts below were read live from chain on **2026-08-25**; the pool,
-token and fee reads at block **45,334,150**, and the implementation, arity, selector and gas
-re-checks at block **45,414,502** after the registry shipped.
+Live implementation behind the proxy: **`0xcBD6E8300676a0a2bdaE2A5f66E3f7F11939b75c`** — the
+**same V9 implementation address and bytes as Base** (24,433 bytes, solc 0.8.28). `VERSION()`
+returns **9** since 2026-10-28. Facts below were re-read live on **2026-10-30** at block
+**101,613,531**; earlier dates are kept where a measurement has not been repeated.
 
-**Read this first if you already know the Base pack.** RH is the same contract at an
-*older* version. Base upgraded to V8 on 2026-08-24; **RH did not**. Two consequences that matter
-more than anything else on this page:
+**Read this first if you already know the Base pack.** Since 2026-10-28 RH and Base run
+**identical code**. What still differs is chain-specific: the vault and treasury addresses, gas (the
+user pays), the registry allow-list, and the history-dependent facts below.
 
-1. **`poolRewardTokens` is COMPLETE on RH** — the exact opposite of Base. The long warning in the
-   Base pack does not apply here. Verified below.
-2. **Both chains' vaults are controlled by 2-of-6 multisigs.** RH was migrated from a single EOA
-   on 2026-08-26; see the custody note at the end of this file.
+1. **`poolRewardTokens` is COMPLETE on RH** — because every RH funding went through the V3+ path.
+   Verified below; still a measured fact with a date, not a contract guarantee.
+2. **Both chains' vaults are controlled by 2-of-6 multisigs.** See the custody note at the end.
 
 ## Shared lineage — proven, not asserted
 
-The RH implementation runtime is **byte-identical (ex-metadata) to the Base V7 implementation**
-`0xe0C448B467dB7C65Ed8A0827e057D81D526919b2` — 22,159 bytes on both, same solc metadata trailer
-(`64736f6c634300081c` → 0.8.28). It is **not** the Base V8 build (24,103 bytes).
-
-So RH runs the same code Base ran before the PRD-085 upgrade. The V8-only delegated-staking
-verbs are confirmed absent from the RH runtime: `stakeOnBehalf` (`0x45f54bfd`),
-`addToStakeOnBehalf` (`0x9b316ed6`), `initializeV5` (`0x16e1f015`), `STAKER_FOR_ROLE`
-(`0x0660bbee`).
+The RH proxy points at the same implementation address as Base, deployed by CREATE2 on both
+chains, with sha256 of the runtime `9d667655…848b` on both. Every verb in this file therefore has
+the same selector and the same behaviour as on Base, including the delegated-staking verbs
+(`stakeOnBehalf` `0x45f54bfd`, `addToStakeOnBehalf` `0x9b316ed6`), which have been present on RH
+since its V8 upgrade of 2026-09-13 (block 61,881,240).
 
 ## ABI fragments (call these exactly)
 
@@ -60,9 +56,9 @@ nothing here.
 
 Rules — unchanged from Base, all confirmed live:
 - `lockMonths` is always `6`; `12` reverts `InvalidLockMonths` (proven).
-- `autoRestakeOptIn` always `false` (skill policy). **The contract does not enforce this on RH** —
-  passing `true` is accepted by the vault and fails later at the token transfer. The policy is the
-  skill's to hold, not the chain's.
+- `autoRestakeOptIn` always `false` (skill policy). **The contract does not enforce this** —
+  passing `true` is accepted and opens an auto-restake position (observed live on Base under V9).
+  The policy is the skill's to hold, not the chain's.
 - Amount is the **third** argument, after `lockMonths`.
 - Amounts are raw units (`human * 10^decimals`).
 - Check `pools(token).active == true` before staking.
@@ -78,12 +74,15 @@ stakes(0xa831c6b7…8d3b, 0x0762…a991)
   unstakeTime 0 · stakeMonthIndex 679 · compounderEnabled false
 ```
 
-A position is empty when `amount == 0`. A wallet that has exited shows `amount 0` with
-`unstakeTime` set — that combination is what triggers the restake cooldown, not an error state.
+A wallet that has exited shows `amount 0` with `unstakeTime` set — that combination triggers the
+restake cooldown, not an error state. **Under V9 it may still hold claimable rewards** for months
+before the exit: read `exitStamp(user, token)` (`0x94adf580`) → `(exitMonth, kind)` and
+`accruedReward` per reward token. See the Base pack for the full V9 exit-state table; it applies
+here unchanged.
 
 ## Reward tokens — the Base warning does NOT apply here
 
-`accruedReward` and `claimReward` are per reward token; there is still no "claim everything" call.
+`accruedReward` and `claimReward` are per reward token. V9 adds `claimMany` (max 16); this skill still claims one token per call.
 
 **On RH, `poolRewardTokens` is complete and safe to read.** Verified two ways at block 45,334,150:
 
@@ -94,7 +93,7 @@ A position is empty when `amount == 0`. A wallet that has exited shows `amount 0
 
 | Pool | `poolRewardTokens[]` | funded set from events | match |
 |---|---|---|---|
-| LNOC `0x0762…a991` | LNOC, USDG, Jimothy, JUBAKO | LNOC, USDG, Jimothy, JUBAKO | ✅ exact |
+| LNOC `0x0762…a991` | LNOC, USDG, Jimothy, JUBAKO (+4 more since: 8 total at 2026-10-30) | matches the funded set | ✅ exact |
 | tTEST `0xf2b0…18b0` | USDG, DIH | USDG, DIH | ✅ exact |
 
 **Still prefer the registry when one exists** (see below) — the array is complete *today* because
@@ -104,11 +103,11 @@ Base. Treat "complete on RH" as a measured fact with a date on it, not a propert
 
 ## Live pools and token facts
 
-Both read live. **There are exactly two pools with any activity on RH.**
+Read live 2026-08-25; re-checked 2026-10-30. **The registry allow-list still serves only LNOC.** The chain itself now has 8 active pools (several RH creator launches since August); none of the others is served to this skill, by design.
 
 | Pool token | Symbol | Name | Decimals | `active` | `cliffMonths` | `totalStaked` |
 |---|---|---|---|---|---|---|
-| `0x076277c3d6b57B4aad34c592cd2f138e9316a991` | LNOC | Late Night Onchain | 18 | `true` | 0 | 3,111,779.42 LNOC |
+| `0x076277c3d6b57B4aad34c592cd2f138e9316a991` | LNOC | Late Night Onchain | 18 | `true` | 0 | 6,917,804.59 LNOC (2026-10-30) |
 | `0xf2b08B425871bB59AEdE103d5b58E655A87118B0` | tTEST | **RH Vault TEST** | 18 | `true` | 0 | 101 tTEST |
 
 Reward tokens across both pools:
@@ -120,6 +119,10 @@ Reward tokens across both pools:
 | `0xdBCec8db3e21C1612a22b39D195D7D654cAD00Af` | Jimothy | Jimothy The Raccoon | 18 | |
 | `0x141D1cFA7b93692e2A959185Ce845E4E48Fa0074` | JUBAKO | JUBAKO | 18 | |
 | `0x0c1eD62D7811e5b437e537Ac9d0592469C119C74` | DIH | Dih | 18 | tTEST pool only |
+| `0x2286397228be256529BE1ae9ed8D7d16549e9C6A` | RWI | Real World Impact | 18 | LNOC pool; same symbol and name as the next row |
+| `0xDa2598c976E62E7E15DcCa75169B404712E48B04` | RWI | Real World Impact | 18 | LNOC pool; same symbol and name as the previous row |
+| `0x571E7479bcc346501B63963668112CAD76848B72` | NICK | Nick Researcher | 18 | LNOC pool |
+| `0x11c0F3Aa90017089F9223c34AeF4310760deB76F` | RECALL | Recall | 18 | LNOC pool |
 
 **USDG is 6-decimal.** Every other token here is 18. A 6-vs-18 mistake on USDG is a 10¹²-factor
 error; never infer decimals, always read them.
@@ -158,6 +161,7 @@ Verified live, 2026-08-25:
         { "address": "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168", "symbol": "USDG",    "decimals": 6  },
         { "address": "0xdBCec8db3e21C1612a22b39D195D7D654cAD00Af", "symbol": "Jimothy", "decimals": 18 },
         { "address": "0x141D1cFA7b93692e2A959185Ce845E4E48Fa0074", "symbol": "JUBAKO",  "decimals": 18 }
+        /* …8 entries at 2026-10-30, including two that share the symbol "RWI" — always show full addresses */
       ]
     }
   ]
@@ -200,8 +204,8 @@ Every value below was read from the RH vault, and every one is **identical to Ba
 - Claiming rewards costs **5%** of the claimed amount.
 - Unstaking normally, after the 6-month lock, costs **10%** of principal. Half is burned, half goes
   to treasury.
-- Emergency exit costs **20%** of principal **and forfeits unclaimed rewards**. Half burned, half
-  treasury.
+- Emergency exit costs **20%** of principal. Half burned, half treasury. Rewards earned in months
+  before the exit stay claimable (V9).
 - After requesting an unstake there is a **7-day** wait before the principal can be withdrawn.
 - After exiting, the same wallet cannot stake that vault again for **7 days**.
 
@@ -223,7 +227,7 @@ Every selector below was **observed live** on the RH vault via `eth_call`, not c
 | `0xfb348942` | NoActiveStake() | This wallet has no active stake in that vault. |
 | `0xea2d0505` | NotYetEarning() | Rewards aren't claimable yet — claiming opens at 00:00 UTC on the 1st of the second calendar month after staking. Give the date. |
 | `0x5aa9184d` | NoRewardToClaim() | Nothing to claim for that reward token right now. |
-| `0xb509bbcf` | CliffNotPassed() | The 6-month lock hasn't ended, so a normal unstake can't be requested yet. Give the date. Do not offer emergency exit as a workaround unless the user asks. |
+| `0xb509bbcf` | CliffNotPassed() | An unstake was requested in the **same calendar month as the stake**. It is not a lock-end check. Do not offer emergency exit as a workaround unless the user asks. |
 | `0x86d06e24` | NoUnstakeRequested() | Nothing to finalise — no unstake has been requested for this vault. |
 | `0xa79d0533` | CoolingOffNotFinished() | The 7-day wait after requesting an unstake hasn't elapsed. Give the date. |
 | `0x08c379a0` | Error(string) | **Not a vault error.** Decode the string and relay it. In practice this is the token, e.g. `"Insufficient allowance"` — the approve step was missed or was too small. |
@@ -234,9 +238,9 @@ confirmed live here: `stake` reverts `InvalidPool` (`0x2083cd40`); `claimReward`
 first and revert `NoActiveStake` (`0xfb348942`). Never read `NoActiveStake` from a claim as proof
 the vault is fine.
 
-`NoRewardToClaim` is the one row above **not** directly observed on RH — no wallet on this chain is
-yet past its first earning month. It is carried over on the strength of byte-identical bytecode.
-Flagged rather than presented as measured.
+`NoRewardToClaim` was observed live on RH on 2026-10-30 (claims have been live on this chain since
+2026-10-01). See the Base pack for `ERC20InsufficientAllowance` `0xfb8f41b2`, `EnforcedPause`
+`0xd93c0665` and `MigrationPausedError` `0x42cc0c02`, which apply here unchanged.
 
 Any other revert: report the raw selector and link to pantheonvaults.com support.
 
@@ -272,8 +276,8 @@ in the app for RH; searched and found nothing.
 today.**
 
 1. **`emergencyExit` — exclude, and do not mention it unprompted.** Probed live against a real RH
-   position it returns **no revert**: it would succeed. It costs 20% of principal *and* forfeits
-   unclaimed rewards, and it is irreversible. It is the only v1-adjacent verb that is destructive
+   position it returns **no revert**: it would succeed. It costs 20% of principal, stops earning
+   from the exit month, and is irreversible. It is the only v1-adjacent verb that is destructive
    on first call with no second confirmation from the chain.
 2. **`tTEST` `0xf2b0…18b0` — RESOLVED by the registry, and the reasoning still stands.** It is
    named "RH Vault TEST", it is `active == true` on mainnet, and it has a live reward stream;
@@ -286,12 +290,9 @@ today.**
    condition is met and RH write verbs may be enabled. The rule it protected is unchanged and
    absolute: **the registry is the only sanctioned token-resolution source on RH.** If it is
    unreachable, stop — do not enumerate chain state as a fallback.
-4. **`claimReward` is safe but currently inert.** No RH wallet is past its first earning month, so
-   every claim reverts `NotYetEarning`. Confirmed by reading the pool's own history: the earliest
-   LNOC stake is **2026-08-15**, `stakeMonthIndex` **679** (2026-08), so rewards accrue from
-   **2026-09-01** and the first claim opens **2026-10-01 00:00 UTC**. Enabling the verb is
-   harmless; expect it to do nothing useful before that date, and quote the date rather than
-   letting the user hit the revert.
+4. **`claimReward` is live on RH** since 2026-10-01 (the earliest LNOC stakes were in August
+   2026). Per-position timing still follows the calendar rule in `timing-and-fees.md`; a wallet
+   that staked this month still gets `NotYetEarning` until its own first-claim date.
 
 ### Custody note
 

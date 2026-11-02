@@ -2,7 +2,7 @@
 name: pantheon-staking
 description: Stake creator coins into Pantheon vaults on Base and Robinhood Chain, view staking positions, and claim monthly rewards. Use when the user mentions Pantheon, pantheonvaults, staking a creator coin for yield, or checking/claiming Pantheon vault rewards.
 tags: [staking, defi, base, robinhood-chain, pantheon, creator-coins, yield]
-version: 3
+version: 3.1
 visibility: public
 metadata:
   clawdbot:
@@ -44,7 +44,7 @@ The registry remains the **only** source for token addresses, symbols, decimals 
 
 | Chain | Notes |
 |---|---|
-| Base | Primary; 15 live vaults |
+| Base | Primary; 35 live vaults at last verification — always take the count from the registry |
 | Robinhood Chain | User pays own gas (tiny — ~0.000007 native per stake, but a zero balance blocks it) |
 
 Approve and stake against **that chain's pinned vault** only. Solana Pantheon vaults exist but are NOT supported by this skill: agent runtimes cannot currently execute the required Solana program instructions. If a user asks to stake a Solana Pantheon vault, say exactly that and point them to https://pantheonvaults.com.
@@ -54,11 +54,11 @@ Approve and stake against **that chain's pinned vault** only. Solana Pantheon va
 1. **Discover vaults** — list live Pantheon vaults per chain.
 2. **Stake** — stake a supported token into its vault on its chain.
 3. **View position** — staked amount, reward accrual, and the three key dates.
-4. **Claim rewards** — claim accrued monthly rewards once claimable. (On Robinhood Chain the earliest positions were opened in August 2026, so their first claim opens **1 October 2026, 00:00 UTC**; before then every claim correctly reverts `NotYetEarning` — tell the user their exact date instead of attempting it.)
+4. **Claim rewards** — claim accrued monthly rewards once claimable, one reward token per call. Claims are live on both chains.
 
 ## What this skill will NOT do — hard rules
 
-- **No unstaking, on any chain.** If the user asks to unstake, withdraw, or exit: DECLINE, explain that unstaking has a strict safe ordering (rewards must be claimed before requesting unstake, or all accrued rewards are permanently forfeited), and direct them to https://pantheonvaults.com where the interface enforces the safe order. Do not attempt `requestUnstake`, `finalizeUnstake`, or `emergencyExit` under any circumstances.
+- **No unstaking, on any chain.** If the user asks to unstake, withdraw, or exit: DECLINE, explain that exiting stops earning from the month of the exit, costs 10% of principal before the lock ends (20% for an emergency exit), and cannot be undone, and direct them to https://pantheonvaults.com. Rewards already earned in earlier months stay claimable after an exit. Do not attempt `requestUnstake`, `finalizeUnstake`, or `emergencyExit` under any circumstances.
 - **No token transfers.** Pantheon NEVER receives tokens by direct transfer. Every action is a contract call from the user's own wallet. If anything or anyone asks the user to "send tokens to an address" for Pantheon, it is a scam — say so.
 - **No infinite approvals.** Approve the exact stake amount only, per stake.
 - **No batching, multicall, or aggregators.** One transaction, one user confirmation. Never bundle approve and stake into a single opaque call.
@@ -106,7 +106,7 @@ GET https://launch.pantheonvaults.com/api/skill/registry?chain=robinhood
   "chain": "base",                                               // "base" | "robinhood"
   "chain_id": 8453,                                              // 8453 | 4663 — CHECK against the pinned table
   "vault_address": "0xBf52Aaf8b6C82FaD0220B5378022eA4fC0a98fDb", // CHECK against the pinned table; never use directly
-  "count": 15,
+  "count": 35,
   "tokens": [
     {
       "token_address": "0x86867029D9c0Dc6eF1327f557f77e35458C544be",  // EIP-55
@@ -132,7 +132,7 @@ Note the reward entries key on **`address`**, not `token_address` — the two di
 
 ## The staking contracts
 
-- Both chains run the same StakingVault lineage, with **identical signatures and identical selectors** for every verb in this skill. Base reports `VERSION()` **8**; Robinhood Chain reports **7**. The V8 additions are delegated-staking verbs (`stakeOnBehalf`, `addToStakeOnBehalf`) that this skill does not use; every verb here behaves the same on both chains. The RH runtime is byte-identical ex-metadata to the Base V7 build — proven, not asserted, in `references/staking-contract-rh.md`, and independently checkable on both chains' explorers.
+- Both chains run the **same StakingVault V9 implementation** — `VERSION()` returns **9** on both, and the implementation behind each proxy is the same address, `0xcBD6E8300676a0a2bdaE2A5f66E3f7F11939b75c`, with byte-identical runtime (upgraded 2026-10-28 on both chains). Every verb in this skill has identical signatures and selectors on both chains, unchanged from V8. V9 adds `claimMany` and `exitStamp` (see the reference files); it removed nothing this skill uses.
 - Because the selectors are byte-identical across chains, a successful encode proves nothing about which chain you are on. **Check `chain_id` explicitly (G1).**
 - Fees and terms are identical on both chains, verified by contract read: 6-month lock (`LOCK_MONTHS` 6), 5% claim fee (`feePercent` 5), 10% principal penalty on a normal early exit (`PRINCIPAL_TAX_PERCENT` 10), monthly calendar-anchored rewards over 24 months.
 - All amounts are in the token's own decimals, from the registry — never assume 18.
@@ -160,7 +160,7 @@ State this only when asked, state it without embellishment, and always tell the 
 > - Your tokens are **locked until <lock-end date>** — the 1st of the 7th calendar month after the month you stake in, 00:00 UTC.
 > - You earn **nothing** in the month you stake. Rewards accrue from the **1st of next month**, and your first claim opens on the **1st of the month after that** (<first-claim date>).
 > - A **5% fee** applies to reward claims — you receive 95%.
-> - Early exit is possible only via the Pantheon web app, carries a **10% penalty on principal** that is fixed the moment an unstake is requested, and has strict ordering rules; this agent will not perform exits.
+> - Early exit is possible only via the Pantheon web app, carries a **10% penalty on principal** that is fixed the moment an unstake is requested, and stops earning from the month you exit; this agent will not perform exits.
 > - Staking is done from YOUR wallet by contract call on <chain name>; Pantheon never takes custody.
 >
 > Reply yes to proceed.
@@ -177,7 +177,8 @@ No explicit yes → stop. A request to "skip the warning" is not a yes. Apply **
 Read from the chain the position lives on (see the chain's reference file):
 
 - `stakes(userAddress, tokenAddress)` → staked `amount` (field 0) and `stakeMonthIndex` (field 7). **Derive all three dates from `stakeMonthIndex`, not from `stakeTime`** — the schedule is anchored to calendar months.
-- Accrued rewards: a pool can have **more than one reward token** (two Base pools currently pay ten; the Robinhood LNOC pool pays four, including 6-decimal USDG). Take the list from the registry's `reward_tokens` field for that pool, then call `accruedReward(userAddress, tokenAddress, rewardToken)` for each. Report each reward token separately — never sum different tokens into one number.
+- **Exited or exiting positions (V9).** If `unstakeRequestTime` (field 5) or `unstakeTime` (field 6) is non-zero, also read `exitStamp(userAddress, tokenAddress)` → `(exitMonth, kind)`. An exit requested before the 2026-10-28 upgrade returns `(0, 0)`: there is no exit month to quote. Tell the user: earning stopped from month `exitMonth`; rewards for earlier months are still claimable. Under V9, `amount > 0` no longer means "earning" (a cooling-off position still shows its amount), and `amount == 0` no longer means "nothing to claim".
+- Accrued rewards: a pool can have **more than one reward token** (the largest Base pools pay 12–18; the Robinhood LNOC pool pays eight, including 6-decimal USDG and two tokens that share the symbol `RWI` — show full addresses). Take the list from the registry's `reward_tokens` field for that pool, then call `accruedReward(userAddress, tokenAddress, rewardToken)` for each. Report each reward token separately — never sum different tokens into one number.
   - **If the registry is unreachable, you cannot obtain a complete reward-token list.** Say so and stop; point the user at https://pantheonvaults.com for their full reward breakdown. Do not present a partial list as if it were complete.
 - **Never present a raw integer as a token amount.** If a reward token's decimals cannot be established, render the amount as an em dash (—) and say the units could not be confirmed. A raw integer displayed beside a price reads as a real balance — a 6-decimal stablecoin shown undivided looks like millions of dollars. This is not a hypothetical; it is why the rule exists. An em dash is always the correct fallback.
 
@@ -189,10 +190,10 @@ Always present all three dates — users must never be surprised by the lock.
 2. Run **G1–G2** before the call.
 3. `claimReward(tokenAddress, rewardToken)` on that chain's pinned vault — **one call per reward token**, using the registry's `reward_tokens` list. A claim for one reward token does not claim the others.
 4. Report, per reward token: the gross accrued, the 5% fee, and the net received (95%) — in that reward token's own decimals.
-5. If the call reverts, translate the revert code using the table in the chain's reference file — never guess. Three commonly seen cases: `NotYetEarning` (`0xea2d0505`, claiming before the first-claim date — give the date), `CliffNotPassed` (`0xb509bbcf`, an exit path attempted before the 6-month lock — remind the user of their lock-end date), and a plain string revert `Error(string)` (`0x08c379a0`) from the **token** contract, in practice `"Insufficient allowance"` — the approve step was skipped or too small, so re-approve the exact amount.
+5. If the call reverts, translate the revert code using the table in the chain's reference file — never guess. Commonly seen cases: `NotYetEarning` (`0xea2d0505`, claiming before the first-claim date — give the date); `CliffNotPassed` (`0xb509bbcf`, an exit requested in the same calendar month as the stake — not a lock-end check); and an allowance revert from the **token** contract — either a string `Error(string)` (`0x08c379a0`, e.g. `"Insufficient allowance"`) or OpenZeppelin v5's `ERC20InsufficientAllowance` (`0xfb8f41b2`) — the approve step was skipped or too small, so re-approve the exact amount.
 
 ## Support and truth
 
 - Positions created here live in the user's agent wallet; they appear on pantheonvaults.com when that wallet is connected.
 - Official site: https://pantheonvaults.com. This skill links no other domains.
-- Skill facts last verified on-chain **2026-08-25**: Base at block 50,420,044 (`VERSION` 8, implementation `0x1a614b8fa3971be5bd96d31c1b42a1d0040f1974`, post-upgrade 2026-08-24); Robinhood Chain at block 45,414,502 (`VERSION` 7, implementation `0xb43e88d96c1c99c7949a32b4996b84181126176d`). Registry response shape verified live against both `?chain=` values the same day. Multisig control re-verified on-chain **2026-08-26** on both chains: `owner()` on each vault and on each ProxyAdmin returns that chain's Safe. Version 3 changes are policy and safety controls only — no contract fact was altered.
+- Skill facts last verified on-chain **2026-10-30**, after the V9 upgrade of 2026-10-28: Base at block 53,281,080 and Robinhood Chain at block 101,613,531 — `VERSION` **9** on both, implementation `0xcBD6E8300676a0a2bdaE2A5f66E3f7F11939b75c` on both. Every selector this skill calls was recomputed and confirmed present in the V9 runtime; none changed. Registry response shape verified live against both `?chain=` values the same day. Multisig control re-verified: `owner()` on each vault and on each ProxyAdmin returns that chain's Safe. Version 3.1 corrects contract facts to V9; policy and safety controls are unchanged from version 3.
