@@ -49,7 +49,7 @@ above when trading on another chain.
 | Chain | id | Status | Addresses |
 |-------|----|--------|-----------|
 | Base | 8453 | Live | `VITE_CLASH_CARDS_ADDRESS` / card manager / `$CLASH` — see `references/contract-api.md` |
-| Robinhood Chain | 4663 | **Not deployed yet** | Read from `RH_CLASH_CARDS_ADDRESS`, `RH_CARD_MANAGER_ADDRESS`, `RH_CLASH_TOKEN_ADDRESS` |
+| Robinhood Chain | 4663 | **Live** | Read from `RH_CLASH_CARDS_ADDRESS`, `RH_CARD_MANAGER_ADDRESS`, `RH_CLASH_TOKEN_ADDRESS` (bridged Base `$CLASH`; same prices as Base) |
 
 On Robinhood Chain the `$CLASH` token is a separate token with its own
 supply, so the chest prices are expected to differ from the Base table.

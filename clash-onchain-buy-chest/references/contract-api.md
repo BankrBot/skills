@@ -13,20 +13,20 @@ The addresses below are the **Base mainnet** deployment.
 
 | Contract | Address |
 |----------|---------|
-| `$CLASH` (18 decimals, 1B supply) | `0xbD719784F6BF693E20bA520dF81FDa6B202249Aa` |
+| `$CLASH` (18 decimals, 1B supply) | `0xe577182a9a29af25675b3563f3b96aa948b5df19` |
 | ClashCards (ERC-1155) | `0x92f1185a7668c3730a2b3222db3047ae6135beca` |
-| ClashCardManager | `0x83547652ba08aa70ba7c96b8369bd2bcfe4fefd2` |
-| ClashRewardClaim | `0xf5d330d5b8e0f332ef453ea50b8ac947a0430a87` |
+| ClashCardManager | `0x17d7509ab855d7fda63d1391cc3d81c891f68f32` |
+| ClashRewardClaim | `0x12c6481345dc16688c6ec7a932ff033be4b3aec7` |
 
 They are also published as `RH_CLASH_CARDS_ADDRESS`, `RH_CARD_MANAGER_ADDRESS`,
 `RH_CLASH_TOKEN_ADDRESS` and `RH_REWARD_CONTRACT_ADDRESS`.
 
-On Robinhood Chain the `$CLASH` token is a separate token with its own supply,
-so read `chestCosts` and `getUpgradeCost` from the Robinhood contracts rather
-than reusing the Base numbers — the whole Robinhood economy is scaled 1/100
-(chest 10,000 / 30,000 / 50,000, upgrade 100,000 → 25,600,000, reward per win
-100 – 1,000). The EIP-712 domain uses chain id 4663, so a Base signature is
-never valid on Robinhood Chain.
+On Robinhood Chain the `$CLASH` token is **bridged from Base** — the same token
+with the same economy. The prices are still contract state, so read
+`chestCosts` and `getUpgradeCost` from the Robinhood contracts; the numbers
+match Base (chest 1,000,000 / 3,000,000 / 5,000,000, upgrade 10,000,000 →
+2,560,000,000, reward per win 10,000 – 100,000). The EIP-712 domain uses chain
+id 4663, so a Base signature is never valid on Robinhood Chain.
 
 ## ⚠️ Chest Type Enum
 
