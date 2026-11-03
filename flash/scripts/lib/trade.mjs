@@ -42,10 +42,14 @@ async function resolveLaunchedToken(token) {
 
 /** A launch with no curve: Skip graduation (direct launcher), or a timed launch once it has launched. */
 async function resolveCurvelessToken(token, registryId) {
-  const [direct, timed] = await Promise.all([
-    client.readContract({ address: K.launchV5.direct, abi: A.directLaunch, functionName: 'launchOf', args: [token] }),
-    client.readContract({ address: K.launchV5.timed, abi: A.timedLaunch, functionName: 'launchOf', args: [token] }),
+  // SORT-1103: each launch is on the current or the previous launcher
+  const read = (address, abi) => address ? client.readContract({ address, abi, functionName: 'launchOf', args: [token] }) : undefined;
+  const [directs, timeds] = await Promise.all([
+    Promise.all([K.launchV5.direct, K.launchV5.directPrev].map((address) => read(address, A.directLaunch))),
+    Promise.all([K.launchV5.timed, K.launchV5.timedPrev].map((address) => read(address, A.timedLaunch))),
   ]);
+  const direct = directs.find((r) => r && r.creator !== zeroAddress) ?? directs[0];
+  const timed = timeds.find((r) => r && r.status !== 0) ?? timeds[0];
   if (direct.creator !== zeroAddress) {
     const symbol = await client.readContract({ address: token, abi: A.erc20, functionName: 'symbol' });
     return launchedPool(token, { ...direct, symbol }, registryId);

@@ -77,8 +77,9 @@ Swap only through this Universal Router and quote only with this Quoter. The hoo
 | --- | --- |
 | Launchpad | `0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0` |
 | Launch router Q (ETH / FLASH / STOCK / PERP launches; use this) | `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` |
-| Skip-graduation direct launcher (no curve; ETH / USDC / FLASH pay, $10 min first buy) | `0x63AeDafc52368A97db0B452D527FE963F18BC47e` |
-| Timed launch (no curve; token exists before its launch time; entries pooled into one first buy) | `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` |
+| Skip-graduation direct launcher (no curve; ETH / USDC / FLASH pay, $10 min first buy) | `0xdb3D30df452350F2E7D00d1955FFc7A371B9c622` |
+| Timed launch (no curve; token exists before its launch time; entries pooled into one first buy) | `0x293dfFcF891d6527c7C16012764602Fa7670E4A5` |
+| Previous direct and timed launchers (until 2026-11-03; their launches stay readable and claimable there) | `0x63AeDafc52368A97db0B452D527FE963F18BC47e`, `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` |
 | Executor T (timed launches, `poolKeyForQuote`) | `0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2` |
 | Executor Q (`poolKeyForQuote`) | `0xF643E3ecc9966f02A270D487635D19EB2722479e` |
 | Config (`quoteRouteOf`) | `0x64B866F63053680F14Da2f98a67C7b2BdFf960e6` |

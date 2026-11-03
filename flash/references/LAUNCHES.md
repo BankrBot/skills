@@ -8,8 +8,8 @@ Contracts:
 | --- | --- |
 | Launchpad | `0x8aD3593A1c8a5249E7868975b2649B377c3bcCd0` |
 | Launch router Q (default-shape curve launches) | `0x2e6640bca34BC34f3F4EF31cb19527EA80987911` |
-| Skip-graduation direct launcher (no bonding curve; see [Skip graduation](#skip-graduation-direct-launcher-no-bonding-curve)) | `0x63AeDafc52368A97db0B452D527FE963F18BC47e` |
-| Timed launch (see [Timed launch](#timed-launch-no-bonding-curve-launches-at-a-set-time)) | `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` |
+| Skip-graduation direct launcher (no bonding curve; see [Skip graduation](#skip-graduation-direct-launcher-no-bonding-curve)) | `0xdb3D30df452350F2E7D00d1955FFc7A371B9c622` |
+| Timed launch (see [Timed launch](#timed-launch-no-bonding-curve-launches-at-a-set-time)) | `0x293dfFcF891d6527c7C16012764602Fa7670E4A5` |
 | Executor T (timed launches, `poolKeyForQuote`) | `0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2` |
 | Shapes registry | `0x79644eC342881E40efab1401eb5ceF265F93aE7D` |
 | Config | `0x64B866F63053680F14Da2f98a67C7b2BdFf960e6` |
@@ -122,9 +122,9 @@ Limits: PNG or JPEG only, up to 10 MB source, published at most 1024 px and 2 MB
 
 ## Skip graduation (direct launcher, no bonding curve)
 
-The Advanced option "Skip graduation" launches straight into the coin's FlashV3 pool. There is no curve and no presale; the creator's first buy is the first trade into the new pool, in the same transaction. Same treasury, reward asset, modes and owner ladder as a curve launch.
+The Advanced option "Skip graduation" launches straight into the coin's FlashV3 pool. There is no curve and no presale; the creator's first buy is the first trade into the new pool, in the same transaction. Same treasury, reward asset, modes and owner ladder as a curve launch. A STOCK or PERP launch's token always sorts below its quote (currency0), so charts read buys as buys.
 
-- Contract `0x63AeDafc52368A97db0B452D527FE963F18BC47e`. Pay with ETH, USDC or FLASH; the creation fee is taken from the payment. Minimum first buy $10 (`minFirstBuyUsd18()`), checked after the fee and before conversion.
+- Contract `0xdb3D30df452350F2E7D00d1955FFc7A371B9c622` (launches made before 2026-11-03: `0x63AeDafc52368A97db0B452D527FE963F18BC47e`). Pay with ETH, USDC or FLASH; the creation fee is taken from the payment. Minimum first buy $10 (`minFirstBuyUsd18()`), checked after the fee and before conversion.
 - `launchWithEth((name, symbol, pair, quote, shape), (feeIn, minFeeFlash, minQuote, minTokens))`, payable, `0xcf3e4e98`.
 - `launchWithToken((name, symbol, pair, quote, shape), (feeIn, minFeeFlash, minQuote, minTokens), tokenIn, amountIn)`, `0xe48ff9b6`. `tokenIn` is USDC or FLASH; approve `amountIn` first.
 - CLI: `launch-direct --name N --symbol S --pair ETH --pay ETH|USDC|FLASH --amount X [--quote] [--mode --preset --reward]`. `--amount` is the first buy, at least $10, and the fee is added on top. MCP: `build_direct_launch`, after `prepare_launch`. `--reward` is refused on STOCK and PERP pairs.
@@ -138,7 +138,7 @@ The Advanced option "Skip graduation" launches straight into the coin's FlashV3 
 
 The Advanced option under "Skip graduation". The token is created immediately, so its address can be shared before it trades. Until the launch time anyone can enter; at the time, everything entered becomes one first buy.
 
-- Contract `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67` (verified on Basescan and Sourcify), pools through executor `0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2`. Same treasury, reward asset, modes and owner ladder as a curve launch. Each launch has its own accounting.
+- Contract `0x293dfFcF891d6527c7C16012764602Fa7670E4A5` (verified on Basescan; launches made before 2026-11-03: `0x29B8bBfE84F7f2E87f907EacBB388949ef7c0D67`, where they claim and refund), pools through executor `0x2b03b491fDEfF24CBB46D6F5ce1645DAA4767fc2`. Same treasury, reward asset, modes and owner ladder as a curve launch. Each launch has its own accounting.
 - Every launch opens at a $6,900 market cap. The first buy sets the price after that, and there is no cap on the raise.
 - Half of the FLASH entered goes to the creator at launch. The other half churns toward ETH during the countdown, then funds the first buy.
 - Tokens are shared in proportion to the FLASH each entrant put in. There is a $1 minimum entry, and entries close at `launchAt`.

@@ -9,12 +9,15 @@ The churn (`0x35F1b89f4FEb2897CC1a6efF381d518D05824008`) is Flash's on-chain OTC
 | **Full range** | No floor: sells at any price, up to the market's fill cap. | Pro-rata with levels. No surplus fee. Claim the proceeds. |
 | **Lattice** | A bounded limit-order **curve record**: `count` segments of bins `widthTicks` wide from `startTick` upward, released lowest bin first. | In-swap. Proceeds are **pushed to the owner inside each fill** (no claim). Opening one is restricted (see below). |
 
-Markets the app trades (token / quote, both 18 decimals):
+Markets the app trades (token / quote, both 18 decimals; the app's token page offers limit orders on every graduated launch):
 
 | Market | id | Token tick |
 | --- | --- | --- |
 | FLASH/ETH (quote = WETH; proceeds paid in WETH) | `0x4b39bd7aad60303a9b91876aee70156afd01ab01a569ea973d3105df78756a7b` | `-rcHook.poolState().tick` (FLASH is currency1) |
 | QUANT/FLASH | `0xda2edfc201813ec11a6b8e6271dae076e5ec3a3e7d244bdffe1e62638f65b65a` | `v3Hook.poolState(QUANT key).tick` (QUANT is currency0) |
+| Any graduated launch on FlashV3 (ETH pair quotes WETH; FLASH, stock, perp) | `keccak256(abi.encode("FLASH.ROBINHOOD.UNIFIED.CHURN.V1", 8453, token, quote))` = `churn.marketId(token, quote)`; PVP/WETH is `0xdfeb1b66ea8ce1368d0f152382d1605ffa8ae5331cd0a46a04ad418774e70611` | `v3Hook.poolState(key).tick` if the token is currency0, else `-tick` (ETH pairs: currency1) |
+
+Launch markets are configured at pool creation (`stepTicks` 200, `minDeposit` 0). A level claim pays the quote token itself: WETH on ETH pairs. Stock / perp pairs charge `sellerFeeBps` 333.
 
 **Prices and ticks:** price (quote per token) = `1.0001^tick` in the **token orientation** above. A level floor is a token-orientation tick snapped **up** to the market's `levelConfig(id).stepTicks` (100 on FLASH/ETH, 200 on QUANT/FLASH): `floorTick = ceil(ln(price) / ln(1.0001) / step) * step`. The churn snaps the same way. Example: FLASH at 0.0006 ETH is tick ≈ -74,180. A floor of 0.01 ETH per FLASH is tick -46,000.
 

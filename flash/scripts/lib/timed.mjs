@@ -7,7 +7,9 @@ import { launchShape } from './encode.mjs';
 import { client, call, approval, fmt } from './plan.mjs';
 import { finish, minFlashForEth, resolvePair, shapeOf, slip, validateName, wallet, PAIR_NAMES, CURVE_PHASES } from './launch.mjs';
 
-const T = K.launchV5.timed;
+// SORT-1103: new launches use the current launcher; a launch is read and acted on where it lives (`timedRecord` sets T).
+const TIMED = [K.launchV5.timed, K.launchV5.timedPrev].filter(Boolean);
+let T = TIMED[0];
 const CONFIG = K.launchV5.config;
 const FLASH = K.tokens.FLASH.address;
 const USDC = K.tokens.USDC.address;
@@ -34,7 +36,14 @@ const prices = async () => {
 async function timedRecord(tokenText) {
   if (!tokenText) throw new Error('--token is required');
   const token = getAddress(tokenText);
-  const record = await readT('launchOf', [token]);
+  let record;
+  for (const at of TIMED) {
+    record = await read(at, A.timedLaunch, 'launchOf', [token]);
+    if (record.status !== 0) {
+      T = at;
+      break;
+    }
+  }
   return { token, record, known: record.status !== 0 };
 }
 
@@ -61,10 +70,15 @@ function nextSteps(token, record, position, abortable, keeperWindow) {
 }
 
 export async function timedList() {
-  const length = Number(await readT('launchesLength'));
-  const tokens = await Promise.all(Array.from({ length: Math.min(length, 50) }, (_, offset) => readT('launchAt', [BigInt(length - 1 - offset)])));
-  const rows = await Promise.all(tokens.map((token) => readT('launchOf', [token]).then((record) => ({ token, name: record.name, symbol: record.symbol, creator: record.creator, status: STATUS[record.status], launchAt: iso(record.launchAt), pair: PAIR_NAMES[record.pair], raisedFlash: fmt(record.raised) }))));
-  return { ok: true, status: 'info', action: 'timed-list', contract: T, count: length, creationFeeFlash: fmt(await readT('currentCreationFee')), launches: rows };
+  let length = 0;
+  const listed = [];
+  for (const at of TIMED) {
+    const n = Number(await read(at, A.timedLaunch, 'launchesLength'));
+    length += n;
+    listed.push(...await Promise.all(Array.from({ length: Math.min(n, 50 - listed.length) }, (_, offset) => read(at, A.timedLaunch, 'launchAt', [BigInt(n - 1 - offset)]).then((token) => ({ token, at })))));
+  }
+  const rows = await Promise.all(listed.map(({ token, at }) => read(at, A.timedLaunch, 'launchOf', [token]).then((record) => ({ token, contract: at, name: record.name, symbol: record.symbol, creator: record.creator, status: STATUS[record.status], launchAt: iso(record.launchAt), pair: PAIR_NAMES[record.pair], raisedFlash: fmt(record.raised) }))));
+  return { ok: true, status: 'info', action: 'timed-list', contract: TIMED[0], count: length, creationFeeFlash: fmt(await read(TIMED[0], A.timedLaunch, 'currentCreationFee')), launches: rows };
 }
 
 export async function timedInfo(options) {
@@ -201,12 +215,22 @@ async function treasuryCut(token) {
   return { treasury: address, deployed: true, controller, recipient: recipient === zeroAddress ? controller : recipient, lpSharePct: Number(lpBps) / 100, rewardSharePct: Number(rewardBps) / 100, custom };
 }
 
+/** The direct launch record of `token` on whichever direct launcher holds it (creator 0 when none). */
+export async function directRecordOf(token) {
+  let record;
+  for (const at of [K.launchV5.direct, K.launchV5.directPrev].filter(Boolean)) {
+    record = await read(at, A.directLaunch, 'launchOf', [token]);
+    if (record.creator !== zeroAddress) break;
+  }
+  return record;
+}
+
 /** Everything a launch pays its creator, for any launch kind, with how each one arrives. */
 export async function launchEarnings(options) {
   if (!options.token) throw new Error('--token is required');
   const token = getAddress(options.token);
   const account = options.wallet ? getAddress(options.wallet) : undefined;
-  const [curveRecord, directRecord, timed] = await Promise.all([read(K.launchV5.launchpad, A.launchpad, 'launchOf', [token]), read(K.launchV5.direct, A.directLaunch, 'launchOf', [token]), readT('launchOf', [token])]);
+  const [curveRecord, directRecord, { record: timed }] = await Promise.all([read(K.launchV5.launchpad, A.launchpad, 'launchOf', [token]), directRecordOf(token), timedRecord(token)]);
   const kind = curveRecord.curve !== zeroAddress ? 'curve' : directRecord.creator !== zeroAddress ? 'direct' : timed.status !== 0 ? 'timed' : undefined;
   if (!kind) throw new Error(`${token} is not a Flash launch`);
   const creator = kind === 'curve' ? curveRecord.creator : kind === 'direct' ? directRecord.creator : timed.creator;
