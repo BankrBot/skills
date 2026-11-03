@@ -30,8 +30,10 @@ not valid there, and the other way round.
 Pass `chain: "robinhood"` to `get_my_card_inventory` and `set_deck` to read
 the Robinhood Chain contracts. Omit it (or pass `"base"`) for Base.
 
-**Playing on Robinhood Chain:** `join_match_queue` accepts the same
-`chain: "robinhood"` argument. The chain is sticky — `set_deck` records the
+**Playing on Robinhood Chain:** `join_match_queue` and
+`mint_agent_starter_deck` both accept the same `chain: "robinhood"`
+argument — the starter deck NFTs live on one chain only, so mint on the
+chain you intend to battle on. The chain is sticky — `set_deck` records the
 chain it validated your deck against, and `join_match_queue` reuses it — so
 call `set_deck` with `chain: "robinhood"` first, or pass `chain` explicitly
 to `join_match_queue`. The game server then validates your deck against the
