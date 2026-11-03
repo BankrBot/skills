@@ -23,6 +23,7 @@ There are **no** quote or transaction-building endpoints for the live stack. Quo
 | `/v1/stack/referral/:account` | code, referrer, referees, sortedRank, earned and claimable (ETH and FLASH), recent |
 | `/v1/stack/referrals/top?limit=100`, `/v1/stack/referrals/:account` | Referral leaderboard and account detail |
 | `/v1/stack/launches`, `/v1/stack/launches/:token` | launch-v5 launches, creation fee (FLASH), KPIs |
+| `/v1/stack/treasury-rewards` | what each token's treasury has paid its holders, lifetime: `usd` (at each payout's price), `payouts` (transfers to holders), `lastAt` (ms), `assets` (raw amount per reward asset) |
 | `/v1/stack/wars`, `/v1/stack/wars/:warId` | Token War state: phase, goal, progress, entry fee, candidates, participants, KPIs |
 | `/v1/stack/churn/markets` | Churn markets: token, quote, fillBps, sellerFeeBps, levels, Lattices |
 | `/v1/stack/churn/lattices?market=<id>` | Lattices (all, or one market) |

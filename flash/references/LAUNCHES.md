@@ -199,6 +199,7 @@ Creator fees are pushed to the creator at graduation and at abort. `claimCreator
 | Fees now | `curve.currentFeeBps()` -> `(buyBps, sellBps)`. Sells pay more than buys. |
 | State | `launchpad.launchOf(token)` -> `(creator, curve, salt, poolId, pair, graduated, aborted, launchToleranceBps, name, symbol, shape, quote)`; `curve.phase()` (0 PENDING, 1 TRADING, 2 READY, 3 GRADUATED, 4 ABORTED); `spotPrice()`, `principalRaised()`, `goalFlashNow()`, `tokensSold()` |
 | List | `launchpad.launchesLength()`, `launchAt(i)`, or `GET /v1/stack/launches` / `/v1/stack/launches/:token` |
+| Rewards paid to holders | `GET /v1/stack/treasury-rewards` (per token: USD, payouts, last time, amount per asset) |
 
 CLI: `launch-list`, `launch-info --token T [--wallet W]`, `launch-buy --token T --eth 0.01` (or `--flash 5`), `launch-sell --token T --amount all`.
 
