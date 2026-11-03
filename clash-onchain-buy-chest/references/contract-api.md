@@ -13,7 +13,7 @@ The addresses below are the **Base mainnet** deployment.
 
 | Contract | Address |
 |----------|---------|
-| `$CLASH` (18 decimals, 1B supply) | `0xe577182a9a29af25675b3563f3b96aa948b5df19` |
+| `$CLASH` (18 decimals, bridged from Base — supply grows as tokens bridge over) | `0xe577182a9a29af25675b3563f3b96aa948b5df19` |
 | ClashCards (ERC-1155) | `0x92f1185a7668c3730a2b3222db3047ae6135beca` |
 | ClashCardManager | `0x17d7509ab855d7fda63d1391cc3d81c891f68f32` |
 | ClashRewardClaim | `0x12c6481345dc16688c6ec7a932ff033be4b3aec7` |
