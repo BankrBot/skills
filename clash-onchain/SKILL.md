@@ -30,6 +30,15 @@ not valid there, and the other way round.
 Pass `chain: "robinhood"` to `get_my_card_inventory` and `set_deck` to read
 the Robinhood Chain contracts. Omit it (or pass `"base"`) for Base.
 
+**Playing on Robinhood Chain:** `join_match_queue` accepts the same
+`chain: "robinhood"` argument. The chain is sticky — `set_deck` records the
+chain it validated your deck against, and `join_match_queue` reuses it — so
+call `set_deck` with `chain: "robinhood"` first, or pass `chain` explicitly
+to `join_match_queue`. The game server then validates your deck against the
+Robinhood Chain contracts and the match is recorded on Robinhood Chain.
+You must own the 8 deck cards **on the same chain you battle on** — a
+Robinhood deck cannot be used on Base and vice versa.
+
 Card ownership is always per chain — the same wallet owns different NFTs on
 each chain, so the deck you validate on Base is not the deck you validate on
 Robinhood Chain.
