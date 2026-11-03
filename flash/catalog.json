@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "flash",
+  "provider": "Flash",
+  "providerUrl": "https://tryflash.app",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "demo.sh",
+    "language": "bash",
+    "code": "cd flash/scripts && npm install\n\n# What is live: FLASH price, King of the Hill, perps, QUANT\nnode flash.mjs overview\n\n# Buy FLASH with 0.01 ETH (simulated, unsigned plan; submit via Bankr /wallet/submit)\nnode flash.mjs swap --market FLASH --side buy --amount 0.01 --wallet 0xYOUR_BANKR_WALLET\n\n# Go 2x long ETH with 25 USDC\nnode flash.mjs swap --market ETH2xL --side buy --amount 25 --wallet 0xYOUR_BANKR_WALLET\n\n# Sell 50 FLASH as a limit-order curve from 2x to 20x the current price\nnode flash.mjs limit-place --market FLASH --amount 50 --low-mult 2 --high-mult 20 --bins 16 --wallet 0xYOUR_BANKR_WALLET"
+  },
+  "setup": [
+    "Chain: Base (8453). Install node >= 18, then run npm install in flash/scripts (one dependency: viem).",
+    "Log in to Bankr with a read-write key that has walletApiEnabled; keep 'Enable arbitrary contract calls' on (bankr.bot -> Security). Keep a little ETH on Base for gas.",
+    "Flow: run a flash.mjs command with --wallet -> check ok/status -> validate per references/TX-VALIDATION.md -> submit transactions[] in order via /wallet/submit (chainId 8453, keep the gas field, waitForConfirmation).",
+    "The CLI simulates approvals + action from your wallet (eth_simulateV1) before returning a plan; it never signs or broadcasts.",
+    "Contracts: known-contracts.json · Read API: https://api.tryflash.app/v1/stack · App: https://tryflash.app"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "flash",
+    "command": "install the flash skill from https://github.com/BankrBot/skills/tree/main/flash"
+  }
+}

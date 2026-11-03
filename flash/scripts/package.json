@@ -1,0 +1,9 @@
+{
+  "name": "flash-skill-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only quotes and unsigned transaction builders for the Flash protocol on Base. Never signs or broadcasts.",
+  "engines": { "node": ">=18" },
+  "dependencies": { "viem": "2.57.6" }
+}
