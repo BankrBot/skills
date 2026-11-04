@@ -167,7 +167,92 @@ POST https://og.nexustradinglabs.com/order-history
 }
 ```
 
-Returns `{ count, orders: [{ orderId, symbol, side, type, status, price, quantity, executedQty, avgPrice, fee, createdAt }] }`.
+Returns `{ ok: true, count, orders: [{ orderId, symbol, side, type, status, price, quantity, executedQty, avgPrice, fee, feeCurrency, createdAt, updatedAt }], fetchedAt }`.
+
+If Orderly refuses the read (bad key, rate limit), the answer is HTTP 502:
+`{ ok: false, error: "orderly_error", upstreamStatus, code, message }`. That means the orders were **not read**. It never
+means the account has no orders. Don't tell the user they have no orders after a 502.
+
+---
+
+## Refresh the Nexus Trade Tracker
+
+The Nexus Trade Tracker is a Bankr app (`nexus-trade-tracker`). It shows **public data only**: positions read live
+from the public `GET https://og.nexustradinglabs.com/smart/xray?address=<wallet>` (the `nexus_trading` venue), market
+data and the graded caller board. It stores nothing per user, and it never sees a signature or a key.
+
+Open orders and liquidation prices are private. They stay in chat and in the user's **own** Bankr drive, never in the
+tracker app's storage.
+
+**Only when the user asks** ("refresh my tracker", "show my orders"). Never on a schedule, never in a background
+script: a refresh signs, and a scheduled script would have to hold the signature.
+
+### First time only: the opt-in
+
+Before the first save, read the user this, word for word, and wait for a yes. Save nothing without one.
+
+> This saves a copy of your open and recent Nexus orders, and your liquidation prices, to your own Bankr drive at
+> /nexus/tracker-snapshot.json. Your agent and Bankr can see it. The Nexus tracker page and other users can't. It can't
+> trade or withdraw. It updates only when you ask. Say yes to turn it on.
+
+### Each refresh
+
+1. Sign `nexus-trading-key-v1` (personal_sign), the same signature as a trade.
+2. Call both, with the signature in the JSON body only:
+   - `POST https://og.nexustradinglabs.com/order-history` `{ walletAddress, walletSig, limit: 50 }`
+   - `POST https://og.nexustradinglabs.com/positions` `{ walletAddress, walletSig }`
+3. **Save only if both succeeded:** `/order-history` answered HTTP 200 with `ok: true`, and `/positions` answered HTTP
+   200 with `success: true`. If either failed, save nothing, keep the last snapshot, and tell the user which read
+   failed.
+4. Build the snapshot below **field by field**. Write only that object to the user's own drive: write the file
+   `/nexus/tracker-snapshot.json`, replacing the previous one. Then show the user the orders and liquidation prices in
+   chat.
+
+```json
+{
+  "v": 1,
+  "wallet": "0x…",
+  "asOf": 1792000000000,
+  "orders": [
+    { "symbol": "PERP_BTC_USDC", "side": "BUY", "type": "LIMIT", "status": "NEW",
+      "price": 60000, "quantity": 0.01, "executedQty": 0, "avgPrice": null, "createdAt": 1791990000000 }
+  ],
+  "positions": [
+    { "symbol": "PERP_BTC_USDC", "qty": 0.01, "entry": 61000, "estLiqPrice": 48000 }
+  ]
+}
+```
+
+- `asOf` = `fetchedAt` from `/order-history`.
+- `orders[]` = each `/order-history` order with exactly these 9 fields: `symbol, side, type, status, price, quantity,
+  executedQty, avgPrice, createdAt`.
+- `positions[]` = each row in `/positions` `data.rows` with `position_qty` not 0: `symbol`, `qty` = `position_qty`,
+  `entry` = `average_open_price`, `estLiqPrice` = `est_liq_price`.
+
+**Never write `walletSig`, the request, the tool call, or a whole response anywhere.** Build the object from the named
+fields and nothing else.
+
+**Never write to the tracker app's storage**: not `/apps/nexus-trade-tracker/…`, not its appKV, not a `record:` key.
+App storage is shared by everyone who opens the app, so one user's orders would be readable by another. A chat agent
+can't write another user's app storage anyway (Bankr answers 400).
+
+### Show my orders
+
+"Show my orders" / "what's on my tracker": read `/nexus/tracker-snapshot.json` from the user's own drive and show it,
+with its `asOf` time. If it's missing, offer a refresh. Don't call `/order-history` without being asked to refresh.
+
+### Turn it off
+
+"Turn off my tracker": **delete** `/nexus/tracker-snapshot.json` from the user's drive and stop refreshing. Delete,
+not an empty write: an empty file would still be there. The public tracker page is unaffected.
+
+### Check (two wallets)
+
+Before relying on this, run it once with two wallets, A and B:
+1. Refresh as A, then refresh as B. Each snapshot lands in its own wallet's drive.
+2. Refresh A again. B's file is unchanged.
+3. Turn off as A. A's file is gone; B's is still there.
+4. Open the tracker page as A and as B. Both show the same public data, and neither shows the other's orders.
 
 ---
 
