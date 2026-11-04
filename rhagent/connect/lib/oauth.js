@@ -30,12 +30,27 @@ function pkcePair() {
   return { verifier, challenge };
 }
 
+// The metadata document is remote input, so only Robinhood https endpoints are used.
+function assertRobinhoodUrl(value, name) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`Robinhood OAuth metadata has an invalid ${name}`);
+  }
+  const host = url.hostname;
+  if (url.protocol !== "https:" || (host !== "robinhood.com" && !host.endsWith(".robinhood.com"))) {
+    throw new Error(`Robinhood OAuth metadata ${name} is not a Robinhood https URL`);
+  }
+}
+
+// execFile passes the URL as a single argument, so no shell ever parses it.
 function openBrowser(url) {
-  const { exec } = require("child_process");
+  const { execFile } = require("child_process");
   const platform = process.platform;
-  if (platform === "darwin") exec(`open "${url}"`);
-  else if (platform === "win32") exec(`start "" "${url}"`);
-  else exec(`xdg-open "${url}"`);
+  if (platform === "darwin") execFile("open", [url]);
+  else if (platform === "win32") execFile("rundll32", ["url.dll,FileProtocolHandler", url]);
+  else execFile("xdg-open", [url]);
 }
 
 function listenForCallback(port, expectedState, timeoutMs = 300000) {
@@ -107,6 +122,8 @@ async function runOAuth({ onStatus }) {
 
   log("Fetching Robinhood OAuth metadata...");
   const meta = await fetchJson(METADATA_URL);
+  assertRobinhoodUrl(meta.authorization_endpoint, "authorization_endpoint");
+  assertRobinhoodUrl(meta.token_endpoint, "token_endpoint");
 
   log("Registering local OAuth client...");
   const reg = await fetchJson(REGISTER_URL, {
