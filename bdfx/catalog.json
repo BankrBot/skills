@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "bdfx",
+  "provider": "BDFX",
+  "providerUrl": "https://bdfx.io",
+  "logo": "logo.png",
+  "demo": {
+    "title": "bdfx-discovery.sh",
+    "language": "bash",
+    "code": "# Read current BDFX PWYW fee options. No wallet connection or funds required.\nnode scripts/connect.mjs fee-options\n\n# Discover supported assets without creating an exchange.\nnode scripts/bdfx.mjs catalog\n\n# In Bankr: \"Review exchanging my Base ETH to Bitcoin through BDFX with a 0% BDFX fee. Show the quote before creating an order or sending funds.\""
+  },
+  "setup": [
+    "Install the BDFX skill; Node 18+ is required. Installation and fee/catalogue discovery need no API key or funds.",
+    "Start at https://bdfx.io/bankr or ask Bankr for a BDFX Base ETH to Bitcoin review, including the amount, Bitcoin payout address and PWYW fee.",
+    "Connect your own Bankr EVM wallet through the exact BDFX off-chain sign-in challenge. The helper stores a temporary, private credential file; never paste credentials into chat.",
+    "Approve one exact floating-rate order separately from payment. Payment requires existing Base ETH plus gas and a separate confirmation; swaps and shortfall funding are prohibited.",
+    "Current execution: native Base ETH to Bitcoin mainnet. Broader catalogue discovery is available; other execution adapters are not enabled."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "bdfx",
+    "command": "install the bdfx skill from https://github.com/BankrBot/skills/tree/main/bdfx"
+  }
+}
