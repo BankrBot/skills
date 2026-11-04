@@ -6,11 +6,22 @@
 GET https://og.nexustradinglabs.com/feed
 ```
 
-Returns all public theses. Each object:
-- `id`, `wallet`, `symbol`, `direction` ("LONG"/"SHORT")
-- `entry`, `sl`, `tp1`, `tp2`, `tp3`
-- `status` — "ACTIVE", "HIT_TP", "STOPPED_OUT", "CLOSED"
-- `copyCount`, `onChainId`, `onChainTxHash`, `timestamp`
+Returns `{ feed: [...] }`: three kinds of row.
+
+- **Resolution rows (`resolution: true`)** announce a graded call ("BTC SHORT stopped out, −1R"). No levels:
+  `kind`, `wallet`, `thesisId`, `symbol`, `direction`, `outcome`, `r`, `message`, `createdAt`.
+- **Agent rows (`agent: true`, name "Nexus Agent")** are the autonomous agent's own trades. They are not
+  calls, aren't graded and never count toward a caller's record.
+- **Call rows** (everything else) = the public calls:
+  - `id`, `wallet`, `displayName`, `pfp`, `symbol`, `direction` ("LONG"/"SHORT")
+  - `entryPrice`, `stopLoss`, `takeProfit1`, `takeProfit2`, `exitPlan` (`"SPLIT_50"` or absent), `notes`
+  - `createdAt` / `publishedAt` (server clock), `publishMark` (market price read at publish, when present)
+  - **The grade:** `gradedOutcome` ("WIN" / "LOSS", absent while unresolved) and `gradedR` (the R it paid),
+    stamped hourly from public price. Count results from these two fields.
+  - `fillState` on an unresolved call: "WORKING" = the entry hasn't traded yet (no position), "OPEN" = it has.
+  - `status` mirrors the grade on a published call; use `gradedOutcome`, which is the grade itself.
+  - Ignore `actualPnl`, `accountSize` and `positionSize` for any record: the caller types them. `riskReward`
+    is caller-written too; the R:R is `(takeProfit1 − entryPrice) / (entryPrice − stopLoss)` from the levels.
 
 ---
 
@@ -25,34 +36,64 @@ PUT  /profile/:walletAddress      // body: { pfp?, displayName? }
 
 ---
 
-## Rep Score
+## The Graded Caller Board
 
-Composite 0–100 on-chain credibility score:
+The caller board is computed by Nexus's grader, not by the agent. Read it; don't rebuild it.
 
 ```
-repScore = winRate + min(avgRR * 10, 20) - samplePenalty
+GET https://og.nexustradinglabs.com/theses/leaderboard
 ```
 
-- `winRate` = (wins / (wins + losses)) * 80
-- `avgRR` = average (tp1 - entry) / (entry - sl) on closed winning theses
-- `samplePenalty` = 0 if ≥5 closed trades, else (5 - closed) * 4
-- Clamped to [0, 100]
+Returns `{ leaderboard, emerging, criteria }`:
+- `leaderboard`: callers with **5+ graded calls AND a positive average R**, top 25, already in rank order.
+  Each entry: `rank`, `wallet`, `displayName`, `calls` (graded calls), `hitRate` (%), `avgR`, `totalR`,
+  `score`, `expectancy` (`{ expectancy, profitFactor, … }` in R), `meritRank`, plus `discipline`,
+  `calibration`, `regimeEdge`, `contrarian`, `rSeries`.
+- `emerging`: callers with 1–4 graded calls. Each: `wallet`, `calls`, `hitRate`, `avgR`, `totalR`,
+  `callsToQualify`, `displayName`, `pfp` (up to 15). **Unranked**: list them as emerging, never number them.
+- `criteria`: `{ minCalls, grading, discipline, regime }`. `criteria.grading` explains, in plain text, how
+  every call is graded. Quote it when a user asks how ranking works.
 
-On-chain stats: call `getTraderStats(walletAddress)` on ThesisRegistry returns `(wins, losses, activeTrades)`.
+**Order = the array order (`rank`).** `score` is sample-adjusted expectancy in R, not hit rate. Don't
+re-sort by hit rate or anything else.
 
----
+**An empty `leaderboard` is a real answer**, not an outage: nobody currently clears 5 graded calls with a
+positive average R. Say that, and offer `emerging` if it has rows.
 
-## Build the Leaderboard
+**`meritRank`** is earned from the graded record only. `null` = unranked, so show nothing. Never invent
+a tier.
 
-1. `GET https://og.nexustradinglabs.com/feed` → all public theses
-2. Group by wallet
-3. Compute per wallet:
-   - `wins` = count of `HIT_TP` theses
-   - `losses` = count of `STOPPED_OUT` theses
-   - `avgRR` = mean of `(tp1 - entry) / (entry - sl)` for winning theses
-   - `repScore` using formula above
-4. Sort by `repScore` desc, then total theses desc
-5. For verified on-chain stats: call `getTraderStats(wallet)` on ThesisRegistry (shows ⛓ badge)
+| Rank | Needs |
+|---|---|
+| ▪ Signal | 5+ graded calls, average R above zero |
+| ◆ Sharp | 15+ graded calls, 50%+ hit rate, average R ≥ 0.5 |
+| ✦ Apex | 30+ graded calls, 55%+ hit rate, average R ≥ 1.0 |
+
+### One trader's graded record
+
+```
+GET https://og.nexustradinglabs.com/theses/process/:wallet
+```
+
+`{ wallet, calls, hitRate, avgR, totalR, meritRank, expectancy, calibration, contrarian, regime,
+regimeEdges, discipline }` for any wallet, ranked or not: every graded public call, the same record
+the board ranks on. `calls: 0` (with `note`) = no graded call yet. Say "no graded calls yet", not
+"0% win rate".
+
+### How to state a record
+
+- **A hit rate never goes out alone.** Always pair it with the average R and the graded call count:
+  "28 graded calls · 36% hit · +0.05R avg". A 36% hit rate can be profitable and a 70% one can lose.
+- Under 5 graded calls, give the count and say it's too few to rank on.
+- Say "graded from public price", never "verified": these are numbers from Nexus's API (SKILL.md safety
+  rules). The grade is recomputable from public candles; `criteria.grading` says how.
+
+### Retired: Rep Score
+
+Earlier versions of this guide had agents compute a "Rep Score" from the feed (hit rate plus a bonus
+for the R:R the caller *planned*). It isn't graded: it rewards wide planned targets that never hit, and
+it read self-set statuses. Nexus removed it from the app on 2026-10-16. **Don't compute it.** When a user
+asks for a Rep Score, answer with the graded record above.
 
 ---
 
@@ -67,11 +108,14 @@ registerThesis(string symbol, uint8 direction, uint256 entryPrice, uint256 stopL
                uint256 takeProfit1, uint256 takeProfit2, uint256 riskReward, bool isPublic,
                string notes) → thesisId          // full argument notes: "Publish a Thesis On-Chain", route B
 closeThesis(uint256 thesisId, string outcome, string settlementTxHash)
-getTraderStats(address trader) → (wins, losses, activeTrades)
+getTraderStats(address trader) → (wins, losses, activeTrades)   // self-reported, see below
 getThesis(uint256 thesisId) → ThesisData
 ```
 
 Price encoding: `Math.round(price * 1e6)` — e.g. BTC at $65,432.10 → `65432100000` (contract uses 6 decimal scaling, NOT 8)
+
+`getTraderStats` counts the outcomes callers report themselves through `closeThesis`. It is not the
+grade: never rank on it or quote it as a record. The graded record is `/theses/process/:wallet`.
 
 Registering emits ONE event from the registry with the thesis id as topic 1 and the trader (`msg.sender`) as
 topic 2. Read it by that layout, not by an event-signature hash.
@@ -82,7 +126,7 @@ topic 2. Read it by that layout, not by an event-signature hash.
 
 > ⚠️ **Copying is NOT auto-trading.** This flow saves a *thesis* (a plan) to the user's lab — it does **not** place an order. NEVER chain a copied thesis straight into `/trade`/`/agent` without an explicit user confirmation for that specific position.
 >
-> **On reputation signals:** the VERIFIED-CALLERS leaderboard (`/theses/leaderboard`) grades outcomes **objectively against public Orderly price** (first-touch TP-vs-SL on public OHLC, recomputable by anyone) — not self-reported PnL, which is the strongest signal here. Even so, treat ANY single metric — Rep Score, leaderboard rank, or `getTraderStats()` — as a **cross-check only, never the sole automated gate** before risking capital: rankings can still be influenced by wash trading or coordinated publishing. Always require operator sign-off before opening a position derived from a third party's call.
+> **On reputation signals:** the graded caller board (`/theses/leaderboard`) grades outcomes **objectively against public Orderly price** (first-touch TP-vs-SL on public OHLC, recomputable by anyone), not self-reported PnL. That's the strongest signal here. Even so, treat ANY single number (a merit rank, a board position, a graded record) as a **cross-check only, never the sole automated gate** before risking capital: a record can still be gamed by wash trading or coordinated publishing. `getTraderStats()` is self-reported and not a signal at all. Always require operator sign-off before opening a position derived from a third party's call.
 
 1. `GET https://og.nexustradinglabs.com/feed` → find thesis by trader/symbol/direction
 2. Prompt user: account size (USDC), risk % (e.g. 2%), optional max loss cap
@@ -281,14 +325,23 @@ Returns `{ wallets: string[], fromCache: bool }` — all wallets that have ever 
 
 ## Example Prompts
 
-**"Show me the top 5 traders by Rep Score"**
-→ GET https://og.nexustradinglabs.com/feed → group by wallet → compute repScore → sort desc → return top 5
+**"Show me the top 5 callers"** (or "…by Rep Score")
+→ GET https://og.nexustradinglabs.com/theses/leaderboard → first 5 of `leaderboard`, in order → for each: name or
+short wallet, `meritRank`, "N graded calls · H% hit · ±R avg". Empty `leaderboard` → "No caller clears the bar
+yet (5 graded calls, positive average R)", then list `emerging`. Rep Score is retired: say so in one line.
 
-**"Who has the highest win rate with ≥5 closed trades?"**
-→ GET https://og.nexustradinglabs.com/feed → filter wallets where (HIT_TP + STOPPED_OUT) >= 5 → sort by wins/(wins+losses) desc
+**"Who has the highest win rate?"**
+→ GET https://og.nexustradinglabs.com/theses/leaderboard → answer from the graded entries, each with its average R
+and call count beside the hit rate, and say the board is ordered by expectancy, not hit rate. Never rank callers
+from `/feed` statuses.
+
+**"What's 0xabc…'s record?"**
+→ GET https://og.nexustradinglabs.com/theses/process/0xabc… → "N graded calls · H% hit · ±R avg", plus `meritRank`
+if not null. `calls: 0` → "no graded calls yet".
 
 **"Copy the #1 trader's latest active BTC thesis with 2% of my $10k stack"**
-→ build leaderboard → top wallet → find PERP_BTC_USDC ACTIVE thesis → size: $10k * 0.02 / (entry - sl) → GET /lab/:userWallet → append → PUT /lab/:userWallet
+→ GET /theses/leaderboard → top entry's wallet (empty board → say so, stop) → find its PERP_BTC_USDC call in /feed
+with no `gradedOutcome` → confirm with the user → size: $10k * 0.02 / (entry - sl) → GET /lab/:userWallet → append → PUT /lab/:userWallet
 
 **"Publish my ETH short: entry 3200, SL 3350, TP 2800"**
 → Route A: POST https://og.nexustradinglabs.com/proxy/thesis-register { walletAddress, bankrApiKey, symbol: "PERP_ETH_USDC", direction: "SHORT", entryPrice: 3200, stopLoss: 3350, takeProfit1: 2800, isPublic: true } → done when it answers 200 (202 → POST /theses/index with the txHash)
