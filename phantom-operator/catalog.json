@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "phantom-operator",
+  "provider": "PhantomOperator",
+  "providerUrl": "https://freysaai.freysa.dev",
+  "logo": "phantom-operator.png",
+  "demo": {
+    "title": "Try PhantomOperator's free metadata preview",
+    "language": "bash",
+    "code": "curl -sS -X POST https://freysaai.freysa.dev/preview/metadata-audit \\\n  -H 'content-type: application/json' \\\n  --data '{\"url\":\"https://example.com\"}'\n\n# Full paid operations and exact x402 terms:\ncurl -sS https://freysaai.freysa.dev/.well-known/x402"
+  },
+  "setup": [
+    "Start with the free public metadata preview at https://freysaai.freysa.dev/preview/metadata-audit.",
+    "Discover paid Base-USDC x402 requirements at https://freysaai.freysa.dev/.well-known/x402.",
+    "Only assess URLs, identities, emails, and wallets you are authorized to assess."
+  ],
+  "install": {
+    "type": "github",
+    "repoUrl": "https://github.com/normancomics/PhantomOperator",
+    "repoPath": "SKILL.md",
+    "command": "Install the phantom-operator skill from https://github.com/normancomics/PhantomOperator/blob/main/SKILL.md"
+  }
+}
