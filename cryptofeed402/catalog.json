@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "cryptofeed402",
+  "provider": "cryptofeed402",
+  "providerUrl": "https://cryptofeed402.site",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "cryptofeed402.sh",
+    "language": "bash",
+    "code": "# Free: current extreme funding and majors (no payment)\ncurl -s https://cryptofeed402.site/brief/teaser\n\n# Perps radar for one Hyperliquid perp: funding, OI, premium, rank ($0.002)\nbankr x402 call https://cryptofeed402.site/perps/HYPE --max-payment 0.002\n\n# 10 most extreme funding rates on Hyperliquid ($0.0025)\nbankr x402 call https://cryptofeed402.site/funding/extreme --max-payment 0.0025\n\n# News sentiment for a major ($0.002)\nbankr x402 call https://cryptofeed402.site/sentiment/BTC --max-payment 0.002\n\n# Or ask the agent\nbankr prompt \"Use the cryptofeed402 skill: pre-trade check on SOL perps, show the cost first\""
+  },
+  "setup": [
+    "No account or API key: every paid route is plain HTTPS behind x402 (USDC on Base, eip155:8453)",
+    "Hold a little USDC on Base in the Bankr wallet; a full pre-trade check costs at most $0.0065",
+    "Pay with `bankr x402 call <url> --max-payment <route price>`; never use -y",
+    "Check response shapes for free first: https://cryptofeed402.site/samples",
+    "Data only, not a trade recommendation; always show the as_of time"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "cryptofeed402",
+    "command": "install the cryptofeed402 skill from https://github.com/BankrBot/skills/tree/main/cryptofeed402"
+  }
+}
