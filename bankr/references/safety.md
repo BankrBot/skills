@@ -8,12 +8,12 @@ These are enforced where transactions are signed, so they cover chat, the agent,
 
 | Control | Default | Effect |
 |---------|---------|--------|
-| Pause all transactions | Off | Blocks every outbound transaction until unpaused |
-| Enable arbitrary contract calls | On | While off, blocks the agent's `write_contract`, `submit_raw_transaction` and `deploy_contract` tools and raw `/wallet/submit`. Named operations like swaps and transfers still work |
+| Pause all transactions | Off | Blocks every outbound transaction and every signature until unpaused |
+| Enable arbitrary contract calls | On | While off, blocks the agent's `write_contract`, `submit_raw_transaction` and `deploy_contract` tools and raw `/wallet/submit`, and signing typed data, transactions or 32-byte messages through `/wallet/sign` or the agent's `sign_data`. Named operations like swaps and transfers still work, and so do sign-in messages |
 | Daily spending limit | $500 per rolling 24h | Rejects a transaction that would push USD outflow past the limit |
 | Per-transaction limit | $500 | Rejects any single transaction priced above the limit |
 | Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%) |
-| Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown |
+| Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown. While on, `/wallet/sign` and `sign_data` sign typed data only as a standard token permit or transfer authorization whose spender or recipient is listed (or your own), and refuse transactions, 32-byte messages and all other typed data (orders and NFT listings included), since their recipient can't be checked; plain messages still sign. Raw calls are checked on their `to` address only when they send native value; one that sends none isn't checked, because Bankr doesn't decode the recipient from calldata. Turn off arbitrary contract calls to block those |
 | Allow NFT transfers | On, 5 per rolling 24h | Off blocks NFT sends, direct ERC-721/1155 transfer calls, operator approvals (`setApprovalForAll`, ERC-721 `approve`) and signed NFT permits, raw ones included; on allows a set count (1–1,000). Marketplace sales and revocations aren't counted; NFTs moved inside a batch or smart-wallet call (multicall, Safe, ERC-7579) are. No timer |
 | Response channels | All on | Per channel (X, Farcaster, Telegram). Bankr stops replying on a disabled channel; Telegram `/start` and wallet linking stay live |
 
@@ -21,7 +21,7 @@ USD limits accept `1` to `1,000,000`. `0` is rejected, so disable the limit inst
 
 ### Spend limits are enforced everywhere
 
-A wallet that has never opened the Security page is still capped at **$500 a day and $500 per transaction**, on every signing path: agent tools, limit/stop/DCA/TWAP order fills, Wallet API swaps (the sell side is priced, cross-chain and Solana legs included) and transfers, raw `/wallet/submit`, x402 paid calls, Polymarket bets, LLM credit top-ups, Bankr Club sign-up, Hyperliquid deposits, airdrops, launch dev buys, and direct signer callers. A Club renewal counts toward the daily total but is never refused by a limit (a paused wallet still blocks it). Launch fee recipients and fee-recipient hand-offs must pass the permitted-recipients list. If an integration needs to move more, raise the limit deliberately.
+A wallet that has never opened the Security page is still capped at **$500 a day and $500 per transaction**, on every signing path: agent tools, limit/stop/DCA/TWAP order fills, Wallet API swaps (the sell side is priced, cross-chain and Solana legs included) and transfers, raw `/wallet/submit`, x402 paid calls, Polymarket bets, LLM credit top-ups, Bankr Club sign-up, Hyperliquid deposits, Avantis opens (their USDC collateral), NFT collection offers, Glidepath deposits (from the token page or the agent), airdrops, launch dev buys, and direct signer callers. A Club renewal counts toward the daily total but is never refused by a limit (a paused wallet still blocks it). Launch fee recipients and fee-recipient hand-offs must pass the permitted-recipients list. If an integration needs to move more, raise the limit deliberately.
 
 - Each transaction is priced at submission from on-chain quotes (0x on EVM, Jupiter on Solana). If pricing fails while a USD limit is on, the transaction is **rejected**, not waved through.
 - Successful transactions count toward the rolling 24h total. The spend log is keyed on transaction hash, so retries can't inflate it.
@@ -79,7 +79,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### Recipient allowlist
 
-`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer` and a deploy's fee recipient. A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the EVM list, so a Solana-only allowlist refuses every transfer there. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
+`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer` and a deploy's fee recipient. A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the list for the transfer's chain (`solana` on Solana, `evm` otherwise), so a key with only one chain's list can't send on the other. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
 
 **A non-empty allowlist on either chain also refuses operations whose recipient can't be checked:**
 
@@ -87,7 +87,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 - Hyperliquid perp and spot trades, closes and deposits, and opening Avantis positions. Withdrawing from Hyperliquid to your own wallet still works.
 - NFT purchases, Seadrop and Manifold mints, listings, accepting offers and creating collection offers.
 - Airdrops (both the general and the top-members tool), and scheduled prompt automations.
-- Over the Wallet API: every `/wallet/submit`, and `/wallet/sign` for `eth_signTransaction` and `eth_signTypedData_v4` (`personal_sign` still works). These answer `403 Restricted API key`.
+- Over the Wallet API: every `/wallet/submit`, and `/wallet/sign` for `eth_signTransaction`, `eth_signTypedData_v4` and a 32-byte `personal_sign` message (`403 Restricted API key`). The agent's `sign_data` refuses typed data and 32-byte messages the same way. Other messages, such as logins, still sign.
 
 The agent's error names the action and points at the key administrator. It isn't transient, so retrying won't help. Swaps are unaffected because their output returns to the wallet. If an agent needs these operations, give it a key without an allowlist and bound it with wallet spend limits and an IP allowlist instead.
 

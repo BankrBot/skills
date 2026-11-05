@@ -55,8 +55,8 @@ Trades settle against **USDG (Global Dollar)**, Robinhood Chain's stablecoin; Ba
 
 Robinhood Chain stocks and Base B20 equities are **not available in the US, the UK, sanctioned countries or regions, or anywhere local law prohibits them.** One check covers both venues.
 
-1. Log in to the [Bankr console](https://bankr.bot). Location is verified automatically from your connection — no forms, nothing to upload.
-2. Once verified, trade from any platform — X, Telegram, the console or the API.
+1. Log in to [Bankr Console](https://bankr.bot). Location is verified automatically from your connection — no forms, nothing to upload.
+2. Once verified, trade from any platform — X, Telegram, Bankr Console or the API.
 3. Verification expires after 30 days; logging in again renews it.
 
 An unverified (or lapsed) trade is blocked and Bankr asks you to log in first. Only trading these stocks is gated — swaps and orders, on either leg. Holding and transferring them, memecoins on Robinhood Chain, other Base tokens and bridging need no verification. Over the Wallet API, a gated stock swap returns `403` with instructions; quotes are not gated, so a successful quote is not clearance.

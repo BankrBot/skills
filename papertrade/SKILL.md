@@ -34,8 +34,8 @@ Papertrade uses real USDC and open nothing.
   hedged PAPER farm: a long and a short on the same market (BTC or ETH,
   or BTC with ETH as the fallback when BTC is full) that mint PAPER on
   purpose and stake it.
-- **One place to see it.** The Papertrade page in Bankr Terminal,
-  https://bankr.bot/terminal/skills/partner/papertrade, shows the
+- **One place to see it.** The Papertrade page,
+  https://bankr.bot/papertrade, shows the
   account (balance, queued payouts and your place in line, pending
   deposits), PAPER staking (stake, claim, unstake), open positions with
   their take-profit and stop-loss, and closed-trade history. Open
@@ -677,10 +677,10 @@ the exit):
 
 ## When it isn't available
 
-- Papertrade runs in Bankr's terminal chat, on X (replies and DMs),
+- Papertrade runs in Bankr Console's chat, on X (replies and DMs),
   through the Agent API (not read-only keys), and in the user's own
   scheduled automations. Writes are refused from Farcaster, Telegram,
-  webhooks and apps; point the user to Bankr's terminal chat or X.
+  webhooks and apps; point the user to Bankr Console's chat or X.
   Scheduled runs never deposit or withdraw.
 - Wallets connected from outside Bankr (wallet mode) can't use it.
 - Papertrade can pause deposits, opens or other actions at any time.

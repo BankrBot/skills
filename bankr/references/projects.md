@@ -1,6 +1,6 @@
 # Projects Reference
 
-Project pages at [bankr.bot/terminal/projects](https://bankr.bot/terminal/projects) showcase a project: its description, team, token data with a live chart and market cap, weekly fee revenue, products, update timeline, GitHub activity, Ethos credibility and recent X posts. Docs: [docs.bankr.bot/projects/overview](https://docs.bankr.bot/projects/overview).
+Project pages at [bankr.bot/projects](https://bankr.bot/projects) showcase a project: its description, team, token data with a live chart and market cap, weekly fee revenue, products, update timeline, GitHub activity, Ethos credibility and recent X posts. Docs: [docs.bankr.bot/projects/overview](https://docs.bankr.bot/projects/overview).
 
 > **The CLI says `project`, the API says `profile`.** The command is `bankr project`, but the REST paths (`/agent/profile`, `/agent-profiles`), the JSON field names and the socket events all use "profile".
 
