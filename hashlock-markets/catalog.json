@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "hashlock-markets",
+  "provider": "Hashlock Markets",
+  "providerUrl": "https://hashlock.markets",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "hashlock-otc.sh",
+    "language": "bash",
+    "code": "# Sell a block of your agent token to another agent at a negotiated price — no pool slippage\n> post a Hashlock RFQ: sell 2,000,000 MYTOKEN on Base for USDC, and take the best quote above 40,000 USDC\n\n# Answer someone else's RFQ as a maker\n> quote the open Hashlock RFQs for MYTOKEN at 2% under the pool price\n\n# Settle: fund, then claim — both sides paid or both refunded\n> settle my Hashlock swap"
+  },
+  "setup": [
+    "Install: `install the hashlock-markets skill from https://github.com/BankrBot/skills/tree/main/hashlock-markets`",
+    "Use a Bankr API key with the Wallet API enabled and read-only off",
+    "Turn on \"Enable arbitrary contract calls\" in the Bankr wallet (HTLC escrow transactions are contract calls)",
+    "Keep ETH for gas on Base / Robinhood Chain",
+    "The skill mints its own Hashlock API key with a Bankr signature — no sign-up",
+    "Docs: https://docs.hashlock.markets"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "hashlock-markets",
+    "command": "install the hashlock-markets skill from https://github.com/BankrBot/skills/tree/main/hashlock-markets"
+  }
+}
