@@ -273,7 +273,10 @@ TRX figures are at today's energy price; when short, the TRON builder answers `4
    wei; an ERC-20 leg is `approve` then `createSwap`). Sign and send **each, in order, from the `from` it
    names** — the escrow refuses any other sender; `from` is your refund address on that leg. Then the
    counterparty funds its leg the same way; its builder answers `409` until the initiator's leg is recorded
-   (about a minute after it mines on Base) — wait and ask again.
+   (about a minute after it mines on Base) — wait and ask again. **Counterparty: before you fund, read the
+   initiator's escrow on chain yourself** — the swap's hashlock, your payout address as recipient, the agreed
+   asset and amount, a timelock at least 2 hours after your own leg's — and fund only if all match (an EVM
+   recipe is in `references/bankr.md`). The MCP server does this for you.
    **Funding closes 35 minutes before the earlier timelock** — fund promptly once you may; after that the
    builder refuses and the deal can only refund.
    **On TRON** (`sign: "tron-txid"`) you get `from` (your login TRON wallet, which signs) and `transactions`
@@ -290,7 +293,7 @@ TRX figures are at today's energy price; when short, the TRON builder answers `4
      two — the counterparty funds only after your payment is recorded, and funding closes 35 minutes before
      that timelock.
    - Call `build_fund` again only once the payment has **one confirmation** (Hashlock reads its own explorer,
-     which can lag the mempool), with a new `Idempotency-Key` or none:
+     which can lag the mempool) — every call builds afresh:
      - `409` "already funded" → done, pay nothing more.
      - `topUp: true` → pay exactly that remaining `amountSats` to `payTo`, nothing else, and check again
        after its confirmation.
@@ -348,6 +351,11 @@ again.
 - Accept only a price you computed yourself; every accept names the price you read, and is refused if it
   moved since.
 - Never claim before both legs are funded (the claim builder refuses anyway).
+- **Do not settle on the API's word alone.** Send transactions only to Hashlock's own contracts (keep their
+  addresses in your code), and before you fund second or reveal your secret, check the other side's escrow on
+  chain. The MCP server (`@hashlock-tech/mcp`) does both for you: it settles only into its own key or a payout
+  address it set itself, so a deal made before its current release, or one whose payout you set elsewhere, is
+  settled in the web app.
 - Watch timelocks (`aTimelock`, `bTimelock` on the swap): the initiator claims the short leg before it times
   out; the counterparty then claims the long leg in time (§5, step 4).
 - Hashlock's EVM escrow contracts were audited by QuillAudits, which also verified the fixes. Still size
@@ -370,8 +378,12 @@ again.
   (only `409`, `429`, `503` and `504` are not kept), and a server restart can drop it — so it does not replace
   the check above. Reuse a key to resend an identical request, including after a `409` "still processing" —
   but if a resend comes back with `Idempotency-Replayed: true` and an error, that error is stored: switch
-  keys; after any other error answer, and for every new build (a claim that was "not yet", a rebuilt
-  transaction, a Bitcoin fund re-check), use a new key or none.
+  keys; after any other error answer, use a new key or none. The fund/claim/refund builders are never kept:
+  each call builds afresh, so a key there changes nothing.
+- **You cannot agree to what you cannot fund**: an order, a quote, a counter and an accept are refused with
+  "Not enough X to fund this: it needs … and your wallet has …" when your wallet does not hold your leg (plus
+  the protocol fee if you are the taker, plus the chain's coin for network fees if your leg is that coin). Top
+  up, then try again.
 - **`409` is a state, not a failure**: "still processing" means wait and resend; anything else ("not enough
   TRX", "already funded", "would fail") tells you what to do — read it, do not just resend.
 - Errors come back as `{ "error": "<message>" }` with the HTTP status (the hosted MCP passes them through
