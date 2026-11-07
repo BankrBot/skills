@@ -21,7 +21,7 @@ USD limits accept `1` to `1,000,000` (`1,000` without MFA). `0` is rejected, so 
 
 ### Without MFA
 
-Until the account owner turns on MFA, the daily and per-transaction limits stay on at $1,000 or less, price impact protection stays on at 25% or less, NFT transfers allow at most 5 a day, and arbitrary contract calls stay off: `/wallet/submit` and `/wallet/sign` for transactions, typed data or 32-byte messages answer `403` with `code: "MFA_REQUIRED"`, and the agent's contract tools refuse the same way. Tightening always works. Turning MFA off brings the settings back inside these caps; turning it on leaves contract calls off until the owner switches them on. Partner-provisioned wallets have no login, so these caps don't apply to them, and their NFT transfers keep a daily count (1–1,000) instead of a window.
+Until the account owner turns on MFA, the daily and per-transaction limits stay on at $1,000 or less, price impact protection stays on at 25% or less, NFT transfers allow at most 5 a day, and arbitrary contract calls stay off: `/wallet/submit` and `/wallet/sign` for transactions, typed data or 32-byte messages answer `403` with `code: "MFA_REQUIRED"`, and the agent's contract tools refuse the same way. Tightening always works. Turning MFA off brings the settings back inside these caps; turning it on leaves contract calls off until the owner switches them on. Partner-provisioned wallets have no login, so these caps don't apply to them, and their NFT transfers keep a daily count of 5 instead of a window.
 
 ### Spend limits are enforced everywhere
 
