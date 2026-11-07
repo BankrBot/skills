@@ -39,7 +39,7 @@ Returns `{ ok: true, amount, accountId, approveTxHash, depositTxHash }`. Funds l
 
 ```
 POST https://og.nexustradinglabs.com/deposit/prepare
-{ "walletAddress": "0x...", "amount": 20 }
+{ "wallet": "0x...", "amount": 20 }
 ```
 
 accountId is fetched automatically — do NOT pass it. Returns two ready-to-sign txs:
@@ -71,7 +71,7 @@ Sign and submit step 1, wait for confirmation, then step 2.
 
 ```
 POST https://og.nexustradinglabs.com/balance
-{ "walletAddress": "<wallet>", "walletSig": "<sig>" }
+{ "walletAddress": "<wallet>", "session": { … } }
 ```
 
 Look for `free_collateral` — this is the amount available to withdraw (not total balance). `total_collateral` includes locked margin.
@@ -91,36 +91,49 @@ POST https://og.nexustradinglabs.com/proxy/bankr-withdraw
 
 **`bankrApiKey` is MANDATORY.** Omitting it returns 401. Always ask the user for it before withdrawal: "I need your Bankr API key to sign the withdrawal. Find it at bankr.bot/api-keys — Wallet & Agent API must be enabled."
 
-Server: derives ed25519 key → fetches withdrawal nonce → builds EIP-712 Withdraw message → signs via Bankr eth_signTypedData_v4 → submits to Orderly /v1/withdraw_request. Funds arrive on Arbitrum, no user signature required.
+Server: loads the wallet's registered trading key → settles PnL if needed → fetches the withdrawal nonce → builds the EIP-712 Withdraw (receiver = the wallet) → Bankr signs it as the wallet (eth_signTypedData_v4) → submits to Orderly /v1/withdraw_request. The trading key alone can't withdraw; the Withdraw must recover to the wallet. Funds arrive on Arbitrum.
 
 > 🔒 **Withdrawal destination — receiver binding.** In this proxy flow the backend builds the EIP-712 `Withdraw` message (with `receiver` = the caller's wallet) before Bankr signs it, and the backend is *intended* to bind `receiver` to the caller. Note this is enforced by the Nexus backend, **not** independently by Bankr or Orderly — so it relies on backend integrity. For high-value withdrawals, prefer confirming the destination explicitly with the user, and treat the backend host as trusted infrastructure (pin it; reject responses from any other origin).
 
-Returns `{ ok: true, amount, withdrawNonce }`.
+Returns `{ ok: true, amount, withdrawNonce, withdrawnAmount }`. `withdrawnAmount` is what Orderly
+accepted — quote that number, not the amount asked.
 
-### Withdrawal blocked by code 78 (unsettled PnL)
+### Withdrawal blocked (code 78, or nothing free)
 
-Server auto-handles code 78: settles PnL, re-checks free_collateral, retries with corrected amount. If it still fails, run the manual flow:
+The server settles PnL first, re-reads `free_collateral` from Orderly and retries with that (never the
+raw holding). If it still can't withdraw, it answers `insufficient_free_collateral` with a `hint` naming
+why: an open position, an unsettled loss, or open orders. Read the hint to the user in plain words:
 
-1. `sign_message({ message: "nexus-trading-key-v1" })` → walletSig
-2. `POST https://og.nexustradinglabs.com/settle-pnl` with walletSig
-3. Wait 5 seconds
-4. `POST https://og.nexustradinglabs.com/balance` → get free_collateral
-5. `POST https://og.nexustradinglabs.com/proxy/bankr-withdraw` with free_collateral amount
+- open position → offer to close it first, then withdraw;
+- unsettled loss → run Settle PnL (below), then `POST /balance` and withdraw `free_collateral`;
+- open orders → offer to cancel them, then retry.
+
+A loss that has been settled is gone from the balance: if `free_collateral` is 0 after settling, there is
+nothing to withdraw. Say so plainly.
+
+`502 settle_failed` → Orderly refused the settle; nothing was withdrawn. Retry once, then stop and tell the user.
 
 ---
 
 ## Settle PnL
 
+Books realised gains or losses into the balance. Moves no funds out. One call with Bankr:
+
 ```
 POST https://og.nexustradinglabs.com/settle-pnl
 {
   "walletAddress": "<wallet>",
-  "walletSig":     "<sig>",
-  "symbol":        "SOL"   // optional — omit to settle all
+  "session":       { … },
+  "bankrApiKey":   "<user's Bankr API key>"
 }
 ```
 
-Returns `{ ok: true, hint: "Wait ~5s then retry withdrawal with free_collateral amount." }`.
+Server: reads the settle nonce (signed by the trading key) → Bankr signs Orderly's EIP-712 `SettlePnl` as
+the wallet → posts it. Returns `{ ok: true, … }` once Orderly accepts it, or `502 settle_failed` with a
+`stage` and `hint`. Wait ~5 s, then `POST /balance` for the new `free_collateral`.
+
+Without `bankrApiKey` the route answers `{ settled: false, step: "sign", typedData, … }`: that is NOT a
+settle. Never report it as settled.
 
 ---
 

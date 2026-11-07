@@ -11,8 +11,8 @@
   },
   "setup": [
     "Install: `npx skills add nexus-trading-labs`",
-    "Requires a wallet that can sign messages — one `sign_message(\"nexus-trading-key-v1\")` per session authorizes every authenticated call",
-    "Deposit/withdraw/register endpoints additionally require a Bankr API key (used transiently per call, never persisted)",
+    "Requires a wallet that can sign messages — one trading-session signature (from `GET /v2/session/new`) authorizes every authenticated call for 24 hours; going live adds a one-time challenge signature",
+    "Key registration (every 30 days), deposit, withdraw and settle use a Bankr API key (used transiently per call, never persisted)",
     "Arbitrum mainnet only — perp settlement runs on Orderly Network",
     "Source: https://github.com/BankrBot/skills/tree/main/nexus-trading-labs"
   ],

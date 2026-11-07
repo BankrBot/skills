@@ -1,35 +1,38 @@
 # Trading Reference
 
-## Registration Flow (runs once per wallet)
+## Key Registration (once per wallet, then every 30 days)
 
-Trigger when `/trade` returns `{ error: "wallet_not_registered" }`.
+Trigger when any trading call returns `409 key_required` (no key yet) or `409 key_expired` (30 days up).
 
-(Full URL: `POST https://og.nexustradinglabs.com/trade`) `{ error: "wallet_not_registered" }`.
-
-**Step R1 — Ask for Bankr API key**
-> "Your wallet `<walletAddress>` isn't linked to a Nexus account yet. I need your Bankr API key for one-time setup — find it at bankr.bot/api-keys (enable 'Wallet & Agent API'). It's used only for registration and never stored."
+**Step R1 — Ask for the Bankr API key**
+> "Your wallet `<walletAddress>` needs a Nexus trading key. I need your Bankr API key once to register it — find it at bankr.bot/api-keys (enable 'Wallet & Agent API'). It's used for this call only and never stored."
 
 **Step R2 — Register**
 ```
-POST https://og.nexustradinglabs.com/proxy/bankr-register
+POST https://og.nexustradinglabs.com/v2/key/bankr-register
 {
   "walletAddress": "<wallet>",
-  "bankrApiKey":   "<user's key>",
-  "depositAmount": 5
+  "bankrApiKey":   "<user's key>"
 }
 ```
-Server: checks Orderly account → EIP-712 registers if needed → derives ed25519 key → stores in KV.
+Server: makes sure the Orderly account exists (Bankr signs the registration the first time) → makes a
+RANDOM ed25519 key → Bankr signs Orderly's AddOrderlyKey as the wallet (scope `read,trading`, 30 days)
+→ stores the key sealed. Returns `{ ok, active, orderlyKey, accountId, scope, expiresAt, expiresInDays }`.
+Running it again while a key is live rotates it (the old key is removed at Orderly).
 
-If R2 returns EIP-712 blocked error:
+The key can place and cancel orders. It can't withdraw: every withdrawal needs the wallet's own signature.
+
+If R2 returns an EIP-712 blocked error:
 > "Your Bankr API key has 'allowed recipients' restrictions blocking EIP-712 signing. Generate a new key at bankr.bot/api-keys without that restriction."
 
-**Step R3 — Retry the original trade immediately.** No user action needed.
+**Step R3 — Retry the original call immediately.** No user action needed. To fund the account, see
+references/deposit-withdraw.md (registration no longer deposits).
 
 ---
 
 ## Place a Trade
 
-Always get walletSig first (see SKILL.md CRITICAL). Then:
+Always start a session first (see SKILL.md CRITICAL). Then:
 
 ```
 POST https://og.nexustradinglabs.com/trade
@@ -38,8 +41,8 @@ POST https://og.nexustradinglabs.com/trade
   "side":          "BUY",             // "SELL" for short
   "notional":      50,                // USD notional
   "leverage":      5,
-  "walletSig":     "<sig>",
-  "walletAddress": "<wallet>"
+  "walletAddress": "<wallet>",
+  "session":       { "session": "…", "issued": 0, "expires": 0, "sig": "0x…" }
 }
 ```
 
@@ -50,7 +53,7 @@ Natural language mapping:
 
 Supported symbols: `PERP_BTC_USDC`, `PERP_ETH_USDC`, `PERP_SOL_USDC`, `PERP_HYPE_USDC`, `PERP_ARB_USDC`, `PERP_XMR_USDC`, and more. Shorthand "BTC", "ETH", "SOL" etc. auto-normalized by the Worker.
 
-Server flow: derive ed25519 key from walletSig → look up accountId from KV → fetch mark price → set leverage → fire market order → return fill.
+Server flow: check the session → load the wallet's registered key → fetch mark price → set leverage → fire market order → return fill.
 
 ---
 
@@ -62,14 +65,14 @@ POST https://og.nexustradinglabs.com/set-sl-tp
   "symbol":        "PERP_SOL_USDC",
   "stopLoss":      100,    // optional
   "takeProfit":    80,     // optional (for short — TP is below entry)
-  "walletSig":     "<sig>",
-  "walletAddress": "<wallet>"
+  "walletAddress": "<wallet>",
+  "session":       { … }
 }
 ```
 
 Server fetches current position size, places a `POSITIONAL_TP_SL` algo order. Returns `{ ok: true, quantity, stopLoss, takeProfit }`.
 
-Full flow: sign_message → POST https://og.nexustradinglabs.com/trade → wait for fill → POST https://og.nexustradinglabs.com/set-sl-tp (same walletSig).
+Full flow: session → POST https://og.nexustradinglabs.com/trade → wait for fill → POST https://og.nexustradinglabs.com/set-sl-tp (same session).
 
 ---
 
@@ -81,8 +84,8 @@ Full flow: sign_message → POST https://og.nexustradinglabs.com/trade → wait 
 POST https://og.nexustradinglabs.com/close-position
 {
   "symbol":        "PERP_BTC_USDC",   // or shorthand "BTC"
-  "walletSig":     "<sig>",
-  "walletAddress": "<wallet>"
+  "walletAddress": "<wallet>",
+  "session":       { … }
 }
 ```
 
@@ -98,8 +101,8 @@ POST https://og.nexustradinglabs.com/trade
   "notional":      50,              // approximate — server uses position qty
   "leverage":      5,
   "closePosition": true,            // skips margin check, sets reduce_only: true
-  "walletSig":     "<sig>",
-  "walletAddress": "<wallet>"
+  "walletAddress": "<wallet>",
+  "session":       { … }
 }
 ```
 
@@ -111,7 +114,7 @@ POST https://og.nexustradinglabs.com/trade
 
 ```
 POST https://og.nexustradinglabs.com/positions
-{ "walletAddress": "<wallet>", "walletSig": "<sig>" }
+{ "walletAddress": "<wallet>", "session": { … } }
 ```
 
 **Always check positions before opening a new trade** — overlapping positions consume all margin. If `position_qty > 0`, account for it.
@@ -126,7 +129,7 @@ Use when a limit order hasn't filled. Requires `order_id` from the `/trade` resp
 POST https://og.nexustradinglabs.com/cancel
 {
   "walletAddress": "<wallet>",
-  "walletSig":     "<sig>",
+  "session":       { … },
   "orderId":       123456789,
   "symbol":        "PERP_BTC_USDC"   // optional but recommended
 }
@@ -144,7 +147,7 @@ Poll before attaching SL/TP on limit orders (market orders fill instantly).
 POST https://og.nexustradinglabs.com/order-status
 {
   "walletAddress": "<wallet>",
-  "walletSig":     "<sig>",
+  "session":       { … },
   "orderId":       123456789
 }
 ```
@@ -161,7 +164,7 @@ Status values: `NEW` (pending), `PARTIAL_FILLED`, `FILLED`, `CANCELLED`, `REJECT
 POST https://og.nexustradinglabs.com/order-history
 {
   "walletAddress": "<wallet>",
-  "walletSig":     "<sig>",
+  "session":       { … },
   "symbol":        "BTC",   // optional
   "limit":         20       // max 100, default 20
 }
@@ -179,7 +182,7 @@ Applies to all new positions. Default is 10x.
 POST https://og.nexustradinglabs.com/set-leverage
 {
   "walletAddress": "<wallet>",
-  "walletSig":     "<sig>",
+  "session":       { … },
   "leverage":      10        // 1–100
 }
 ```
