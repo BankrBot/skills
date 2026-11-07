@@ -30,7 +30,7 @@ bankr launch --name MOON --simulate            # dry run: predicted address and 
 |---|---|
 | `tokenName` / `--name` | Required |
 | `tokenSymbol` / `--symbol` | 1–20 characters; defaults to the first 4 characters of the name, uppercased |
-| `image` / `--image` | A direct raster image URL. An SVG or a web page (e.g. an x.com post link) is not pinned — the token launches without a logo |
+| `image` / `--image` | A direct raster image URL. An SVG or a web page (e.g. an x.com post link) is not pinned — the token launches without a logo. In chat, the user can attach the image instead (a Console upload or a texted photo); an attached file that isn't PNG, JPEG, GIF or WebP fails the launch |
 | `tweetUrl` / `--tweet`, `websiteUrl` / `--website`, `description` | Optional metadata; the tweet URL must be on x.com or twitter.com |
 | `feeRecipient` / `--fee` + `--fee-type` | `{ "type": "wallet" \| "x" \| "farcaster" \| "ens", "value": "…" }`; the CLI's type defaults to `x`. An X or Farcaster username resolves to that account's Bankr wallet, created if the account has none |
 | `simulateOnly` / `--simulate` | Dry run (see [Limits](#limits-and-eligibility)) |
