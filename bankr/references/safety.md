@@ -12,12 +12,12 @@ These are enforced where transactions are signed, so they cover chat, the agent,
 | Enable arbitrary contract calls | Off | Needs MFA (see below). While off, blocks the agent's `write_contract`, `submit_raw_transaction` and `deploy_contract` tools and raw `/wallet/submit`, and signing typed data, transactions or 32-byte messages through `/wallet/sign` or the agent's `sign_data`. Named operations like swaps and transfers still work, and so do sign-in messages |
 | Daily spending limit | $500 per rolling 24h | Rejects a transaction that would push USD outflow past the limit |
 | Per-transaction limit | $500 | Rejects any single transaction priced above the limit |
-| Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%) |
+| Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%, up to 25% without MFA) |
 | Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown. While on, `/wallet/sign` and `sign_data` sign typed data only as a standard token permit or transfer authorization whose spender or recipient is listed (or your own), and refuse transactions, 32-byte messages and all other typed data (orders and NFT listings included), since their recipient can't be checked; plain messages still sign. Raw calls are checked on their `to` address only when they send native value; one that sends none isn't checked, because Bankr doesn't decode the recipient from calldata. Turn off arbitrary contract calls to block those |
 | Allow NFT transfers | Off | Turns on only for 10, 30, 60 or 1440 minutes. Off blocks NFT sends, direct ERC-721/1155 transfer calls, operator approvals (`setApprovalForAll`, ERC-721 `approve`) and signed NFT permits, raw ones included; on has no count with MFA and allows 5 per rolling 24h without it. Marketplace sales and revocations aren't counted; NFTs moved inside a batch or smart-wallet call (multicall, Safe, ERC-7579) are |
 | Response channels | All on | Per channel (X, Farcaster, Telegram). Bankr stops replying on a disabled channel; Telegram `/start` and wallet linking stay live |
 
-USD limits accept `1` to `1,000,000`. `0` is rejected, so disable the limit instead. The recipient cooldown is `0` to `168` hours (default 24), and re-adding a removed recipient restarts it.
+USD limits accept `1` to `1,000,000` (`1,000` without MFA). `0` is rejected, so disable the limit instead, which needs MFA. The recipient cooldown is `0` to `168` hours (default 24), and re-adding a removed recipient restarts it.
 
 ### Without MFA
 
