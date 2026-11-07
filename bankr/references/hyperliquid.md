@@ -4,6 +4,8 @@ Trade perpetual futures (crypto, plus stocks and RWAs via HIP-3) and spot tokens
 
 **Venue**: Hyperliquid L1, funded through Arbitrum · **Collateral**: USDC · **Address**: the same as your Bankr EVM wallet
 
+> **Opening perps is region-gated.** Opening or adding to a perps position is refused from the US, the UK and sanctioned regions; closing always works. HIP-3 markets also refuse an open while Bankr can't confirm the region, though main-dex crypto perps don't. Raw Hyperliquid typed data through `/wallet/sign` or `sign_data` gets the same refusal (`403 PERPS_REGION_BLOCKED`).
+
 > **Hyperliquid requires a Bankr-managed wallet.** Signing is refused for connected/external wallets with "Hyperliquid signing is only supported for Bankr-managed wallets" — the connected wallet's settings are left untouched.
 
 ## Unified Account

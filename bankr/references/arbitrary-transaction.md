@@ -54,7 +54,7 @@ A transaction must pass every check below; none of these is transient, so don't 
 
 | Refusal | Cause |
 |---|---|
-| "Arbitrary contract calls are disabled by your Security settings" | The wallet's **Enable arbitrary contract calls** switch (bankr.bot → Security) is off. It is on by default; when re-enabled it can be given a timer (10, 30, 60 or 1440 minutes) after which it switches off again. It gates raw transactions, contract writes and deploys — named operations like swaps are unaffected |
+| "Arbitrary contract calls are disabled by your Security settings" | The wallet's **Enable arbitrary contract calls** switch (bankr.bot → Security) is off. It stays off until the account owner turns on MFA and switches it on (without MFA the refusal is `403 MFA required`); when enabled it can be given a timer (10, 30, 60 or 1440 minutes) after which it switches off again. It gates raw transactions, contract writes and deploys — named operations like swaps are unaffected |
 | Spend or recipient limits | The native `value` is priced in USD against the wallet's per-transaction and daily limits; the wallet's permitted-recipients list is checked on `to` when `value > 0` |
 | "Recipient … is not in the trusted addresses list" | The API key carries a recipient allowlist and `to` (the contract) isn't on it; your own addresses are always allowed |
 | "Blocked: this is a raw ERC-20 transfer…" | `transfer` / `transferFrom` calldata on a token contract is refused — use a normal transfer prompt, which verifies the recipient |
