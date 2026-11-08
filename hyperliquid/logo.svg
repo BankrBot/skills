@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Hyperliquid CLI">
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#0E1116"/>
+  <path d="M42 38v52M86 38v52M42 64h44" stroke="#5CE1A6" stroke-width="12" stroke-linecap="round"/>
+  <path d="M94 44V26M94 26L86 34M94 26l8 8" stroke="#5CE1A6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
