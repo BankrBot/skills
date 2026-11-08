@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "onchain-forensics",
+  "provider": "On-chain Forensics",
+  "providerUrl": "https://onchainforensics.dev",
+  "logo": null,
+  "demo": {
+    "title": "onchain-forensics-check.sh",
+    "language": "bash",
+    "code": "# Free first check of the day: is this token actually alive?\ncurl -s \"https://solene-fa2010da.base44.app/functions/verdictFast?address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&chain=base\"\n\n# Free developer key: 10,000 cached checks per month, no card\ncurl -s -X POST \"https://solene-fa2010da.base44.app/functions/devKeys\" \\\n  -H \"content-type: application/json\" -d '{\"email\":\"you@example.com\"}'\n\n# Pay per call with x402 (USDC on Base, a Bankr wallet settles it)\nnpx awal x402 pay \"https://solene-fa2010da.base44.app/functions/forensicsVerdict?address=0x4200000000000000000000000000000000000006&chain=base\"\n\n# Or run it as an MCP server\nnpx -y github:leohoudinisanders-byte/forensics-mcp"
+  },
+  "setup": [
+    "Optional: set `FORENSICS_DEV_KEY` to a free key for 10,000 cached checks per month (mint one at POST /functions/devKeys with an email)",
+    "Or pay per request over x402 in USDC on Base — the 402 challenge carries price, asset, payTo and network",
+    "Fastest path to a working tool: `npx -y github:leohoudinisanders-byte/forensics-mcp` and set `FORENSICS_DEV_KEY`",
+    "Cached verdict is $0.001, live verdict and settlement safety $0.02, wallet and token profile $0.05, batch screening $1 per 25 tokens"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "onchain-forensics",
+    "command": "install the onchain-forensics skill from https://github.com/BankrBot/skills/tree/main/onchain-forensics"
+  }
+}
