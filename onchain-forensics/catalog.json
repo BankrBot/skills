@@ -3,7 +3,7 @@
   "slug": "onchain-forensics",
   "provider": "On-chain Forensics",
   "providerUrl": "https://onchainforensics.dev",
-  "logo": null,
+  "logo": "logo.svg",
   "demo": {
     "title": "onchain-forensics-check.sh",
     "language": "bash",
@@ -11,7 +11,7 @@
   },
   "setup": [
     "Optional: set `FORENSICS_DEV_KEY` to a free key for 10,000 cached checks per month (mint one at POST /functions/devKeys with an email)",
-    "Or pay per request over x402 in USDC on Base — the 402 challenge carries price, asset, payTo and network",
+    "Or pay per request over x402 in USDC on Base \u2014 the 402 challenge carries price, asset, payTo and network",
     "Fastest path to a working tool: `npx -y github:leohoudinisanders-byte/forensics-mcp` and set `FORENSICS_DEV_KEY`",
     "Cached verdict is $0.001, live verdict and settlement safety $0.02, wallet and token profile $0.05, batch screening $1 per 25 tokens"
   ],
