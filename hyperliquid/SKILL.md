@@ -93,13 +93,13 @@ hyperliquid --format json perps list                 # markets, mark px, funding
 hyperliquid --format json spot list
 hyperliquid --format json asset search purr          # perp, spot, HIP-3, outcome lookup
 hyperliquid --format json search purr                # the same across every market type
-hyperliquid --format json book BTC --depth 5         # best bid/ask for sizing
+hyperliquid --format json book BTC                     # best bid/ask for sizing
 hyperliquid --format json schema orders create       # flags, types, requirements
 
 hyperliquid --format json account portfolio
 hyperliquid --format json positions list
 hyperliquid --format json orders open
-hyperliquid --format json account fills --start 2026-01-01
+hyperliquid --format json account fills --start 2026-11-01T00:00:00Z
 ```
 
 ## Mutations: preview, then execute
@@ -141,7 +141,7 @@ hyperliquid --testnet --format json orders create --coin BTC --side buy --price 
 | Need | Command |
 | --- | --- |
 | Markets | `perps list`, `perps get <COIN>`, `spot list`, `spot get <PAIR>`, `meta`, `outcomes list`, `outcomes get <NOTATION>` |
-| Prices | `mids`, `book <COIN> --depth N`, `candles <COIN> --interval 1h --limit 24`, `spread <COIN>`, `funding <COIN>` |
+| Prices | `mids`, `book <COIN>`, `candles <COIN> --interval 1h --limit 24`, `spread <COIN>`, `funding <COIN>` |
 | Account | `account portfolio`, `account portfolio-history`, `account fills`, `account orders`, `account ledger`, `account funding`, `account fees`, `account rate-limit`, `account subaccounts`, `account twap-history` |
 | Positions | `positions list`, `positions update-leverage --coin BTC --leverage 5 [--isolated]`, `positions update-margin` |
 | Orders | `orders create`, `orders bracket`, `orders scale`, `orders chase`, `orders trailing-stop`, `orders tpsl`, `orders twap-create`, `orders twap-cancel`, `orders batch-create`, `orders modify`, `orders schedule-cancel`, `orders cancel <OID>`, `orders cancel-all`, `orders open`, `orders status --user 0x...`, `orders history` |
