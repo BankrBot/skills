@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "hyperliquid",
+  "provider": "Hypurr Inc",
+  "providerUrl": "https://github.com/hypurr-inc/hyperliquid-cli",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "hyperliquid-agent.txt",
+    "language": "text",
+    "code": "You:   what is my Hyperliquid account worth?\nAgent: hyperliquid --format json account portfolio\n       equity $12,480.55 · withdrawable $3,200.00 · 2 positions\n\nYou:   buy 0.01 BTC with a limit at 96,000\nAgent: hyperliquid --format json --dry-run orders create --coin BTC --side buy --price 96000 --size 0.01\n       Preview: BUY 0.01 BTC @ 96000 · asset 0 · size precision 5 · builder fee 0.001% · mainnet\n       Executes: an Order action signed by your OWS wallet\n       Want me to place it?\n\nYou:   yes\nAgent: hyperliquid --format json orders create --coin BTC --side buy --price 96000 --size 0.01 --yes\n       oid 4815162342 · resting"
+  },
+  "setup": [
+    "Install the CLI: `curl -fsSLO https://raw.githubusercontent.com/hypurr-inc/hyperliquid-cli/main/install.sh && sh install.sh`",
+    "Pick a signer: `hyperliquid wallet create` for an encrypted local vault, or `hyperliquid wallet login` for a Bankr hosted wallet used with `--bankr`",
+    "Install this skill, then say `what is my Hyperliquid account worth?` to check reads",
+    "Rehearse on testnet with `hyperliquid --testnet ...` before the first live order; every mutation has a `--dry-run` preview"
+  ],
+  "install": {
+    "type": "external",
+    "provider": "Hypurr Inc",
+    "command": "install the hyperliquid skill from https://github.com/hypurr-inc/hyperliquid-cli/tree/main/skills/hyperliquid-cli",
+    "reference": "https://github.com/hypurr-inc/hyperliquid-cli/tree/main/skills/hyperliquid-cli"
+  }
+}
