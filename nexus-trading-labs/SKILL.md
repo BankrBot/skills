@@ -300,6 +300,7 @@ agent has checked the chain itself:
 | Cancel order | `POST https://og.nexustradinglabs.com/cancel` | session |
 | Order status | `POST https://og.nexustradinglabs.com/order-status` | session |
 | Order history | `POST https://og.nexustradinglabs.com/order-history` | session |
+| Refresh my orders (on request, after an opt-in) | `/order-history` + `/positions` → snapshot in the user's own drive | session |
 | Positions | `POST https://og.nexustradinglabs.com/positions` | session |
 | Balance | `POST https://og.nexustradinglabs.com/balance` | session |
 | Set leverage | `POST https://og.nexustradinglabs.com/set-leverage` | session |
@@ -334,7 +335,7 @@ agent has checked the chain itself:
 
 ## Load References As Needed
 
-- **references/trading.md** — full trade flow, key registration, SL/TP, close, cancel, order-status, order-history, positions, leverage
+- **references/trading.md** — full trade flow, key registration, SL/TP, close, cancel, order-status, order-history, positions, leverage, refreshing the Trade Tracker
 - **references/deposit-withdraw.md** — deposit USDC, withdraw, settle PnL, balance
 - **references/agent.md** — deploy/arm/fund/kill the autonomous agent, mode flips (PAPER/ASSISTED/AUTONOMOUS), status formatting, safety gates
 - **references/feed-leaderboard.md** — public feed, thesis copy flow, on-chain registry, Rep Score, leaderboard build, notifications, comments
