@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "facts402",
+  "provider": "facts402",
+  "providerUrl": "https://guard.facts402.com/",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "facts402-pre-trade.sh",
+    "language": "bash",
+    "code": "# Is this Base token safe to buy at $500? ($0.05)\nbankr prompt \"Use facts402 guard/check on 0x4ed4e862860bed51a9570b96d89af5e1b0efefed with position_usd 500\"\n\n# Can I still exit $2,500 of it? ($0.02)\nbankr x402 call https://guard.facts402.com/v1/guard/exit -X POST -d '{\"token\":\"0x4ed4e862860bed51a9570b96d89af5e1b0efefed\",\"position_usd\":2500}' --max-payment 0.02\n\n# Who is talking about it, and is it a shill farm? ($0.04)\nbankr prompt \"Get the facts402 pulse for DEGEN over 24h\"\n\n# Watch my position for 24h and alert on liquidity pulls or dumps ($0.12)\nbankr prompt \"Start a facts402 24h watch on 0x4ed4...efed for my $500 position\"\n\n# Free headline check, no payment\ncurl \"https://guard.facts402.com/v1/guard/preview?token=0x4ed4e862860bed51a9570b96d89af5e1b0efefed\""
+  },
+  "setup": [
+    "No install, API key or account: every route is plain HTTP behind x402 (USDC on Base mainnet)",
+    "Pay from your Bankr wallet: the agent or `bankr x402 call` confirms the price first; all prices are $0.02–$0.60, under the default $1 cap",
+    "Free previews: GET /v1/guard/preview and /v1/pulse/preview; reading watch events is free with the watch_secret",
+    "Base mainnet only; Pulse covers Farcaster (no X/Twitter data). Results are on-chain facts, not investment advice"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "facts402",
+    "command": "install the facts402 skill from https://github.com/BankrBot/skills/tree/main/facts402"
+  }
+}
