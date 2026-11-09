@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "market-music",
+  "provider": "McIntoshiS",
+  "providerUrl": "https://github.com/McIntoshiS",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "market-music",
+    "command": "install the market-music skill from https://github.com/BankrBot/skills/tree/main/market-music"
+  }
+}
