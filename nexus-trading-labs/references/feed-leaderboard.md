@@ -6,53 +6,167 @@
 GET https://og.nexustradinglabs.com/feed
 ```
 
-Returns all public theses. Each object:
-- `id`, `wallet`, `symbol`, `direction` ("LONG"/"SHORT")
-- `entry`, `sl`, `tp1`, `tp2`, `tp3`
-- `status` — "ACTIVE", "HIT_TP", "STOPPED_OUT", "CLOSED"
-- `copyCount`, `onChainId`, `onChainTxHash`, `timestamp`
+Returns `{ feed: [...] }`: three kinds of row.
+
+- **Resolution rows (`resolution: true`)** announce a graded call ("BTC SHORT stopped out, −1R"). No levels:
+  `kind`, `wallet`, `thesisId`, `symbol`, `direction`, `outcome`, `r`, `message`, `createdAt`.
+- **Agent rows (`agent: true`, name "Nexus Agent")** are the autonomous agent's own trades. They are not
+  calls, aren't graded and never count toward a caller's record.
+- **Call rows** (everything else) = the public calls:
+  - `id`, `wallet`, `displayName`, `pfp`, `symbol`, `direction` ("LONG"/"SHORT")
+  - `entryPrice`, `stopLoss`, `takeProfit1`, `takeProfit2`, `exitPlan` (`"SPLIT_50"` or absent), `notes`
+  - `createdAt` / `publishedAt` (server clock), `publishMark` (market price read at publish, when present)
+  - **The grade:** `gradedOutcome` ("WIN" / "LOSS", absent while unresolved) and `gradedR` (the R it paid),
+    stamped hourly from public price. Count results from these two fields.
+  - `fillState` on an unresolved call: "WORKING" = the entry hasn't traded yet (no position), "OPEN" = it has.
+  - `status` mirrors the grade on a published call; use `gradedOutcome`, which is the grade itself.
+  - Ignore `actualPnl`, `accountSize` and `positionSize` for any record: the caller types them. `riskReward`
+    is caller-written too; the R:R is `(takeProfit1 − entryPrice) / (entryPrice − stopLoss)` from the levels.
 
 ---
 
 ## Trader Lab
 
 ```
-GET  /lab/:walletAddress          // all theses for wallet
-PUT  /lab/:walletAddress          // body: { theses: ThesisTrade[] }
-GET  /profile/:walletAddress      // { pfp, displayName }
-PUT  /profile/:walletAddress      // body: { pfp?, displayName? }
+GET    /lab/:walletAddress              // PUBLIC view: the wallet's public calls only, no notes. No signature.
+GET    /profile/:walletAddress          // { pfp, displayName }. No signature.
+POST   /lab/:walletAddress/read         // body: { labAuth }                  → the FULL record (private calls + notes)
+PUT    /lab/:walletAddress              // body: { theses, notes, labAuth }   → REPLACES the whole record
+DELETE /lab/:walletAddress/thesis/:id   // body: { labAuth }                  → removes one unpublished call
+PUT    /profile/:walletAddress          // body: { pfp, displayName, labAuth }
 ```
+
+Base URL: `https://og.nexustradinglabs.com`. Everything except the two GETs needs the wallet's **Lab
+signature** (`labAuth`). Since 2026-09-27 an unsigned write is refused (401) and changes nothing.
+
+### The Lab signature (`labAuth`)
+
+A second signature, separate from `walletSig`. Sign this exact text with `sign_message`:
+
+```
+Nexus Lab: sign in with this wallet
+Lets Nexus save and open your calls, notes and profile, post your comments, reactions and takes, and update your follows, notifications, phone alerts and Telegram link.
+Address: <the wallet address, all lowercase>
+Timestamp: <ts>
+No funds move. No trades. Valid 24 hours.
+```
+
+- `ts` = the current time in **milliseconds** since 1970 (an integer, e.g. `1792130000000`). The same
+  number goes in the message and in `labAuth.ts`.
+- Five lines joined by a single `\n` (the second line is one long line), no trailing newline, no extra
+  spaces. One changed character and the signature won't match.
+- Send it in the JSON body, never in the URL: `"labAuth": { "ts": 1792130000000, "sig": "0x…" }`.
+- It lasts 24 hours. Sign once per session and reuse it; sign again when it is more than ~23 hours old.
+  A `ts` more than 5 minutes in the future is refused.
+- It is NOT the `nexus-trading-key-v1` signature, and the two are never interchangeable. `walletSig` seeds
+  the agent's trading key; `labAuth` only opens the Lab record. Never send one where the other is asked for.
+- Treat it like `walletSig`: session memory only, never logged, echoed or stored. It opens the user's
+  private calls and notes for 24 hours. (Nexus doesn't store it either.)
+- Only the wallet can make it: the server checks that the signature recovers to the address in the URL.
+  Sign only for the user's own wallet, only for a Lab action the user asked for.
+
+**Without it**, the server answers 401 and does nothing (no write, no copy count, no notification):
+
+```
+{ "error": "sign_to_save" | "sign_to_read", "reason": "<reason>", "hint": "Sign the Nexus Lab message with this wallet and send it as body.labAuth." }
+```
+
+| `reason` | What it means | Fix |
+|---|---|---|
+| `missing` | no `labAuth` in the body | sign the message above |
+| `malformed` | `ts` isn't a whole number, or `sig` isn't `0x` hex | send `ts` as a number of ms, `sig` as `sign_message` returned it |
+| `expired` | signed more than 24 hours ago | sign again with a fresh `ts` |
+| `future` | `ts` is more than 5 minutes ahead of the server | use the current time in ms |
+| `wrong_signer` | the signature doesn't recover to the address in the URL | right wallet? address lowercased in the message? text exactly as above? |
+
+Fix the cause once and retry once. Never loop, never fall back to an unsigned write, and never save from
+the public view to get around it. If it still fails, tell the user nothing was saved.
+
+### A save replaces the whole record
+
+`PUT /lab/:address` stores `{ theses, notes }` exactly as sent. A private call or a note left out of the
+body is deleted. (Published calls are the exception: they are permanent, so the server puts back any you
+leave out, and ignores edits to them.) So every save is read → change → write:
+
+1. `POST /lab/:address/read` with `{ labAuth }` → the full record `{ theses: [...], notes: {...} }`.
+2. Change only what the user asked for (e.g. add one call at the front of `theses`).
+3. `PUT /lab/:address` with `{ theses, notes, labAuth }`: the arrays from step 1 plus your change.
+   `theses` must be an array and `notes` an object (`{}` if empty), else 400.
+
+- **Never build a save from `GET /lab/:address`.** That is the public view: a save built from it deletes
+  the user's private calls and notes.
+- If step 1 fails for any reason, write nothing and tell the user.
+- Keep steps 1–3 back to back. If the user saves in the app in between, the later save wins.
+- The answer is `{ ok: true, published: [...], refused?: [{ id, reason }] }`. `published` = the user's
+  published calls as stored. `refused` = calls sent as public that the server saved as PRIVATE instead,
+  with the reason (another wallet already published that id, or the wallet holds the most published
+  calls it can). Tell the user about each one.
+- `PUT /profile/:address` replaces both fields: one left out is set to null. Read `GET /profile/:address`
+  first and send both.
+- `DELETE /lab/:address/thesis/:id` (body `{ labAuth }`) removes an unpublished call. A published call
+  answers 409 `published_permanent`: published calls can't be deleted, edited or made private.
 
 ---
 
-## Rep Score
+## The Graded Caller Board
 
-Composite 0–100 on-chain credibility score:
+The caller board is computed by Nexus's grader, not by the agent. Read it; don't rebuild it.
 
 ```
-repScore = winRate + min(avgRR * 10, 20) - samplePenalty
+GET https://og.nexustradinglabs.com/theses/leaderboard
 ```
 
-- `winRate` = (wins / (wins + losses)) * 80
-- `avgRR` = average (tp1 - entry) / (entry - sl) on closed winning theses
-- `samplePenalty` = 0 if ≥5 closed trades, else (5 - closed) * 4
-- Clamped to [0, 100]
+Returns `{ leaderboard, emerging, criteria }`:
+- `leaderboard`: callers with **5+ graded calls AND a positive average R**, top 25, already in rank order.
+  Each entry: `rank`, `wallet`, `displayName`, `calls` (graded calls), `hitRate` (%), `avgR`, `totalR`,
+  `score`, `expectancy` (`{ expectancy, profitFactor, … }` in R), `meritRank`, plus `discipline`,
+  `calibration`, `regimeEdge`, `contrarian`, `rSeries`.
+- `emerging`: callers with 1–4 graded calls. Each: `wallet`, `calls`, `hitRate`, `avgR`, `totalR`,
+  `callsToQualify`, `displayName`, `pfp` (up to 15). **Unranked**: list them as emerging, never number them.
+- `criteria`: `{ minCalls, grading, discipline, regime }`. `criteria.grading` explains, in plain text, how
+  every call is graded. Quote it when a user asks how ranking works.
 
-On-chain stats: call `getTraderStats(walletAddress)` on ThesisRegistry returns `(wins, losses, activeTrades)`.
+**Order = the array order (`rank`).** `score` is sample-adjusted expectancy in R, not hit rate. Don't
+re-sort by hit rate or anything else.
 
----
+**An empty `leaderboard` is a real answer**, not an outage: nobody currently clears 5 graded calls with a
+positive average R. Say "No verified callers yet." (the app's own label for the empty board), then offer
+`emerging` if it has rows. Never fill the gap with a ranking of your own.
 
-## Build the Leaderboard
+**`meritRank`** is earned from the graded record only. `null` = unranked, so show nothing. Never invent
+a tier.
 
-1. `GET https://og.nexustradinglabs.com/feed` → all public theses
-2. Group by wallet
-3. Compute per wallet:
-   - `wins` = count of `HIT_TP` theses
-   - `losses` = count of `STOPPED_OUT` theses
-   - `avgRR` = mean of `(tp1 - entry) / (entry - sl)` for winning theses
-   - `repScore` using formula above
-4. Sort by `repScore` desc, then total theses desc
-5. For verified on-chain stats: call `getTraderStats(wallet)` on ThesisRegistry (shows ⛓ badge)
+| Rank | Needs |
+|---|---|
+| ▪ Signal | 5+ graded calls, average R above zero |
+| ◆ Sharp | 15+ graded calls, 50%+ hit rate, average R ≥ 0.5 |
+| ✦ Apex | 30+ graded calls, 55%+ hit rate, average R ≥ 1.0 |
+
+### One trader's graded record
+
+```
+GET https://og.nexustradinglabs.com/theses/process/:wallet
+```
+
+`{ wallet, calls, hitRate, avgR, totalR, meritRank, expectancy, calibration, contrarian, regime,
+regimeEdges, discipline }` for any wallet, ranked or not: every graded public call, the same record
+the board ranks on. `calls: 0` (with `note`) = no graded call yet. Say "no graded calls yet", not
+"0% win rate".
+
+### How to state a record
+
+- **A hit rate never goes out alone.** Always pair it with the average R and the graded call count:
+  "28 graded calls · 36% hit · +0.05R avg". A 36% hit rate can be profitable and a 70% one can lose.
+- Under 5 graded calls, give the count and say it's too few to rank on.
+- Say "graded from public price", never "verified": these are numbers from Nexus's API (SKILL.md safety
+  rules). The grade is recomputable from public candles; `criteria.grading` says how.
+
+### Retired: Rep Score
+
+Earlier versions of this guide had agents compute a "Rep Score" from the feed (hit rate plus a bonus
+for the R:R the caller *planned*). It isn't graded: it rewards wide planned targets that never hit, and
+it read self-set statuses. Nexus removed it from the app on 2026-10-16. **Don't compute it.** When a user
+asks for a Rep Score, answer with the graded record above.
 
 ---
 
@@ -67,11 +181,14 @@ registerThesis(string symbol, uint8 direction, uint256 entryPrice, uint256 stopL
                uint256 takeProfit1, uint256 takeProfit2, uint256 riskReward, bool isPublic,
                string notes) → thesisId          // full argument notes: "Publish a Thesis On-Chain", route B
 closeThesis(uint256 thesisId, string outcome, string settlementTxHash)
-getTraderStats(address trader) → (wins, losses, activeTrades)
+getTraderStats(address trader) → (wins, losses, activeTrades)   // self-reported, see below
 getThesis(uint256 thesisId) → ThesisData
 ```
 
 Price encoding: `Math.round(price * 1e6)` — e.g. BTC at $65,432.10 → `65432100000` (contract uses 6 decimal scaling, NOT 8)
+
+`getTraderStats` counts the outcomes callers report themselves through `closeThesis`. It is not the
+grade: never rank on it or quote it as a record. The graded record is `/theses/process/:wallet`.
 
 Registering emits ONE event from the registry with the thesis id as topic 1 and the trader (`msg.sender`) as
 topic 2. Read it by that layout, not by an event-signature hash.
@@ -82,19 +199,40 @@ topic 2. Read it by that layout, not by an event-signature hash.
 
 > ⚠️ **Copying is NOT auto-trading.** This flow saves a *thesis* (a plan) to the user's lab — it does **not** place an order. NEVER chain a copied thesis straight into `/trade`/`/agent` without an explicit user confirmation for that specific position.
 >
-> **On reputation signals:** the VERIFIED-CALLERS leaderboard (`/theses/leaderboard`) grades outcomes **objectively against public Orderly price** (first-touch TP-vs-SL on public OHLC, recomputable by anyone) — not self-reported PnL, which is the strongest signal here. Even so, treat ANY single metric — Rep Score, leaderboard rank, or `getTraderStats()` — as a **cross-check only, never the sole automated gate** before risking capital: rankings can still be influenced by wash trading or coordinated publishing. Always require operator sign-off before opening a position derived from a third party's call.
+> **On reputation signals:** the graded caller board (`/theses/leaderboard`) grades outcomes **objectively against public Orderly price** (first-touch TP-vs-SL on public OHLC, recomputable by anyone), not self-reported PnL. That's the strongest signal here. Even so, treat ANY single number (a merit rank, a board position, a graded record) as a **cross-check only, never the sole automated gate** before risking capital: a record can still be gamed by wash trading or coordinated publishing. `getTraderStats()` is self-reported and not a signal at all. Always require operator sign-off before opening a position derived from a third party's call.
 
-1. `GET https://og.nexustradinglabs.com/feed` → find thesis by trader/symbol/direction
-2. Prompt user: account size (USDC), risk % (e.g. 2%), optional max loss cap
+1. `GET https://og.nexustradinglabs.com/feed` → find the call by trader / symbol / direction (a call
+   row, not a `resolution` or `agent` row)
+2. Ask the user: account size (USDC), risk % (e.g. 2%), optional max loss cap
 3. Compute position size: `accountSize * riskPct / (entry - sl)` (longs); adjust for shorts
-4. `GET /lab/:userWallet` → fetch user's theses
-5. Append new thesis:
-   - All levels from source
-   - `copiedFromWallet: sourceWallet`, `copiedThesisId: sourceId`
-   - Notes: "Copied from [sourceWallet] via Nexus"
-   - `isPublic: false` (user decides)
-6. `PUT /lab/:userWallet`
-7. Optionally: `POST /notifications/:sourceWallet` to alert them
+4. Get the user's Lab signature (`labAuth`, see "The Lab signature" above), or reuse one under ~23h old
+5. `POST /lab/:userWallet/read` with `{ labAuth }` → the user's FULL record. Anything but 200 → stop,
+   write nothing, tell the user.
+6. Build the copy as a NEW call:
+   - `id`: a new id, e.g. `"copy_<ms timestamp>"`. Never reuse the source call's `id`: an id belongs to
+     the wallet that published it first, so a reused id can never be published from this wallet.
+   - `symbol`, `direction`, `entryPrice`, `stopLoss`, `takeProfit1`, `takeProfit2`, and `exitPlan`
+     (when the source has `exitPlan: "SPLIT_50"`) from the source. Keep them together: a copy with
+     `takeProfit2` but no `exitPlan` is graded TP1-only, a different trade. Entry 100, stop 90, TP1 120,
+     TP2 140, price hits TP1 and then the stop: the source grades +0.5R, a copy without `exitPlan` +2R.
+   - `notes`: "Copied from [source name or wallet]" plus the source's notes
+   - `createdAt: <now in ms>`, `status: "ACTIVE"`, `isPublic: false` (the user decides; publishing is permanent)
+   - Sizing fields if you computed them (`accountSize`, `riskPercent`, `positionSize`, `leverage`)
+7. `PUT /lab/:userWallet` with:
+   ```
+   {
+     "theses": [<the copy>, ...<theses from step 5>],
+     "notes":  <notes from step 5>,
+     "copiedFromWallet":      "<source wallet>",
+     "copiedThesisId":        "<source call id>",
+     "copiedThesisSymbol":    "<source symbol>",
+     "copiedThesisDirection": "LONG" | "SHORT",
+     "labAuth": { "ts": <ts>, "sig": "0x…" }
+   }
+   ```
+   The four `copied…` fields go at the top of the body, not inside the call. With them, Nexus counts the
+   copy on the source call and notifies its author. Nothing else to call: there is no public
+   `POST /notifications`.
 
 > If the user then wants to actually *open* the copied position, confirm the symbol, direction, size, and leverage with them first, then follow the normal `/trade` flow — never silently.
 
@@ -237,7 +375,7 @@ No key. Returns the wallet's PUBLIC calls that are still open, newest first, plu
 
 **Alerts.** The owner gets a notification when a resting order fills (`call_fill`), when a split call's
 TP1 half closes (`call_tp1`) and when a call is graded (`call_resolved`). They land in
-`GET /notifications/:wallet?unreadOnly=true` (below), on phones with Nexus alerts on, and in Telegram if
+the wallet's notification list (`POST /notifications/:wallet`, signed, below), on phones with Nexus alerts on, and in Telegram if
 linked. All of them come from the hourly grading pass, so expect up to an hour's delay; for anything
 faster, poll `/theses/status`.
 
@@ -246,12 +384,18 @@ faster, poll `/theses/status`.
 ## Notifications
 
 ```
-GET    /notifications/:wallet
-GET    /notifications/:wallet?unreadOnly=true
-POST   /notifications/:wallet      { type, message, fromWallet? }
-PUT    /notifications/:wallet       { markAllRead: true }
-DELETE /notifications/:wallet/:id
+POST   /notifications/:wallet           // the list: newest first, last 50   body { labAuth }
+PUT    /notifications/:wallet/read      // mark all read                      body { labAuth }
+DELETE /notifications/:wallet/:id       // remove one                         body { labAuth }
 ```
+
+A wallet's notifications are private: only that wallet can read them. Every call needs its Lab
+signature (`labAuth`, see "Trader Lab") in the JSON body, never in the URL. `GET /notifications/:wallet`
+returns nothing (401 `sign_to_read`). An unsigned or wrongly signed read answers 401 `sign_to_read`;
+an unsigned mark-read or delete answers 401 `sign_to_save` and changes nothing.
+
+Nexus writes notifications itself (graded calls, fills, copies, replies). An agent can't send one.
+Unread rows have no `readAt`: filter them yourself.
 
 ---
 
@@ -259,13 +403,19 @@ DELETE /notifications/:wallet/:id
 
 ```
 GET    /comments/:thesisId
-POST   /comments/:thesisId         { wallet, text }
-DELETE /comments/:thesisId/:commentId
+POST   /comments/:thesisId                 { wallet, text, authorWallet?, labAuth }
+DELETE /comments/:thesisId/:commentId      { wallet, labAuth }          // your own comment only
 GET    /reactions/:thesisId
-PUT    /reactions/:thesisId/:emoji  { wallet }   // toggle
+PUT    /reactions/:thesisId/:emoji         { wallet, authorWallet?, labAuth }   // toggle
 ```
 
-Allowed emojis: 🔥 💎 📉 ✅ ❌
+Every write is signed: `labAuth` from `wallet`, the same Lab signature as above (one per session covers
+the Lab and these). Unsigned, or signed by a different wallet → 401 `sign_to_save`, nothing posted.
+`authorWallet` = the wallet that published the call, so Nexus can notify them; Nexus checks it holds that
+public call and names the market and side from the stored call. Comments and reactions are public and
+carry the user's address: post only what the user asked you to post.
+
+Allowed emojis: 🔥 🚀 📈 📉 💎 🎯 💀 ✅ ❌ (anything else → 400)
 
 ---
 
@@ -281,14 +431,24 @@ Returns `{ wallets: string[], fromCache: bool }` — all wallets that have ever 
 
 ## Example Prompts
 
-**"Show me the top 5 traders by Rep Score"**
-→ GET https://og.nexustradinglabs.com/feed → group by wallet → compute repScore → sort desc → return top 5
+**"Show me the top 5 callers"** (or "…by Rep Score")
+→ GET https://og.nexustradinglabs.com/theses/leaderboard → first 5 of `leaderboard`, in order → for each: name or
+short wallet, `meritRank`, "N graded calls · H% hit · ±R avg". Empty `leaderboard` → "No verified callers yet
+(5 graded calls with a positive average R needed)", then list `emerging`. Rep Score is retired: say so in one line.
 
-**"Who has the highest win rate with ≥5 closed trades?"**
-→ GET https://og.nexustradinglabs.com/feed → filter wallets where (HIT_TP + STOPPED_OUT) >= 5 → sort by wins/(wins+losses) desc
+**"Who has the highest win rate?"**
+→ GET https://og.nexustradinglabs.com/theses/leaderboard → answer from the graded entries, each with its average R
+and call count beside the hit rate, and say the board is ordered by expectancy, not hit rate. Never rank callers
+from `/feed` statuses.
+
+**"What's 0xabc…'s record?"**
+→ GET https://og.nexustradinglabs.com/theses/process/0xabc… → "N graded calls · H% hit · ±R avg", plus `meritRank`
+if not null. `calls: 0` → "no graded calls yet".
 
 **"Copy the #1 trader's latest active BTC thesis with 2% of my $10k stack"**
-→ build leaderboard → top wallet → find PERP_BTC_USDC ACTIVE thesis → size: $10k * 0.02 / (entry - sl) → GET /lab/:userWallet → append → PUT /lab/:userWallet
+→ GET /theses/leaderboard → top entry's wallet (empty board → say so, stop) → find its PERP_BTC_USDC call in /feed
+with no `gradedOutcome` → confirm with the user → size: $10k * 0.02 / (entry - sl) → labAuth → POST /lab/:userWallet/read
+→ add the copy (new id) → PUT /lab/:userWallet with the full record + copied… fields + labAuth (Copy Trading Flow)
 
 **"Publish my ETH short: entry 3200, SL 3350, TP 2800"**
 → Route A: POST https://og.nexustradinglabs.com/proxy/thesis-register { walletAddress, bankrApiKey, symbol: "PERP_ETH_USDC", direction: "SHORT", entryPrice: 3200, stopLoss: 3350, takeProfit1: 2800, isPublic: true } → done when it answers 200 (202 → POST /theses/index with the txHash)
