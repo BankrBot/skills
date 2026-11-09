@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "gentech-x402",
+  "provider": "GenTech Labs",
+  "providerUrl": "https://gentechlabs.net",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "gentech-x402.sh",
+    "language": "bash",
+    "code": "# GenTech Labs x402 gateway — a real call, from the terminal. No API key, no account.\n\n# 1. Free: is the gateway up?\ncurl -s https://api.gentechlabs.net/health\n\n# 2. Ask for a paid resource. You get HTTP 402 + a Payment-Required header.\n#    The JSON body repeats the challenge in full: scheme, network, amount, asset, payTo.\ncurl -si https://api.gentechlabs.net/v1/gas/gas | head -20\n\n# 3. The canonical challenge lives in the header, base64-encoded (x402 v2):\ncurl -s -D - -o /dev/null https://api.gentechlabs.net/v1/gas/gas \\\n  | grep -i '^payment-required:' \\\n  | cut -d' ' -f2- | base64 -d | python3 -m json.tool\n\n# 4. Pay it and retry. Any x402 client does steps 3-4 for you:\n#    - sign the `amount` of `asset` to `payTo` on `network` (USDC, EIP-3009 gasless on EVM)\n#    - resend the SAME request with the signed proof as the `payment-signature` header\n#\n#    Using the reference client:\n#      npx @x402/fetch https://api.gentechlabs.net/v1/gas/gas\n#\n# 5. Every service, price and chain in one document:\ncurl -s https://api.gentechlabs.net/.well-known/x402-bazaar | python3 -m json.tool | head -40"
+  },
+  "setup": [
+    "Install: `install the gentech-x402 skill from https://github.com/BankrBot/skills/tree/main/gentech-x402`",
+    "Fund a wallet with USDC — prices start at $0.001 per call, no API key needed",
+    "Health check: `curl https://api.gentechlabs.net/health`",
+    "Confirm a paid route answers 402: `curl -si https://api.gentechlabs.net/v1/gas/gas | head -5`",
+    "See all live services: `curl https://api.gentechlabs.net/.well-known/x402-bazaar`"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "gentech-x402",
+    "command": "install the gentech-x402 skill from https://github.com/BankrBot/skills/tree/main/gentech-x402"
+  }
+}
