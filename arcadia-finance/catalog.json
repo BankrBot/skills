@@ -7,7 +7,7 @@
   "demo": {
     "title": "arcadia-session.txt",
     "language": "text",
-    "code": "You:   what Arcadia strategies are live for WETH/USDC on Base?\nBankr: Featured strategies with live APY, rebalanced and compounded\n       automatically. Want to open one with USDC?\nYou:   open the top one with 1000 USDC\nBankr: Builds one transaction: deposit, swap, mint LP. Submit it? (yes/no)\nYou:   yes\nBankr: Done. Position open and automation enabled.\n       Say \"check my Arcadia account\" any time for health factor and PnL."
+    "code": "You:   what Arcadia strategies are live for WETH/USDC on Base?\nBankr: Here are the featured strategies with their live APY.\nYou:   open the top one with 1000 USDC\nBankr: First an Arcadia account and a USDC approval, then one transaction\n       that deposits, swaps to the right ratio and mints the LP. Submit? (yes/no)\nYou:   yes\nBankr: Done. Position open. Turn on compounding and rebalancing? (yes/no)\nYou:   yes\nBankr: Done. Say \"check my Arcadia account\" any time for health factor and PnL."
   },
   "setup": [
     "Install the skill with the button below",

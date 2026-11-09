@@ -1,16 +1,10 @@
 ---
 name: arcadia-finance
-version: 1.1.0
 description: DeFi liquidity management with Arcadia Finance. Use when the user wants to provide liquidity on Uniswap or Aerodrome, deploy concentrated LP positions, add or remove liquidity, set up automated rebalancing or compounding, borrow against LP collateral, lend single-sided into a lending pool, check PnL, use leverage, or optimize DeFi yields on Base, Unichain or Robinhood Chain. Returns unsigned transactions for Bankr to submit.
 metadata:
-  {
-    "clawdbot":
-      {
-        "emoji": "🏛️",
-        "homepage": "https://arcadia.finance",
-        "requires": { "bins": ["curl", "jq", "bankr"] },
-      },
-  }
+  homepage: https://arcadia.finance
+  version: "1.1.0"
+  requires: [curl, jq, bankr]
 ---
 
 # Arcadia Finance
