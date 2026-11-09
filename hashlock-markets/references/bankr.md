@@ -1,6 +1,6 @@
 # Hashlock Markets with a Bankr wallet
 
-A Bankr agent trades on Hashlock with its own Bankr wallet: Bankr signs, Hashlock never holds the key.
+A Bankr agent trades on Hashlock with its own Bankr wallet: Bankr signs and sends, Hashlock never holds the key.
 Trade on the chains both support — **Ethereum (1)**, **Base (8453)** and **Robinhood Chain (4663)**.
 
 ## Why a Bankr agent uses Hashlock
@@ -20,17 +20,69 @@ Trade on the chains both support — **Ethereum (1)**, **Base (8453)** and **Rob
   sign `authorizationMessage` with `/wallet/sign`). Bankr has no Bitcoin or TRON wallet, so those need a
   wallet of your own.
 
-## One-time setup
+## One-time setup in Bankr
 
-1. A Bankr API key with **Wallet API enabled** and **read-only off** (`X-API-Key` header on every call below).
-2. In the Bankr wallet settings, turn on **"Enable arbitrary contract calls"** — Hashlock's escrow
-   transactions are contract calls, and `/wallet/submit` refuses them otherwise (`403`).
-3. Do **not** set "allowed recipients" on that key: it blocks every raw `/wallet/submit`. Keep the
-   allowlist in your own code instead — the pinned factories in the recipe below.
-4. Keep some **ETH for gas** on each chain you fund from. Gas is not sponsored on `/wallet/submit`; a wallet
-   without it gets `400 insufficient_funds_for_gas`.
+1. A Bankr API key with **Wallet API enabled** and **read-only off**.
+2. In the Bankr wallet's Security settings, turn on **"Enable arbitrary contract calls"** (it needs MFA on
+   the Bankr account) — Hashlock's escrow transactions are contract calls, and Bankr refuses them otherwise
+   (`403`).
+3. No **allowed recipients** on that key: Bankr refuses every raw transaction from such a key. If the
+   wallet's **permitted recipients** list is on, a leg in the chain's native coin is refused unless
+   Hashlock's factory is on it.
+4. Keep some **ETH for gas** on each chain you settle on. Gas is not sponsored.
 
-## Mint the Hashlock API key with the Bankr wallet
+## Settle with the Hashlock MCP server — it sends through your Bankr wallet
+
+If your agent can start a local process, run Hashlock's own MCP server (`@hashlock-tech/mcp`, 1.12.0 or
+later) and give it your Bankr key. It is the same server an agent with a private key runs; only the wallet is Bankr's.
+
+```json
+{
+  "mcpServers": {
+    "hashlock": {
+      "command": "npx",
+      "args": ["-y", "@hashlock-tech/mcp"],
+      "env": {
+        "HASHLOCK_API_URL": "https://hashlock.markets/api",
+        "HASHLOCK_BANKR_API_KEY": "<your Bankr API key>",
+        "HASHLOCK_EVM_RPC_BASE": "<a Base RPC URL>",
+        "HASHLOCK_EVM_RPC_ROBINHOOD": "<a Robinhood Chain RPC URL>"
+      }
+    }
+  }
+}
+```
+
+- **Nothing to mint, nothing to build.** The server signs in to Hashlock as your Bankr wallet (a
+  `personal_sign` through Bankr), and that wallet is your account's login wallet: where you are paid and
+  what you fund from.
+- **It builds every settlement transaction itself**, from the deal it recorded when you agreed it — never
+  from a transaction the API hands it. It funds only through the Hashlock contracts and in the assets pinned
+  in its release, under a capped fee and timelock; as the counterparty it reads the initiator's escrow on
+  chain before funding; before a claim it reads the escrow it claims from, and it keeps the swap secret on
+  your machine.
+- **Bankr signs and sends.** The server checks on your own RPC that the call would go through, hands Bankr
+  that exact call (`POST /wallet/submit`: contract, calldata, value, gas), and follows the transaction on
+  your RPC; one that was mined and reverted is reported as a failure. Bankr does not sign a raw transaction
+  for you to broadcast, so what goes on chain is Bankr's to send, as with everything else in a Bankr wallet.
+- **Your Bankr security settings apply**: the pause, the contract-calls switch, and the per-transaction and
+  daily limits on a native-coin leg. A claim and a refund go through Bankr too, so leave the wallet unpaused
+  and those settings as they are until every swap is settled or refunded.
+- **Get the settings right before you agree a deal.** Once this server has started to fund a swap it does
+  not fund that swap again, whatever stopped it — it cannot be certain that nothing left. If Bankr refuses a
+  funding, fix the cause, let that deal lapse and agree a new one. A claim or a refund that Bankr refuses
+  can simply be repeated.
+- **Do the whole deal through this server** — post or quote, negotiate, set addresses, then `fund_leg`,
+  `claim_leg` (and `refund_leg` after a timelock). It settles only deals agreed through it. Its tools take
+  human amounts (`"0.5"`) and assets as `SYMBOL@chain`; each tool describes itself.
+- An RPC URL is needed for every chain you settle on (`HASHLOCK_EVM_RPC` is Ethereum's): the server reads
+  escrows, checks each call and follows your transactions through it.
+
+## If your agent cannot run a local server
+
+An agent that can only add a remote MCP server or call HTTP uses the hosted server
+(`https://hashlock.markets/mcp`) or the REST API, as `SKILL.md` describes, with a Hashlock API key minted
+by the Bankr wallet:
 
 ```bash
 NONCE=$(curl -s https://api.hashlock.markets/v1/keys/nonce | jq -r .nonce)
@@ -46,114 +98,41 @@ curl -s -X POST https://api.hashlock.markets/v1/keys -H "content-type: applicati
 # → { "key": "hk_live_…" }  store it as a secret; it is shown once
 ```
 
-A Bankr wallet signs as an ordinary EOA, so Hashlock verifies the signature directly. The Bankr wallet becomes
-the Hashlock account's **login wallet** — the address you are paid at and fund from.
+A Bankr wallet signs as an ordinary EOA, so Hashlock verifies the signature directly, and the Bankr wallet
+becomes the account's login wallet.
 
-## Talk to Hashlock
+To settle on this path, send each transaction that `build_fund`, `build_claim` or `build_refund` returns
+(`{ chainId, txs: [{ to, data, value }] }`), in order, through Bankr's `POST /wallet/submit`:
+`{ "transaction": { "to", "chainId", "data", "value" }, "waitForConfirmation": true }`.
 
-Use the hosted MCP server (`https://hashlock.markets/mcp`, header `Authorization: Bearer hk_live_…`) if your
-agent setup can add MCP servers, or the REST API at `https://api.hashlock.markets/v1` with the same header.
-Everything in `SKILL.md` applies unchanged.
+**Know what this path trusts.** Here nothing checks those transactions but you: you send what Hashlock's
+API built, and you take the API's word that the other side's escrow exists. That is the trust a person
+places in the hashlock.markets web app. An agent that should not take the API's word — an unattended one,
+or one moving size — settles with the MCP server above, which checks every step itself. There is no
+shorter set of checks that is safe to copy: a transaction's destination alone does not show whom it pays.
 
-## Settle through Bankr — sign AND send with `/wallet/submit`
-
-`build_fund`, `build_claim` and `build_refund` return `{ chainId, txs: [{ to, data, value }] }` with
-`value` as **hex wei**. Send each transaction, in order, through Bankr — it signs and broadcasts, so you do
-not need Hashlock's `broadcast_tx`:
-
-```javascript
-const BANKR_WALLET = '0xYourBankrWallet';        // your Bankr EVM address (GET /wallet/me)
-// The ONLY contracts a settlement may call — Hashlock's HTLCFactory per chain id. Keep this list in your
-// own code: the API names the factory, and an agent that sends wherever it is told trusts the API with
-// its money. A rotated factory is announced with a release of @hashlock-tech/mcp (src/pinned.ts).
-const FACTORIES = {
-  1: '0x0b43c409b89515e279f651883837d4eb4ead3f4d',      // Ethereum
-  8453: '0x0b43c409b89515e279f651883837d4eb4ead3f4d',   // Base
-  4663: '0x0b43c409b89515e279f651883837d4eb4ead3f4d',   // Robinhood Chain
-};
-// Every factory whose escrows are Hashlock's: the current one, and the one before it, which still settles the
-// deals funded before 2026-11-05. Read escrows through either; send new money only to FACTORIES.
-const KNOWN_FACTORIES = ['0x0b43c409b89515e279f651883837d4eb4ead3f4d', '0xa9b6a64837259034e949787b5d17bfa46304ff71'];
-const factory = FACTORIES[built.chainId];
-if (!factory) throw new Error(`no pinned Hashlock factory on chain ${built.chainId}`);
-// The escrow accepts funding only from `built.from` — stop if that is not this Bankr wallet.
-if (built.from && built.from.toLowerCase() !== BANKR_WALLET.toLowerCase()) throw new Error(`fund must be sent from ${built.from}`);
-for (const tx of built.txs) {                       // an ERC-20 leg is approve, then createSwap
-  const to = tx.to.toLowerCase();
-  // approve(spender, amount) = 0x095ea7b3: the spender must be the factory (the token is the leg's asset).
-  const approvesFactory = tx.data.startsWith('0x095ea7b3') && tx.data.slice(34, 74).toLowerCase() === factory.slice(2);
-  if (to !== factory && !approvesFactory) throw new Error(`refusing: ${tx.to} is not the pinned Hashlock factory`);
-  const r = await fetch('https://api.bankr.bot/wallet/submit', {
-    method: 'POST',
-    headers: { 'X-API-Key': process.env.BANKR_API_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      transaction: {
-        to: tx.to,
-        chainId: built.chainId,
-        data: tx.data,
-        value: BigInt(tx.value).toString(),      // Bankr wants DECIMAL wei; Hashlock gives hex
-      },
-      description: 'Hashlock HTLC settlement',
-      waitForConfirmation: true,                  // the next tx (createSwap) needs the approve mined
-    }),
-  });
-  const out = await r.json();
-  if (!out.success) throw new Error(`${out.status ?? r.status}: ${out.error ?? 'submit failed'}`);
-}
-```
-
-A claim or refund calls the swap's own escrow (a clone the factory created), so for those the allowlist is
-the escrow address you checked (see the next section), not the factory.
-
-- The escrow factory accepts funding **only from the builder's `from`** — your refund address on that leg.
-  Leave it as your Bankr wallet (the default), which is exactly what `/wallet/submit` signs with.
+- An ERC-20 leg is an `approve`, then `createSwap`. A `400` "The transaction could not be submitted" on
+  `createSwap` right after the `approve` mined means Bankr cannot see the approve yet: wait ~30 seconds and
+  submit the same `createSwap` again.
 - A transaction that mines and reverts comes back `400` with `status: "reverted"` and its hash: stop and
   re-read `swap_status` before trying anything else.
-- A `400` "The transaction could not be submitted" on `createSwap` right after its `approve` mined means
-  Bankr cannot see the approve yet: wait ~30 seconds and submit the same `createSwap` again.
 - After the initiator's claim, the keeper normally settles the counterparty's leg — but check `swap_status`
-  and claim it yourself (same `/wallet/submit` flow) if it is still open once the secret is public.
-
-## Check the initiator's escrow yourself before you fund
-
-If you are the counterparty (you fund second), `swap_status` saying `initiator_funded` is the API's word.
-Read the initiator's escrow on chain first and fund only if it pays **your** wallet, under the swap's
-hashlock, the agreed token and amount, with a timelock at least 2 hours past your own leg's:
-
-```javascript
-import { createPublicClient, http, keccak256, toHex, parseAbi } from 'viem';
-const pub = createPublicClient({ transport: http(RPC_FOR_THAT_CHAIN) });
-const clone = initiatorLeg.htlcAddress;          // from swap_status
-const abi = parseAbi(['function hashlock() view returns (bytes32)', 'function recipient() view returns (address)',
-  'function token() view returns (address)', 'function amount() view returns (uint256)', 'function timelock() view returns (uint256)',
-  'function initiator() view returns (address)', 'function claimed() view returns (bool)', 'function refunded() view returns (bool)',
-  'function computeAddress(bytes32,bytes32,address,address,uint256,uint256,address,uint256) view returns (address)']);
-const get = (functionName) => pub.readContract({ address: clone, abi, functionName });
-const [h, rcpt, tok, amt, tl, ini, claimed, refunded] = await Promise.all(
-  ['hashlock', 'recipient', 'token', 'amount', 'timelock', 'initiator', 'claimed', 'refunded'].map(get));
-// It is a Hashlock escrow only if a pinned factory derives this very address from these terms.
-// allSettled: one factory's RPC hiccup must not hide a match from the other.
-const ats = (await Promise.allSettled(KNOWN_FACTORIES.map((address) => pub.readContract({ address, abi, functionName: 'computeAddress',
-  args: [keccak256(toHex(swap.id)), h, rcpt, tok, amt, tl, ini, initiatorLegFee /* the swap's feeAmount if that leg's asset is the fee asset, else 0 */] }))))
-  .flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
-if (!ats.some((at) => at.toLowerCase() === clone.toLowerCase()) || claimed || refunded || h.toLowerCase() !== swap.hashlock.toLowerCase()
-  || rcpt.toLowerCase() !== BANKR_WALLET.toLowerCase() || BigInt(amt) < BigInt(initiatorLeg.amount)
-  || Number(tl) < myLegTimelockUnix + 7200) throw new Error('the initiator escrow is not the agreed one — do not fund');
-// The agreed asset (0x000…0 = the native coin), and the escrow really holds the amount.
-// `initiatorLeg.amount` is in base units (wei / the token's smallest unit), as every swap amount is.
-const ZERO = '0x0000000000000000000000000000000000000000';
-const held = tok.toLowerCase() === ZERO ? await pub.getBalance({ address: clone })
-  : await pub.readContract({ address: tok, abi: parseAbi(['function balanceOf(address) view returns (uint256)']), functionName: 'balanceOf', args: [clone] });
-// AGREED_TOKEN: the contract address you matched the asset by when you agreed (ZERO for the native coin).
-if (tok.toLowerCase() !== AGREED_TOKEN.toLowerCase() || held < BigInt(amt))
-  throw new Error('the initiator escrow holds another asset or less than agreed — do not fund');
-```
+  and claim it yourself if it is still open once the secret is public.
 
 ## Bankr errors you can hit
 
 | Answer | Fix |
 |---|---|
-| `403` "Arbitrary contract calls" | Turn the setting on in the Bankr wallet. |
+| `403` "Arbitrary contract calls disabled" / "MFA required" | Turn on MFA, then the setting, in the Bankr wallet. |
+| `403` "Restricted API key" | Remove allowed recipients from the key. |
+| `403` `RECIPIENT_NOT_PERMITTED` / `RECIPIENT_COOLDOWN` (a native-coin leg) | Put Hashlock's factory on the permitted-recipients list (a new entry waits out a cooldown), or turn the list off. |
+| `403` `PER_TX_LIMIT_EXCEEDED` / `DAILY_LIMIT_EXCEEDED` / `PRICING_UNAVAILABLE` (a native-coin leg) | Raise or turn off the limit in Security settings. |
 | `403` "Read-only API key" | Use a key with read-only off. |
 | `403` "Wallet paused" | Unpause the wallet. |
-| `400 insufficient_funds_for_gas` | Top up ETH on that chain. |
+| `429` | Bankr allows 10 wallet writes a minute; wait and try again. |
+| Not enough ETH for gas | Top up ETH on that chain. |
+
+With the MCP server: after any of these on `claim_leg` or `refund_leg`, fix the cause and call the tool
+again. On `fund_leg` the server does not fund the same swap a second time: fix the cause and agree a new
+deal. If it says a transaction "may or may not have been sent", Bankr did not say what it did — look at
+`deal_status` before anything else.

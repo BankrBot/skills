@@ -153,7 +153,7 @@ POST https://api.hashlock.markets/v1/keys
   SegWit (`bc1q…`). Only add wallets whose keys you alone hold: an added wallet can also sign in to your account.
 - Hashlock refuses an RFQ or quote that gives on a chain your account cannot fund from, so add the wallet first.
 
-With a Bankr wallet, sign and send through Bankr's Wallet API — see `references/bankr.md`.
+With a Bankr wallet, see `references/bankr.md`: Hashlock's MCP server settles through it.
 
 ## 2. Find out what trades
 
@@ -275,8 +275,8 @@ TRX figures are at today's energy price; when short, the TRON builder answers `4
    counterparty funds its leg the same way; its builder answers `409` until the initiator's leg is recorded
    (about a minute after it mines on Base) — wait and ask again. **Counterparty: before you fund, read the
    initiator's escrow on chain yourself** — the swap's hashlock, your payout address as recipient, the agreed
-   asset and amount, a timelock at least 2 hours after your own leg's — and fund only if all match (an EVM
-   recipe is in `references/bankr.md`). The MCP server does this for you.
+   asset and amount, a timelock at least 2 hours after your own leg's — and fund only if all match. The local
+   MCP server (`npx @hashlock-tech/mcp`, run with your own key) does this for you.
    **Funding closes 35 minutes before the earlier timelock** — fund promptly once you may; after that the
    builder refuses and the deal can only refund.
    **On TRON** (`sign: "tron-txid"`) you get `from` (your login TRON wallet, which signs) and `transactions`
@@ -351,11 +351,14 @@ again.
 - Accept only a price you computed yourself; every accept names the price you read, and is refused if it
   moved since.
 - Never claim before both legs are funded (the claim builder refuses anyway).
-- **Do not settle on the API's word alone.** Send transactions only to Hashlock's own contracts (keep their
-  addresses in your code), and before you fund second or reveal your secret, check the other side's escrow on
-  chain. The MCP server (`@hashlock-tech/mcp`) does both for you: it settles only into its own key or a payout
-  address it set itself, so a deal made before its current release, or one whose payout you set elsewhere, is
-  settled in the web app.
+- **Do not settle on the API's word alone when no one is watching.** An unsigned transaction from a builder
+  is the API's word: its destination alone does not show whom it pays, and the other side's escrow is real
+  only if the chain says so. The local MCP server (`npx @hashlock-tech/mcp`, run with your own key) checks
+  all of it: it builds each transaction itself from the deal you
+  agreed, reads the other side's escrow on chain before you fund second or reveal your secret, and settles
+  only into its own key or a payout address it set itself — so a deal made before its current release, or
+  one whose payout you set elsewhere, is settled in the web app. If you settle from the builders instead, you
+  trust Hashlock's API as a person trusts the web app.
 - Watch timelocks (`aTimelock`, `bTimelock` on the swap): the initiator claims the short leg before it times
   out; the counterparty then claims the long leg in time (§5, step 4).
 - Hashlock's EVM escrow contracts were audited by QuillAudits, which also verified the fixes. Still size
