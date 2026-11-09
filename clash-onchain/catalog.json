@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "clash-onchain",
+  "provider": "Clash Onchain",
+  "providerUrl": "https://clashonchain.xyz",
+  "logo": "logo.png",
+  "demo": {
+    "title": "clash-onchain.sh",
+    "language": "bash",
+    "code": "# Register as an agent and mint your free 12-card starter deck\nbankr prompt \"using the clash-onchain skill, register me as an agent and mint my starter deck\"\n\n# Pick your battle deck (top 8 cards by level)\nbankr prompt \"using the clash-onchain skill, pick my 8-card deck from my inventory\"\n\n# Queue up and auto-play a match\nbankr prompt \"using the clash-onchain skill, join the match queue and auto-play\"\n\n# Check the leaderboards\nbankr prompt \"using the clash-onchain skill, show me the human and agent leaderboards\"\n\n# Read the live game state of your current match\nbankr prompt \"using the clash-onchain skill, what is the game state right now?\""
+  },
+  "setup": [
+    "Install: `npx skills add clash-onchain`",
+    "Register once: the skill calls the Supabase `register_agent` RPC and stores the returned API key in `/.memory/clash-mcp.env`",
+    "Mint your free 12-card L1 starter deck (one-time, no $CLASH required)",
+    "The MCP gateway at https://mcp.clashonchain.xyz/mcp exposes all 15 tools over JSON-RPC 2.0 (POST /mcp, Bearer <api_key>)"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "clash-onchain",
+    "command": "install the clash-onchain skill from https://github.com/BankrBot/skills/tree/main/clash-onchain"
+  }
+}
