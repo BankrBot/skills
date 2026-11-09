@@ -26,7 +26,7 @@ A success returns `{ "success": true, "signature", "signer", "signatureType" }`.
 Signing is checked against the wallet's security settings (see [safety.md](safety.md)) before anything is signed, and the agent's `sign_data` follows the same rules:
 
 - A **paused** wallet refuses every signature with `403 Wallet paused`.
-- While **"Enable arbitrary contract calls"** is off, `eth_signTypedData_v4`, `eth_signTransaction` and a 32-byte `personal_sign` message answer `403 Arbitrary contract calls disabled`. Other messages, such as sign-ins, still sign.
+- While **"Enable arbitrary contract calls"** is off, `eth_signTypedData_v4`, `eth_signTransaction` and a 32-byte `personal_sign` message answer `403 Arbitrary contract calls disabled`, or `403 MFA required` (`code: "MFA_REQUIRED"`) on an account without MFA, where the switch can't be on. Other messages, such as sign-ins, still sign.
 - While **permitted recipients** is on, typed data signs only as a standard token permit or transfer authorization (ERC-2612, DAI-style or ERC-4494 `Permit`, Permit2 approvals and transfers but not witness transfers, EIP-3009) whose spender or recipient is the wallet or on the list. `eth_signTransaction`, a 32-byte message, exchange and NFT orders whatever their `receiver`, and all other typed data are refused because they don't show who they pay; plain messages still sign. These answer `403` with `errorCode` `RECIPIENT_NOT_PERMITTED` or `RECIPIENT_COOLDOWN`. Turn the list off to sign them ([docs](https://docs.bankr.bot/wallet-api/sign)).
 
 As on submit, the pause and arbitrary-calls refusals carry no `errorCode`.
@@ -65,7 +65,7 @@ Raw submissions are checked against the wallet's security settings (see [safety.
 
 - The native `value` is priced in USD and checked against the **per-transaction** and **daily** limits, and a submitted transaction counts toward the rolling daily total.
 - The wallet's **permitted-recipients** list is enforced on `to`, but only when `value > 0`. Calldata with no native value counts as **$0** and isn't recipient-checked, because the recipient can't be read out of arbitrary calldata.
-- **"Enable arbitrary contract calls" must be on.** While it's off, `/wallet/submit` is blocked outright.
+- **"Enable arbitrary contract calls" must be on.** While it's off, `/wallet/submit` is blocked outright, and an account without MFA can't turn it on.
 
 **A `403` comes back in one of two shapes, so handle both.** Key checks and the pause and arbitrary-calls switches run at the route, before the safety guard, and answer with a plain `error` and **no `errorCode`**:
 
@@ -74,6 +74,7 @@ Raw submissions are checked against the wallet's security settings (see [safety.
 | `Read-only API key` | The key can't submit transactions |
 | `Restricted API key` | The **key** has `allowedRecipients` set, which blocks every raw submission. Use `/agent/prompt`, which enforces the key's allowlist |
 | `Wallet paused` | All wallet transactions are paused in Security settings |
+| `MFA required` | The account has no MFA, so contract calls stay off (the body also carries `code: "MFA_REQUIRED"`) |
 | `Arbitrary contract calls disabled` | The arbitrary-contract-calls switch is off |
 
 Everything the safety guard rejects carries a machine-readable `errorCode` alongside the user-facing `error`:

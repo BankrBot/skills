@@ -20,7 +20,7 @@ The CLI's `Not authenticated` means it found no key in `BANKR_API_KEY` or `~/.ba
 | 403 | `Read-only API key` | A write on a read-only key | Use a read-write key |
 | 403 | `Restricted API key` | The key's recipient allowlist blocks raw submission, transaction or typed-data signing, this fee recipient, or a `/wallet/transfer` to an address not on the list | For a transfer, send to an allowlisted address; otherwise use `/agent/prompt`, or a key without an allowlist |
 | 403 | `subscription_required` | `/agent/prompt` without Bankr Club or Max Mode credit | Follow the `remediation` list in the body |
-| 403 | `Wallet paused`, `Arbitrary contract calls disabled`, or a body with `errorCode` | A wallet security setting | See [sign-submit-api.md](sign-submit-api.md#wallet-security-settings-apply) |
+| 403 | `Wallet paused`, `MFA required`, `Arbitrary contract calls disabled`, or a body with `errorCode` | A wallet security setting | See [sign-submit-api.md](sign-submit-api.md#wallet-security-settings-apply) |
 
 The flags, allowlists and wallet settings behind these are explained in [safety.md](safety.md).
 

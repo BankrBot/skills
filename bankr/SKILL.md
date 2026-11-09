@@ -127,7 +127,7 @@ Never poll without a `jobId`: `GET /agent/job/null` answers `404 Job not found` 
 - Reads (`me`, `portfolio`, `swap-quote`) work with read-only keys. `swap-quote` still needs `walletApiEnabled`.
 - Writes (`swap`, `transfer`, `sign`, `submit`) need `walletApiEnabled` on a read-write key.
 - Once a key has a recipient allowlist on either chain, `transfer` only sends to addresses on the list for its chain, so a key with only one chain's list can't send on the other. `swap` has no recipient to check, because its output returns to you.
-- `submit` is also checked against the wallet's security settings: spend limits, permitted recipients and the arbitrary-contract-calls switch. Its `403` comes either with a machine-readable `errorCode` or with a plain message and no code, so handle both shapes.
+- `submit` is also checked against the wallet's security settings: spend limits, permitted recipients and the arbitrary-contract-calls switch, which stays off on an account without MFA (`403 MFA required`). Its `403` comes either with a machine-readable `errorCode` or with a plain message and no `errorCode` (`MFA required` adds `code: "MFA_REQUIRED"`), so handle both shapes.
 - These endpoints need no key: `GET /addresses/resolve`, `GET /users/search`, `GET /token-launches` and `GET /token-launches/quote-tokens?chain=<chain>`.
 
 For details, see [docs.bankr.bot/wallet-api/overview](https://docs.bankr.bot/wallet-api/overview) and [references/sign-submit-api.md](references/sign-submit-api.md). Swaps are covered in [references/token-trading.md](references/token-trading.md).
@@ -160,6 +160,7 @@ Capabilities without a reference file:
 
 - **Merkl rewards** on Base and Robinhood Chain: the agent can check what the user has earned, claim it (embedded Bankr wallets only), and list live campaigns by APR. For example: `bankr agent "Do I have any Merkl rewards to claim?"`.
 - **Web browsing:** for Bankr Club members, the agent can drive a headless browser from Bankr Console or a Farcaster direct cast. It isn't available over the Agent API (so not from the CLI), in Telegram, or in public posts ([docs](https://docs.bankr.bot/browser/overview)).
+- **BNKR staking** on Base: stake, claim or unstake by asking the agent or at bankr.bot/stake; unstaking waits out a 48-hour cooldown ([docs](https://docs.bankr.bot/features/staking)).
 - **Webhooks:** `bankr webhooks` deploys endpoints that trigger the agent from external events ([docs](https://docs.bankr.bot/webhooks/overview)).
 - **Questions about Bankr itself:** the agent answers from Bankr's own documentation (official links, channels, how features work) and abstains instead of guessing.
 
@@ -171,10 +172,10 @@ Capabilities without a reference file:
 - **Never retry a swap under a new key after it may have broadcast.** Send an `idempotencyKey` with every `/wallet/swap` and retry only with the same one. After a `504 receipt_pending`, `502 fill_unconfirmed` or `502 fill_failed`, check the wallet's activity first. See [error-handling.md](references/error-handling.md#retrying-swaps-safely).
 - **Creating an automation isn't idempotent.** If a create seemed to fail, list the existing automations before sending it again.
 - **Tokenized-stock trades need a one-time location verification** in the Bankr web app, which isn't available in the US, the UK or sanctioned regions. Quotes aren't gated; execution is.
-- **LLM credits are separate from the trading wallet** and start at $0. Top up (`bankr llm credits add 25`) before using the gateway or Max Mode, or calls fail with `402`.
+- **LLM credits are separate from the trading wallet** and start at $0. Top up (`bankr llm credits add 25`) before using the gateway or Max Mode: gateway calls fail with `402`, and Max Mode prompts fail with a top-up message.
 - **Token launches:** every wallet gets 3 counted launch attempts per rolling 24 hours, and Bankr Club doesn't raise that. Simulations (`--simulate` / `simulateOnly`) don't count. See [token-deployment.md](references/token-deployment.md).
 - **App building needs the user's own "I agree".** The first time the agent builds, edits, runs or forks an app, or deploys or manages an x402 endpoint through chat, it replies with the App Building Terms and does nothing until the user replies exactly `I agree`. Show the notice to the user and let them answer; never send `I agree` for them. `bankr x402 deploy` isn't gated.
-- **BNKR staking is withdraw-only.** It accepts no new deposits.
+- **An account without MFA is capped.** Its spend limits stay on at $1,000 or less, price impact at 25% or less and NFT transfers at 5 a day, and contract calls (raw `/wallet/submit`, transaction and typed-data signing, the agent's contract tools) are refused with `403 MFA required`. An agent account that needs those has to turn MFA on. See [safety.md](references/safety.md#without-mfa).
 
 ## Chains
 
