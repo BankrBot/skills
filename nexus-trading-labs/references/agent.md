@@ -11,14 +11,19 @@ it can trade but never withdraw your funds.** Starts in risk-free PAPER mode; yo
 flip it live when you trust it."
 
 ## Auth model
-- **Every mutation requires `walletSig`** from `sign_message('nexus-trading-key-v1')` — including PAPER.
-  Agent control (activate, mode, config, deactivate, kill) changes account state, so the server ecrecovers
-  the signature and requires it to resolve to the agent's own wallet; otherwise `401 walletSig_required`.
-  Pass it in the JSON body, never a query string. Only `GET /agent/{addr}` is public (read-only).
-- **ASSISTED / AUTONOMOUS** (live) use that same `walletSig` to ALSO derive the order-only key. The wallet
-  must already be registered (`/proxy/bankr-register`); if not, register first then retry.
-- **AUTONOMOUS** also needs `confirm: "GO LIVE"` — ALWAYS get an explicit yes from the user before sending it.
-- The signature is deterministic; reuse the session sig you already hold rather than re-prompting per call.
+- **Every mutation requires the trading `session`** (SKILL.md CRITICAL: `GET /v2/session/new`, sign its
+  `message`, good 24h) — including PAPER. Activate, mode, config, deactivate, kill and webhook changes are
+  account control: the server checks the session was signed by the agent's own wallet, else
+  `401 session_required`. Body only, never a query string. Only `GET /agent/{addr}` is public.
+- **ASSISTED / AUTONOMOUS** (live) link the agent to the wallet's registered trading key (the one chat
+  trading uses; `POST /v2/key/bankr-register`). No key → `409 key_required`, expired → `409 key_expired`:
+  register, then retry. The agent stores a pointer to that key, never a copy.
+- **AUTONOMOUS** also needs `confirm: "GO LIVE"` AND the challenge (`GET /auth/challenge?wallet=&action=`,
+  sign `challenge`, send `nonce` + `v2Sig`). ALWAYS get an explicit yes from the user before sending it.
+  Raising a live agent's `capitalPerTrade` or `leverage` needs a challenge too. Lowering them doesn't.
+- **Key expiry (30 days):** the agent opens nothing whose `maxHoldHours` would run past the key's expiry
+  and alerts from 3 days out. Rotate with `POST /v2/key/bankr-register`; the agent follows the new key.
+- **KILL / DEACTIVATE** stop the agent and leave the wallet's trading key in place (chat trading keeps it).
 
 ## Config — the full control surface (all of this is user-set)
 
@@ -81,29 +86,29 @@ Scale `capitalPerTrade` down if free collateral is low (capital guardrail below)
 | **Mean Reversion Fade** *(PRO · fade)* | `{signalMode:"MEAN_REVERSION", symbols:["PERP_BTC_USDC","PERP_ETH_USDC"], leverage:6, capitalPerTrade:30, tpPercent:1.5, slPercent:1, maxHoldHours:3, maxTradesPerDay:10, maxDailyLossUsdc:12, priceChangeThreshold:0.7}` | **PRO** |
 
 > "deploy the Funding Scalper preset in paper" → `activate {mode:"PAPER", config:{…Funding Scalper…}}`.
-> "load Mean Reversion Fade and go live" → PRO-check → confirm GO LIVE → `mode {mode:"AUTONOMOUS", confirm:"GO LIVE", walletSig, …}` after applying the preset config. Combine a preset with `respectRegime:true` for a trend-aware version.
+> "load Mean Reversion Fade and go live" → PRO-check → confirm GO LIVE → `mode {mode:"AUTONOMOUS", confirm:"GO LIVE", session, nonce, v2Sig}` (challenge action `agent.mode`) after applying the preset config. Combine a preset with `respectRegime:true` for a trend-aware version.
 
 ## Intents → calls
 
-**⚠️ AUTH: every agent MUTATION below requires `walletSig` = `sign_message('nexus-trading-key-v1')` in the
-JSON body** — including PAPER activate/mode and config changes. The server ecrecovers it and rejects
-(`401 walletSig_required`) unless it resolves to the agent's own wallet. NEVER pass it in a query string. Only
-`GET /agent/{addr}` is public. Reuse the session signature you already hold.
+**⚠️ AUTH: every agent MUTATION below requires the `session` in the JSON body** — including PAPER
+activate/mode and config changes. The server rejects it (`401 session_required`) unless the session was
+signed by the agent's own wallet. NEVER put it in a query string. Only `GET /agent/{addr}` is public.
+`{ch}` = the challenge `nonce` + `v2Sig` for the action named.
 
 | User says | Call |
 |---|---|
-| "Deploy my agent (paper) on BTC, $30/trade 5x" | `POST /agent/{addr}/bankr/activate` `{mode:"PAPER", config:{symbols:["PERP_BTC_USDC"],capitalPerTrade:30,leverage:5}, walletSig}` |
-| "Arm it in assisted mode" | `POST /agent/{addr}/bankr/activate` `{mode:"ASSISTED", walletSig}` |
-| "Make it live / go autonomous" | confirm first → `POST /agent/{addr}/bankr/mode` `{mode:"AUTONOMOUS", confirm:"GO LIVE", walletSig}` |
-| "Pause my agent" | `POST /agent/{addr}/bankr/mode` `{mode:"ASSISTED", walletSig}` |
-| "Set it back to paper" | `POST /agent/{addr}/bankr/mode` `{mode:"PAPER", walletSig}` |
-| "Change to $20/trade at 3x" | `POST /agent/{addr}/bankr/activate` `{mode:<current>, config:{capitalPerTrade:20,leverage:3}, walletSig}` |
-| "Deploy the Blue-Chip Confluence preset (paper)" | `POST /agent/{addr}/bankr/activate` `{mode:"PAPER", config:{…preset…}, walletSig}` (see Strategy presets) |
-| "Turn on the market regime filter" | `POST /agent/{addr}/bankr/activate` `{mode:<current>, config:{respectRegime:true}, walletSig}` |
+| "Deploy my agent (paper) on BTC, $30/trade 5x" | `POST /agent/{addr}/bankr/activate` `{mode:"PAPER", config:{symbols:["PERP_BTC_USDC"],capitalPerTrade:30,leverage:5}, session}` |
+| "Arm it in assisted mode" | `POST /agent/{addr}/bankr/activate` `{mode:"ASSISTED", session}` |
+| "Make it live / go autonomous" | confirm first → `POST /agent/{addr}/bankr/mode` `{mode:"AUTONOMOUS", confirm:"GO LIVE", session, {ch: agent.mode}}` |
+| "Pause my agent" | `POST /agent/{addr}/bankr/mode` `{mode:"ASSISTED", session}` |
+| "Set it back to paper" | `POST /agent/{addr}/bankr/mode` `{mode:"PAPER", session}` |
+| "Change to $20/trade at 3x" | `POST /agent/{addr}/bankr/activate` `{mode:<current>, config:{capitalPerTrade:20,leverage:3}, session}` (live + raising → `{ch: agent.activate}`) |
+| "Deploy the Blue-Chip Confluence preset (paper)" | `POST /agent/{addr}/bankr/activate` `{mode:"PAPER", config:{…preset…}, session}` (see Strategy presets) |
+| "Turn on the market regime filter" | `POST /agent/{addr}/bankr/activate` `{mode:<current>, config:{respectRegime:true}, session}` |
 | "How's my agent?" | `GET /agent/{addr}` → format `state` (public read, no sig) |
-| "Fund my agent $50" | `POST /deposit/prepare` `{wallet, amount:50, accountId}` → sign+submit, then suggest capital (below) |
-| "Stop my agent" | `DELETE /agent/{addr}` `{walletSig}` (⚠️ warn: leaves an open position unmanaged — offer KILL) |
-| "Kill it / close everything" | `POST /agent/{addr}/kill` `{walletSig}` |
+| "Fund my agent $50" | `POST /deposit/prepare` `{wallet, amount:50}` → sign+submit (or `/proxy/bankr-deposit` with the Bankr key), then suggest capital (below) |
+| "Stop my agent" | `DELETE /agent/{addr}` `{session}` (⚠️ warn: leaves an open position unmanaged — offer KILL) |
+| "Kill it / close everything" | `POST /agent/{addr}/kill` `{session}` |
 | "Top Nexus agents" | `GET /agents/leaderboard` |
 | "Is the record real?" | `GET /agents/ledger` (SHA-256 root + on-chain anchor) |
 
@@ -112,8 +117,8 @@ JSON body** — including PAPER activate/mode and config changes. The server ecr
 ```
 suggestedCapital = floor(freeCollateral * 0.6)
 ```
-Read balance via `POST /balance` `{walletAddress, walletSig}` (never put the signature in a query string — it's
-a replayable credential that can leak into logs/proxies). Never set `capitalPerTrade` above
+Read balance via `POST /balance` `{walletAddress, session}` (never put the session in a query string — it's
+a bearer credential that can leak into logs/proxies). Never set `capitalPerTrade` above
 ~60% of free collateral, or live entries will margin-reject. State it:
 "With $52 free, I'd run ~$30/trade so margin keeps a buffer."
 
@@ -128,8 +133,8 @@ a replayable credential that can leak into logs/proxies). Never set `capitalPerT
 - **Activated (paper):** "✅ Agent deployed in PAPER on {symbols} — ${cap}/trade, {lev}x,
   TP +{tp}% / SL −{sl}%. Simulated, zero risk. Say 'go live' when you're convinced."
 - **Before live:** "⚠️ This trades real funds within your limits. The key is order-only —
-  it can never withdraw. Reply GO LIVE to confirm." → then send `confirm:"GO LIVE"`.
-- **Killed:** "🛑 Agent killed — position closed, key removed, deactivated. Re-deploy anytime."
+  it can never withdraw. Reply GO LIVE to confirm." → then fetch the challenge and send `confirm:"GO LIVE"` + `nonce` + `v2Sig`.
+- **Killed:** "🛑 Agent killed — position closed, agent stopped. Your trading key stays for chat trades. Re-deploy anytime."
 
 ## Safety rules (non-negotiable)
 1. Never send `mode:"AUTONOMOUS"` without an explicit user "go live".

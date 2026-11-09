@@ -41,7 +41,7 @@ All price + market data for a symbol in one call.
 | HTTP | Meaning |
 |---|---|
 | 400 | Bad request — missing params, validation failed, or Orderly error |
-| 401 | Auth failure — missing walletSig, wallet not registered, or invalid Bankr API key |
+| 401 | Auth failure — missing or expired session, a missing challenge, or invalid Bankr API key |
 | 403 | Forbidden — Bankr key has `allowedRecipients` set |
 | 404 | Not found — symbol, order, or resource doesn't exist |
 | 500 | Worker internal error — do not retry |
@@ -49,8 +49,15 @@ All price + market data for a symbol in one call.
 
 | `error` field | Cause | Fix |
 |---|---|---|
-| `walletSig_required` | Missing walletSig or walletAddress | Call sign_message first |
-| `wallet_not_registered` | No Orderly account in KV | Run registration flow |
+| `session_required` | Session missing, expired (24h) or ended | `GET /v2/session/new`, sign `message`, retry |
+| `key_required` | No trading key for this wallet | `POST /v2/key/bankr-register`, retry |
+| `key_expired` | The 30-day trading key lapsed | `POST /v2/key/bankr-register` (rotates), retry |
+| `challenge_required` | Going live without the challenge | `GET /auth/challenge?wallet=&action=`, sign, resend with `nonce` + `v2Sig` |
+| `challenge_unknown_or_expired` | Challenge used already or older than 120 s | Fetch a fresh one |
+| `pick_one_auth` | Both `session` and `walletSig` sent | Send the session only |
+| `insufficient_free_collateral` | Nothing free to withdraw | Read the `hint` (position / unsettled loss / orders) |
+| `settle_failed` | Orderly refused the settle | Nothing moved; retry once |
+| `wallet_not_registered` | No Orderly account (older routes) | Run Key Registration (`/v2/key/bankr-register`) |
 | `insufficient_margin` | Not enough free collateral | Reduce size, add leverage, or deposit |
 | `below_min_notional` | Order below Orderly minimum (~$10) | Increase notional |
 | `no_open_position` | https://og.nexustradinglabs.com/set-sl-tp with no position | Open position first |
@@ -60,7 +67,8 @@ All price + market data for a symbol in one call.
 
 ### Retry strategy
 
-- **401 wallet_not_registered** → registration flow, then retry
+- **401 session_required** → new session, then retry once
+- **409 key_required / key_expired** → Key Registration, then retry
 - **400 insufficient_margin** → check /balance, reduce size or prompt deposit
 - **400 below_min_notional** → minimum ~$10 notional, increase size
 - **502** → retry once after 2s; if persistent, Orderly may be degraded
@@ -77,7 +85,7 @@ All price + market data for a symbol in one call.
 | Orderly public API | ~20 req/s |
 | Bankr /wallet/sign | Avoid calling more than once per trade |
 
-**Best practice:** One `sign_message` per session. Reuse walletSig for all endpoints — don't re-sign before each call.
+**Best practice:** One session signature per 24 hours. Reuse the `session` for all endpoints — don't re-sign before each call. Only going live takes an extra (single-use) challenge signature.
 
 ---
 
