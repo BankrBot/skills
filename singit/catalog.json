@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "singit",
+  "provider": "SingIt",
+  "providerUrl": "https://singitai.app",
+  "logo": "singit.svg",
+  "demo": {
+    "title": "singit-x402-demo.sh",
+    "language": "bash",
+    "code": "# Live catalog: 300+ models with per-model prices (free, no key)\ncurl -s https://ask.singitai.app/v1/models\n\n# Free answer: no payment, no key (20 per visitor per day, up to 400 tokens)\ncurl -s https://ask.singitai.app/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"free/deepseek-v4.1-flash\",\"messages\":[{\"role\":\"user\",\"content\":\"Explain x402 in one sentence.\"}],\"max_tokens\":120}'\n\n# Paid quote: an unpaid POST returns HTTP 402 with the exact USDC ceiling\n# (default model quoted $0.0015 on Base, $0.00201 on Solana, verified 2026-11-10)\ncurl -s -i -X POST https://ask.singitai.app/v1/chat/completions \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"claude-opus-5.5\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}],\"max_tokens\":400}'\n\n# Remote MCP server (v0.1.6): list the 16 tools, 8 free and 8 paid\ncurl -s -X POST https://app.singitai.app/mcp \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Accept: application/json, text/event-stream\" \\\n  -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}'\n\n# Free MCP tool call, no key and no session needed\ncurl -s -X POST https://app.singitai.app/mcp \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Accept: application/json, text/event-stream\" \\\n  -d '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"list_price_symbols\",\"arguments\":{}}}'"
+  },
+  "setup": [
+    "Try free first: POST to https://ask.singitai.app/v1/chat/completions with any free/* model — no payment, no key, 20 answers per visitor per day",
+    "For paid chat: send the request unpaid, read the HTTP 402 USDC ceiling on Base or Solana, sign with an x402 wallet, retry — no account or API key needed",
+    "Remote MCP: point any MCP client at https://app.singitai.app/mcp — 16 tools, of which get_price, list_price_symbols, list_models and chat_free need no key",
+    "Paid MCP tools need a SingIt API key from the SingIt app; web_search and read_page need its search scope, the market data tools need its tools scope and a Base account",
+    "Before any paid call, check get_allowance or get_limits so the spend fits the owner-set per-request and daily caps"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "singit",
+    "command": "install the singit skill from https://github.com/BankrBot/skills/tree/main/singit"
+  }
+}
