@@ -7,7 +7,7 @@ USDC on Base but no ETH.
 
 Payment safety: the script only signs a payment when the 402 challenge matches
 ALL of its local pins — Base mainnet, the canonical USDC contract, GM
-Farcaster's receiving wallet, and a max price (default $0.005). Any other
+Farcaster's receiving wallet, and a max price (default $0.02). Any other
 challenge is refused before anything is signed. The pins are env-overridable
 (see SKILL.md) so the operator, not the server, decides when to loosen them.
 
@@ -35,7 +35,7 @@ NETWORK = os.environ.get("GMFARCASTER_NETWORK", "eip155:8453")  # default: Base 
 
 # --- Local payment pins -----------------------------------------------------
 # The 402 challenge advertises the price, but the script only pays a challenge
-# that matches ALL of these. USDC has 6 decimals, so $0.005 = 5000 atomic units.
+# that matches ALL of these. USDC has 6 decimals, so $0.02 = 20000 atomic units.
 USDC_DECIMALS = 6
 EXPECTED_ASSET = os.environ.get(
     "GMFARCASTER_EXPECTED_ASSET",
@@ -49,7 +49,7 @@ EXPECTED_PAYEES = [
     ).split(",")
     if a.strip()
 ]
-MAX_PRICE_USDC = os.environ.get("GMFARCASTER_MAX_PRICE", "0.005")
+MAX_PRICE_USDC = os.environ.get("GMFARCASTER_MAX_PRICE", "0.02")
 
 
 def _max_amount_atomic() -> int:
@@ -108,7 +108,7 @@ def load_private_key() -> str:
             "Missing key. Set GMFARCASTER_PRIVATE_KEY (or GMFARCASTER_PRIVATE_KEY_FILE, "
             "pointing at a chmod-600 file) to the private key of a wallet holding USDC "
             "on Base (no ETH needed — x402 settlement is gasless). "
-            "Each query costs ~$0.005 USDC."
+            "Each query costs ~$0.02 USDC."
         )
     return key
 

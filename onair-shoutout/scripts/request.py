@@ -1,12 +1,12 @@
 """On-Air Shoutout skill backend — submit a shoutout (paid x402) or check status (free).
 
-Submit pays the API's x402 toll ($5 USDC on Base, gasless via EIP-3009) and POSTs
+Submit pays the API's x402 toll ($20 USDC on Base, gasless via EIP-3009) and POSTs
 the shoutout. It returns a RECEIPT (request_id + status pending_review), NOT a
 confirmed read — GM Farcaster reviews every request and may decline + refund.
 
 Payment safety: the script only signs a payment when the 402 challenge matches
 ALL of its local pins — Base mainnet, the canonical USDC contract, GM Farcaster's
-receiving wallet, and a max price (default $5). Any other challenge is refused
+receiving wallet, and a max price (default $20). Any other challenge is refused
 before anything is signed. Submitting also requires --confirm: without it the
 script prints a full preview (text, amount, endpoint, payer) and pays nothing.
 
@@ -15,7 +15,7 @@ script prints a full preview (text, amount, endpoint, payer) and pays nothing.
 
     # preview (free, prints exactly what would be submitted and paid):
     python request.py --sponsor "Acme Frames" --read "Today's GM is brought to you by Acme..." --url https://acme.xyz
-    # submit (pays $5):
+    # submit (pays $20):
     python request.py --sponsor "Acme Frames" --read "..." --url https://acme.xyz --confirm
     # check status (free, no payment):
     python request.py --status sho_8f3c2a1b9d4e
@@ -40,7 +40,7 @@ MAX_READ_CHARS = 280
 
 # --- Local payment pins -----------------------------------------------------
 # The 402 challenge advertises the price, but the script only pays a challenge
-# that matches ALL of these. USDC has 6 decimals, so $5 = 5_000_000 atomic units.
+# that matches ALL of these. USDC has 6 decimals, so $20 = 20_000_000 atomic units.
 USDC_DECIMALS = 6
 EXPECTED_ASSET = os.environ.get(
     "GMFARCASTER_EXPECTED_ASSET",
@@ -54,7 +54,7 @@ EXPECTED_PAYEES = [
     ).split(",")
     if a.strip()
 ]
-MAX_PRICE_USDC = os.environ.get("GMFARCASTER_MAX_PRICE", "5")
+MAX_PRICE_USDC = os.environ.get("GMFARCASTER_MAX_PRICE", "20")
 
 
 def _max_amount_atomic() -> int:
