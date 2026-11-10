@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "tollex",
+  "provider": "Tollex",
+  "providerUrl": "https://tollex.org",
+  "logo": "logo.png",
+  "demo": {
+    "title": "tollex.sh",
+    "language": "bash",
+    "code": "# Before trading a tokenized stock: is the underlying halted? (~$0.008)\nbankr prompt \"Using the tollex skill, is TSLA halted right now?\"\n\n# Multiplier-adjusted Stock Token price (~$0.008)\nbankr prompt \"Using the tollex skill, get the AAPL stock token price\"\n\n# Simulate a Robinhood Chain transaction before signing it (~$0.008)\nbankr prompt \"Using the tollex skill, simulate this call before I send it: to 0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168 data 0x18160ddd\"\n\n# What does an x402 endpoint charge, and who gets paid? (~$0.008)\nbankr prompt \"Using the tollex skill, inspect https://api.tollex.org/v1/agent-check\""
+  },
+  "setup": [
+    "No install and no account: plain HTTPS endpoints behind x402 v2",
+    "Pays in USDC on Base or USDG on Robinhood Chain, about $0.008 per call (the live 402 states the exact price)",
+    "Set a cap on every call: bankr x402 call ... --max-payment 0.02",
+    "Free planning and catalog: POST https://api.tollex.org/v1/resolve, GET https://api.tollex.org/v1/catalog",
+    "Each paid result returns an EIP-712 signed receipt in the PAYMENT-RESPONSE header; keys at https://api.tollex.org/.well-known/tollex-receipt-keys"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "tollex",
+    "command": "install the tollex skill from https://github.com/BankrBot/skills/tree/main/tollex"
+  }
+}
