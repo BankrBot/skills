@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "hey-research",
+  "provider": "HEY Research Lab",
+  "providerUrl": "https://heyresearch.xyz",
+  "logo": "logo.png",
+  "demo": {
+    "title": "team-check.sh",
+    "language": "bash",
+    "code": "# Who built this Robinhood Chain token? One public call, no key.\ncurl -s -H \"x-hey-integration: bankr-skill/0.1.0\" \\\n  \"https://heyresearch.xyz/api/v1/scan?chain=4663&token=0x090980a62d5007f6190b04782d0ea690ab53c210\"\n# -> \"status_label\": \"Shipping\", \"verified_builder\": true,\n#    \"token_verification\": \"VERIFIED\" (the project's own site names this contract),\n#    \"project_url\": \"https://heyresearch.xyz/project/insula-world\"\n# Unknown stays unknown: \"found\": false means no record, never a red flag."
+  },
+  "setup": [
+    "Install this skill in Bankr. No API key, account or wallet: every HEY read is public and free.",
+    "Before buying a Robinhood Chain token, adding it to an index basket or pairing a launch with it, the agent checks the team behind it: still shipping or not, last ship with its source, and whether the project's own site names that contract.",
+    "Optional: add HEY's hosted MCP under Connections > Custom MCPs (https://heyresearch.xyz/mcp, no authentication) for deeper research in chat. MCP tools are not used on X or Farcaster; the skill's REST call works everywhere.",
+    "Evidence about building only: never a buy or sell call, a price view or a safety verdict. Pair it with a contract check such as token-scam-analysis."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "hey-research",
+    "command": "install the hey-research skill from https://github.com/BankrBot/skills/tree/main/hey-research"
+  }
+}
