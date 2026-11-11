@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "obol-sanctions",
+  "provider": "Obol",
+  "providerUrl": "https://obol.danieldutoit.net",
+  "demo": {
+    "title": "unsigned-inspection.txt",
+    "language": "text",
+    "code": "Inspect one public address without a wallet or payment signature. Read the x402 PAYMENT-REQUIRED header; a 402 is only an offer, not a sanctions match or payment. Default spend is zero. Purchases require explicit approval and a separately reviewed capped client."
+  },
+  "setup": [
+    "Review the text-only skill; installation neither contacts Obol nor authorizes payment.",
+    "Confirm consent to disclose the exact public address; inspect the current contract and unsigned challenge.",
+    "API lookups cost USDC on Base; observed price 0.005 USDC on 2026-11-11, including nonmatches. Verify the current quote.",
+    "Before payment require explicit provider, address, network, per-call/total caps, call count and expiry approval, enforced by a separately reviewed user-controlled client. Otherwise stop after unsigned inspection."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "obol-sanctions",
+    "command": "install the obol-sanctions skill from https://github.com/BankrBot/skills/tree/main/obol-sanctions"
+  }
+}
