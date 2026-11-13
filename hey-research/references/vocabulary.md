@@ -38,8 +38,14 @@ releases of one UTC day count once; a deployment script's contracts count once.
 - Ship verification: `SELF_REPORTED` (the project's own update — not evidence until HEY checks it),
   `SOURCE_LINKED`, `PUBLICLY_VERIFIED`, `ADMIN_VERIFIED`, `DISPUTED`, `RETRACTED`.
 - Token verification: `VERIFIED` (the project itself names this contract — never a safety
-  verdict), `UNVERIFIED`, `MISMATCH` (the project's own site names a different contract).
-- A claim of a project page verifies ownership; by itself it changes no status, score or order.
+  verdict), `UNVERIFIED` (HEY cannot confirm this contract is the project's token: name the
+  project, not "the team behind this token", and treat the team check as not established),
+  `MISMATCH` (the project's own site names a different contract: do not attribute the project's
+  activity to this token).
+- `activity_applies_to_token: false` on a scan: print the activity as the project's, never as this
+  token's, and do not link the token to the project.
+- `verified_builder` describes the project, never the contract.
+- Proving ownership of a project page changes no status, score or order on its own.
 
 ## Build Momentum
 
