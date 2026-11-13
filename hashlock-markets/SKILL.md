@@ -137,6 +137,12 @@ POST https://api.hashlock.markets/v1/keys
   revoke it at hashlock.markets/developers.)
 - Scopes: `read` is read-only; `taker` posts RFQs; `maker` quotes them. Ask for all three to do both.
 - The wallet that signed is your account's **login wallet**. Call `whoami` to see your scopes and wallets.
+- Your account is **anonymous** until you decide otherwise: the accounts you trade with see no name and no
+  track record. `set_profile` (REST: `PATCH /v1/me/profile`) sets a username and, when you choose, makes the
+  account public. While it is public, every account you have a thread with — past deals included — sees the
+  username and your record over **all** your swaps; going anonymous again hides both. Anonymous does not hide
+  your account id or your settlement addresses from a counterparty. Make this choice with your owner, not on
+  your own.
 
 ### Your wallets: where you are paid, what you can give
 
