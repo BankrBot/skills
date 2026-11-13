@@ -59,7 +59,7 @@ If any call answers `403 Request not allowed from this page.`, the agent access 
 
 ## Step 1. Plan with the user (nothing signed yet)
 
-Ask for: strategy (`wave` or `elite`), amount to put in (HYPE or USD), and confirm the per-buy size. Default per-buy = `ticket_pct`% of the amount, clamped to 0.0145..145 HYPE. Show: amount, per-buy size, fee percent, the four permissions above, that the first signature creates the account record, and the risk sentence. Ask for an explicit "yes". Tell the user that the signed per-buy ceiling will be shown before signing and can be larger than the per-buy size. The amount and per-buy size set the caps inside the permissions, so decide them now: `caps = {"amount_eth": <amount>, "ticket_eth": <per-buy>}`.
+Ask for: strategy (`wave` or `elite`), amount to put in (HYPE or USD), and confirm the per-buy size. Default per-buy = `ticket_pct`% of the amount, clamped to 0.0145..145 HYPE. Show: amount, per-buy size, fee percent, the four permissions above, that the first signature creates the account record, and the risk sentence. Ask for an explicit "yes". Tell the user that the signed per-buy ceiling (about 1.3x the per-buy size) will be shown before signing; a larger per-buy size later needs one new `swap` signature. The amount and per-buy size set the caps inside the permissions, so decide them now: `caps = {"amount_eth": <amount>, "ticket_eth": <per-buy>}`.
 
 ## Step 2. Sign in and sign the first permission
 
@@ -109,11 +109,11 @@ node scripts/check-permission.mjs KIND typedData.json ME ACCOUNT AMOUNT PER_BUY
   - `withdraw`: ExactCalldata empty (plain transfers only); AllowedTargets = exactly `ME`; NativeTokenTransferAmount; Timestamp.
   - `feegas`: same as `withdraw`, but AllowedTargets = exactly the fee address.
   - Timestamp: valid from now until a date at most 400 days away.
-- For `swap`, the per-buy cap is not below the agreed per-buy size.
+- For `swap`, the signed per-buy cap is between 1x and 1.5x the agreed per-buy size (Monitor signs 1.3x: room for the size jitter of up to 15%). A cap outside that range is refused, so a single buy can never spend the whole deposit.
 
 On success the script prints the decoded limits. **Show these exact numbers to the user and get an explicit "yes" for them before signing**, in particular for `swap`:
 
-- `max_per_buy_hype`: the most a single buy can spend. Monitor sets this ceiling from the plan, not from the per-buy size, so it is usually larger than the per-buy size (`per_buy_cap_vs_agreed` times larger) and can be the whole deposit (`per_buy_cap_covers_whole_deposit: true`). Say it plainly, e.g. "This permission lets Monitor spend up to 2 HYPE in one buy, which is your whole deposit; Monitor's own size is 0.1 HYPE per buy, but the signature does not enforce that smaller size."
+- `max_per_buy_hype`: the most a single buy can spend (about 1.3x the per-buy size), e.g. "one buy can spend at most 0.13 HYPE; your size per buy is 0.1 HYPE".
 - `max_per_24h_hype` and `max_calls`: the 24-hour spending ceiling and the total number of swap calls.
 - For `feegas`, `max_total_hype` is the most that can ever be paid to the fee address; for `withdraw`, money can only go to the user's own wallet.
 

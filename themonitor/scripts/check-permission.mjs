@@ -5,6 +5,7 @@
 // KIND is swap | approve | withdraw | feegas. typedData.json holds the `typedData` object returned by /api/live/prepare.
 // Every caveat is identified by its pinned enforcer address on Elysium and its terms are compared byte for byte with the
 // only encoding Monitor uses. The set of caveats must be exactly the expected one: nothing missing, nothing extra.
+// For swap with AMOUNT and PER_BUY given, the signed per-buy cap must be between 1x and 1.5x the agreed per-buy size.
 // On success prints {ok:true, kind, limits, expires} with the decoded limits in HYPE; the agent must show those exact
 // numbers to the user. On any mismatch prints "STOP: ..." and exits 1: do not sign.
 import fs from "fs";
@@ -103,6 +104,7 @@ if (kind === "swap") {
     limits.per_buy_cap_vs_agreed = ticket > 0n ? Number(perBuy * 100n / ticket) / 100 : null;
     limits.per_buy_cap_covers_whole_deposit = perBuy >= amount;
     if (perBuy < ticket) die("the per-buy cap is below the agreed per-buy size; ask for a new swap permission");
+    if (perBuy * 2n > ticket * 3n) die("the per-buy cap is more than 1.5x the agreed per-buy size; do not sign");
   }
 } else if (kind === "approve") {
   if (byName.AllowedMethods !== "095ea7b3") die("approve permission must allow only approve(address,uint256)");
