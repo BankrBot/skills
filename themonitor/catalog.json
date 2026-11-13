@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "themonitor",
+  "provider": "Monitor",
+  "providerUrl": "https://themonitor.bot",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "monitor-chat.txt",
+    "language": "text",
+    "code": "You:    start Monitor on Elysium in Balanced mode with 100 HYPE\nBankr:  Balanced: Monitor tracks 20 strong Elysium wallets, 5% of the account per buy (about 5 HYPE),\n        15% fee on profit above your high-water mark, taken at withdrawal.\n        No backtest yet; meme coins can lose most of the money put in.\n        Account: 0x9c1e...40b2 (your own smart account, checked on-chain)\n        Sign 4 permissions (swap via the guarded contract only, withdraw to YOUR\n        wallet only, fee address only, ~1 year) and deposit 100 HYPE on Elysium? [Yes]\nYou:    yes\nBankr:  Signed 4/4. Deposited 100 HYPE (tx 0x...). Monitor is live.\n\n- later -\nYou:    how is my Monitor account doing?\nBankr:  Value 104.2 HYPE ($7,438) | put in 100 | result +4.2 HYPE\n        3 open positions, 11 trades. Fee paid so far: 0.\n\nYou:    stop and withdraw everything\nBankr:  Stopped, 3 positions sold, 104.0 HYPE sent to your wallet on Elysium."
+  },
+  "setup": [
+    "Install: `install the themonitor skill from https://github.com/BankrBot/skills/tree/main/themonitor`",
+    "In Bankr security settings, turn on arbitrary contract calls (needs MFA; a timer is fine) and keep permitted recipients off while signing",
+    "Hold HYPE on Elysium (chain 99901) in your Bankr wallet: bridge it from HyperEVM in chat, plus about 0.01 HYPE for gas",
+    "Say \"start Monitor on Elysium in Balanced mode with 50 HYPE\", then \"how is my Monitor account doing?\" or \"stop and withdraw everything\""
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "themonitor",
+    "command": "install the themonitor skill from https://github.com/BankrBot/skills/tree/main/themonitor"
+  }
+}
