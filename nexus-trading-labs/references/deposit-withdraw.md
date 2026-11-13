@@ -71,7 +71,7 @@ Sign and submit step 1, wait for confirmation, then step 2.
 
 ```
 POST https://og.nexustradinglabs.com/balance
-{ "walletAddress": "<wallet>", "walletSig": "<sig>" }
+{ "walletAddress": "<wallet>", "session": { … } }
 ```
 
 Look for `free_collateral` — this is the amount available to withdraw (not total balance). `total_collateral` includes locked margin.
@@ -91,7 +91,7 @@ POST https://og.nexustradinglabs.com/proxy/bankr-withdraw
 
 **`bankrApiKey` is MANDATORY.** Omitting it returns 401. Always ask the user for it before withdrawal: "I need your Bankr API key to sign the withdrawal. Find it at bankr.bot/api-keys — Wallet & Agent API must be enabled."
 
-Server: derives ed25519 key → fetches withdrawal nonce → builds EIP-712 Withdraw message → signs via Bankr eth_signTypedData_v4 → submits to Orderly /v1/withdraw_request. Funds arrive on Arbitrum, no user signature required.
+Server: uses the wallet's registered trading key (see the Registration Flow) → fetches withdrawal nonce → builds EIP-712 Withdraw message → signs via Bankr eth_signTypedData_v4 → submits to Orderly /v1/withdraw_request. Funds arrive on Arbitrum, no user signature required.
 
 > 🔒 **Withdrawal destination — receiver binding.** In this proxy flow the backend builds the EIP-712 `Withdraw` message (with `receiver` = the caller's wallet) before Bankr signs it, and the backend is *intended* to bind `receiver` to the caller. Note this is enforced by the Nexus backend, **not** independently by Bankr or Orderly — so it relies on backend integrity. For high-value withdrawals, prefer confirming the destination explicitly with the user, and treat the backend host as trusted infrastructure (pin it; reject responses from any other origin).
 
@@ -101,8 +101,8 @@ Returns `{ ok: true, amount, withdrawNonce }`.
 
 Server auto-handles code 78: settles PnL, re-checks free_collateral, retries with corrected amount. If it still fails, run the manual flow:
 
-1. `sign_message({ message: "nexus-trading-key-v1" })` → walletSig
-2. `POST https://og.nexustradinglabs.com/settle-pnl` with walletSig
+1. Have a trading session (SKILL.md, "CRITICAL")
+2. `POST https://og.nexustradinglabs.com/settle-pnl` with the session and the Bankr API key
 3. Wait 5 seconds
 4. `POST https://og.nexustradinglabs.com/balance` → get free_collateral
 5. `POST https://og.nexustradinglabs.com/proxy/bankr-withdraw` with free_collateral amount
@@ -115,7 +115,8 @@ Server auto-handles code 78: settles PnL, re-checks free_collateral, retries wit
 POST https://og.nexustradinglabs.com/settle-pnl
 {
   "walletAddress": "<wallet>",
-  "walletSig":     "<sig>",
+  "session":       { … },
+  "bankrApiKey":   "<Bankr API key>",   // Bankr signs Orderly's SettlePnl for the wallet in the same call
   "symbol":        "SOL"   // optional — omit to settle all
 }
 ```
