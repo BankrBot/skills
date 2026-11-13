@@ -18,7 +18,8 @@ flip it live when you trust it."
   `GET /agent/{addr}` is public (read-only). One session lasts 24 hours: reuse it, mint a new one when it expires.
 - **ASSISTED / AUTONOMOUS** (live) trade with the wallet's registered trading key (random, `read,trading`, 30 days;
   it can never withdraw). No key → `409 key_required` (expired → `409 key_expired`): run the Registration Flow
-  (`POST /v2/key/bankr-register`), then retry. The agent opens nothing whose max hold runs past the key's expiry.
+  (`POST /v2/key/bankr-register`), then retry. The agent opens nothing whose max hold runs past the key's expiry,
+  and nothing at all without `maxHoldHours`: always set it on a live config.
 - **AUTONOMOUS** also needs `confirm: "GO LIVE"` — ALWAYS get an explicit yes from the user before sending it —
   and the going-live challenge: `GET /auth/challenge?wallet={addr}&action=agent.activate` (activate) or
   `action=agent.mode` (mode) → `sign_message({message: challenge})` → add `nonce` + `v2Sig` to the body. Raising

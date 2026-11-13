@@ -25,6 +25,8 @@ Step 2 — GET https://og.nexustradinglabs.com/v2/session/new?wallet=<walletAddr
 Step 3 — sign_message({ message: <message, exactly as returned, newlines included> }) → sig
 Step 4 — keep  session = { "session": <session>, "issued": <issued>, "expires": <expires>, "sig": <sig> }
          and send it as "session", with "walletAddress", in the JSON body of every authenticated call
+Step 5 — before the first trade or live-agent call: GET https://og.nexustradinglabs.com/v2/key/<walletAddress>
+         active false, or expiresInDays ≤ 3 → run the Registration Flow (references/trading.md) first
 ```
 
 - **One session per 24 hours.** It proves the wallet and derives nothing: a leaked copy expires on its own and
@@ -32,8 +34,8 @@ Step 4 — keep  session = { "session": <session>, "issued": <issued>, "expires"
   again, then retry the call once.
 - **The trading key is separate.** Orders are signed with a random key registered once at Orderly for this wallet
   (`read,trading`: it can trade, it can never withdraw), valid 30 days. If a call answers `409 key_required` or
-  `409 key_expired`, run the Registration Flow (references/trading.md), then retry. When a response carries
-  `keyExpiresInDays` ≤ 3, offer to renew it the same way.
+  `409 key_expired`, run the Registration Flow (references/trading.md), then retry. Trade responses don't say
+  when the key expires: Step 5 checks it, and a withdraw reply's `keyExpiresInDays` ≤ 3 means renew too.
 - **Going live costs one more signature, per action.** Arming AUTONOMOUS, or raising `capitalPerTrade` / `leverage`
   on an AUTONOMOUS agent, also needs a one-time challenge (see the agent section): 120 seconds, single use.
 
@@ -118,10 +120,11 @@ POST https://og.nexustradinglabs.com/agent/<walletAddress>/bankr/activate
 
 - **Every mode** sends the session. **ASSISTED / AUTONOMOUS** trade with the wallet's registered key: no key →
   `409 key_required` → run the Registration Flow, then retry. The agent opens no position whose max hold would run
-  past the key's expiry, and alerts the owner from 3 days out: renew the key (registration again) to keep it trading.
+  past the key's expiry, and **none at all without `maxHoldHours`** (an open-ended hold could outlast the key), so
+  always set it on a live config. It alerts the owner from 3 days out: renew the key (registration again).
 - **The going-live challenge.** Arming AUTONOMOUS (`bankr/activate` with mode AUTONOMOUS → action `agent.activate`;
   `bankr/mode` to AUTONOMOUS → `agent.mode`) or raising `capitalPerTrade` / `leverage` on an AUTONOMOUS agent
-  (`PUT /agent/<wallet>/config` → `agent.config`) also needs:
+  (`PUT /agent/<wallet>/config` → `agent.config`; through `bankr/activate` → `agent.activate`) also needs:
   `GET https://og.nexustradinglabs.com/auth/challenge?wallet=<wallet>&action=<action>` → `{ challenge, nonce, expires }`
   → `sign_message({ message: challenge })` → add `"nonce"` and `"v2Sig"` to the body. 120 seconds, single use: fetch it
   right before the call, after the user said yes. KILL, pause and back-to-paper need no challenge.

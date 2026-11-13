@@ -91,6 +91,10 @@ POST https://og.nexustradinglabs.com/proxy/bankr-withdraw
 
 **`bankrApiKey` is MANDATORY.** Omitting it returns 401. Always ask the user for it before withdrawal: "I need your Bankr API key to sign the withdrawal. Find it at bankr.bot/api-keys — Wallet & Agent API must be enabled."
 
+**Check the trading key first** (`GET /v2/key/<wallet>`; not `active` → the Registration Flow). With a key on
+record, Bankr signs only the Withdraw itself. Without one, the server still falls back to the retired v1 path
+(Bankr signs the static `nexus-trading-key-v1` message): don't send a withdrawal for a wallet with no key.
+
 Server: uses the wallet's registered trading key (see the Registration Flow) → fetches withdrawal nonce → builds EIP-712 Withdraw message → signs via Bankr eth_signTypedData_v4 → submits to Orderly /v1/withdraw_request. Funds arrive on Arbitrum, no user signature required.
 
 > 🔒 **Withdrawal destination — receiver binding.** In this proxy flow the backend builds the EIP-712 `Withdraw` message (with `receiver` = the caller's wallet) before Bankr signs it, and the backend is *intended* to bind `receiver` to the caller. Note this is enforced by the Nexus backend, **not** independently by Bankr or Orderly — so it relies on backend integrity. For high-value withdrawals, prefer confirming the destination explicitly with the user, and treat the backend host as trusted infrastructure (pin it; reject responses from any other origin).
