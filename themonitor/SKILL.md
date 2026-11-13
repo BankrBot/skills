@@ -59,7 +59,7 @@ If any call answers `403 Request not allowed from this page.`, the agent access 
 
 ## Step 1. Plan with the user (nothing signed yet)
 
-Ask for: strategy (`wave` or `elite`), amount to put in (HYPE or USD), and confirm the per-buy size. Default per-buy = `ticket_pct`% of the amount, clamped to 0.0145..145 HYPE. Show: amount, per-buy size, fee percent, the four permissions above, that the first signature creates the account record, and the risk sentence. Ask for an explicit "yes". The amount and per-buy size set the caps inside the permissions, so decide them now: `caps = {"amount_eth": <amount>, "ticket_eth": <per-buy>}`.
+Ask for: strategy (`wave` or `elite`), amount to put in (HYPE or USD), and confirm the per-buy size. Default per-buy = `ticket_pct`% of the amount, clamped to 0.0145..145 HYPE. Show: amount, per-buy size, fee percent, the four permissions above, that the first signature creates the account record, and the risk sentence. Ask for an explicit "yes". Tell the user that the signed per-buy ceiling will be shown before signing and can be larger than the per-buy size. The amount and per-buy size set the caps inside the permissions, so decide them now: `caps = {"amount_eth": <amount>, "ticket_eth": <per-buy>}`.
 
 ## Step 2. Sign in and sign the first permission
 
@@ -71,7 +71,7 @@ Let `ME` = the Bankr wallet's EVM address (lowercase). It must hold the HYPE on 
    - `401 Connect your wallet first.` means this wallet already has an account: go to "Returning wallet" below.
    - `403 The live beta is full right now.`: tell the user, stop.
 2. Run the checks in "Checking a permission" on `typedData` (the delegator is not yet comparable to a server-reported account, so compute it with `scripts/verify-account.mjs ME` and require delegator = that address).
-3. Show the user what is being signed (kind `swap`, caps, expiry about one year) and ask for confirmation.
+3. Show the user what is being signed (kind `swap`, the exact limits printed by the check, expiry) and ask for confirmation of those numbers.
 4. Sign with the Bankr wallet: `POST https://api.bankr.bot/wallet/sign` (header `X-API-Key`) body `{"signatureType":"eth_signTypedData_v4","typedData": <typedData with types.EIP712Domain removed>}` -> `{signature}`. (CLI: `bankr wallet sign --type eth_signTypedData_v4 ...`.)
 5. `POST /api/live/submit` body `{"kind":"swap","address":ME,"signature":SIG}` -> `{ok:true, kind, token}`. Keep `token`.
 
@@ -88,19 +88,36 @@ Let `ME` = the Bankr wallet's EVM address (lowercase). It must hold the HYPE on 
 3. If `deployed` is false: `POST /api/live/deploy` `{}` -> `{ok:true}` (Elysium's server pays for deployment). Then `state` again.
 4. For each `kind` in `to_sign` (for a fresh account: `approve`, `withdraw`, `feegas`; `swap` is already done):
    - `POST /api/live/prepare` `{"kind":kind,"opt":caps}` -> `{typedData}`.
-   - Run the checks, show the user, get confirmation (you may group the remaining ones in one confirmation, but list each).
+   - Run the check, show the user the printed limits, get confirmation (you may group the remaining ones in one confirmation, but list each with its limits).
    - Sign as in Step 2, then `POST /api/live/submit` `{"kind":kind,"signature":SIG}` -> `{ok:true}`.
 5. `state` again. `to_sign` must be empty. Do not sign `exit` or `exit_approve` (optional cold-key permissions; skip them).
 
 ### Checking a permission before the wallet signs it
 
-Refuse and tell the user if any of these fail:
+Save the `typedData` from `prepare` to a file and run:
 
-- `domain.chainId == 99901` and `domain.verifyingContract` equals the delegation manager above (case-insensitive); `primaryType == "Delegation"`.
-- `message.delegator == account` (from `state`, or the computed address in Step 2) and `message.delegate == executor` (from `state`).
-- `message.authority == 0xffff...ffff` (64 f).
-- Targets: for `swap` the caveat whose terms are exactly one address must be the guarded swap contract; for `withdraw` it must be `ME`; for `feegas` it must be the fee address. For `approve` the allowed-calldata term must end with the guarded swap contract address (padded to 32 bytes) and the allowed method must be `0x095ea7b3`.
-- Only these kinds are ever requested: `swap`, `approve`, `withdraw`, `feegas`. The only other typed data the agent ever signs is the revoke `PackedUserOperation` in Step 9, after the checks listed there.
+```
+node scripts/check-permission.mjs KIND typedData.json ME ACCOUNT AMOUNT PER_BUY
+```
+
+(`ACCOUNT` = `account` from `state`, or the address computed in Step 2; `AMOUNT` and `PER_BUY` = the amount and per-buy size the user agreed in Step 1.) If it prints `STOP: ...`, do not sign: tell the user the reason and stop. The script refuses unless all of this holds:
+
+- `domain` is `DelegationManager` v1, `chainId` 99901, `verifyingContract` = the delegation manager above; `primaryType` is `Delegation`; `delegator` = `ACCOUNT`; `delegate` = Monitor's executor key; `authority` = root (`0xff..ff`).
+- The caveats are **exactly** the expected set for the kind, each identified by its pinned enforcer address on Elysium (nothing missing, nothing extra, no duplicates, no `args`), and each `terms` matches Monitor's encoding byte for byte:
+  - `swap`: AllowedTargets = exactly the guarded swap contract; AllowedMethods = exactly `buy` and `sell` (`0xf496a610`, `0x3581f5bb`); ValueLte (per-buy cap); NativeTokenPeriodTransfer with a 24-hour period; LimitedCalls; Timestamp.
+  - `approve`: AllowedMethods = exactly `0x095ea7b3`; AllowedCalldata = exactly 64 bytes, **offset 4** followed by the guarded swap contract padded to 32 bytes (so the bound argument is the spender, not the amount); ValueLte = 0; Timestamp.
+  - `withdraw`: ExactCalldata empty (plain transfers only); AllowedTargets = exactly `ME`; NativeTokenTransferAmount; Timestamp.
+  - `feegas`: same as `withdraw`, but AllowedTargets = exactly the fee address.
+  - Timestamp: valid from now until a date at most 400 days away.
+- For `swap`, the per-buy cap is not below the agreed per-buy size.
+
+On success the script prints the decoded limits. **Show these exact numbers to the user and get an explicit "yes" for them before signing**, in particular for `swap`:
+
+- `max_per_buy_hype`: the most a single buy can spend. Monitor sets this ceiling from the plan, not from the per-buy size, so it is usually larger than the per-buy size (`per_buy_cap_vs_agreed` times larger) and can be the whole deposit (`per_buy_cap_covers_whole_deposit: true`). Say it plainly, e.g. "This permission lets Monitor spend up to 2 HYPE in one buy, which is your whole deposit; Monitor's own size is 0.1 HYPE per buy, but the signature does not enforce that smaller size."
+- `max_per_24h_hype` and `max_calls`: the 24-hour spending ceiling and the total number of swap calls.
+- For `feegas`, `max_total_hype` is the most that can ever be paid to the fee address; for `withdraw`, money can only go to the user's own wallet.
+
+If the user does not accept a ceiling, do not sign. Run the same check every time a permission is renewed or replaced (Step 5, Step 7). Only these kinds are ever requested: `swap`, `approve`, `withdraw`, `feegas`. The only other typed data the agent ever signs is the revoke `PackedUserOperation` in Step 9, after the checks listed there.
 
 ## Step 4. Deposit
 
@@ -117,7 +134,7 @@ Only after Step 3 is clean and the user confirms the exact amount and the destin
 {"leaders":["E2","E3"],"custom":[],"ticket_eth":0.05,"active":true,"take_x":2,"strat":"wave"}
 ```
 
-`leaders` and `take_x` come from the chosen strategy; `ticket_eth` must be at most what the `swap` permission allows (`swap_cap_eth` in `state` is the per-call cap; keep `ticket_eth * 1.15` below it, otherwise sign a new `swap` permission with a larger `opt.ticket_eth` first). The reply is the new state: `follow.active` must be true. Report: strategy, number of leaders, per-buy size, account address.
+`leaders` and `take_x` come from the chosen strategy; `ticket_eth` must be at most what the `swap` permission allows (`swap_cap_eth` in `state` is the per-call cap; keep `ticket_eth * 1.15` below it, otherwise sign a new `swap` permission with a larger `opt.ticket_eth` first, after running the check on it and getting the user's yes for its limits). The reply is the new state: `follow.active` must be true. Report: strategy, number of leaders, per-buy size, account address.
 
 ## Step 6. Check status and P&L
 
