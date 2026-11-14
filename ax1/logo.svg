@@ -1,0 +1,13 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="128" height="128" rx="12" fill="#0A0A0A"/>
+<g id="logo" transform="translate(16 47.2) scale(1.2)">
+<path id="Union" d="M37.1426 23.3162L43.9609 14.03L33.7012 0.036879H43.7666L64.2207 27.8943H54.1562L48.9609 20.9461L43.8965 27.8943H30.0654L26.7529 22.5691H16.3633L19.3506 16.4002H22.9873L18.2471 8.67262L8.70117 27.8943H0L14.1562 0.036879H22.4355L37.1426 23.3162ZM64.2871 0.036879L56.6572 10.3943L51.625 3.57594L54.2549 0.036879H64.2871Z" fill="#ffffff"></path>
+<path id="Vector 9" d="M72.0776 0L66.3633 7.78121H72.6492L72.809 27.9222H79.9997V0H72.0776Z" fill="url(#paint0_linear_361_142)"></path>
+</g>
+<defs>
+<linearGradient id="paint0_linear_361_142" x1="68.9657" y1="-4.13796" x2="80.0002" y2="28.9657" gradientUnits="userSpaceOnUse">
+<stop></stop>
+<stop offset="1" stop-color="white"></stop>
+</linearGradient>
+</defs>
+</svg>

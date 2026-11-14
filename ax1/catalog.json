@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "ax1",
+  "provider": "AX1",
+  "providerUrl": "https://console.ax1.vc",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "Roast $DEGEN · real paid response",
+    "language": "text",
+    "code": "> roast 0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed for me\n\n$DEGEN · MID\n\"DEGEN: The fragmentation of your portfolio.\"\nPools: 30\nhttps://console.ax1.vc/?ca=0x4ed4e862860bed51a9570b96d89af5e1b0efefed\n\nVerdict by AX1 · entertainment, not trading advice.\n\nReal paid response · 2026-11-14 · 0.02 USDC on Base.\nOutputs vary with market data and each generation."
+  },
+  "setup": [
+    "Install the skill",
+    "Keep a few cents of USDC on Base in your Bankr wallet",
+    "Ask your agent to roast any Base token"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "ax1",
+    "command": "install the ax1 skill from https://github.com/BankrBot/skills/tree/main/ax1"
+  }
+}
