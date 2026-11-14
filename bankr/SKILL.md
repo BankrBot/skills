@@ -149,7 +149,7 @@ Most of these work by asking the agent (`bankr agent "..."` or `POST /agent/prom
 | Perps on Hyperliquid and Avantis | [hyperliquid.md](references/hyperliquid.md), [leverage-trading.md](references/leverage-trading.md) | [Hyperliquid](https://docs.bankr.bot/features/hyperliquid) |
 | Polymarket | [polymarket.md](references/polymarket.md) | [Polymarket](https://docs.bankr.bot/features/polymarket) |
 | Token launches, creator fees, vesting | [token-deployment.md](references/token-deployment.md) | [Token launching](https://docs.bankr.bot/token-launching/overview) |
-| Index tokens: buy, create and rebalance a basket, in chat or with an API key | | [Index tokens](https://docs.bankr.bot/token-launching/index-tokens), [Run an index from a script or agent](https://docs.bankr.bot/token-launching/index-tokens-quickstart) |
+| Index tokens: buy a basket, or create and rebalance one with an API key | | [Index tokens](https://docs.bankr.bot/token-launching/index-tokens), [Run an index from a script or agent](https://docs.bankr.bot/token-launching/index-tokens-quickstart) |
 | Project pages (`bankr project`, 0.3.43+) | [projects.md](references/projects.md) | [Projects](https://docs.bankr.bot/projects/overview) |
 | Wallet file storage and run outputs | [files.md](references/files.md) | [Files](https://docs.bankr.bot/agent/files) |
 | x402: calling and deploying paid endpoints | [x402-cloud.md](references/x402-cloud.md) | [x402 Cloud](https://docs.bankr.bot/x402-cloud/overview) |
@@ -185,7 +185,7 @@ Bankr supports Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Cha
 
 - **Robinhood Chain** (chainId 4663) settles in USDG and hosts Robinhood's tokenized stocks.
 - **Arc** (chainId 5042) is Circle's L1, where USDC is the gas token. It has no aggregator swaps yet, and its gas isn't sponsored.
-- **Elysium** (chainId 99901) is Kinetiq's L2 on HyperEVM, where HYPE is the gas token and gas isn't sponsored. Swaps stay on Elysium's own pools (no cross-chain swaps), orders are limit and plain stop only, and HYPE bridges in from HyperEVM. Name Elysium when sending HYPE there: HYPE with no chain means Hyperliquid's.
+- **Elysium** (chainId 99901) is Kinetiq's L2 on HyperEVM, where HYPE is the gas token and gas isn't sponsored. Swaps stay on Elysium's own pools (no cross-chain swaps), orders are limit and plain stop only, and HYPE bridges to and from HyperEVM. Name Elysium when sending HYPE there: HYPE with no chain means Hyperliquid's.
 - **Base** also hosts the B20 tokenized equities.
 
 More in [docs.bankr.bot/getting-started/supported-chains](https://docs.bankr.bot/getting-started/supported-chains).
