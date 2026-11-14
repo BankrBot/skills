@@ -20,10 +20,10 @@ Use bare, dotted IDs (`claude-opus-5.5`) in API calls and `bankr/<id>` in OpenCl
 
 | Provider | Examples |
 |----------|----------|
-| Anthropic | `claude-fable-5.1`, `claude-opus-5.5`, `claude-sonnet-5.5`, `claude-haiku-5.5` |
-| Google | `gemini-3.8-flash` (the Bankr agent's default model), `gemini-4-argon`, `gemini-3.1-pro`, `gemma-4-31b-it` |
+| Anthropic | `claude-fable-5.2`, `claude-opus-5.5`, `claude-sonnet-5.5`, `claude-haiku-5.5` |
+| Google | `gemini-3.8-flash` (the Bankr agent's default model), `gemini-4-carbon`, `gemini-4-argon`, `gemma-4-31b-it` |
 | Meta | `muse-wonder` |
-| OpenAI | `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-luna`, `gpt-5.6-terra` |
+| OpenAI | `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna` |
 | xAI | `grok-4.7`, `grok-4.20` |
 | DeepSeek | `deepseek-v4-pro-0813`, `deepseek-v4.1-flash` |
 | Alibaba | `qwen3.8-max`, `qwen3.8-flash`, `qwen3-coder` |
@@ -33,6 +33,7 @@ Use bare, dotted IDs (`claude-opus-5.5`) in API calls and `bankr/<id>` in OpenCl
 
 - Anthropic-style IDs work too: `claude-opus-4-8` and date-suffixed IDs map to the dotted form, and Claude Code's `[1m]` suffix is stripped.
 - An unknown ID returns `400 unsupported_model`. Deprecated IDs leave the listing but keep working until removed (see [Model deprecation](#model-deprecation)).
+- Decision models (`sage-2`, `jev-1.13`) answer typed questions with probabilities, on `/v1/systemone` only: chat endpoints refuse them with `400`. See [Decision models](https://docs.bankr.bot/llm-gateway/decision-models).
 - **Per-model discounts** (some for everyone, some for Bankr Club or partner wallets) are time-limited and applied automatically at billing. `GET /v1/models` shows a discount when one applies to you.
 
 ## Privacy Tiers
@@ -211,7 +212,7 @@ curl -X POST https://llm.bankr.bot/v1/images/generations \
 
 - **Soft-deprecated:** the request is served by the replacement model, and the response carries `X-Model-Deprecated: true` and `X-Model-Replacement: <id>`. The old ID no longer appears in the model listing.
 - **Removed** (past its removal date): `410` with `type: model_deprecated` and `code: model_removed`. The error message names the replacement.
-- Currently redirected: `gemini-2.5-pro` to `gemini-3.1-pro` and `gemini-2.5-flash` to `gemini-3.8-flash` until both are removed on 2026-10-20, and the Flash Lite IDs (`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`) to `gemini-3.8-flash`.
+- Currently redirected: the Flash Lite IDs (`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`) to `gemini-3.8-flash`. `gemini-2.5-pro` and `gemini-2.5-flash` were removed on 2026-10-20 and answer `410`.
 
 ## Troubleshooting
 
