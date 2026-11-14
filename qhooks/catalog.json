@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "qhooks",
+  "provider": "QHooks",
+  "providerUrl": "https://qhooks.com",
+  "demo": {
+    "title": "Read QHooks tools",
+    "language": "bash",
+    "code": "curl --fail --silent https://qhooks.com/mcp -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' --data '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}'"
+  },
+  "setup": [
+    "Connect your MCP client to https://qhooks.com/mcp; no API key is required.",
+    "Read SKILL.md and review exact chain, pool identity and transaction details; the user signs with their own wallet.",
+    "An operator may explicitly supply its public referral wallet for 20% of eligible QHooks router fees, under existing attribution rules; users review and sign."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "qhooks",
+    "command": "install the qhooks skill from https://github.com/BankrBot/skills/tree/main/qhooks"
+  }
+}
