@@ -210,7 +210,7 @@ The public quote implementation can supply `quote_reverted` with a dynamic contr
 
 ## Tool reference
 
-Inputs reject additional properties. Types, constraints and descriptions come from the server; optional fields can have semantic requirements. Token/trader addresses must be nonzero and chains allowed for the operation. In result shapes, `?` means optional.
+Only tools exposed by the current release are listed here. Inputs reject additional properties. Types, constraints and descriptions come from the server; optional fields can have semantic requirements. Token/trader addresses must be nonzero and chains allowed for the operation. In result shapes, `?` means optional.
 
 ### qproof_check
 
@@ -228,55 +228,6 @@ Read the same cached portfolio report used by QHooks. A cold or expired cache re
 - `address` (required string): `{"minLength":1,"maxLength":44}`
 
 Returns: `{version: integer, address: string, at: number, chains: [object], totals: object, partial: boolean, cached: true, cacheUntil: number, url: string}`.
-
-### prepare_limit_order
-
-Prepare Permit2 typed data and a bounded approval if needed. The user reviews and signs; this tool never submits an order. Available only after the order release is enabled.
-
-- `chain` (required string)
-- `token` (required string): `{"pattern":"^0x[0-9a-fA-F]{40}$"}`
-- `trader` (required string): `{"pattern":"^0x[0-9a-fA-F]{40}$"}`
-- `amountIn` (required string): `{"pattern":"^[1-9][0-9]{0,37}$"}`
-- `days` (optional integer): `{"minimum":1,"maximum":90}`
-- `referrer` (optional string): `{"pattern":"^0x[0-9a-fA-F]{40}$"}`
-- `side` (required string): `{"enum":["buy","sell"]}`
-- `price` (required string): `{"pattern":"^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$"}`
-
-Returns: `{chain: string, trader: string, executor: string, permit2: string, preparedAt: number, accountAt: number, approval: object\|null, orders: [object], link: string, notes: [string]}`.
-
-### prepare_tpsl
-
-Prepare take-profit and stop typed data on one Permit2 nonce (OCO), plus bounded approval if needed. Never signs or submits.
-
-- `chain` (required string)
-- `token` (required string): `{"pattern":"^0x[0-9a-fA-F]{40}$"}`
-- `trader` (required string): `{"pattern":"^0x[0-9a-fA-F]{40}$"}`
-- `amountIn` (required string): `{"pattern":"^[1-9][0-9]{0,37}$"}`
-- `days` (optional integer): `{"minimum":1,"maximum":90}`
-- `referrer` (optional string): `{"pattern":"^0x[0-9a-fA-F]{40}$"}`
-- `takeProfit` (optional string): `{"pattern":"^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$"}`
-- `stopLoss` (optional string): `{"pattern":"^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$"}`
-- `floorPct` (optional integer): `{"minimum":0,"maximum":99}`
-
-Returns: `{chain: string, trader: string, executor: string, permit2: string, preparedAt: number, accountAt: number, approval: object\|null, orders: [object], link: string, notes: [string]}`.
-
-### prepare_callout
-
-Draft up to 3000 characters with a 140-character preview. Return current site posting limit separately; the user edits and posts on qhooks.com.
-
-- `chain` (required string)
-- `token` (required string): `{"pattern":"^0x[0-9a-fA-F]{40}$"}`
-- `text` (required string): `{"minLength":1,"maxLength":3000}`
-
-Returns: `{draft: string, preview: string, characters: integer, draftLimit: integer, previewLimit: integer, sitePostingLimit: integer, postable: boolean, link: string, notes: [string]}`.
-
-### orders_status
-
-Read public stored open and filled orders for an exact wallet. No provider refresh, signatures or submission.
-
-- `address` (required string): `{"pattern":"^0x[0-9a-fA-F]{40}$"}`
-
-Returns: `{version: integer, trader: string, executor: string, orders: [object]}`.
 
 ### hooks_catalog
 
@@ -403,29 +354,7 @@ Use optional `referrer` on `prepare_trade` or `prepare_launch` for the operator'
 
 Give the returned `link` to the user for review and wallet signing on qhooks.com.
 
-## Orders and callout drafts
 
-Order tools require the reviewed order release. They prepare unsigned Permit2 witnesses, never place orders. Verify chain/domain, executor spender, amounts, minimum rate, nonce/deadline and bounded Permit2 approval. TP/SL shares one nonce; open orders reserve once per nonce.
-
-```json
-{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"prepare_limit_order","arguments":{"chain":"8453","token":"0xe319336506857ed9293eb06014d79026c9aedf13","trader":"0x1111111111111111111111111111111111111111","amountIn":"1000","side":"buy","price":"0.0001"}}}
-```
-
-```json
-{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"prepare_tpsl","arguments":{"chain":"8453","token":"0xe319336506857ed9293eb06014d79026c9aedf13","trader":"0x1111111111111111111111111111111111111111","amountIn":"1000","takeProfit":"0.0002","stopLoss":"0.00005","floorPct":3}}}
-```
-
-```json
-{"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"orders_status","arguments":{"address":"0x1111111111111111111111111111111111111111"}}}
-```
-
-Market cache must be fresh. Code/balance/allowance use one briefly cached batch under the tool tag. Re-prepare after wallet, terms, balance, allowance or orders change. The user places orders on qhooks.com.
-
-```json
-{"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"prepare_callout","arguments":{"chain":"8453","token":"0xe319336506857ed9293eb06014d79026c9aedf13","text":"Review the stored checks and token rules before deciding."}}}
-```
-
-Drafts allow 3000 characters with a 140-character draft preview. The result separately reports the site's current `sitePostingLimit` and `postable`; shorten an oversized draft before the user posts. The site's feed preview may differ. No tool posts or follows a caller.
 
 ## Discovery and public records
 
@@ -501,12 +430,6 @@ curl --fail-with-body --silent --show-error 'https://qhooks.com/api/v1/agent/qpr
 curl --fail-with-body --silent --show-error 'https://qhooks.com/api/v1/agent/wallet-portfolio?address=0x1111111111111111111111111111111111111111'
 ```
 
-### orders_status
-
-```sh
-curl --fail-with-body --silent --show-error 'https://qhooks.com/api/v1/agent/orders-status?address=0x1111111111111111111111111111111111111111'
-```
-
 ### hooks_catalog
 
 ```sh
@@ -551,7 +474,7 @@ Bring traders, get 20% of their fee
 ## Changelog
 
 - 2026-11-13 — 5.0.0: bounded cached catalogue, stored referral credits and public caller records.
-- 2026-11-13 — 4.0.0: unsigned order plans, stored order status and callout drafts.
+- 2026-11-13 — 4.0.0: order preparations and callout drafts behind a release flag.
 - 2026-11-13 — 3.0.0: referral links, stored QProof and cached portfolio reads.
 - 2026-11-13 — 2.0.0: source-generated tools, chains, examples, errors and unsigned-transaction checks.
 - 2026-11-13 — 1.0.0: initial agent skill.
