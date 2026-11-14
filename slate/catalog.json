@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "slug": "slate",
+  "provider": "Slate",
+  "providerUrl": "https://slate-base.vercel.app",
+  "demo": {
+    "title": "slate.txt",
+    "language": "text",
+    "code": "You: How is the SLATE4 index fund doing?\nAgent: (reads NAV per share, current vs target weights and feed health from the pinned fund contract on Base, and says plainly that it is experimental and unaudited)\nYou: Can it be rebalanced right now?\nAgent: (calls rebalanceStatus() and reports the reason and next eligible time)"
+  },
+  "setup": [
+    "Install the slate skill (command below)",
+    "Ask: How is the SLATE4 index fund doing?",
+    "Read fund state by conversation; deposits and rebalances go through the Slate app"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "slate",
+    "command": "install the slate skill from https://github.com/BankrBot/skills/tree/main/slate"
+  }
+}
