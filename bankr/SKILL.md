@@ -1,6 +1,6 @@
 ---
 name: bankr
-description: Bankr is an AI crypto agent with its own wallets, a direct Wallet API and a pay-as-you-go LLM gateway, driven by the `bankr` CLI or the REST API. Use it when the user wants to trade or swap crypto or tokenized stocks, check balances or PnL, send tokens, trade perps (Hyperliquid, Avantis) or prediction markets (Polymarket), buy, sell or mint NFTs, look up prices, market data or token research, claim Merkl rewards, browse the web through the agent, launch a token or claim its fees, automate orders, sign or submit transactions, call or deploy x402 paid endpoints, store files on their wallet, or use and pay for LLMs through Bankr. Chains: Base, Ethereum, Polygon, Solana, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain and Arc.
+description: Bankr is an AI crypto agent with its own wallets, a direct Wallet API and a pay-as-you-go LLM gateway, driven by the `bankr` CLI or the REST API. Use it when the user wants to trade or swap crypto or tokenized stocks, check balances or PnL, send tokens, trade perps (Hyperliquid, Avantis) or prediction markets (Polymarket), buy, sell or mint NFTs, look up prices, market data or token research, claim Merkl rewards, browse the web through the agent, launch a token or claim its fees, automate orders, sign or submit transactions, call or deploy x402 paid endpoints, store files on their wallet, or use and pay for LLMs through Bankr. Chains: Base, Ethereum, Polygon, Solana, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain, Arc and Elysium.
 metadata:
   {
     "clawdbot":
@@ -123,9 +123,10 @@ Never poll without a `jobId`: `GET /agent/job/null` answers `404 Job not found` 
 | `POST /wallet/transfer` | Sends a token (by contract address or Solana mint) to a 0x or Solana address. Resolve an ENS name or social handle first with `GET /addresses/resolve` |
 | `POST /wallet/sign` | Signs a message, EIP-712 typed data or a transaction |
 | `POST /wallet/submit` | Broadcasts a raw transaction |
+| `POST /wallet/bridge-quote`, `/wallet/bridge/deposit`, `/wallet/bridge/withdraw` | Bridges the wallet's own HYPE between HyperEVM and Elysium; `GET /wallet/bridge/pending` follows it ([docs](https://docs.bankr.bot/wallet-api/bridge)) |
 
-- Reads (`me`, `portfolio`, `swap-quote`) work with read-only keys. `swap-quote` still needs `walletApiEnabled`.
-- Writes (`swap`, `transfer`, `sign`, `submit`) need `walletApiEnabled` on a read-write key.
+- Reads (`me`, `portfolio`, `swap-quote`, `bridge-quote`, `bridge/pending`) work with read-only keys. All but `me` and `portfolio` still need `walletApiEnabled`.
+- Writes (`swap`, `transfer`, `bridge/deposit`, `bridge/withdraw`, `sign`, `submit`) need `walletApiEnabled` on a read-write key.
 - Once a key has a recipient allowlist on either chain, `transfer` only sends to addresses on the list for its chain, so a key with only one chain's list can't send on the other. `swap` has no recipient to check, because its output returns to you.
 - `submit` is also checked against the wallet's security settings: spend limits, permitted recipients and the arbitrary-contract-calls switch, which stays off on an account without MFA (`403 MFA required`). Its `403` comes either with a machine-readable `errorCode` or with a plain message and no `errorCode` (`MFA required` adds `code: "MFA_REQUIRED"`), so handle both shapes.
 - These endpoints need no key: `GET /addresses/resolve`, `GET /users/search`, `GET /token-launches` and `GET /token-launches/quote-tokens?chain=<chain>`.
@@ -148,6 +149,7 @@ Most of these work by asking the agent (`bankr agent "..."` or `POST /agent/prom
 | Perps on Hyperliquid and Avantis | [hyperliquid.md](references/hyperliquid.md), [leverage-trading.md](references/leverage-trading.md) | [Hyperliquid](https://docs.bankr.bot/features/hyperliquid) |
 | Polymarket | [polymarket.md](references/polymarket.md) | [Polymarket](https://docs.bankr.bot/features/polymarket) |
 | Token launches, creator fees, vesting | [token-deployment.md](references/token-deployment.md) | [Token launching](https://docs.bankr.bot/token-launching/overview) |
+| Index tokens: buy a basket, or create and rebalance one with an API key | | [Index tokens](https://docs.bankr.bot/token-launching/index-tokens), [Run an index from a script or agent](https://docs.bankr.bot/token-launching/index-tokens-quickstart) |
 | Project pages (`bankr project`, 0.3.43+) | [projects.md](references/projects.md) | [Projects](https://docs.bankr.bot/projects/overview) |
 | Wallet file storage and run outputs | [files.md](references/files.md) | [Files](https://docs.bankr.bot/agent/files) |
 | x402: calling and deploying paid endpoints | [x402-cloud.md](references/x402-cloud.md) | [x402 Cloud](https://docs.bankr.bot/x402-cloud/overview) |
@@ -179,10 +181,11 @@ Capabilities without a reference file:
 
 ## Chains
 
-Bankr supports Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain, Arc and Solana:
+Bankr supports Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain, Arc, Elysium and Solana:
 
 - **Robinhood Chain** (chainId 4663) settles in USDG and hosts Robinhood's tokenized stocks.
 - **Arc** (chainId 5042) is Circle's L1, where USDC is the gas token. It has no aggregator swaps yet, and its gas isn't sponsored.
+- **Elysium** (chainId 99901) is Kinetiq's L2 on HyperEVM, where HYPE is the gas token and gas isn't sponsored. Swaps stay on Elysium's own pools (no cross-chain swaps), orders are limit and plain stop only, and HYPE bridges to and from HyperEVM. Name Elysium when sending HYPE there: HYPE with no chain means Hyperliquid's.
 - **Base** also hosts the B20 tokenized equities.
 
 More in [docs.bankr.bot/getting-started/supported-chains](https://docs.bankr.bot/getting-started/supported-chains).
