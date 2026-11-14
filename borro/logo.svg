@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<title>Borro</title>
+<defs><clipPath id="disc"><circle cx="256" cy="256" r="256"/></clipPath></defs>
+<g clip-path="url(#disc)">
+<circle cx="256" cy="256" r="256" fill="#0D0D0F"/>
+<rect x="0" y="180" width="512" height="38" fill="#EDB25A"/><rect x="0" y="218" width="512" height="38" fill="#DC7440"/><rect x="0" y="256" width="512" height="38" fill="#C4453A"/><rect x="0" y="294" width="512" height="38" fill="#682936"/>
+</g>
+<g transform="translate(256 256) scale(1.62)"><circle r="110" fill="#EFEFEC"/><circle r="98" fill="none" stroke="#0D0D0F" stroke-width="12"/><circle r="72" fill="#0D0D0F"/><rect x="-11" y="-80" width="22" height="22" rx="3" fill="#EFEFEC" transform="rotate(22.5)"/><rect x="-11" y="-80" width="22" height="22" rx="3" fill="#EFEFEC" transform="rotate(67.5)"/><rect x="-11" y="-80" width="22" height="22" rx="3" fill="#EFEFEC" transform="rotate(112.5)"/><rect x="-11" y="-80" width="22" height="22" rx="3" fill="#EFEFEC" transform="rotate(157.5)"/><rect x="-11" y="-80" width="22" height="22" rx="3" fill="#EFEFEC" transform="rotate(202.5)"/><rect x="-11" y="-80" width="22" height="22" rx="3" fill="#EFEFEC" transform="rotate(247.5)"/><rect x="-11" y="-80" width="22" height="22" rx="3" fill="#EFEFEC" transform="rotate(292.5)"/><rect x="-11" y="-80" width="22" height="22" rx="3" fill="#EFEFEC" transform="rotate(337.5)"/><circle r="22" fill="#EFEFEC"/><circle r="10" fill="#0D0D0F"/></g>
+</svg>
