@@ -15,8 +15,9 @@ Submit raw EVM transactions with explicit calldata, call any contract function b
 | BNB Chain | 56 |
 | Robinhood Chain | 4663 |
 | Arc | 5042 |
+| Elysium | 99901 |
 
-Bankr never sponsors gas for arbitrary calldata: the wallet pays its own gas in the chain's native token (ETH, POL, BNB — native USDC on Arc).
+Bankr never sponsors gas for arbitrary calldata: the wallet pays its own gas in the chain's native token (ETH, POL, BNB — native USDC on Arc, HYPE on Elysium).
 
 ## JSON Format
 

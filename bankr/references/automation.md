@@ -20,8 +20,8 @@ Limit, stop, DCA and TWAP orders, plus agent commands that run on a schedule or 
 
 | | EVM chains (default Base) | Solana |
 |---|---|---|
-| Limit, stop | Yes (trailing stops EVM only) | Yes, via Jupiter Trigger, with a 0.5% fee on fills |
-| DCA, TWAP | Yes | No |
+| Limit, stop | Yes (trailing stops EVM only, not on Elysium) | Yes, via Jupiter Trigger, with a 0.5% fee on fills |
+| DCA, TWAP | Yes, except on Elysium | No |
 | Scheduled commands | Yes | Yes (price triggers can watch Solana tokens) |
 
 ## Limits
