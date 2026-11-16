@@ -1,11 +1,15 @@
 ---
 name: breakra
-description: Check whether an OpenAPI 3.0 change breaks API consumers. Send the old and new contract; get every change classified (breaking / potentially_breaking / unknown / compatible / non_contract) with evidence and a recommended action. Paid per call, $0.02 USDC on Base via x402.
+description: Check whether an OpenAPI 3.0/3.1 change (JSON or YAML) breaks API consumers, or breaks you. Send the old and new contract; get a verdict (safe/review/block), a semver bump, and every change classified with evidence and a recommended fix. Free locally (CLI/MCP), or hosted at $0.02 USDC on Base via x402.
 ---
 
-# Breakra: OpenAPI compatibility check for agents
+# Breakra: contract-safety check for agents
 
-Breakra compares two OpenAPI 3.0 JSON contracts and tells you which changes may break existing callers, where they are, and what to do about them. Results are deterministic: the same two contracts always give the same `analysis_id` and the same findings.
+Breakra compares two OpenAPI 3.0/3.1 contracts (JSON or YAML) and tells you whether the change is **safe**, needs **review**, or should be **blocked**. It also lists which changes may break callers (or, with `uses`, **you**), where they are, and what to do about them. Results are deterministic: the same inputs always give the same `analysis_id` and the same findings.
+
+**Two ways to run it:**
+- **Free and local** (no wallet, nothing leaves your machine): `bun src/cli.ts check before.yaml after.yaml` from a clone of [the repo](https://github.com/danbuildss/breakra), or add the MCP server: `claude mcp add breakra -- bun /path/to/breakra/src/cli.ts mcp` (tool: `check_openapi_change`). Needs [Bun](https://bun.sh).
+- **Hosted** (nothing to install, pay per call): the endpoint below.
 
 - **Endpoint:** `POST https://x402.bankr.bot/0xb98f0de777eea8c481b64e33d3e0066cea38fa91/breakra-analyze` (also `POST https://breakra.dev/api/analyze`, which forwards to it: same terms, same result). For a request body over **500 KB**, call the Bankr URL directly: the breakra.dev forward adds a network hop with its own proxy timeout, so a slow large call could be cut off after Bankr has already charged it.
 - **Price:** $0.02 USDC on Base (x402 v2, scheme `exact`, network `eip155:8453`, amount `20000`). **Only a 200 is charged.** Every error (4xx/5xx) is free.
@@ -15,18 +19,20 @@ Breakra compares two OpenAPI 3.0 JSON contracts and tells you which changes may 
 
 - Before merging or releasing a change to an OpenAPI contract: "does this PR break clients?"
 - When upgrading to a new version of a third-party API: "what changed that affects my integration?"
-- When writing release notes or a migration guide: you get a list of changes with reasons and actions.
+- When writing release notes or a migration guide: you get a list of changes with reasons and actions, and a suggested semver bump.
 
-Don't use it for: OpenAPI 3.1, Swagger 2.0, YAML (convert to JSON first), contracts given only as URLs (fetch them yourself), or a combined request body over 1 MB.
+Don't use it for: Swagger 2.0, OpenAPI 3.2, contracts given only as URLs (fetch them yourself), or a combined request body over 1 MB.
 
 ## Request
 
 ```json
 { "before": { "openapi": "3.0.3", "info": { "title": "…", "version": "1" }, "paths": { } },
-  "after":  { "openapi": "3.0.3", "info": { "title": "…", "version": "2" }, "paths": { } } }
+  "after":  "openapi: 3.1.0\ninfo:\n  title: …\n  version: '2'\npaths: {}\n",
+  "uses":   [{ "method": "GET", "path": "/orders/{id}" }] }
 ```
 
-- Exactly two fields, `before` and `after`, each a whole inline OpenAPI 3.0.0–3.0.4 document.
+- `before` and `after`: each a whole inline OpenAPI 3.0.0–3.0.4 or 3.1.0–3.1.1 document, as a JSON object **or** as JSON/YAML text (a string).
+- `uses` (optional): the operations your code calls. The result then has an `impact` section with a verdict for **you**, and the ids of the findings that affect you. Path parameter names don't need to match (`/orders/{id}` = `/orders/{orderId}`).
 - Local `$ref`s (`#/…`) are resolved, including circular ones. External `$ref`s are **never fetched**: they're listed in `limitations`. Inline them first if they matter.
 - Limits: 1 MB body (1,048,576 bytes for the whole JSON request), nesting 64, 5,000 operations, 75,000 nodes once `$ref`s are expanded. Over a limit → a free 413 or 422.
 
@@ -64,6 +70,8 @@ A reference client that checks every term above, signs once and treats ambiguous
   "status": "success",
   "analysis_id": "sha256:…",
   "compatibility": "breaking",
+  "verdict": "block",
+  "suggested_version_bump": "major",
   "summary": { "total_changes": 15, "breaking": 1, "potentially_breaking": 10, "unknown": 0, "compatible": 2, "non_contract": 2 },
   "changes": [
     {
@@ -91,7 +99,9 @@ A reference client that checks every term above, signs once and treats ambiguous
 | `compatible` | Additive; well-behaved callers are unaffected | Nothing required |
 | `non_contract` | Docs or metadata only | Nothing required |
 
-- The top-level `compatibility` is the most severe class found. Use it as the pass/fail gate: fail on `breaking`, and on `potentially_breaking` or `unknown` unless a reviewer accepts them.
+- **Act on `verdict`:** `block` = breaking changes (don't ship, or ship as a new major version); `review` = potentially breaking or unknown changes (check each one); `safe` = nothing that may break callers. With `uses`, act on `impact.verdict` instead: it covers only your operations plus document-wide changes.
+- `suggested_version_bump` is semver advice for the API's own version: `major` for anything that may break callers (or that the rules can't evaluate), `minor` for additive changes, `patch` for docs only.
+- The top-level `compatibility` is the most severe class found.
 - `direction` says who is affected: `request` (what callers send), `response` (what callers receive), `operation`, `security` or `document`.
 - `changes` is sorted most severe first and capped at 500. `summary` always counts everything; `metadata.changes_omitted` says how many weren't listed.
 - Always read `limitations` (an array of plain-English strings). A result with external `$refs` didn't see what those refs point to.
@@ -101,11 +111,11 @@ A reference client that checks every term above, signs once and treats ambiguous
 
 | HTTP | `error.code` | Fix |
 |---|---|---|
-| 400 | `INVALID_REQUEST` | Send JSON with exactly `before` and `after`, each an object |
+| 400 | `INVALID_REQUEST` | Send JSON with `before` and `after` (each an object or JSON/YAML text) and optionally `uses` |
 | 405 | `METHOD_NOT_ALLOWED` | Use POST |
 | 413 | `PAYLOAD_TOO_LARGE` | Body over 1 MB: drop unrelated paths from both contracts and compare in parts |
 | 422 | `INVALID_SPECIFICATION` | Missing `openapi`/`info`/`paths`, a malformed path or operation, or a `$ref` that doesn't resolve |
-| 422 | `UNSUPPORTED_OPENAPI_VERSION` | Only OpenAPI 3.0.x JSON is supported |
+| 422 | `UNSUPPORTED_OPENAPI_VERSION` | Only OpenAPI 3.0.0–3.0.4 and 3.1.0–3.1.1 are supported (no Swagger 2.0) |
 | 422 | `SPEC_TOO_COMPLEX` | Too deep, too many operations, or `$ref`s expand too far: compare a subset of paths |
 | 500 | `ANALYSIS_FAILED` | Unexpected; retry once with the same input |
 
