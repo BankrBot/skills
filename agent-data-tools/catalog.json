@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "agent-data-tools",
+  "provider": "Agent Data Tools",
+  "providerUrl": "https://agent-data-tools.revmesh2074.workers.dev",
+  "logo": "logo.png",
+  "demo": {
+    "title": "agent-data-tools.sh",
+    "language": "bash",
+    "code": "# Ask which tool does a job (free)\ncurl \"https://agent-data-tools.revmesh2074.workers.dev/find?need=token+price+on+base\"\n\n# Try a tool free (25 free successful calls per caller)\ncurl \"https://agent-data-tools.revmesh2074.workers.dev/price/token?symbol=ETH&trial=1\"\n\n# Without a free call the answer is HTTP 402 with x402 terms (USDC on Base, Polygon, Arbitrum or Solana)\ncurl -i \"https://agent-data-tools.revmesh2074.workers.dev/check/counterparty?address=0x4200000000000000000000000000000000000006\"\n\n# Calling often: prepay once with x402 and use the returned key on later calls\n#   GET https://agent-data-tools.revmesh2074.workers.dev/credits/usdc/5  ->  { apiKey: \"adt_...\" }\ncurl -H \"Authorization: Bearer adt_...\" \"https://agent-data-tools.revmesh2074.workers.dev/wallet/portfolio?address=0x...\""
+  },
+  "setup": [
+    "No signup or API key: every caller gets 25 free successful calls (add trial=1)",
+    "Pay per call with any x402 client: USDC on Base, Polygon, Arbitrum or Solana; most tools cost $0.01, everyday lookups $0.002; failed calls are never charged",
+    "Or prepay once: GET /credits/usdc/5 with x402 returns an API key worth 5,000 credits for later calls",
+    "MCP clients: connect to https://agent-data-tools.revmesh2074.workers.dev/mcp"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "agent-data-tools",
+    "command": "install the agent-data-tools skill from https://github.com/BankrBot/skills/tree/main/agent-data-tools"
+  }
+}
