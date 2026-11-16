@@ -6,9 +6,13 @@ import { keccak256, selector } from "./lib/keccak256.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ZERO = `0x${"0".repeat(40)}`;
+const SENTINEL = `0x${"0".repeat(39)}1`;
 const RPC_URL = process.env.BASE_RPC_URL || "https://base-rpc.publicnode.com";
 const API_URL = (process.env.AZZLE_API_URL || "https://azzle.org").replace(/\/$/, "");
 const CAMPAIGN_EVENT = "CampaignCreated(address,address,address,address,uint256,uint256,uint256)";
+const MODULE_GUARD_SLOT = keccak256(new TextEncoder().encode("module_manager.module_guard.address"));
+const TX_GUARD_SLOT = keccak256(new TextEncoder().encode("guard_manager.guard.address"));
+const FALLBACK_HANDLER_SLOT = keccak256(new TextEncoder().encode("fallback_manager.handler.address"));
 
 function fail(message) {
   throw new Error(message);
@@ -46,7 +50,7 @@ function loadPin(market) {
   if (market !== "standard" && market !== "micro") fail("Market must be standard or micro.");
   const pin = readJson(join(ROOT, "references", `base-8453-${market}-crowdfund.json`));
   if (pin.market !== market || String(pin.chainId) !== "8453") fail(`${market} crowdfund pin is not Base.`);
-  if (!pin.crowdfundFactory || !pin.azl || !pin.taskRegistry || !pin.deploymentBlock) {
+  if (!pin.crowdfundFactory || !pin.azl || !pin.taskRegistry || !pin.deploymentBlock || !pin.safe?.singleton || !pin.safe?.fallbackHandler) {
     fail(`${market} crowdfund pin is incomplete.`);
   }
   return pin;
@@ -127,6 +131,18 @@ function encodeAddress(address) {
   return address.toLowerCase().replace(/^0x/, "").padStart(64, "0");
 }
 
+function encodeUint(value) {
+  return BigInt(value).toString(16).padStart(64, "0");
+}
+
+function slotAddress(value) {
+  return `0x${String(value || "").replace(/^0x/i, "").padStart(64, "0").slice(-40).toLowerCase()}`;
+}
+
+function quorum(owners) {
+  return BigInt(Math.floor((3 * owners + 4) / 5));
+}
+
 async function readAddress(to, signature) {
   return asAddr(wordAddr(await ethCall(to, signature), 0), signature);
 }
@@ -145,6 +161,22 @@ function readOwners(data) {
   const owners = [];
   for (let i = 0; i < length; i++) owners.push(wordAddr(data, 2 + i));
   return owners;
+}
+
+function readModulePage(data) {
+  const offset = Number(wordUint(data, 0));
+  if (offset % 32 !== 0) fail("Safe module page is not usable.");
+  const lengthIndex = offset / 32;
+  const length = Number(wordUint(data, lengthIndex));
+  if (!Number.isInteger(length) || length < 0 || length > 10) fail("Safe module page is not usable.");
+  const modules = [];
+  for (let i = 0; i < length; i++) modules.push(wordAddr(data, lengthIndex + 1 + i));
+  return { modules, next: wordAddr(data, 1) };
+}
+
+async function readSlotAddress(account, slot) {
+  const stored = await rpc("eth_getStorageAt", [account, slot, "latest"]);
+  return slotAddress(stored);
 }
 
 async function fetchCampaign(market, id) {
@@ -217,28 +249,74 @@ async function proveModule(pin, campaign) {
   if (campaign.createTx && !eq(log.transactionHash, campaign.createTx)) {
     fail("Board create transaction does not match CampaignCreated.");
   }
-  return { module, safe, azl, opener, totalAmount, minJoin, locked };
+  const guard = asAddr(wordAddr(log.data, 0), "module guard");
+  const safeProof = await proveSafe(pin, safe, module, guard, opener);
+  return { module, safe, azl, opener, totalAmount, minJoin, locked, guard, ...safeProof };
+}
+
+async function proveSafe(pin, safe, module, guard, opener) {
+  const page = await ethCall(safe, "getModulesPaginated(address,uint256)", [
+    encodeAddress(SENTINEL),
+    encodeUint(10),
+  ]);
+  const { modules, next } = readModulePage(page);
+  if (modules.length !== 1 || !eq(modules[0], module) || !eq(next, SENTINEL)) {
+    fail("Safe module list is not exactly the campaign module.");
+  }
+  const moduleGuard = await readSlotAddress(safe, MODULE_GUARD_SLOT);
+  if (!eq(moduleGuard, guard)) fail("Safe module guard is not the guard from CampaignCreated.");
+  const txGuard = await readSlotAddress(safe, TX_GUARD_SLOT);
+  if (!eq(txGuard, ZERO)) fail("Safe has a transaction guard.");
+  const singleton = await readSlotAddress(safe, `0x${"0".repeat(64)}`);
+  if (!eq(singleton, pin.safe?.singleton)) fail("Safe singleton does not match the pin.");
+  const fallbackHandler = await readSlotAddress(safe, FALLBACK_HANDLER_SLOT);
+  if (!eq(fallbackHandler, pin.safe?.fallbackHandler)) fail("Safe fallback handler does not match the pin.");
+
+  const owners = readOwners(await ethCall(safe, "getOwners()"));
+  const threshold = await readUint(safe, "getThreshold()");
+  if (threshold !== quorum(owners.length)) fail("Safe threshold does not match the crowdfund pass count.");
+  const nonce = await readUint(safe, "nonce()");
+  if (nonce !== 0n) {
+    fail("Safe nonce is not 0. Owners have executed a transaction, so the pledge is refused.");
+  }
+  for (const owner of owners) {
+    const paid = await readUint(module, "contribution(address)", [encodeAddress(owner)]);
+    const soleOpener = owners.length === 1 && eq(owner, opener);
+    if (paid === 0n && !soleOpener) fail("An owner has no AZL in the Safe.");
+  }
+  const blockNumber = BigInt(await rpc("eth_blockNumber", [])).toString();
+  return {
+    owners,
+    threshold,
+    nonce,
+    moduleGuard,
+    singleton,
+    fallbackHandler,
+    blockNumber,
+  };
 }
 
 async function inspect(id, market) {
   const campaign = await resolveCampaign(id, market);
   const pin = loadPin(campaign.market);
   const proved = await proveModule(pin, campaign);
-  const owners = readOwners(await ethCall(proved.safe, "getOwners()"));
   const totalContribution = await readUint(proved.module, "totalContribution()");
   return {
     ok: true,
     id,
     market: pin.market,
     chainId: "8453",
+    blockNumber: proved.blockNumber,
     title: campaign.title || "",
     titleUntrusted: true,
     module: campaign.module,
     safe: campaign.safe,
     opener: proved.opener,
     locked: proved.locked,
-    owners: owners.length,
-    signaturesRequired: Math.floor((3 * owners.length + 4) / 5),
+    owners: proved.owners.length,
+    threshold: proved.threshold.toString(),
+    nonce: proved.nonce.toString(),
+    signaturesRequired: Number(proved.threshold),
     totalAmountAzlWei: proved.totalAmount.toString(),
     minJoinAzlWei: proved.minJoin.toString(),
     totalContributionAzlWei: totalContribution.toString(),
@@ -264,6 +342,7 @@ async function prepare(id, wallet, amountRaw, market) {
   }
   if (amount.amountAzlWei > BigInt(view.remainingAzlWei)) fail("That pledge would pass the goal.");
   const nextOwners = alreadyOwner ? view.owners : view.owners + 1;
+  const thresholdAfter = quorum(nextOwners);
   return {
     ok: true,
     action,
@@ -278,9 +357,13 @@ async function prepare(id, wallet, amountRaw, market) {
     amountAzlWei: amount.amountAzlWei.toString(),
     alreadyOwner,
     locked: false,
+    blockNumber: view.blockNumber,
     ownersBefore: view.owners,
     ownersAfter: nextOwners,
-    signaturesAfter: Math.floor((3 * nextOwners + 4) / 5),
+    threshold: view.threshold,
+    thresholdAfter: thresholdAfter.toString(),
+    nonce: view.nonce,
+    recheck: "Run prepare again immediately before submission. Do not submit these calls if the second result is not ok, or if module, safe, action, amountAzlWei, threshold, or nonce changed.",
     calls: [
       {
         chainId: "8453",
@@ -332,6 +415,18 @@ try {
     if (parsed.amountAzlWei !== 10500000000000000000n) fail("AZL decimal parser failed");
     if (selector("approve(address,uint256)") !== "0x095ea7b3") fail("selector helper failed");
     if (selector("join(uint256)") === selector("contribute(uint256)")) fail("pledge selectors collided");
+    if (MODULE_GUARD_SLOT !== "0xb104e0b93118902c651344349b610029d694cfdec91c589c91ebafbcd0289947") {
+      fail("module guard slot drifted");
+    }
+    if (TX_GUARD_SLOT !== "0x4a204f620c8c5ccdca3fd54d003badd85ba500436a431f0cbda4f558c93c34c8") {
+      fail("transaction guard slot drifted");
+    }
+    if (FALLBACK_HANDLER_SLOT !== "0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5") {
+      fail("fallback handler slot drifted");
+    }
+    if (quorum(1) !== 1n || quorum(2) !== 2n || quorum(3) !== 2n || quorum(200) !== 120n) {
+      fail("pass count drifted");
+    }
     loadAllowlist();
     loadPin("standard");
     loadPin("micro");
