@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "ax1",
+  "provider": "AX1",
+  "providerUrl": "https://console.ax1.vc",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "Roast $NVDAc · real AX1 verdict",
+    "language": "text",
+    "code": "> roast 0xb20000000000000000000078ee7ce2fe4908108c for me\n\n$NVDAc · MID\n\"Lost sock of Base, still wondering where its mate went.\"\nPools: 30\nhttps://console.ax1.vc/?ca=0xb20000000000000000000078ee7ce2fe4908108c\n\nVerdict by AX1 · entertainment, not trading advice.\n\nReal AX1 Console verdict · 2026-11-16.\nSource: https://console.ax1.vc/q-verdict/de98d3Str7mHhrw5IoNkl6\nOutputs vary with market data and each generation."
+  },
+  "setup": [
+    "Install the skill",
+    "Keep a few cents of USDC on Base in your Bankr wallet",
+    "Ask your agent to roast any Base token"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "ax1",
+    "command": "install the ax1 skill from https://github.com/BankrBot/skills/tree/main/ax1"
+  }
+}
