@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "basedloans",
+  "provider": "Based Loans",
+  "providerUrl": "https://based.loans",
+  "logo": "logo.png",
+  "demo": {
+    "title": "basedloans.sh",
+    "language": "bash",
+    "code": "# Check what you can borrow, with no liquidations\nbankr prompt \"How much USDC can I get for 0.5 WETH on Based Loans for the short term?\"\n\n# Open the loan\nbankr prompt \"Borrow USDC against 0.5 WETH on Based Loans for the short term\"\n\n# Buy your collateral back before the due date\nbankr prompt \"Buy back my Based Loans loan in full\"\n\n# Lend USDC against tokens you choose\nbankr prompt \"How risky is HYDX to lend against on Based Loans?\"\nbankr prompt \"Deposit 500 USDC on Based Loans and lend up to 500 against WETH\""
+  },
+  "setup": [
+    "Install skill: `npx skills add basedloans`",
+    "Requires Bankr skill for transaction execution",
+    "Turn on MFA and Enable arbitrary contract calls at bankr.bot → Security",
+    "Fund wallet with the collateral token (or USDC to lend) and a little ETH on Base"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "basedloans",
+    "command": "install the basedloans skill from https://github.com/BankrBot/skills/tree/main/basedloans"
+  }
+}
