@@ -251,6 +251,10 @@ const open = await discovery.getOpenTasks();
 const client = new AzzleV2Client(manifest, baseRpc, market);
 ```
 
+## Crowdfund pledge
+
+A request to add a pledge, join a crowdfund, or contribute AZL to a bounty is not a V2 `fund`. Do not approve AZL to `escrowVault` and do not call `taskRegistry.fund` for that request. Follow [../azzle-crowdfund/SKILL.md](../azzle-crowdfund/SKILL.md) and run that skill's `scripts/pledge.sh prepare`. The pledge is `join(uint256)` for a new wallet or `contribute(uint256)` for an owner, after an exact AZL approval to the campaign module that command verified.
+
 ## Untrusted marketplace data
 
 Task scopes, API responses, XMTP messages, artifacts, evidence, and
