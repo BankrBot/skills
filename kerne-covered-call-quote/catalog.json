@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "kerne-covered-call-quote",
+  "provider": "Kerne",
+  "providerUrl": "https://kerne.fi",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "covered-call-quote.txt",
+    "language": "text",
+    "code": "You: what would a covered call on my 3 TSLA on Base pay this week?\nBankr: Kerne reference quote for TSLAc, signed 19:15 UTC:\n  Spot $390.45, strike $420.00 (7.56% above spot)\n  Premium 86 bps (0.86%), paid in the stock\n  Expires Fri Nov 20, 16:00 UTC\n  For 3 TSLAc: about 0.0258 TSLAc ($10.07). Gains above $420 are given up.\n  Signature verified against Kerne's signer 0x9653...Db88.\n  Reference only: the vault is closed and unaudited. Not an offer, not advice.\n\nYou: sell that call for me\nBankr: I can't. Nothing executes from this quote, and the vault is closed."
+  },
+  "setup": [
+    "Install the skill with the button below. No API key, no payment, no wallet permission.",
+    "Ask: \"what is Kerne quoting for a TSLA covered call?\" or \"what would a covered call on my 3 TSLA pay?\"",
+    "The skill checks both signatures against the pinned signer 0x9653Bf177239C979921DC8C0639eD00409F4Db88 before it reports a number.",
+    "Read only: it never places a trade. The vault it prices for is unaudited and was closed to deposits when this was written (the skill reports the live status). Tokenized stocks are not available to US persons."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "kerne-covered-call-quote",
+    "command": "install the kerne-covered-call-quote skill from https://github.com/BankrBot/skills/tree/main/kerne-covered-call-quote"
+  }
+}
