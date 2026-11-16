@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "clash-onchain-buy-chest",
+  "provider": "Clash Onchain",
+  "providerUrl": "https://clashonchain.xyz",
+  "logo": "logo.png",
+  "demo": {
+    "title": "clash-onchain-buy-chest.sh",
+    "language": "bash",
+    "code": "# Buy a Silver chest (type 0, 1,000,000 $CLASH)\nbankr prompt \"using the clash-onchain-buy-chest skill, buy a silver chest\"\n\n# Buy a Gold chest (type 1, 3,000,000 $CLASH) - 60 Common + 8 Rare + 2 Epic\nbankr prompt \"using the clash-onchain-buy-chest skill, buy a gold chest\"\n\n# Buy a Magical chest (type 2, 5,000,000 $CLASH) - 120 Common + 25 Rare + 5 Epic\nbankr prompt \"using the clash-onchain-buy-chest skill, buy a magical chest\"\n\n# Every card comes out at L1 - upgrades are a separate flow\nbankr prompt \"using the clash-onchain-buy-chest skill, show my card inventory\""
+  },
+  "setup": [
+    "Install: `npx skills add clash-onchain-buy-chest`",
+    "Install the Bankr CLI: `npm install -g @bankr/cli` and run `bankr login` - the skill signs the chest purchase with the Bankr agent wallet",
+    "Hold $CLASH on Base Mainnet: Silver 1M, Gold 3M, Magical 5M $CLASH per chest",
+    "The purchase goes through the Clash Onchain ChestManager contract on Base Mainnet"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "clash-onchain-buy-chest",
+    "command": "install the clash-onchain-buy-chest skill from https://github.com/BankrBot/skills/tree/main/clash-onchain-buy-chest"
+  }
+}
