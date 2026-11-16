@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "toll",
+  "provider": "Toll",
+  "providerUrl": "https://t0ll.xyz",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "toll.sh",
+    "language": "bash",
+    "code": "# Check a Robinhood Chain coin before buying\ncurl -s \"https://t0ll.xyz/api/check?addr=<token>&chain=rh&wait=1\"\n\n# Pre-sign check: ALLOW / WARN / BLOCK before signing\ncurl -s -X POST https://t0ll.xyz/api/tx/check \\\n  -H 'content-type: application/json' \\\n  -d '{\"chainId\":4663,\"from\":\"<wallet>\",\"to\":\"<to>\",\"data\":\"<calldata>\",\"value\":\"0\"}'"
+  },
+  "setup": [
+    "Install: `install the toll skill from https://github.com/BankrBot/skills/tree/main/toll`",
+    "No key needed for the free calls (10 new coins a day per caller)",
+    "No daily limit over x402: 0.005 USDG per check on Robinhood Chain",
+    "MCP (remote, no auth): https://t0ll.xyz/mcp · Docs: https://t0ll.xyz/llms.txt"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "toll",
+    "command": "install the toll skill from https://github.com/BankrBot/skills/tree/main/toll"
+  }
+}
