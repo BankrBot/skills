@@ -1,0 +1,9 @@
+{
+  "version": "2.0.0",
+  "chainId": "8453",
+  "pledge": {
+    "approval": "approve(address,uint256)",
+    "spender": "module",
+    "calls": ["join(uint256)", "contribute(uint256)"]
+  }
+}

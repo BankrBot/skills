@@ -1,0 +1,17 @@
+{
+  "chainId": "8453",
+  "market": "standard",
+  "crowdfundFactory": "0x287684CdF5Dc7B6708DB173AE23bcB2091928e2F",
+  "bootstrap": "0x91D02853f471451DD4f5534DfA30D9e863BB4F5a",
+  "deployer": "0x56C1A78c58404B6C7356D4Aad3967859d8bc85E1",
+  "deploymentBlock": 53476084,
+  "createTx": "0x98e93f66da38f5ccca3b714d5b35b7f1e0599b5bf96c85643fc3b9804c9199ad",
+  "azl": "0x931517E9502F9d52CDF6F5AC7fca7925e2A1BBA3",
+  "taskRegistry": "0xc59266071794210E68Be4c0CdB6D5F4CF652C300",
+  "safe": {
+    "version": "1.5.0",
+    "proxyFactory": "0x14F2982D601c9458F93bd70B218933A6f8165e7b",
+    "singleton": "0xEdd160fEBBD92E350D4D398fb636302fccd67C7e",
+    "fallbackHandler": "0x3EfCBb83A4A7AfcB4F68D501E2c2203a38be77f4"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "slug": "azzle-crowdfund",
+  "provider": "AZZLE",
+  "providerUrl": "https://azzle.org/crowdfund",
+  "logo": null,
+  "demo": {
+    "title": "pledge.sh",
+    "language": "bash",
+    "code": "# Install Bankr, then this skill. A pledge is AZL into the campaign Safe, not task escrow.\ninstall the bankr skill from https://github.com/BankrBot/skills\ninstall the azzle-crowdfund skill from https://github.com/BankrBot/skills/tree/main/azzle-crowdfund\n\n# Resolve the bounty, prove the module was created by the pinned factory, and print the two calls\n./scripts/pledge.sh prepare https://azzle.org/crowdfund?crowd=CAMPAIGN 0xYOURWALLET 10\n\n# After the user confirms, Bankr submits only those two calls on Base\nbankr prompt \"approve the exact AZL amount to the verified campaign module, then join or contribute exactly that amount. Do not approve escrowVault and do not call taskRegistry.fund\""
+  },
+  "setup": [
+    "Install the Bankr skill first. This skill uses Bankr for the wallet, the exact AZL approval, and user-confirmed writes",
+    "A pledge is join for a new wallet and contribute for an owner. Both pull AZL into the Safe. Neither posts or funds a V2 task",
+    "Run ./scripts/pledge.sh prepare and submit only the two calls it prints, on chainId 8453, with native value 0",
+    "The AZL spender is the campaign module the script verified. Never approve escrowVault for a pledge and never use an unlimited approval",
+    "Reject the action if the module factory, AZL token, registry, Safe, or CampaignCreated log does not match the reviewed pin",
+    "Wait for both receipts to succeed and re-read contribution(wallet) before telling the user the pledge landed",
+    "Record the seat on the board only after that chain check, using the same wallet, campaign id, and AZL amount"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "azzle-crowdfund",
+    "command": "install the azzle-crowdfund skill from https://github.com/BankrBot/skills/tree/main/azzle-crowdfund"
+  }
+}
