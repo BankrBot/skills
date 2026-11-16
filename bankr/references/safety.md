@@ -75,7 +75,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 - Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay`), token deploys and fee or vesting claims answer `403`. Reads work, including `/wallet/swap-quote`.
 - `/agent/prompt` still works, but the agent session gets only read tools (prices, balances, portfolio, research). Asked to transact, it explains that the key is read-only.
-- **Read-only doesn't cover account endpoints.** Bankr Club, LLM credit top-ups, Files, x402 Cloud, Webhooks and project pages don't check it, so a read-only key can still buy a Club subscription or, with the gateway flag, top up credits from the wallet.
+- Account and billing writes answer `403` too: buying or cancelling Bankr Club, LLM credit top-ups, auto top-up and credit transfers, and changes to Files, x402 Cloud, Webhooks and project pages. Reading them still works.
 
 ### IP allowlist
 
