@@ -5,9 +5,9 @@
   "providerUrl": "https://console.ax1.vc",
   "logo": "logo.svg",
   "demo": {
-    "title": "Roast $DEGEN · real paid response",
+    "title": "Roast $NVDAc · real AX1 verdict",
     "language": "text",
-    "code": "> roast 0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed for me\n\n$DEGEN · MID\n\"DEGEN: The fragmentation of your portfolio.\"\nPools: 30\nhttps://console.ax1.vc/?ca=0x4ed4e862860bed51a9570b96d89af5e1b0efefed\n\nVerdict by AX1 · entertainment, not trading advice.\n\nReal paid response · 2026-11-14 · 0.02 USDC on Base.\nOutputs vary with market data and each generation."
+    "code": "> roast 0xb20000000000000000000078ee7ce2fe4908108c for me\n\n$NVDAc · MID\n\"Lost sock of Base, still wondering where its mate went.\"\nPools: 30\nhttps://console.ax1.vc/?ca=0xb20000000000000000000078ee7ce2fe4908108c\n\nVerdict by AX1 · entertainment, not trading advice.\n\nReal AX1 Console verdict · 2026-11-16.\nSource: https://console.ax1.vc/q-verdict/de98d3Str7mHhrw5IoNkl6\nOutputs vary with market data and each generation."
   },
   "setup": [
     "Install the skill",
