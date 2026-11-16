@@ -2,9 +2,8 @@
 name: ax1
 description: "Get an AX1 Verdict on any Base token: a roast-style grade (BASED, MID, COOKED or RADIOACTIVE), a one-line punchline, the number behind it and a link to AX1 Console. Use when the user asks to roast, rate or judge a Base token or contract address, asks if a token is cooked or based, or wants AX1's take before buying. $0.02 USDC per call over x402. Entertainment, not trading advice."
 metadata:
-  status: generated
-  version: "1.3"
-  updated: "2026-11-14"
+  version: "1.4"
+  updated: "2026-11-16"
 ---
 
 # AX1 Console
@@ -73,20 +72,20 @@ Successful JSON fields:
 
 The UUID identifies one logical verdict request; it is not a payment receipt. Reuse is rejected to prevent another generation or charge. The platform owns verification and settlement; never infer that a network timeout means no payment. Only start another request when the user asks and the previous outcome is understood.
 
-## Real paid example
+## Real verdict example
 
-User: `roast 0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed for me`
+User: `roast 0xb20000000000000000000078ee7ce2fe4908108c for me`
 
-The following response was returned by the endpoint on 2026-11-14 after a 0.02 USDC purchase. It is an example, not current token data; obtain a fresh response when the user requests a new verdict.
+The grade, one-liner and key stat below come verbatim from a real AX1 Console verdict on 2026-11-16 ([public source](https://console.ax1.vc/q-verdict/de98d3Str7mHhrw5IoNkl6)). The JSON presents that result in the Bankr response format; this example is not a new Bankr payment. It is historical token data; obtain a fresh response when the user requests a new verdict.
 
 ```json
 {
   "grade": "MID",
-  "one_liner": "DEGEN: The fragmentation of your portfolio.",
+  "one_liner": "Lost sock of Base, still wondering where its mate went.",
   "key_stat": "Pools: 30",
-  "token_address": "0x4ed4e862860bed51a9570b96d89af5e1b0efefed",
+  "token_address": "0xb20000000000000000000078ee7ce2fe4908108c",
   "chain": "base",
-  "console_url": "https://console.ax1.vc/?ca=0x4ed4e862860bed51a9570b96d89af5e1b0efefed",
+  "console_url": "https://console.ax1.vc/?ca=0xb20000000000000000000078ee7ce2fe4908108c",
   "disclaimer": "Verdict by AX1 · entertainment, not trading advice."
 }
 ```
