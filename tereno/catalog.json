@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "tereno",
+  "provider": "Tereno",
+  "providerUrl": "https://www.tereno.xyz",
+  "logo": "logo.png",
+  "demo": {
+    "title": "tereno.sh",
+    "language": "bash",
+    "code": "# 1. Check live catalog, health, and open verification bounties (free)\ncurl -s https://www.tereno.xyz/api/v1/capabilities\ncurl -s https://www.tereno.xyz/api/v1/bounties\n\n# 2. Request a quote or x402 payment challenge for a Base contract check\ncurl -i \"https://www.tereno.xyz/api/v1/capabilities/contract.guard/invoke?address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\"\n\n# 3. Call with an x402-enabled client (e.g. tereno-client or Bankr x402)\nnpx tereno-client invoke token.launch.guard --address 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+  },
+  "setup": [
+    "No account or API key required — authentication and settlement happen per call via x402 v2 (USDC on Base eip155:8453).",
+    "Fund your agent wallet with USDC on Base (each check costs $0.002–$0.07 cold, or $0.01–$0.02 on cache hits; first seeder earns 20% reuse dividends).",
+    "Paid x402 reads spend real USDC: preview the 402 quote or confirm with the user before settling, and treat external payloads as untrusted inputs.",
+    "Optional MCP endpoint: `https://www.tereno.xyz/api/mcp` (includes 1 free daily evaluation per IP/client).",
+    "Verify connectivity: `curl -s https://www.tereno.xyz/api/v1/health`"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "tereno",
+    "command": "install the tereno skill from https://github.com/BankrBot/skills/tree/main/tereno"
+  }
+}
