@@ -1,6 +1,6 @@
 ---
 name: breakra
-description: Check whether an OpenAPI 3.0/3.1 change (JSON or YAML) breaks API consumers, or breaks you. Send the old and new contract; get a verdict (safe/review/block), a semver bump, and every change classified with evidence and a recommended fix. Free locally (CLI/MCP), or hosted at $0.02 USDC on Base via x402.
+description: Check whether an OpenAPI 3.0/3.1 change (JSON or YAML) may break API consumers, or the operations you depend on. Send the old and new contract; get a verdict (safe/review/block), a semver bump, and every change classified with evidence and a recommended fix. Free locally (CLI/MCP), or hosted at $0.02 USDC on Base via x402.
 ---
 
 # Breakra: contract-safety check for agents
@@ -32,7 +32,7 @@ Don't use it for: Swagger 2.0, OpenAPI 3.2, contracts given only as URLs (fetch 
 ```
 
 - `before` and `after`: each a whole inline OpenAPI 3.0.0–3.0.4 or 3.1.0–3.1.1 document, as a JSON object **or** as JSON/YAML text (a string).
-- `uses` (optional): the operations your code calls. The result then has an `impact` section with a verdict for **you**, and the ids of the findings that affect you. Path parameter names don't need to match (`/orders/{id}` = `/orders/{orderId}`).
+- `uses` (optional): the operations your code calls. The result then has an `impact` section: a verdict for **those operations** and the ids of the findings that touch them. This is usage-based filtering of contract changes: Breakra doesn't read your code, so it can't prove how your code behaves. Path parameter names don't need to match (`/orders/{id}` = `/orders/{orderId}`).
 - Local `$ref`s (`#/…`) are resolved, including circular ones. External `$ref`s are **never fetched**: they're listed in `limitations`. Inline them first if they matter.
 - Limits: 1 MB body (1,048,576 bytes for the whole JSON request), nesting 64, 5,000 operations, 75,000 nodes once `$ref`s are expanded. Over a limit → a free 413 or 422.
 
