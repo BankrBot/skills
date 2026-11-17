@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "mangrove",
+  "provider": "Mangrove",
+  "providerUrl": "https://mangrove.ai",
+  "logo": "logo.png",
+  "demo": {
+    "title": "mangrove-x402.sh",
+    "language": "bash",
+    "code": "# Free: list signals, no key and no payment\ncurl https://api.mangrovedeveloper.ai/api/v1/signals/\n\n# Pay per call in USDC on Base (0.005 USDC at the time of writing)\nbankr x402 call https://api.mangrovedeveloper.ai/api/v1/crypto-assets/global-market --max-payment 0.05\n\n# Market regime for one asset (0.02 USDC at the time of writing)\nbankr x402 call https://api.mangrovedeveloper.ai/api/v1/market-data/regime/BTC --max-payment 0.05"
+  },
+  "setup": [
+    "Install the skill with the button below",
+    "No account needed: Mangrove calls are paid per call in USDC on Base through x402, from your Bankr wallet",
+    "Or get a free Mangrove API key at https://mangrovedeveloper.ai and send it as a Bearer token",
+    "Say: \"what is the global crypto market snapshot on Mangrove?\" - the agent shows the price and asks before paying"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "mangrove",
+    "command": "install the mangrove skill from https://github.com/BankrBot/skills/tree/main/mangrove"
+  }
+}
