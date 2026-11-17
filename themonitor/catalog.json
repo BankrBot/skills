@@ -3,7 +3,7 @@
   "slug": "themonitor",
   "provider": "Monitor",
   "providerUrl": "https://themonitor.bot",
-  "logo": "logo.svg",
+  "logo": "logo.png",
   "demo": {
     "title": "monitor-chat.txt",
     "language": "text",
