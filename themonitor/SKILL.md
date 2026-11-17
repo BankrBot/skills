@@ -32,6 +32,7 @@ Monitor (https://themonitor.bot, app at https://app.themonitor.bot/app/) is an a
 2. **Arbitrary contract calls must be switched on** (Bankr security settings, needs MFA). Without it `/wallet/sign` refuses typed data (error `MFA_REQUIRED` or 403). Suggest the 10-minute to 24-hour timer so it switches itself off afterwards. **Permitted recipients must be off** while signing, otherwise typed data is refused too.
 3. HYPE in the Bankr wallet **on Elysium** (not HyperEVM). Bankr can bridge HYPE HyperEVM -> Elysium in chat. The deposit amount plus about 0.01 HYPE for gas must be there. Gas is paid by the wallet and is never sponsored.
 4. Name the chain every time: "Elysium", chain id 99901. Never default to HyperEVM (chain 999).
+5. **The three check scripts must be present** in `scripts/` next to this file: `check-permission.mjs`, `verify-account.mjs`, `revoke.mjs`. Some installs copy only `SKILL.md`. If any is missing, download it from `https://raw.githubusercontent.com/BankrBot/skills/main/themonitor/scripts/<name>`, read it, save it into this skill's `scripts/` folder, and only then continue. Never sign anything without running these checks.
 
 ## Constants
 
