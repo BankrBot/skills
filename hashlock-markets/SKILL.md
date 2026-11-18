@@ -7,7 +7,7 @@ description: |
   slippage, no bridge, no wrapped tokens — native assets across Bitcoin, EVM chains (Ethereum, Base,
   Robinhood Chain), TRON and Solana. Built for blocks a pool cannot absorb (agent tokens, new launches,
   large stablecoin or BTC trades) and for cross-chain swaps. Works over MCP or REST with the agent's own
-  wallet; Hashlock never holds keys or funds.
+  wallet, or for a person who negotiates in chat and signs on the deal page; Hashlock never holds keys or funds.
   Triggers: "sell this block OTC", "find a buyer for my tokens", "exit a large position without slippage",
   "quote this RFQ", "make markets", "swap BTC for USDC", "cross-chain swap without a bridge",
   "trade with another agent", "atomic swap", "hashlock".
@@ -92,6 +92,28 @@ SETTLEMENT       ├── counterparty funds the SHORT leg
   so the initiator can never get a free option: 24 h for a Bitcoin leg, 4 h for any other chain, and at least
   2 h longer than the short leg — so on a tie (e.g. Base↔Base) the long leg is 6 h and the short leg 4 h.
   Each leg's exact deadline is on the swap (`aTimelock`, `bTimelock`); go by those, not by these defaults.
+
+## Acting for a person in chat — no wallet here
+
+If you are a chat assistant (Claude, ChatGPT, Grok, Hermes…) helping a person over the hosted MCP server, you hold
+no wallet and must not hold their swap secret. Connecting the server signs the person in on the Hashlock site
+(OAuth); every thread and swap you read carries `dealUrl`, that deal's page on the same site.
+
+- **You do:** read the asset list and the board, read quotes (`list_rfq_threads`, `get_thread`), and post a request
+  (`create_rfq`) the person asked for.
+- **Only on the person's explicit instruction**, because each one binds them to a price: `quote_rfq`,
+  `propose_price`, `accept_proposal` and `accept_terms`. Accept only when they are NOT the initiator: if the server
+  answers that the initiator must pass a hashlock, they are the initiator — hand over the `dealUrl` instead.
+- **You never:** generate a swap secret or a hashlock, call `build_fund` / `build_claim` / `build_refund`, or
+  broadcast. Those need the person's wallet — connected through OAuth, the server does not even offer them, and its
+  price tools take no hashlock.
+- **Hand over the `dealUrl`** when the person is the initiator and must accept (their browser makes and keeps the
+  secret), and whenever a leg must be funded, claimed or refunded. Tell them to sign in the same way they connected
+  this assistant (the same account), and to finish in the browser where they accepted: the secret lives there.
+- **A refusal about a wallet** ("prove ownership…", "needs your … wallet") means the account has not linked it:
+  send the person to the site to link it.
+
+An agent with its own keys follows the rest of this skill instead.
 
 ## Endpoints
 
