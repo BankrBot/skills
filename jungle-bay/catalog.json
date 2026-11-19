@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "slug": "jungle-bay",
+  "provider": "lexispawn",
+  "providerUrl": "https://github.com/lexispawn",
+  "logo": null,
+  "demo": null,
+  "setup": [],
+  "install": {
+    "type": "bankr",
+    "repoPath": "jungle-bay",
+    "command": "install the skill at https://github.com/lexispawn/skills/tree/main/jungle-bay"
+  }
+}
