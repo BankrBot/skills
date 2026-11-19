@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "jungle-bay",
+  "provider": "Jungle Bay Island",
+  "providerUrl": "https://memetics.wtf",
+  "logo": null,
+  "demo": {
+    "title": "jungle-bay.sh",
+    "language": "bash",
+    "code": "# Any wallet's heat: held time, read from the chain. Price never enters.\ncurl -s https://memetics.wtf/api/heat/<wallet>\n\n# Every coin the island measures today\ncurl -s https://memetics.wtf/api/state/island\n\n# Every flame, warmest first\ncurl -s https://memetics.wtf/api/flames"
+  },
+  "setup": [
+    "Install: `install the jungle-bay skill from https://github.com/BankrBot/skills/tree/main/jungle-bay`",
+    "Ask your agent: what's my heat? Heat is held time, read from the chain; price never enters",
+    "Put both of your Bankr wallets on one flame: `use the jungle-bay skill to put me on the island`",
+    "See every flame, warmest first: https://memetics.wtf/flames"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "jungle-bay",
+    "command": "install the jungle-bay skill from https://github.com/BankrBot/skills/tree/main/jungle-bay"
+  }
+}
