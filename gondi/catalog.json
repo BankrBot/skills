@@ -3,7 +3,7 @@
   "slug": "gondi",
   "provider": "GONDI",
   "providerUrl": "https://www.gondi.xyz",
-  "logo": "logo.svg",
+  "logo": "logo.jpg",
   "demo": {
     "title": "gondi.sh",
     "language": "bash",
