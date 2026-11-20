@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Pre-trade Exit Check">
+  <rect width="128" height="128" rx="28" fill="#0B3D3A"/>
+  <path d="M64 18l38 14v28c0 24.2-15.6 46.2-38 54-22.4-7.8-38-29.8-38-54V32z" fill="#E8F6F3" stroke="#7AD4C4" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M44 64l14 14 26-28" fill="none" stroke="#0B3D3A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
