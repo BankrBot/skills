@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "pre-trade-exit-check",
+  "provider": "Pre-trade Exit Check",
+  "providerUrl": "https://github.com/GBMRAFLI/pre-trade-exit-check",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "check.sh",
+    "language": "bash",
+    "code": "# Read-only pause check on Base Mainnet (no key, no payment)\nnode scripts/check.mjs 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\n\n# Tokenized stock (Coinbase B20 AAPL) before a sell\nnode scripts/check.mjs --token 0xb200000000000000000000C2e324d24d7eEcd1fb --side sell\n\n# Offline fixtures\nnode scripts/selftest.mjs"
+  },
+  "setup": [
+    "Install: `install the pre-trade-exit-check skill from https://github.com/BankrBot/skills/tree/main/pre-trade-exit-check`",
+    "Requires Node 18+ (built-in fetch). No API key, wallet, npm package, or payment.",
+    "Before a buy, sell, or LP of a token on Base, run: `node scripts/check.mjs <token>`",
+    "Fail closed if verdict is EXIT_BLOCKED. Warn and ask the user if UNKNOWN or NOT_CONTRACT. PAUSE_CLEAR means only that the contract is not paused — it is not a liquidity or issuer check."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "pre-trade-exit-check",
+    "command": "install the pre-trade-exit-check skill from https://github.com/BankrBot/skills/tree/main/pre-trade-exit-check"
+  }
+}
