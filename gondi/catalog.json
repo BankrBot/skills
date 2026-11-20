@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "gondi",
+  "provider": "GONDI",
+  "providerUrl": "https://www.gondi.xyz",
+  "logo": "logo.jpg",
+  "demo": {
+    "title": "gondi.sh",
+    "language": "bash",
+    "code": "# Floor price and top bid of a collection (read-only, no API key)\ncurl -sS -X POST https://api.gondi.xyz/mcp \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_collection_market\",\"arguments\":{\"slug\":\"pudgypenguins\"}}}'\n\n# How much one NFT can borrow right now\ncurl -sS -X POST https://api.gondi.xyz/mcp \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_borrow_quote\",\"arguments\":{\"collection_slug\":\"pudgypenguins\",\"token_id\":\"4507\"}}}'"
+  },
+  "setup": [
+    "Nothing to install: no API key, no account, no wallet",
+    "Calls the hosted GONDI MCP server at https://api.gondi.xyz/mcp, with an MCP client or with curl",
+    "Read-only: it never signs or sends a transaction"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "gondi",
+    "command": "install the gondi skill from https://github.com/BankrBot/skills/tree/main/gondi"
+  }
+}
