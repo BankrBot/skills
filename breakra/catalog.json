@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "breakra",
+  "provider": "Breakra",
+  "providerUrl": "https://breakra.dev",
+  "logo": null,
+  "demo": {
+    "title": "breakra.sh",
+    "language": "bash",
+    "code": "# Free and local, no wallet: does this OpenAPI change break callers?\ngit clone --branch v0.2.0 --depth 1 https://github.com/danbuildss/breakra && cd breakra && bun install\nbun src/cli.ts check old.yaml new.yaml\n\n# Hosted: $0.02 USDC on Base via x402, only with the user's authorization.\n# The client checks the terms (exact, Base USDC, <= $0.02, amount 20000) and signs once; Breakra's own errors are never charged.\nBREAKRA_KEY_FILE=./wallet.key bun examples/client.ts old.json new.json"
+  },
+  "setup": [
+    "No signup or API key: payment via x402 is the authorization ($0.02 USDC per analysis on Base)",
+    "Only a 200 is charged; Breakra's own errors (invalid input, oversize specs) are never charged",
+    "Send two inline OpenAPI 3.0 JSON documents, before and after, up to 1 MB in total",
+    "Pay once per call: check the 402 terms (exact, eip155:8453, USDC, amount 20000) and never re-sign automatically",
+    "Agent guide: https://breakra.dev/skill.md · source (MIT): https://github.com/danbuildss/breakra"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "breakra",
+    "command": "install the breakra skill from https://github.com/BankrBot/skills/tree/main/breakra"
+  }
+}
