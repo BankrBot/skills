@@ -11,9 +11,10 @@ description: |
   does - each with the URL and a verbatim excerpt - plus a derived
   transact true/false. Disagreeing sources return no address at all.
 
-  Covers six protocol-and-chain cases today (Lido, Aave V3, SparkLend,
-  Uniswap V3 pool creation); the free preflight lists them and says
-  whether yours is one. $0.25 USDC per call over x402 on Base, charged
+  Covered eight protocol-and-chain cases when measured on 2026-11-21
+  (Lido, Aave V3, SparkLend, Uniswap V3 pool creation, ether.fi, Morpho
+  Blue); the free preflight lists what is covered now and says whether
+  yours is. $0.25 USDC per call over x402 on Base, charged
   once and only when the target is verified. Every other answer is
   returned in full as HTTP 404, and THIS ONE HOLDS: the x402 middleware
   cancels settlement on any status of 400 or above, so nothing is
@@ -63,12 +64,18 @@ reply, a doc page — and trades on it has authenticated the speaker, not
 the address. Those are different things, and only one of them is
 checkable before the transfer is irreversible.
 
-## What it covers today — check this before you pay
+## What it covers — check this before you pay
 
-Six protocol-and-chain cases have a registered source. For these the
-service reads the field the protocol publishes for machines, checks it
-against the protocol's own on-chain registry, and reads the protocol's
-own statement of what the contract does.
+Eight protocol-and-chain cases had a registered source when this file
+was written, 2026-11-21. For these the service reads the field the
+protocol publishes for machines, checks it against the protocol's own
+on-chain record, and reads the protocol's own statement of what the
+contract does.
+
+**The table is that day's list. For what is covered now, call the free
+preflight**, `POST /v1/address-evidence/validate`: it returns the live
+list under `coverage.covered` and says whether your entity and chain are
+on it.
 
 | `domain` | `chain` | covers | `purpose` to send |
 |---|---|---|---|
@@ -78,29 +85,40 @@ own statement of what the contract does.
 | `spark.fi` | `ethereum` | lending pool (SparkLend) | `lending pool` |
 | `uniswap.org` | `ethereum` | pool creation (Uniswap V3 Factory) | `pool creation` |
 | `uniswap.org` | `base` | pool creation (Uniswap V3 Factory) | `pool creation` |
+| `ether.fi` | `ethereum` | ETH deposit for eETH (ether.fi LiquidityPool) | `ETH deposit for eETH` |
+| `morpho.org` | `ethereum` | market supply (Morpho Blue) | `market supply` |
 
-**Uniswap coverage is V3 pool creation on Ethereum and Base, and nothing
-else.** A request for the Factory with a swap purpose is refused with
-`contract_purpose_mismatch`.
+Three of these are narrower than the protocol's name suggests:
 
-What was measured for these six on 2026-11-21 (CI run 44903833320, build
-`a95d542`, the product's real pipeline against the real sources; no paid
-call was made): in all six the target the protocol publishes was read,
-it matched the protocol's on-chain registry, and the role was quoted
-from the protocol's own source. The code at all six addresses was also
-verified by an outside source — a chain explorer for four, Sourcify for
-the two on Base. **Independent confirmation that the address is
-published for that role: 0 of 6.** A pass here is the protocol's own
-publication, shown current and with its role in the protocol's words; it
-is not a second party vouching for it.
+- **Uniswap coverage is V3 pool creation on Ethereum and Base, and
+  nothing else.** A request for the Factory with a swap purpose is
+  refused with `contract_purpose_mismatch`.
+- **ether.fi coverage is depositing ETH into the LiquidityPool to
+  receive eETH,** and that one use. Wrapping weETH is a different
+  contract, and a wrap purpose is refused.
+- **Morpho coverage is supplying to a Morpho Blue market on the Morpho
+  contract.** Depositing into an ERC-4626 vault built on it is a
+  different contract and is refused.
 
-**Outside this table** the request is still accepted and the answer will
-very probably be that nothing could be verified. Without a registered
-source the service falls back to fetching likely documentation URLs,
-which found a published address for 1 of 24 well-known protocols when it
-was measured on 2026-11-20. Paying is not advised until the table covers
-you. The free preflight returns this list live under `coverage` and says
-whether your entity and chain are on it.
+**What was measured for these eight**, 2026-11-21, CI run 44908148728,
+build `e2da289`, the product's real pipeline against the real sources
+(no paid call was made): in all eight the target the protocol publishes
+was read, it matched the protocol's on-chain record, and the role was
+quoted from the protocol's own source. The code at all eight addresses
+was also verified by an outside source — a chain explorer for six,
+Sourcify for the two on Base. **Independent confirmation that the
+address is published for that role: 0 of 8.** A pass here is the
+protocol's own publication, shown current and with its role in the
+protocol's words; it is not a second party vouching for it.
+
+**A different measurement, which is not the one above and is not to be
+added to it:** a fixed list of 24 well-known entities, chosen before
+any of them was registered and asked with no purpose (run 44908282014,
+the same day). **5 of 24 passed**, and all five are entities with a
+registered source. None of the 19 without one produced an answer. So
+outside the registered list the request is still accepted and the
+answer will very probably be that nothing could be verified; paying is
+not advised until the preflight says you are covered.
 
 ## When you are charged
 
@@ -211,8 +229,8 @@ What the other things you might send get — none of them `transact: true`:
 | a target whose role cannot be read from the entity's own source on that call | `INSUFFICIENT_EVIDENCE`, `contract_purpose_unverified` |
 | a published file and the on-chain registry that disagree | `CONFLICT`, no address |
 
-The first four rows were measured in the same run across the six cases,
-with zero wrong `transact: true`. The last two are exercised by the
+The first four rows were measured across the eight cases in run
+44908148728, with zero wrong `transact: true`. The last two are exercised by the
 repository's tests on recorded fixtures, not live.
 
 Versions 1.0.0 and 1.0.1 of this file showed a Lido emergency-multisig
@@ -251,16 +269,17 @@ publishes for staking, and that address is not it.
   `0xabc…` pasted in a chat and no idea whose it is, this cannot help:
   there is no published claim to check it against. The name is the
   input.
-- **Coverage is six cases.** See the table above. Everything else falls
-  back to the entity's public pages and will very probably answer that
-  nothing could be verified.
+- **Coverage is a short registered list.** Eight cases on 2026-11-21;
+  the free preflight has the current list. Everything else falls back to
+  the entity's public pages and will very probably answer that nothing
+  could be verified.
 - **A pass is single-sourced for the claim that matters.** That the
   entity publishes this address for this role rests on the entity's own
   publication. No independent source confirms it in this version.
 - **The role sentence is tied to the address by the protocol's own
-  names** for Aave, SparkLend and Uniswap — the published constant, the
-  registry getter and the source file all say Pool or Factory — not by a
-  bytecode comparison. For Lido the published file itself names the
+  names** for Aave, SparkLend, Uniswap, ether.fi and Morpho — the
+  published field, the on-chain getter and the source file use the same
+  name — not by a bytecode comparison. For Lido the published file itself names the
   source file the sentence is read from.
 - **Not a safety assessment.** See the top of this file.
 - **Self-published only** is reported as such: when no outside party
