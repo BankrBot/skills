@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "tilt",
+  "provider": "Tilt",
+  "providerUrl": "https://tilt-rust.vercel.app",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "tilt-session.txt",
+    "language": "text",
+    "code": "You:   what is Tilt's news score for Semiconductors and why?\nBankr: Semiconductors: -0.75 (scored Nov 20). Nvidia's sell-off on a reported SEC probe and\n       SanDisk's drop on a bearish NAND pricing outlook weigh on the sector.\n       Sources: Yahoo, \"SanDisk slides over 14% as bearish NAND pricing outlook hits chip stocks\" ...\n       Scores come from a language model reading public news and can be wrong. Not advice.\n\nYou:   buy $20 of AI Infrastructure the way Tilt weights it today\nBankr: Tilt mix for $20.00, AI Infrastructure, risk 3. US market open.\n       NVDAc $4.00 · MSFTc $4.00 · GOOGLc $4.00 · METAc $4.00 · ANTc $4.00\n       Buy these 5 stocks on Base for $20.00 total? (yes/no)\nYou:   yes\nBankr: Bought 5 of 5 on Base, $20.00 total."
+  },
+  "setup": [
+    "Install the skill with the button below. No API key: Tilt's research API is public and read-only.",
+    "Verify your location once in Bankr Console; tokenized stocks are not available in the US, the UK or sanctioned regions.",
+    "Fund your Bankr wallet with USDC on Base.",
+    "Ask: \"what is Tilt's news score for Semiconductors and why?\" or \"buy $20 of AI Infrastructure the way Tilt weights it\".",
+    "Tilt only researches and sets weights; every buy is a normal Bankr buy you confirm first."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "tilt",
+    "command": "install the tilt skill from https://github.com/BankrBot/skills/tree/main/tilt"
+  }
+}
