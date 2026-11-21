@@ -2,7 +2,7 @@
 
 Buy, sell, swap and bridge through the agent, or swap directly with the CLI or Wallet API. Limit, stop, DCA and TWAP orders are in [automation.md](automation.md); tokenized equities in [tokenized-stocks.md](tokenized-stocks.md).
 
-Swaps run on Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain and Solana, and across them (bridging is a cross-chain swap).
+Swaps run on Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain and Solana, and across them (bridging is a cross-chain swap), plus Elysium on its own pools only.
 
 ## Agent
 
@@ -20,6 +20,8 @@ Swaps run on Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Chain
 - **Swap and send:** the output can go to another address, ENS name or X / Farcaster / Telegram handle instead of your wallet — EVM outputs only, not Solana.
 - **Chains:** name the chain for anything but the majors. A ticker that exists on several chains gets a question back rather than a guess. A pasted contract address is checked against the chain that actually hosts it, so a token on a less common chain is found even if the chain is guessed wrong.
 - **Slippage:** set automatically; ask for a specific tolerance with "with 1% slippage".
+- **Fees:** Bankr charges a 0.5% swap fee, 0.15% with Bankr Club. Some swaps carry none; the quote's `feeBps` shows what applies.
+- **Unscanned chains:** no token scanner covers World Chain or Elysium, so Bankr checks a token can be sold back before buying it. Placing an order for one asks you to accept its risk; a Wallet API buy of a token the wallet hasn't accepted gets `403`, so buy it in chat or the Bankr app instead.
 - **Your own fee token:** on Base, Bankr may refuse to sell a token you earn creator fees on through its swap and order tools; builders exit through a Glidepath — see [token-deployment.md](token-deployment.md#after-launch).
 
 ## Direct swaps (CLI / Wallet API)

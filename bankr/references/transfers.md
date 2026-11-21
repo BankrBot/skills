@@ -56,7 +56,7 @@ curl -X POST "https://api.bankr.bot/wallet/transfer" \
 ```
 
 - The body takes a **recipient address and a token contract address** (0x on EVM; on `chain: "solana"`, a base58 address and mint) — no ENS names, handles or symbols. For a native send, set `isNativeToken: true` with the zero address as `tokenAddress` (on Solana, `So11111111111111111111111111111111111111112`). `chain` defaults to `base`. A Solana send needs a little SOL for the fee and the recipient's token-account rent. Full reference: [transfer docs](https://docs.bankr.bot/wallet-api/transfer).
-- Needs a key with Wallet API access that isn't read-only. A key's `allowedRecipients` list and the wallet's own security settings (spend limits, permitted recipients, pause) are enforced: an allowlist or pause rejection is `403`, a spend-limit or permitted-recipient rejection comes back as `400` with the reason. An EVM transfer mined but reverted is `400 transfer_reverted` with the `txHash`: nothing moved, but gas was paid.
+- Needs a key with Wallet API access that isn't read-only. A key's `allowedRecipients` list and the wallet's own security settings (spend limits, permitted recipients, pause) are enforced: an allowlist or pause rejection is `403` (the wallet's own addresses always pass a key's allowlist), a spend-limit or permitted-recipient rejection comes back as `400` with the reason. An EVM send to the zero address or to an ERC-20 token contract is refused with `400`. An EVM transfer mined but reverted is `400 transfer_reverted` with the `txHash`: nothing moved, but gas was paid.
 
 **Resolving a name yourself** — `GET /addresses/resolve` is public (no API key):
 

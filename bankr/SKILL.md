@@ -208,6 +208,7 @@ Commands: `bankr club` (status), `bankr club signup [--yearly] [--token <USDC|BN
 
 - AI prompts work without Max Mode. Bankr Console messages go from 5 a day to unlimited, and Agent API prompts are capped at 1,000 a day instead of Max Mode's 100.
 - File storage grows from 1 GB to 10 GB.
+- The Bankr swap fee drops from 0.5% to 0.15%.
 - It doesn't raise the token-launch cap.
 
 Club needs an embedded Bankr wallet. Max Mode, paid per request from LLM credits, is the alternative for external wallets. Full perks: [docs.bankr.bot/faq/bankr-club](https://docs.bankr.bot/faq/bankr-club).

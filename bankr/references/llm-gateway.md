@@ -21,8 +21,8 @@ Use bare, dotted IDs (`claude-opus-5.5`) in API calls and `bankr/<id>` in OpenCl
 | Provider | Examples |
 |----------|----------|
 | Anthropic | `claude-fable-5.2`, `claude-opus-5.5`, `claude-sonnet-5.5`, `claude-haiku-5.5` |
-| Google | `gemini-3.8-flash` (the Bankr agent's default model), `gemini-4-carbon`, `gemini-4-argon`, `gemma-4-31b-it` |
-| Meta | `muse-wonder` |
+| Google | `gemini-3.8-flash` (the Bankr agent's default model), `gemini-4-carbon`, `gemini-4-argon`, `gemini-4-hydrogen`, `gemma-4-31b-it` |
+| Meta | `muse-wonder`, `muse-ember` |
 | OpenAI | `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna` |
 | xAI | `grok-4.7`, `grok-4.20` |
 | DeepSeek | `deepseek-v4-pro-0813`, `deepseek-v4.1-flash` |
@@ -33,7 +33,7 @@ Use bare, dotted IDs (`claude-opus-5.5`) in API calls and `bankr/<id>` in OpenCl
 
 - Anthropic-style IDs work too: `claude-opus-4-8` and date-suffixed IDs map to the dotted form, and Claude Code's `[1m]` suffix is stripped.
 - An unknown ID returns `400 unsupported_model`. Deprecated IDs leave the listing but keep working until removed (see [Model deprecation](#model-deprecation)).
-- Decision models (`sage-2`, `jev-1.13`) answer typed questions with probabilities, on `/v1/systemone` only: chat endpoints refuse them with `400`. See [Decision models](https://docs.bankr.bot/llm-gateway/decision-models).
+- Decision models (`gemini-decision-1`, `sage-2`, `jev-1.13`) answer typed questions with probabilities, on `/v1/systemone` only: chat endpoints refuse them with `400`. See [Decision models](https://docs.bankr.bot/llm-gateway/decision-models).
 - **Per-model discounts** (some for everyone, some for Bankr Club or partner wallets) are time-limited and applied automatically at billing. `GET /v1/models` shows a discount when one applies to you.
 
 ## Privacy Tiers
