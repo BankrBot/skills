@@ -261,10 +261,14 @@ export async function mintBatchSlipsViaBankr(params: {
 
 ## 2. Official `@cryptoslip/sdk` & `@cryptoslip/mcp` (`PocketSlip`) Usage
 
-For TypeScript backends, Hono APIs, or MCP-compatible agents, install `@cryptoslip/sdk` or run `@cryptoslip/mcp`:
+Open-source MIT repository & signed release tarballs: `https://github.com/NARAProtocol/cryptoslip-sdk` (`v1.0.0`).
+
+For TypeScript backends, Hono APIs, or MCP-compatible agents, install `@cryptoslip/sdk` (from npm or the signed GitHub Release tarball) or run `@cryptoslip/mcp`:
 
 ```bash
 npm install @cryptoslip/sdk viem
+# Or pin directly to the signed v1.0.0 GitHub Release tarball:
+npm install https://github.com/NARAProtocol/cryptoslip-sdk/releases/download/v1.0.0/cryptoslip-sdk-1.0.0.tgz viem
 ```
 
 ### One-Call `1..500` Batch Payouts (`@cryptoslip/sdk/batch`)
