@@ -16,7 +16,7 @@ The CLI's `Not authenticated` means it found no key in `BANKR_API_KEY` or `~/.ba
 | 401 | `API key required`, `Authentication required`, `No wallet associated with API key` | No key was sent, or the key isn't linked to a wallet | Send `X-API-Key` or `Authorization: Bearer`; if you did, mint a new key |
 | 401 | `Invalid API key` | The key is wrong, revoked or rotated | Use the current key, or mint one at [bankr.bot/api-keys](https://bankr.bot/api-keys) |
 | 403 | `IP address not allowed` | The request came from outside the key's `allowedIps` | Call from an allowed IP, or edit the allowlist |
-| 403 | `Agent API access not enabled`, `Wallet API access not enabled`, `LLM Gateway access not enabled` | The key lacks that capability flag | Enable it at [bankr.bot/api-keys](https://bankr.bot/api-keys) |
+| 403 | `Agent API access not enabled`, `Wallet API access not enabled`, `Wallet & Agent API access not enabled` (files, x402 Cloud, webhooks, skills, MCP servers, apps), `LLM Gateway access not enabled` | The key lacks that capability flag | Enable it at [bankr.bot/api-keys](https://bankr.bot/api-keys) |
 | 403 | `Read-only API key` | A write on a read-only key | Use a read-write key |
 | 403 | `Restricted API key` | The key's recipient allowlist blocks raw submission, transaction or typed-data signing, this fee recipient, or a `/wallet/transfer` to an address not on the list | For a transfer, send to an allowlisted address; otherwise use `/agent/prompt`, or a key without an allowlist |
 | 403 | `subscription_required` | `/agent/prompt` without Bankr Club or Max Mode credit | Follow the `remediation` list in the body |

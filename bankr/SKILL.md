@@ -170,7 +170,7 @@ Capabilities without a reference file:
 
 - **Name the chain**, or paste the contract address, whenever a token exists on more than one chain. Launch defaults also differ by surface: the CLI and the web form preselect Base, while the agent and the deploy API fall back to Robinhood Chain.
 - **Spend limits are real.** Every wallet starts with a $500 daily limit and a $500 per-transaction limit. They are enforced on every path (agent, Wallet API, raw submit, x402, top-ups, Polymarket, launches) and fail closed when a price is unavailable. Only the user can change them, at bankr.bot → Security; an API key can't. See [safety.md](references/safety.md).
-- **Keys can be narrowed.** A read-only key keeps reads and prompts but gets `403` on every write: wallet writes, deploys and claims. A non-empty recipient allowlist also refuses anything whose recipient can't be checked: Polymarket trades, NFT buys, mints and listings, airdrops, scheduled prompts, raw `/wallet/submit`, and `/wallet/sign` for transactions, typed data and 32-byte messages. See [safety.md](references/safety.md).
+- **Keys can be narrowed.** A read-only key keeps reads and prompts but gets `403` on every write: wallet writes, deploys, claims, and changes to files, x402 Cloud and webhooks. A non-empty recipient allowlist also refuses anything whose recipient can't be checked: Polymarket trades, NFT buys, mints and listings, airdrops, scheduled prompts, raw `/wallet/submit`, and `/wallet/sign` for transactions, typed data and 32-byte messages. See [safety.md](references/safety.md).
 - **Never retry a swap under a new key after it may have broadcast.** Send an `idempotencyKey` with every `/wallet/swap` and retry only with the same one. After a `504 receipt_pending`, `502 fill_unconfirmed` or `502 fill_failed`, check the wallet's activity first. See [error-handling.md](references/error-handling.md#retrying-swaps-safely).
 - **Creating an automation isn't idempotent.** If a create seemed to fail, list the existing automations before sending it again.
 - **Tokenized-stock trades need a one-time location verification** in the Bankr web app, which isn't available in the US, the UK or sanctioned regions. Quotes aren't gated; execution is.
@@ -208,6 +208,7 @@ Commands: `bankr club` (status), `bankr club signup [--yearly] [--token <USDC|BN
 
 - AI prompts work without Max Mode. Bankr Console messages go from 5 a day to unlimited, and Agent API prompts are capped at 1,000 a day instead of Max Mode's 100.
 - File storage grows from 1 GB to 10 GB.
+- The Bankr swap fee drops from 0.5% to 0.15%.
 - It doesn't raise the token-launch cap.
 
 Club needs an embedded Bankr wallet. Max Mode, paid per request from LLM credits, is the alternative for external wallets. Full perks: [docs.bankr.bot/faq/bankr-club](https://docs.bankr.bot/faq/bankr-club).
