@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "blockchain-iq-trade-gate",
+  "provider": "Blockchain IQ",
+  "providerUrl": "https://www.blockchainiq.co",
+  "logo": "logo.png",
+  "demo": {
+    "title": "blockchain-iq-trade-gate.sh",
+    "language": "bash",
+    "code": "# Blockchain IQ Trade Gate: GO, CAUTION or HOLD before a trade. $0.01 in USDC on Base over x402.\n# Unpaid, this returns HTTP 402 with the payment terms\ncurl -s \"https://x402.bankr.bot/0xd9a04eba22b8b6ba00c8ba191fdb20b719d5258d/biq-trade-gate?symbol=ETH&side=buy\"\n\n# Paid call with the Bankr CLI\nbankr x402 call \"https://x402.bankr.bot/0xd9a04eba22b8b6ba00c8ba191fdb20b719d5258d/biq-trade-gate?symbol=ETH&side=buy\""
+  },
+  "setup": [
+    "No signup or API key. You need an x402-capable agent or wallet with USDC on Base.",
+    "Before a trade, call the gate with the token symbol and side.",
+    "On HTTP 402, check the host, token and the $0.01 ceiling, then pay and retry to receive the verdict as JSON."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "blockchain-iq-trade-gate",
+    "command": "install the blockchain-iq-trade-gate skill from https://github.com/BankrBot/skills/tree/main/blockchain-iq-trade-gate"
+  }
+}
