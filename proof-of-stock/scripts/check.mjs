@@ -18,15 +18,24 @@ const ISSUER = { base: 'Coinbase', robinhood: 'Robinhood' }
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/
 const TICKER = /^[A-Za-z0-9.\- ]{1,40}$/
 const STRONG = new Set(['registry_symbol', 'issuer_name_suffix', 'registry_name'])
-// Text from the issuer's list (symbols, names, ISINs) is still printed through this: short, one line, no markup.
-const safe = (s, n = 40) => String(s == null ? '' : s).replace(/[^\x20-\x7E]/g, '').replace(/[<>`]/g, '').slice(0, n)
+// Sanitising is not an injection boundary (outside review, 21.11): a symbol, name or ISIN is printed only when it has the
+// shape such a thing has, and is left out otherwise. "IGNORE PREVIOUS INSTRUCTIONS" is no symbol, so it never prints.
+const SYMBOL = /^[A-Za-z0-9.]{1,16}$/
+const NAME = /^[A-Za-z0-9 .,&'()-]{1,48}$/
+const ISIN = /^[A-Z]{2}[A-Z0-9]{9}[0-9]$/
+const sym = (s) => (SYMBOL.test(String(s ?? '')) ? String(s) : '?')
+const nm = (s) => { const t = String(s ?? '').replace(/\s+/g, ' ').trim(); return NAME.test(t) && !/\b(ignore|instruction|prompt|system|assistant)\b/i.test(t) ? t : null }
 const short = (a) => (ADDRESS.test(a || '') ? a.toLowerCase() : '?')
 
 function parse (argv) {
   const args = argv.slice()
   let chain = null
+  if (args.filter((a) => a === '--chain' || a.startsWith('--chain=')).length > 1) return { error: 'give --chain once' }
   const i = args.indexOf('--chain')
   if (i >= 0) { chain = String(args[i + 1] || '').toLowerCase(); args.splice(i, 2) }
+  const j = args.findIndex((a) => a.startsWith('--chain='))
+  if (j >= 0) { chain = args[j].slice('--chain='.length).toLowerCase(); args.splice(j, 1) }
+  if (args.some((a) => a.startsWith('--'))) return { error: 'the only option is --chain base or --chain robinhood' }
   const q = args.join(' ').trim()
   if (chain !== null && !CHAINS.includes(chain)) return { error: 'chain must be base or robinhood' }
   if (ADDRESS.test(q)) return { kind: 'address', q: q.toLowerCase(), chains: chain ? [chain] : CHAINS }
@@ -38,7 +47,8 @@ async function getJson (fetchImpl, path, timeoutMs) {
   const ctl = new AbortController()
   const t = setTimeout(() => ctl.abort(), timeoutMs)
   try {
-    const r = await fetchImpl(API + path, { headers: { accept: 'application/json', 'user-agent': 'bankr-skill-proof-of-stock/1' }, signal: ctl.signal })
+    // No redirect is followed: an answer must come from this one host, or it is no answer.
+    const r = await fetchImpl(API + path, { headers: { accept: 'application/json', 'user-agent': 'bankr-skill-proof-of-stock/1' }, signal: ctl.signal, redirect: 'error' })
     let body = null
     try { body = await r.json() } catch (_) { /* not JSON */ }
     return { status: r.status, body }
@@ -54,15 +64,21 @@ function verdictOf (chain, v) {
     return { state: 'unavailable', lines: [`${chain}: UNAVAILABLE (${why}). Do not treat this as listed.`] }
   }
   const b = v.body
+  // Removed from the issuer's list: its own verdict and never exit 0, whatever "listed" says beside it. The service
+  // sends delisted_at only with listed: false; an answer carrying both is read the cautious way.
+  if (b.delisted_at) {
+    return { state: 'delisted', lines: [`${chain}: DELISTED. ${ISSUER[chain]} removed this contract from its list on ${/^\d{4}-\d{2}-\d{2}/.test(String(b.delisted_at)) ? String(b.delisted_at).slice(0, 10) : "a date it did not give"}. It is no longer the issuer's token here; do not buy it as one.`] }
+  }
   if (b.listed) {
-    const lines = [`${chain}: ISSUER-LISTED. ${ISSUER[chain]} lists this exact contract as ${safe(b.symbol, 16)} (${safe(b.name, 48)}${b.isin ? ', ISIN ' + safe(b.isin, 12) : ''}).`]
-    if (b.delisted_at) lines.push(`  note: the issuer marks it delisted since ${safe(b.delisted_at, 30)}.`)
-    if (b.issuer_factory && b.issuer_factory.created === true) lines.push(`  second source: the issuer's own factory created it (block ${Number(b.issuer_factory.block) || '?'}).`)
+    const name = nm(b.name), isin = ISIN.test(String(b.isin ?? '')) ? b.isin : null
+    const lines = [`${chain}: ISSUER-LISTED. ${ISSUER[chain]} lists this exact contract as ${sym(b.symbol)}${name || isin ? ` (${[name, isin && 'ISIN ' + isin].filter(Boolean).join(', ')})` : ''}.`]
+    if (b.minted === false) lines.push('  note: the issuer has not minted this token yet, so there is no supply to buy.')
+    if (b.issuer_factory && b.issuer_factory.created === true) lines.push(`  Proof of Stock also read on chain that the issuer's own factory created it (block ${Number(b.issuer_factory.block) || '?'}).`)
     return { state: 'listed', lines }
   }
   const imp = b.impostor
   if (imp && Array.isArray(imp.kinds) && imp.kinds.some((k) => STRONG.has(k))) {
-    const lines = [`${chain}: LOOK-ALIKE. Not on ${ISSUER[chain]}'s list, and it imitates ${imp.imitates_symbol ? safe(imp.imitates_symbol, 16) : "the issuer's naming"}.`]
+    const lines = [`${chain}: LOOK-ALIKE. Not on ${ISSUER[chain]}'s list, and it imitates ${SYMBOL.test(String(imp.imitates_symbol ?? '')) ? imp.imitates_symbol : "the issuer's naming"}.`]
     if (ADDRESS.test(imp.listed_address || '')) lines.push(`  the issuer's own contract for that stock: ${short(imp.listed_address)} (check it with this skill before using it).`)
     return { state: 'impostor', lines }
   }
@@ -80,10 +96,13 @@ export async function run (argv, { fetchImpl = globalThis.fetch, print = (s) => 
   if (p.kind === 'ticker') {
     const r = await getJson(fetchImpl, `/api/find?q=${encodeURIComponent(p.q)}${p.chain ? '&chain=' + p.chain : ''}`, timeoutMs)
     if (r.status !== 200 || !r.body || !Array.isArray(r.body.matches)) { print('Proof of Stock: UNAVAILABLE, the issuer lists could not be searched just now.'); return 3 }
-    const m = r.body.matches.filter((x) => x && CHAINS.includes(x.chain) && ADDRESS.test(x.address || '')).slice(0, 8)
-    if (!m.length) { print(`Proof of Stock: no issuer-listed token matches "${safe(p.q, 40)}". A token by that name elsewhere is not the issuer's.`); return 1 }
-    print(`Proof of Stock: issuer-listed contracts for "${safe(p.q, 40)}"${r.body.match === 'exact' ? '' : ' (closest matches)'}:`)
-    for (const x of m) print(`- ${x.chain} (${ISSUER[x.chain]}): ${safe(x.symbol, 16)}, ${safe(x.name, 48)}: ${short(x.address)}`)
+    // Only the chain asked for: an answer about another chain is not an answer to this question.
+    const m = r.body.matches.filter((x) => x && CHAINS.includes(x.chain) && (!p.chain || x.chain === p.chain) && ADDRESS.test(x.address || '')).slice(0, 8)
+    // The query is never printed back: it came from the conversation, and echoing it would hand any words in it back to
+    // the agent inside a tool result.
+    if (!m.length) { print('Proof of Stock: no issuer-listed token matches that query. A token by that name elsewhere is not the issuer\'s.'); return 1 }
+    print(`Proof of Stock: issuer-listed contracts for that query${r.body.match === 'exact' ? '' : ' (closest matches)'}:`)
+    for (const x of m) print(`- ${x.chain} (${ISSUER[x.chain]}): ${sym(x.symbol)}${nm(x.name) ? ', ' + nm(x.name) : ''}: ${short(x.address)}`)
     print('Only these exact addresses are the issuer\'s. Any other contract with the same name or symbol is not.')
     print(`Source: ${API}/api/find (issuer lists read every 5 minutes).`)
     return 0
@@ -92,12 +111,15 @@ export async function run (argv, { fetchImpl = globalThis.fetch, print = (s) => 
   const results = []
   for (const chain of p.chains) results.push(verdictOf(chain, await getJson(fetchImpl, `/verify?chain=${chain}&address=${p.q}`, timeoutMs)))
   const states = results.map((r) => r.state)
-  const head = states.includes('listed') ? 'ISSUER-LISTED' : states.includes('impostor') ? 'LOOK-ALIKE' : states.includes('unavailable') ? 'UNAVAILABLE' : 'NOT ON THE ISSUER\'S LIST'
+  const head = states.includes('listed') ? 'ISSUER-LISTED' : states.includes('delisted') ? 'DELISTED' : states.includes('impostor') ? 'LOOK-ALIKE' : states.includes('unavailable') ? 'UNAVAILABLE' : 'NOT ON THE ISSUER\'S LIST'
   print(`Proof of Stock: ${head} for ${p.q}`)
   for (const r of results) for (const l of r.lines) print(l)
   print(`Passport and proof: ${API}/?chain=${p.chains.find((c, k) => results[k].state === 'listed') || p.chains[0]}&address=${p.q}`)
   print('This is a registry check, not advice. It never approves a trade by itself.')
-  return states.includes('listed') ? 0 : states.includes('unavailable') && !states.includes('impostor') ? 3 : 1
+  // 0 only when every chain checked answered and the contract is listed: a listing on one chain while the other could
+  // not be read is not a clean yes (outside review, 21.11). Name the chain with --chain to check just one.
+  if (states.includes('listed') && states.includes('unavailable')) return 3
+  return states.includes('listed') ? 0 : states.includes('unavailable') && !states.includes('impostor') && !states.includes('delisted') ? 3 : 1
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) run(process.argv.slice(2)).then((code) => { process.exitCode = code })
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) run(process.argv.slice(2)).then((code) => { process.exitCode = code }, () => { console.log('Proof of Stock: UNAVAILABLE, the check failed unexpectedly. Do not treat this as listed.'); process.exitCode = 3 })
