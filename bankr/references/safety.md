@@ -62,7 +62,7 @@ Every key uses the `bk_...` format and carries independent settings, managed at 
 | Setting | Gates | New-key default |
 |---------|-------|-----------------|
 | `walletApiEnabled` | `/wallet/swap-quote`, `/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay` and creator-fee claims. `/wallet/me` and `/wallet/portfolio` work with any key | On |
-| `agentApiEnabled` | `/agent/*`: prompt, job status, cancel, project pages | On |
+| `agentApiEnabled` | `/agent/*` (prompt, job status, cancel, project pages), plus files, x402 Cloud, webhooks, skills, MCP servers and apps | On |
 | `tokenLaunchApiEnabled` | `/token-launches/deploy` and the agent's launch tool | On |
 | `llmGatewayEnabled` | `llm.bankr.bot` and `/llm/credits/*` | Off |
 | `readOnly` | See [Read-only keys](#read-only-keys) | Off (keys from `bankr login siwe` start read-only) |
