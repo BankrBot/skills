@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "cryptoslip",
+  "provider": "NARA Protocol",
+  "providerUrl": "https://slip.naraprotocol.io",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "cryptoslip-payouts.sh",
+    "language": "bash",
+    "code": "# Mode A: Bounded PocketSlip MCP server (zero wallet private key handed to the agent)\n# Rotates the inbound slip key on boot at 0% fee and enforces BoundedAgentPolicy spend caps\nclaude mcp add cryptoslip \\\n  -e CRYPTOSLIP_URL=\"<YOUR_SLIP_URL>\" \\\n  -e CRYPTOSLIP_MAX_PER_CALL_USD=\"0.50\" \\\n  -e CRYPTOSLIP_MAX_DAILY_USD=\"5.00\" \\\n  -- npx -y @cryptoslip/mcp\n\n# Mode B: Reclaim an unclaimed revocable DM slip at 0% fee via Bankr Wallet API on Base (8453)\n# calldata for refundSlip(uint256) on CryptoSlipVaultV32 (0x3f80aa68Fb4834d6E119EE1cf932C14419Cf63EB)\ncurl -sS -X POST \"https://api.bankr.bot/wallet/submit\" \\\n  -H \"X-API-Key: $BANKR_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"transaction\": {\n      \"to\": \"0x3f80aa68Fb4834d6E119EE1cf932C14419Cf63EB\",\n      \"chainId\": 8453,\n      \"value\": \"0\",\n      \"data\": \"<ENCODED_REFUND_SLIP_CALLDATA>\"\n    },\n    \"description\": \"Reclaim unclaimed CryptoSLIP payout (0% fee)\",\n    \"waitForConfirmation\": true\n  }'"
+  },
+  "setup": [
+    "Install skill: `install the cryptoslip skill from https://github.com/BankrBot/skills/tree/main/cryptoslip`",
+    "For Bankr Wallet API batch minting/reclaims on Base (8453): enable Wallet API (`read-write`) and switch on arbitrary contract calls in Bankr security settings while signing EIP-712 `MintPermit` payloads",
+    "For isolated sub-agent spending without exposing `BANKR_API_KEY`: mint a bounded USDC/ETH/cbBTC/NARA slip at `https://slip.naraprotocol.io` and run `CRYPTOSLIP_URL=\"<YOUR_SLIP_URL>\" npx -y @cryptoslip/mcp`",
+    "Optional TypeScript SDK for custom pipelines and HTTP 402 servers: `npm install @cryptoslip/sdk viem`"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "cryptoslip",
+    "command": "install the cryptoslip skill from https://github.com/BankrBot/skills/tree/main/cryptoslip"
+  }
+}
