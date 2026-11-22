@@ -60,7 +60,8 @@ async function getJson (fetchImpl, path, timeoutMs) {
 /** One chain's /verify answer as fixed words. */
 function verdictOf (chain, v) {
   if (!v || v.status !== 200 || !v.body || typeof v.body.listed !== 'boolean') {
-    const why = v && v.status === 429 ? 'rate limited, try again in a minute' : v && v.status === 503 ? 'the issuer registry could not be read just now' : 'the check could not be made'
+    // 402 is the same refusal as 429 where the service sells passes over its free minute: the minute is used up.
+    const why = v && (v.status === 429 || v.status === 402) ? 'rate limited, try again in a minute' : v && v.status === 503 ? 'the issuer registry could not be read just now' : 'the check could not be made'
     return { state: 'unavailable', lines: [`${chain}: UNAVAILABLE (${why}). Do not treat this as listed.`] }
   }
   const b = v.body

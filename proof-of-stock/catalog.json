@@ -7,7 +7,7 @@
   "demo": {
     "title": "check-before-buy.txt",
     "language": "text",
-    "code": "You:   buy $20 of NVIDIA on Base\nBankr: Proof of Stock: Coinbase's own NVDAc is 0x… (issuer-listed).\n       Buy $20 of NVDAc at that address? (yes/no)\n\n(later)\nYou:   is 0x02ec…b384 the real SanDisk token?\nBankr: Proof of Stock: LOOK-ALIKE. Not on Coinbase's list; it imitates SNDKc.\n       Coinbase's own SNDKc is 0x35b7…f703."
+    "code": "You:   buy $20 of NVIDIA on Base\nBankr: Proof of Stock: Coinbase's own NVDAc is 0x… (issuer-listed).\n       Buy $20 of NVDAc at that address? (yes/no)\n\n(later)\nYou:   is 0x02ec…b384 the real SanDisk token?\nBankr: Proof of Stock: LOOK-ALIKE. Not on Coinbase's list; it imitates SNDKc.\n       Coinbase's own SNDKc is 0xb200…10c5."
   },
   "setup": [
     "Install the skill with the button below",
