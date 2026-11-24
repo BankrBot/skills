@@ -45,8 +45,8 @@ The check is advisory and read-only.
 2. Check a contract. Both chains are checked unless the user names one:
 
    ```bash
-   node scripts/check.mjs 0x35b76a8fbfbac68c449a4a4a8d1bcda0d486f703
-   node scripts/check.mjs 0x35b76a8fbfbac68c449a4a4a8d1bcda0d486f703 --chain base
+   node scripts/check.mjs 0xb20000000000000000000078ee7ce2fe4908108c                # NVDAc: ISSUER-LISTED
+   node scripts/check.mjs 0x35b76a8fbfbac68c449a4a4a8d1bcda0d486f703 --chain base   # a look-alike of SNDKc
    ```
 
 3. Find the issuer's own contract for a stock:
@@ -90,7 +90,7 @@ Do not say "safe" or "official". Say "issuer-listed": the list says which contra
 ## More
 
 - Passport (price against the issuer's reference, its age, history): `https://proofofstock.xyz/?chain=base&address=0x…`
-- MCP server for agents (7 read-only tools): `https://proofofstock.xyz/mcp`
+- MCP server for agents (read-only tools, no key): `https://proofofstock.xyz/mcp`
 - HTTP API: `https://proofofstock.xyz/docs/reference/http-api.md`
 - How a verdict can be checked without trusting us (`list_proof`): `https://proofofstock.xyz/docs/explanation/methodology.md`
-- Rate limit: 60 requests a minute per IP, shared with the site.
+- Rate limit: 60 requests a minute per IP, shared with the site. A contract check makes one request per chain, a ticker search one.
