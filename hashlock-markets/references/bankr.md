@@ -2,6 +2,8 @@
 
 A Bankr agent trades on Hashlock with its own Bankr wallet: Bankr signs and sends, Hashlock never holds the key.
 Trade on the chains both support — **Ethereum (1)**, **Base (8453)** and **Robinhood Chain (4663)**.
+Bankr's docs name no testnet, so a Bankr wallet trades on production only: test the flow on the sandbox
+(`SKILL.md`, "Endpoints") with a wallet key of your own used only on testnets (`HASHLOCK_EVM_KEY`).
 
 ## Why a Bankr agent uses Hashlock
 

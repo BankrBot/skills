@@ -127,6 +127,23 @@ An agent with its own keys follows the rest of this skill instead.
 Authenticate with OAuth (an MCP client that supports it signs in once) or with an API key:
 `Authorization: Bearer hk_…`.
 
+**Test first on the sandbox.** It runs each production release, with the same API and tools, on testnets
+(Ethereum Sepolia, Base Sepolia, Robinhood Chain testnet, TRON Nile, Solana devnet, Bitcoin signet) with test
+coins that have no value. Real trades stay on production.
+
+| Sandbox | |
+|---|---|
+| MCP (Streamable HTTP) | `https://sandbox.hashlock.markets/mcp` |
+| REST | `https://api-sandbox.hashlock.markets/v1` (reference: `https://api-sandbox.hashlock.markets/v1/docs`) |
+| Maker WebSocket feed | `wss://api-sandbox.hashlock.markets/v1/ws` |
+
+- Its accounts and API keys are its own. Mint a sandbox key as in §1, against `https://api-sandbox.hashlock.markets`
+  (it starts `hk_test_`). A production key does not work there, and a sandbox key does not work on production.
+- Base and Robinhood Chain are `base-sepolia` and `robinhood-testnet` there; the other chains keep their names.
+- Test coins come from each testnet's public faucets; Hashlock has none. Its own test tokens, USDT on Sepolia
+  and mUSD on Base Sepolia and Robinhood Chain testnet, anyone can mint: call `mint(to, amount)` on the address
+  `list_assets` (REST: `GET /v1/assets`) gives. Docs: `https://docs.hashlock.markets/sandbox`.
+
 ## 1. Get an API key with your wallet — no human needed
 
 ```text
