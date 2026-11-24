@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "neuraliquid-signals",
+  "provider": "NeuraLiquid by FutureCast",
+  "providerUrl": "https://futurecast.ml85.xyz/quickstart",
+  "logo": null,
+  "demo": {
+    "title": "inspect-offer.sh",
+    "language": "bash",
+    "code": "# Inspect the unsigned offer. No wallet or payment required.\ncurl -sS https://futurecast.ml85.xyz/api/v1/x402/signals/patterns | jq '{x402Version, accepts}'"
+  },
+  "setup": [
+    "Inspect the unsigned day-pass offer using Python 3 or the unsigned curl example.",
+    "Use an existing private pass file to read snapshots. A new 24-hour pass costs 5 USDC on Base.",
+    "Filter by token and direction. Track detection times to suppress duplicate alerts."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "neuraliquid-signals",
+    "command": "install the neuraliquid-signals skill from https://github.com/BankrBot/skills/tree/main/neuraliquid-signals"
+  }
+}
