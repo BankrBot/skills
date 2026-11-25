@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "slug": "blazephoenix",
+  "provider": "BlazePhoenix",
+  "providerUrl": "https://blazephoenix.xyz",
+  "logo": "logo.png",
+  "demo": {
+    "title": "blazephoenix-quote.sh",
+    "language": "bash",
+    "code": "# 1. Prepare: the hosted endpoint returns the eth_call, it performs no RPC\nMCP=https://blazephoenix.xyz/mcp\ncall() { curl -s -X POST \"$MCP\" -H 'content-type: application/json' \\\n  -d \"{\\\"jsonrpc\\\":\\\"2.0\\\",\\\"id\\\":1,\\\"method\\\":\\\"tools/call\\\",\\\"params\\\":{\\\"name\\\":\\\"$1\\\",\\\"arguments\\\":$2}}\" | jq '.result.structuredContent'; }\nP=$(call prepare_quote '{\"chain\":\"base\",\"in\":\"USDC\",\"out\":\"WETH\",\"amountIn\":\"1000000\"}')\n\n# 2. Run the quote on your own node\nR=$(curl -s \"$RPC_URL\" -H 'content-type: application/json' -d \"$(echo \"$P\" | jq -c '.rpcRequest')\" | jq -r '.result')\n\n# 3. Decode: net output, price impact, Phoenix Check verdict\ncall decode_quote \"$(jq -n --argjson p \"$P\" --arg r \"$R\" '{request:$p.request,result:$r}')\" \\\n  | jq '{amountOut, quote, verdict: .checks.verdict}'\n\n# 4. To execute: prepare again with recipient + userMinOut, review the calldata,\n#    simulate it from the Bankr wallet, confirm, then POST it unchanged to /wallet/submit"
+  },
+  "setup": [
+    "Install skill: `install the blazephoenix skill from https://github.com/BankrBot/skills/tree/main/blazephoenix`",
+    "Set `RPC_URL` to a node you trust for the chain you trade on. Quotes, allowance reads and the simulation run there; https://blazephoenix.xyz/mcp performs no RPC and needs no key",
+    "Quote-only use needs nothing else. To execute, use a Bankr API key with Wallet API enabled and read-only off, with no recipient allowlist on the key or the wallet",
+    "Execution also needs \"Enable arbitrary contract calls\" on in bankr.bot Security (requires MFA; a timed window is enough), plus native token for gas and the input token in the Bankr wallet",
+    "Bankr USD spending limits do not bound a token swap sent as raw calldata: give the agent a per-swap cap in input-token units before the first swap",
+    "Before each swap the agent asks for a minimum output from a source independent of the BlazePhoenix quote (your own minimum, or an independent price less your tolerance) and for the highest price impact you accept. It sets no default for either and only quotes without them"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "blazephoenix",
+    "command": "install the blazephoenix skill from https://github.com/BankrBot/skills/tree/main/blazephoenix"
+  }
+}
