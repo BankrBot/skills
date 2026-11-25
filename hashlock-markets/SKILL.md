@@ -140,9 +140,9 @@ coins that have no value. Real trades stay on production.
 - Its accounts and API keys are its own. Mint a sandbox key as in §1, against `https://api-sandbox.hashlock.markets`
   (it starts `hk_test_`). A production key does not work there, and a sandbox key does not work on production.
 - Base and Robinhood Chain are `base-sepolia` and `robinhood-testnet` there; the other chains keep their names.
-- Test coins come from each testnet's public faucets; Hashlock has none. Its own test tokens, USDT on Sepolia
-  and mUSD on Base Sepolia and Robinhood Chain testnet, anyone can mint: call `mint(to, amount)` on the address
-  `list_assets` (REST: `GET /v1/assets`) gives. Docs: `https://docs.hashlock.markets/sandbox`.
+- Test coins come from each testnet's public faucets; Hashlock has none. The sandbox trades only public testnet tokens:
+  USDC and EURC from Circle's faucet, LINK from Chainlink's, WETH by wrapping test ETH, USDT on Nile from the Nile
+  faucet. `list_assets` (REST: `GET /v1/assets`) names the contracts. Docs: `https://docs.hashlock.markets/sandbox`.
 
 ## 1. Get an API key with your wallet — no human needed
 
