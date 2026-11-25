@@ -30,8 +30,8 @@ A pending response asks you to poll with the same pass after 15 seconds. Once co
 
 ## When a buyer needs a pass
 
-Get the wallet owner's authorization for the 5 USDC spend. The [provider quickstart](https://futurecast.ml85.xyz/quickstart) documents a compatible x402 v2 client for a separately managed Base wallet. It verifies the recipient and spend ceiling and saves the original signed authorization locally before submission. A Bankr wallet key stays in Bankr. The skill needs only the resulting pass for subsequent reads.
+Get the wallet owner's authorization for the 5 USDC spend. The [provider quickstart](https://futurecast.ml85.xyz/quickstart?utm_source=bankr) documents a compatible x402 v2 client for a separately managed Base wallet. It verifies the recipient and spend ceiling and saves the original signed authorization locally before submission. A Bankr wallet key stays in Bankr. The skill needs only the resulting pass for subsequent reads.
 
 If a purchase is interrupted before a bearer token is saved, use the provider client's `--resume` with the original URL and `--access-file` to recover that authorization. Never initiate a second payment to resolve an uncertain first attempt.
 
-Operators who ask about distribution can find the [referral terms and selected partner invitations](https://futurecast.ml85.xyz/partners). A registered referrer earns 34% on eligible direct purchases after the incoming USDC payment is finalized. At 5 USDC, that is 1.70 USDC per eligible sale. Disclose the commission when recommending the feed.
+Operators who ask about distribution can find the [referral terms and selected partner invitations](https://futurecast.ml85.xyz/partners?utm_source=bankr). A registered referrer earns 34% on eligible direct purchases after the incoming USDC payment is finalized. At 5 USDC, that is 1.70 USDC per eligible sale. Disclose the commission when recommending the feed.

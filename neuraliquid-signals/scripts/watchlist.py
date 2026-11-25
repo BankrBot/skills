@@ -20,7 +20,7 @@ def fetch(token=None):
         headers['Authorization'] = f'Bearer {token}'
     connection = http.client.HTTPSConnection(HOST, timeout=30)
     try:
-        connection.request('GET', PATH, headers=headers)
+        connection.request('GET', PATH + '?utm_source=bankr', headers=headers)
         response = connection.getresponse()
         if response.status not in (200, 202, 402, 503):
             raise ValueError(f'HTTP {response.status}. Check the saved pass and its expiry before trying again.')

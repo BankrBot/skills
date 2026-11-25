@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "slug": "neuraliquid-signals",
   "provider": "NeuraLiquid by FutureCast",
-  "providerUrl": "https://futurecast.ml85.xyz/quickstart",
+  "providerUrl": "https://futurecast.ml85.xyz/quickstart?utm_source=bankr",
   "logo": null,
   "demo": {
     "title": "inspect-offer.sh",
     "language": "bash",
-    "code": "# Inspect the unsigned offer. No wallet or payment required.\ncurl -sS https://futurecast.ml85.xyz/api/v1/x402/signals/patterns | jq '{x402Version, accepts}'"
+    "code": "# Inspect the unsigned offer. No wallet or payment required.\ncurl -sS https://futurecast.ml85.xyz/api/v1/x402/signals/patterns?utm_source=bankr | jq '{x402Version, accepts}'"
   },
   "setup": [
     "Inspect the unsigned day-pass offer using Python 3 or the unsigned curl example.",
