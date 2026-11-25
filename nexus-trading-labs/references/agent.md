@@ -103,7 +103,7 @@ marked ⚡ also need the going-live challenge (`nonce`, `v2Sig`).
 | "Make it live / go autonomous" | confirm first → ⚡ `POST /agent/{addr}/bankr/mode` `{mode:"AUTONOMOUS", confirm:"GO LIVE", session, nonce, v2Sig}` (challenge `agent.mode`) |
 | "Pause my agent" | `POST /agent/{addr}/bankr/mode` `{mode:"ASSISTED", session}` |
 | "Set it back to paper" | `POST /agent/{addr}/bankr/mode` `{mode:"PAPER", session}` |
-| "Change to $20/trade at 3x" | `POST /agent/{addr}/bankr/activate` `{mode:<current>, config:{capitalPerTrade:20,leverage:3}, session}` (⚡ challenge `agent.config` only if AUTONOMOUS and either number goes up) |
+| "Change to $20/trade at 3x" | `PUT /agent/{addr}/config` `{config:{capitalPerTrade:20,leverage:3}, session}` (⚡ challenge `agent.config` only if AUTONOMOUS and either number goes up) |
 | "Deploy the Blue-Chip Confluence preset (paper)" | `POST /agent/{addr}/bankr/activate` `{mode:"PAPER", config:{…preset…}, session}` (see Strategy presets) |
 | "Turn on the market regime filter" | `POST /agent/{addr}/bankr/activate` `{mode:<current>, config:{respectRegime:true}, session}` |
 | "How's my agent?" | `GET /agent/{addr}` → format `state` (public read, no sig) |
