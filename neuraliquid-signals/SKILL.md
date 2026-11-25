@@ -34,4 +34,4 @@ Get the wallet owner's authorization for the 5 USDC spend. The [provider quickst
 
 If a purchase is interrupted before a bearer token is saved, use the provider client's `--resume` with the original URL and `--access-file` to recover that authorization. Never initiate a second payment to resolve an uncertain first attempt.
 
-Operators who ask about distribution can find the [referral terms and selected partner invitations](https://futurecast.ml85.xyz/partners). A registered referrer earns 33% on eligible direct purchases after the incoming USDC payment is finalized. At 5 USDC, that is 1.65 USDC per eligible sale. Disclose the commission when recommending the feed.
+Operators who ask about distribution can find the [referral terms and selected partner invitations](https://futurecast.ml85.xyz/partners). A registered referrer earns 34% on eligible direct purchases after the incoming USDC payment is finalized. At 5 USDC, that is 1.70 USDC per eligible sale. Disclose the commission when recommending the feed.
