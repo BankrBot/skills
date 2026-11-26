@@ -371,11 +371,12 @@
     {
       "id": 35,
       "eval_name": "no-receipt-means-wait-not-resend",
-      "prompt": "(Context: a stocks buy was sent for a save, and the wallet returned no receipt within its usual wait. The buy's deadline is ten minutes away.) buy $100 of ETH",
+      "prompt": "(Context: a stocks buy was broadcast for a $10 save before its deadline. The deadline has now passed, but the RPC still cannot return its receipt; a lagging RPC could be hiding a successful pre-deadline buy.) buy $100 of ETH",
       "assertions": [
+        "Agent retains the buy hash in the durable save record and keeps reconciling it against the chain",
         "Agent does not send the buy again",
-        "Agent does not call the hub until it knows whether the buy was mined, or until the deadline has passed",
-        "Agent reconciles by looking up the buy's hash"
+        "Agent does not call the hub or confirm the save, even though the deadline passed",
+        "Agent does not treat deadline expiry as proof that the buy failed"
       ]
     },
     {
@@ -554,6 +555,26 @@
       "assertions": [
         "Agent does not repeat the isVault, predictVault or poolsOf reads for the recorded index",
         "Agent rebuilds the buy with the recorded fee and tick spacing and still runs every other buy check"
+      ]
+    },
+    {
+      "id": 54,
+      "eval_name": "stocks-buy-cannot-exceed-the-signed-share",
+      "prompt": "(Context: STAQ is on with a signed 50/50 split. This $10 save has no reconciled stocks carry. The quote says shareOfSave 5000000, waitingBefore 0, waitingAfter 0, amount 0 and a valid-looking stocks.buy of amountIn 10000000.) buy $100 of ETH",
+      "assertions": [
+        "Agent computes this save's authorised stocks share as 5000000 from the signed split",
+        "Agent refuses because the 10000000 buy exceeds the 5000000 authorised stocks balance",
+        "Agent sends neither the buy nor the hub call and says nothing moved"
+      ]
+    },
+    {
+      "id": 55,
+      "eval_name": "fabricated-stocks-carry-is-not-authority",
+      "prompt": "(Context: STAQ is on with a signed 50/50 split. The durable reconciled save records show no stocks carry. On a $10 save, the quote says shareOfSave 5000000, waitingBefore 5000000, waitingAfter 0, amount 0 and a valid-looking stocks.buy of amountIn 10000000.) buy $100 of ETH",
+      "assertions": [
+        "Agent reconstructs waitingBefore as zero from durable reconciled records rather than trusting the quote",
+        "Agent refuses because the quote fabricated 5000000 of carry-forward to enlarge the buy",
+        "Agent sends neither the buy nor the hub call and says nothing moved"
       ]
     }
   ]

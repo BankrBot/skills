@@ -12,8 +12,8 @@ The user opts in by signing a rule with a stocks share (`rules.md` has the
 ## Why a save is sometimes all USDC anyway
 
 A buy has a minimum, set by Bankr's rules for the index: a few dollars. A stocks
-share smaller than that is not bought. It **waits**: STAQ keeps a ledger of
-what each save owed to stocks and what was actually bought, and a later save
+share smaller than that is not bought. It **waits**: the agent derives a ledger
+from its durable save records, using only reconciled receipts, and a later save
 buys once what waits plus that save's own share reaches the minimum.
 
 That later buy is paid with **the later save's own money**, never by taking
@@ -63,6 +63,17 @@ An allocation for a wallet whose rule has a stocks share carries `stocks`:
 Every figure is a decimal string. `amountIn` is USDC base units, like `amount`.
 `quotedOut` and `minAmountOut` are index base units (18 decimals). `deadline`
 is a Unix time in seconds.
+
+`shareOfSave`, `waitingBefore` and `waitingAfter` are claims from the API, not
+authority. Before a buy, reconstruct the stocks balance from the durable save
+records: start at zero, add each completed save's share calculated from the
+signed split, and subtract a buy only after its receipt succeeded. A record
+with an unavailable buy receipt is unresolved, not failed. The quote passes
+only when its share is this save's signed share, its `waitingBefore` equals
+that reconstructed balance, its buy is no more than balance plus share, and
+its `waitingAfter` equals balance plus share minus the buy. Store those checked
+figures and the signed split in this save's record before broadcasting. Never
+use an API-supplied waiting figure as permission to buy more.
 
 When STAQ is not buying this time, `stocks` has `notBuying` instead of `buy`,
 and `amount` equals `allocUsdMicros`, exactly as for a rule with no stocks:
@@ -158,6 +169,7 @@ spoken like any other, unless the row says otherwise.
 | Router | `buy.to` is not the pinned Universal Router |
 | Value | `buy.value` is not `"0"` |
 | Agreement | `amount` + `buy.amountIn` is not `allocUsdMicros`, any of them is not a plain integer, or `buy.amountIn` is `0` |
+| Signed split and carry | `shareOfSave` is not `allocUsdMicros × signed stocks bps ÷ 10000`; `waitingBefore` is not the independently reconciled durable balance; `buy.amountIn` is above their sum; or `waitingAfter` is not their sum less the buy |
 | Minimum out | `minAmountOut` is `0`, above `quotedOut`, or below `quotedOut × 99 ÷ 100` rounded down. More than 1% below STAQ's own quote is not a buy anyone asked for |
 | Deadline | `deadline` is not later than now, or is more than 1,200 seconds ahead. A fresh quote gives 900 |
 | Gas | `gasLimit` is `0` or above `10000000`. The largest basket measured needs about 4,000,000 |
@@ -342,7 +354,7 @@ stocks share in the wallet, unsaved.
    | Succeeded | `allocate(USDC, amount, ref)`. Nothing to call when `amount` is `"0"` |
    | Reverted | `allocate(USDC, allocUsdMicros, ref)`. Never send the buy again |
    | Refused by the wallet or its scanner | `allocate(USDC, allocUsdMicros, ref)`, and tell the user once what the wallet said: "your wallet refused the stocks part of your savings, so it went into your USDC savings instead". Record when you said it in `/.staq/stocks.json`, and do not say it again |
-   | No receipt yet | Wait. **Never send a second buy, and never call the hub until you know.** A buy cannot be mined after its `deadline`, so once that has passed with no receipt, it did not happen: allocate `allocUsdMicros` |
+   | No receipt yet, before or after the deadline | Keep reconciling the recorded hash. **Never send a second buy, call the hub, or confirm this save until the receipt proves success or reversion.** Passing a deadline does not prove an earlier broadcast did not land |
 
 The hub amount is still subject to "The budget" in `SKILL.md`: read the
 allowance for the amount you are about to allocate, and if it is short, save
@@ -359,10 +371,10 @@ curl -s -X POST "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/saves/confirm
 ```
 
 Send `saveTxHash` for the hub call, if you made one, and `buyTxHash` only if
-the buy's receipt succeeded. A buy that reverted, or never got a receipt before
-its deadline, bought nothing: leave its hash out. Sent anyway, a buy hash with
-no receipt makes STAQ refuse the whole confirm (`409 receipt_unavailable`), so
-even the hub call never counts. No signature: STAQ reads both transactions from
+the buy's receipt succeeded. A buy that reverted bought nothing: leave its hash
+out. A buy with no receipt is unresolved: it has no hub call and no confirmation
+until its recorded hash is reconciled. Sent anyway, a buy hash with no receipt
+makes STAQ refuse the whole confirm (`409 receipt_unavailable`). No signature: STAQ reads both transactions from
 the chain and checks them against the quote. That is how STAQ learns what was
 actually bought, so a stocks share that was not bought goes back to waiting
 instead of being counted as bought, and how a save comes to count in the

@@ -143,7 +143,8 @@ unless a step fails or my savings budget runs low:
    staq skill) and POST it to
    https://api.agentstaq.xyz/v1/wallets/<wallet>/saves
 4. On claimed: true, if it passes the staq skill's checks: when
-   the quote has a stocks buy that passes its checks too, simulate
+   the quote has a stocks buy that passes its checks and its durable
+   stocks-balance reconciliation too, simulate
    it, send it with its gasLimit, and wait for its receipt. Then
    call allocate(USDC, amount, ref) on the STAQ hub
    0xBAd52264820F196258728ddBd2B6eE9076042b5A with the quote's ref:
@@ -271,7 +272,7 @@ visible to the others. Keep STAQ's state there, under `/.staq/`:
 |---|---|---|
 | `/.staq/reserve.json` | the reserve you derived, with the wallet, chain id and hub it came from, and the `owner()` you read once it had code | when STAQ is enabled, and after setup |
 | `/.staq/rule.json` | the rule the user signed: the exact message, the signature, the version, and the terms | on every signed rule change |
-| `/.staq/saves/<chainId>-<sourceTxHash>.json` | one save: its state, your claimant, the hub call's and the buy's transaction hashes, the amounts | before claiming, then updated |
+| `/.staq/saves/<chainId>-<sourceTxHash>.json` | one save: its state, claimant, signed stocks split, checked share and carry, the hub call's and buy's hashes, receipts and amounts | before claiming, then updated |
 | `/.staq/budget.json` | the budget the user agreed, the approval's transaction hash, and when you last asked to top up | at setup, on a top-up, and when you ask |
 | `/.staq/index.json` | the STAQ index once it passed the check: the index, its salt, its pool's fee and tick spacing, and the block you checked at | once, when an index first passes |
 | `/.staq/stocks.json` | the stocks budget the user agreed, the setup's transaction hashes, when you last asked to top it up, and when you told the user their wallet refused a buy | at the stocks setup, on a top-up, and when you ask or tell |
@@ -604,10 +605,11 @@ curl -s -X POST "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/saves/confirm
 ```
 
 Send `saveTxHash` for the hub call, and `buyTxHash` only for a buy whose
-receipt succeeded. A buy that reverted, or never got a receipt before its
-deadline, bought nothing: leave its hash out. Sent anyway, a buy hash with no
-receipt makes STAQ refuse the whole confirm (`409 receipt_unavailable`), so
-even the hub call never counts. It needs no signature: STAQ reads both
+receipt succeeded. A buy that reverted bought nothing: leave its hash out. A
+buy with no receipt is still an unknown outcome: do not call the hub, do not
+confirm the save, and keep reconciling its recorded hash. Sent anyway, a buy
+hash with no receipt makes STAQ refuse the whole confirm
+(`409 receipt_unavailable`). It needs no signature: STAQ reads both
 transactions from the chain and checks them against the quote.
 It is how a save comes to count in the user's total, and how a stocks share
 that was not bought goes back to waiting. A `409` changes nothing: leave it, say
@@ -1166,11 +1168,13 @@ nothing goes into a reserve that cannot yet pay out.
 | Another index | `buy.index` with `buy.indexSalt` fails the STAQ index check: Bankr's factory does not know it, STAQ did not launch it, or its pool is not USDC and the index through the pinned hook. However well formed the call | Refuse |
 | Another router | `buy.to` is not the pinned Universal Router | Refuse |
 | A buy that eats the save | `amount` + `buy.amountIn` is not `allocUsdMicros` | Refuse |
+| An invented stocks balance | `shareOfSave` is not this save's signed split, `waitingBefore` differs from the durable reconciled records, `waitingAfter` does not equal carry + share − buy, or the buy is above carry + share | Refuse. API carry is never permission to buy more |
 | A loose buy | `minAmountOut` more than 1% under `quotedOut`, a stale or distant `deadline`, or a `gasLimit` above `10000000` | Refuse |
 | Any other byte | `buy.data` differs from your rebuild in any word, or has a 37th | Refuse |
 | The index cannot be checked | The quote has a buy, the signed rule has a stocks share, and a call in the STAQ index check errors or cannot be reached | Not a refusal. Save the whole `allocUsdMicros` through the hub, quietly. With no stocks share, it is "A buy the user never signed for" |
 | Below the index's NAV | `minAmountOut`, valued at the index's NAV, is under 95% of `buy.amountIn`, or the NAV cannot be read or is incomplete | Not a refusal. Save the whole `allocUsdMicros` through the hub, quietly |
-| A buy sent twice | Retrying a buy that reverted, or sending another while one has no receipt | Never. Fall back to the hub, or wait for the receipt or the deadline |
+| A buy sent twice | Retrying a buy that reverted, or sending another while one has no receipt | Never. A reverted buy falls back to the hub; an unavailable receipt stays unresolved |
+| An unknown buy treated as failed | The buy deadline passed but its receipt is unavailable | Keep waiting and reconcile the recorded hash. Do not resend the buy, call the hub, or confirm the save. Expiry is not proof that a broadcast did not land |
 | Lowered approvals, or a renewed old one | A stocks setup that reduces a live approval, or renews an expired one above the budget | Never. Raise or extend a live one; renew an expired one at the budget |
 | A redeem that is not this one | `to` is not the checked STAQ index, the stocks go anywhere but the wallet, a list is not empty (a `forfeit` gives a stock's share away), or the shares are not the ones you read | Refuse. Only the exact eight words pass |
 | Saving on a redeem | Running the save after turning stocks into stocks | Never. It is not a trade |
