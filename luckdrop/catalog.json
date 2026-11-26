@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "luckdrop",
+  "provider": "LuckDrop",
+  "providerUrl": "https://luckdrop.app",
+  "logo": "logo.png",
+  "demo": {
+    "title": "luckdrop-chat.txt",
+    "language": "text",
+    "code": "You:    enter me in the LuckDrop prize draw\nBankr:  Your wallet can enter the current draw. The ticket is free; you pay only Base gas.\n        Send the entry transaction to the LuckDrop draw contract on Base? [Yes]\nYou:    yes\nBankr:  Entered (tx 0x...). Your ticket is in the draw.\n\n- later -\nYou:    how is the draw going?\nBankr:  Round 3 of 5 is done. Your ticket is still in. Next round in a few hours.\n\nYou:    enter me in every draw from now on\nBankr:  Done. I will check every few hours and enter when a draw is open."
+  },
+  "setup": [
+    "Install: `install the luckdrop skill from https://github.com/BankrBot/skills/tree/main/luckdrop`",
+    "In Bankr security settings, turn on \"Enable arbitrary contract calls\": entry is a direct call to the LuckDrop draw contract",
+    "Hold a little ETH on Base in your Bankr wallet for gas",
+    "Say \"enter me in the LuckDrop prize draw\", then \"how is the draw going?\", \"claim my LuckDrop welcome grant\" or \"enter me in every draw\""
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "luckdrop",
+    "command": "install the luckdrop skill from https://github.com/BankrBot/skills/tree/main/luckdrop"
+  }
+}
