@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "zap-aero-data",
+  "provider": "Zap Capital",
+  "providerUrl": "https://docs.zap.capital/data/aero/",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "fetch-aero-daily.sh",
+    "language": "bash",
+    "code": "# Fetch today's Base Aero snapshot (top 50 pools, free, no API key)\ncurl -s https://docs.zap.capital/data/aero/latest.json | jq '{date: .snapshot.date_utc, block: .snapshot.block_number, totals: .totals}'\n\n# Top 5 pools by Allocation Power\ncurl -s https://docs.zap.capital/data/aero/latest.json | jq '.pools[:5] | map({rank, pool_name, allocation_pct, fee_pct, volume_24h_usd, gross_swap_fees_24h_usd_est, tvl_usd})'\n\n# Flat CSV for quick tabular inspection\ncurl -s https://docs.zap.capital/data/aero/latest.csv | head -n 6"
+  },
+  "setup": [
+    "No API key, signup, or payment required",
+    "Fetch https://docs.zap.capital/data/aero/latest.json (or latest.csv) once per day after ~06:30 UTC",
+    "Validate against https://docs.zap.capital/data/aero/schema-0.2.json",
+    "Optional: send header X-Zap-Agent: <agent-name>/<version>"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "zap-aero-data",
+    "command": "install the zap-aero-data skill from https://github.com/BankrBot/skills/tree/main/zap-aero-data"
+  }
+}
