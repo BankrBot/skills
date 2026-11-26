@@ -1,11 +1,18 @@
 ---
 name: neuraliquid-signals
-description: Inspect the price of NeuraLiquid's x402 crypto research feed or reuse a day pass to filter dryrun observations by asset and direction for a watchlist or alert agent.
+description: Inspect the price of NeuraLiquid's x402 crypto research feed or filter observations with a day pass, or connect an MCP client for budgeted checkout and revisioned watchlist events.
 ---
 
 # NeuraLiquid Signals
 
 Use this skill when someone wants a directional research alert, wants to check the price, or already has a NeuraLiquid pass. One 5 USDC payment on Base buys 24 hours of repeated reads. An observation contains `direction` (`long` or `short`), `time` (UTC detection time) and `token` (asset symbol). A dryrun observation records a detection. An empty `signals` array is a valid snapshot. Use detection times to suppress repeated alerts about the same asset, direction and time.
+
+
+## Revisioned events and MCP checkout
+
+Inspect the [historical event example](https://futurecast.ml85.xyz/api/v2/signals/example) for free. With an existing x402 pass, call `read_agent_events` in the [NeuraLiquid MCP client](https://github.com/Marcolist/neuraliquid-mcp). Keep its `next_cursor` and send it as `cursor` on the next read, at least 30 seconds later. Each revision identifies the candle, observation time, direction or conflict, and expiry. Direct HTTP clients select `?view=events-v2` on the paid endpoint with their existing bearer token.
+
+For operators who prefer MCP checkout, `buy_or_resume_pass` can buy one 5 USDC Base day pass using a separately configured, authorized wallet and budget. Resume pending purchases with the same private pass file.
 
 ## Check the offer
 

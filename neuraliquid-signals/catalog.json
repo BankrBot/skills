@@ -12,7 +12,8 @@
   "setup": [
     "Inspect the unsigned day-pass offer using Python 3 or the unsigned curl example.",
     "Use an existing private pass file to read snapshots. A new 24-hour pass costs 5 USDC on Base.",
-    "Filter by token and direction. Track detection times to suppress duplicate alerts."
+    "Filter by token and direction. Track detection times to suppress duplicate alerts.",
+    "For revisioned events or budgeted MCP checkout, see https://github.com/Marcolist/neuraliquid-mcp. Use buy_or_resume_pass and read_agent_events."
   ],
   "install": {
     "type": "bankr",
