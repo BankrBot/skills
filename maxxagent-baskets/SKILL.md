@@ -14,9 +14,11 @@ metadata:
 # MAXXAGENT Baskets
 
 MAXXAGENT turns a request in plain English into a basket of Coinbase tokenized stocks on Base. A rule-based agent
-picks the stocks and weights; it never breaks a limit the user sets (a cap per stock, cash to keep, stocks to
-leave out). It does not trade: it returns a proposal and a link where the user reviews it and buys from their own
-wallet. No API key, no account, nothing to sign here.
+picks the stocks and weights and keeps the limits it can (a cap per stock, up to 90% kept in USDC, stocks to leave
+out). When part of a request can't be followed (an unsupported stock, more than 90% in cash), it says so in
+`limits` and sets `needsConfirmation`, and you check with the user before offering to buy. It does not trade: it
+returns a proposal and a link where the user reviews it and buys from their own wallet. No API key, no account,
+nothing to sign here.
 
 ## When to use it
 
@@ -49,14 +51,26 @@ The answer (JSON):
 | `basket[]` | list each stock: `symbol`, `company`, `sharePct` (share of the user's money), `why` (top reasons) |
 | `cashKeptInUsdcPct` | say how much stays in USDC (asked for, or left over so a cap holds) |
 | `limits[]` | confirm each limit: `status` is `kept`, `adjusted` or `not possible`, with `detail` |
+| `needsConfirmation` | when `true`, part of the request couldn't be followed: see the step below before any buy link |
+| `confirmationReasons[]` | what couldn't be followed, in plain words (show these to the user) |
 | `leftOut[]` | explain stocks that were left out, with `reason` |
 | `facts[]` | back up the picks; each fact has `sources` (Chainlink, SEC filings, Base pools) — cite them |
-| `buyUrl` | give the user this link to review and buy the basket from their own wallet |
+| `buyUrl` | give the user this link to review and buy the basket from their own wallet (only once it matches the request) |
 | `buyNote` | repeat it when present (the amount in stocks and the USDC kept) |
 | `riskNote` | when present, say it: live volatility history wasn't loaded yet, so fixed estimates were used this time |
 | `notice` | always show it |
 
-Show the basket as a short table (stock, share, one reason), then the limits, then `buyUrl` and `notice`.
+**Before you show the buy link, check the answer against what the user asked:**
+
+1. If `needsConfirmation` is `true`, don't offer `buyUrl` yet. Show the proposal as a draft, list
+   `confirmationReasons` (e.g. "Netflix isn't one of the 10 supported stocks", "a basket keeps at most 90% in USDC"),
+   and ask how to continue: drop that part, pick from the supported stocks, or not buy at all.
+2. Also compare yourself: every stock the user named or excluded, any cap, the cash share and any weights they set
+   must match `basket`, `cashKeptInUsdcPct` and `limits`. If something they asked for isn't reflected, say so and ask
+   instead of offering to buy.
+3. Only when it matches (or the user agrees to the changes) show the basket as a short table (stock, share, one
+   reason), then the limits, then `buyUrl` and `notice`.
+
 To refine ("replace Microsoft with Apple", "drop Meta"), call again with the same `prompt` and every change so
 far as `then` parameters, oldest first. Keep the same `amount`.
 
