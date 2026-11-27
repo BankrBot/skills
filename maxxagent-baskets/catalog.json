@@ -7,7 +7,7 @@
   "demo": {
     "title": "basket.sh",
     "language": "bash",
-    "code": "curl -s -G \"https://maxxagent.xyz/api/skill/basket\" \\\n  --data-urlencode \"prompt=AI and cloud, anything but Tesla, cap each at 30%, keep 10% in cash\""
+    "code": "curl -s -G \"https://maxxagent.xyz/api/skill/basket\" \\\n  --data-urlencode \"prompt=AI and cloud, anything but Tesla, cap each at 30%, keep 10% in cash\" \\\n  --data-urlencode \"amount=200\""
   },
   "setup": [
     "Install the skill. No API key, account or funds are needed.",

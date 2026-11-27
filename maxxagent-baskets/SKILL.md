@@ -31,11 +31,16 @@ names another stock, still call the endpoint: the answer says why it was left ou
 ```bash
 curl -s -G "https://maxxagent.xyz/api/skill/basket" \
   --data-urlencode "prompt=AI and cloud, anything but Tesla, cap each at 30%, keep 10% in cash" \
-  --data-urlencode "risk=Balanced"
+  --data-urlencode "amount=200"
 ```
 
 - `prompt` (required): the user's request in their own words, up to 500 characters. Pass it through as written.
-- `risk` (optional): `Conservative`, `Balanced` (default) or `Aggressive`.
+- `amount` (optional): the total in USD the user wants to put in, e.g. `200`. If the request already says "$200",
+  you can leave it out. With an amount, `buyUrl` opens the basket with the stock part filled in.
+- `risk` (optional): `Conservative`, `Balanced` (default) or `Aggressive`. Words like "safe" or "aggressive" in the
+  request already set it, so only pass it when the user picks a profile explicitly.
+- `then` (optional, repeatable): follow-up changes to the same basket, in order, e.g.
+  `--data-urlencode "then=replace Microsoft with Apple" --data-urlencode "then=drop Meta"`.
 
 The answer (JSON):
 
@@ -47,12 +52,13 @@ The answer (JSON):
 | `leftOut[]` | explain stocks that were left out, with `reason` |
 | `facts[]` | back up the picks; each fact has `sources` (Chainlink, SEC filings, Base pools) — cite them |
 | `buyUrl` | give the user this link to review and buy the basket from their own wallet |
-| `buyNote` | repeat it when present (how to keep the USDC part) |
+| `buyNote` | repeat it when present (the amount in stocks and the USDC kept) |
+| `riskNote` | when present, say it: live volatility history wasn't loaded yet, so fixed estimates were used this time |
 | `notice` | always show it |
 
 Show the basket as a short table (stock, share, one reason), then the limits, then `buyUrl` and `notice`.
-To refine ("replace Microsoft with Apple", "drop Meta"), call again with the original request and the change
-together in one `prompt`.
+To refine ("replace Microsoft with Apple", "drop Meta"), call again with the same `prompt` and every change so
+far as `then` parameters, oldest first. Keep the same `amount`.
 
 ## 2. Live prices
 
