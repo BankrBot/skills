@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "slug": "blockchain-iq",
+  "provider": "Blockchain IQ",
+  "providerUrl": "https://www.blockchainiq.co",
+  "logo": "logo.png",
+  "demo": {
+    "title": "blockchain-iq-x402.sh",
+    "language": "bash",
+    "code": "# Blockchain IQ: analyst-verified crypto research over x402 (USDC on Base or Solana). No signup, no API key.\n# Free catalog and indexes\ncurl -s \"https://www.blockchainiq.co/api/x402/v1\"           # every resource and price\ncurl -s \"https://www.blockchainiq.co/api/x402/v1/research\"  # coin research index (slugs)\n\n# Paid call: you get HTTP 402 with payment terms; pay with an x402 client and retry\ncurl -s \"https://www.blockchainiq.co/api/x402/v1/research/ondo\"   # one coin's research brief, $0.05\ncurl -s \"https://www.blockchainiq.co/api/x402/v1/brief\"           # market brief, $0.01\n\n# MCP: https://www.blockchainiq.co/api/mcp"
+  },
+  "setup": [
+    "No signup or API key. You need an x402-capable agent or wallet with USDC on Base (or Solana).",
+    "Start with the free catalog: `GET https://www.blockchainiq.co/api/x402/v1`.",
+    "On HTTP 402, check the payee and price against the skill's catalog, confirm with the user, pay and retry to receive JSON.",
+    "Optional: connect the MCP server at https://www.blockchainiq.co/api/mcp"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "blockchain-iq",
+    "command": "install the blockchain-iq skill from https://github.com/BankrBot/skills/tree/main/blockchain-iq"
+  }
+}
