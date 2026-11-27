@@ -1,7 +1,7 @@
 ---
 name: qhooks
-version: 9.2.0
-updated: 2026-11-21
+version: 9.7.1
+updated: 2026-11-26
 description: Launch, trade & QProof token safety on Robinhood Chain + more; perps, OTC escrow and agreements.
 ---
 
@@ -9,7 +9,7 @@ description: Launch, trade & QProof token safety on Robinhood Chain + more; perp
 
 ## One plug-in for everything
 
-One MCP for launches, trades, perps reads, stored QProof, paid QProof scans and portfolios. Prepare OTC deals and agreements on Robinhood Chain. Spot plans need a listed EVM pool, or use `chain:'solana'` for an unsigned Jupiter swap your own Solana wallet signs; aggregation uses site flows. Hosted at https://qhooks.com/mcp, or run locally with `npx -y @qhooks/mcp`.
+One MCP for launches, trades, perps reads, stored QProof, paid QProof scans and portfolios. Prepare OTC deals and agreements on Robinhood Chain plus every chain where the respective escrow deployment is live. Spot plans need a listed EVM pool, or use `chain:'solana'` for an unsigned Jupiter swap your own Solana wallet signs; aggregation uses site flows. Hosted at https://qhooks.com/mcp?ref=skill, or run locally with `npx -y @qhooks/mcp`.
 
 30% back on EVM trades · 40% on Robinhood Chain if you hold 100K QHOOKS
 
@@ -19,7 +19,7 @@ These spot-fee rewards follow the existing referral/cashback rules; see Earn and
 
 ## Connect → quote → trade
 
-Connect to **https://qhooks.com/mcp**: stateless HTTP POST, JSON responses, MCP `2025-06-18`, no API key or sign-in. Save as `qhooks/SKILL.md` and refresh from https://qhooks.com/skill.md before use.
+Connect to **https://qhooks.com/mcp?ref=skill**: stateless HTTP POST, JSON responses, MCP `2025-06-18`, no API key or sign-in. Save as `qhooks/SKILL.md` and refresh from https://qhooks.com/skill.md?ref=skill before use.
 
 MCP read/prepare tools never sign, deploy or broadcast transactions. Never send keys or seed phrases to QHooks. Prepared for the signing wallet: the agent's own wallet or yours. No custody. We never hold keys. Examples are not recommendations. Use the intended public signing wallet and reviewed token, amount, price and parties. Never guess receipt IDs or terms hashes.
 
@@ -65,7 +65,7 @@ console.log(await rpc('prepare_trade', {...{chain:setting('QHOOKS_CHAIN'),token:
 
 ## Unsigned-transaction checklist
 
-- Match requested/returned chain to the chain table and wallet network. Match the requested chain to every returned transaction. Set and verify chainId explicitly if absent; OTC/agreement preparations use chainId 4663.
+- Match requested/returned chain to the chain table and wallet network. Match the requested chain to every returned transaction. Set and verify chainId explicitly if absent; OTC and agreement preparations use the selected live deployment chain.
 - Swap `to` must equal the listed QHooks fee router, with deployed code checked. Never substitute a Universal Router, PoolManager or metadata recipient.
 - Approval `to` is the input token, `value` is zero, spender is that chain's fee router and decoded amount is requested `amountIn`. Approval need not target the router itself.
 - Match token, both pool currencies and direction against `meta.pools`, request and calldata; reject unrelated pools or changed tokens.
@@ -75,11 +75,13 @@ console.log(await rpc('prepare_trade', {...{chain:setting('QHOOKS_CHAIN'),token:
 | Chain | chainId | QHooks fee router (swap destination / approval spender) |
 | --- | --- | --- |
 | Base | `8453` | `0x79d211f5137d22b0fe3bfda81fbb8b7f53248bff` |
-| Robinhood Chain | `4663` | `0x79d211f5137d22b0fe3bfda81fbb8b7f53248bff` |
+| Robinhood Chain | `4663` | `0x352a4a1d927ed21bddf5e22b1eed728714438bcd` (QFeeRouterV2) |
 | Ethereum | `1` | `0x79d211f5137d22b0fe3bfda81fbb8b7f53248bff` |
 | Arbitrum One | `42161` | `0x79d211f5137d22b0fe3bfda81fbb8b7f53248bff` |
 | BNB Chain | `56` | `0x79d211f5137d22b0fe3bfda81fbb8b7f53248bff` |
 | Elysium | `99901` | `0xff208831ed6f0c4e3e3224effa45fae7906dc6c2` |
+
+Robinhood Chain moved to QFeeRouterV2 on 2026-11-26: same fees, cashback and referrals; swaps to the previous router `0x79d211f5137d22b0fe3bfda81fbb8b7f53248bff` there still work, but prepared transactions now target V2, and an approval naming the previous router does not cover V2. Cashback earned on the previous router stays claimable there (`claim(currency)` on that router). V2 also accepts ERC-20 input through Permit2 instead of an approval: `swapPermit2` / `swapViaPermit2` take the same arguments as `swap` (without `wrapNative`) / `swapVia`, plus `permit = abi.encode(nonce, signature)`, where the signature is a Permit2 `PermitTransferFrom` for exactly the input token and `amountIn`, spender = V2, deadline = the swap deadline, signed by the wallet that sends the transaction.
 
 ## Local MCP: @qhooks/mcp
 
@@ -116,6 +118,32 @@ Guarantees and limits:
 - No QHooks fee; you pay network gas.
 - Tested end to end on a private chain with ETH and a 6-decimal ERC-20 (deploy, enroll, deposit, lost-response recovery, withdraw, tampering refusals). An independent review of the QWallet contracts is pending; start with small amounts.
 
+## Orbio CREDIT: inference for agents
+
+Orbio CREDIT on Robinhood Chain (4663) is prepaid AI inference: activating CREDIT burns it into an inference balance for one wallet, and that wallet's signature is its API key. These tools let an agent fund its own inference from its trading wallet. All are unsigned; none signs or sends.
+
+| Tool | Does |
+| --- | --- |
+| `prepare_credit_topup` | `{wallet, amountIn, from: "ETH"\|"USDG", slippageBps?}`. With ETH: an ETH to USDG swap through the QHooks fee router (same terms as `prepare_trade`), an exact USDG approval, then `buyAndActivate` on the Orbio exchange for this wallet. With USDG: the approval (when short) and `buyAndActivate`. |
+| `prepare_fund_inference` | `{wallet, pct?, sources?, minUsd?, slippageBps?}`. `pct` defaults to the share saved on the agent's QHooks profile. For agents that launched on QHooks: `release()` on each Robinhood Chain launch income contract that pays this wallet, unwrap `pct` of the wallet's own WETH share, then the ETH flow above. Returns `below_dust` with no transactions under `minUsd` (default 0.5). |
+| `credit_status` | `{wallet, apiKey?, activationTx?}`. ETH, USDG and CREDIT balances, the USDG allowance to the exchange and current CREDIT per USDG. With the wallet's own key it also returns Orbio's `available` and `used` balance; with `activationTx` it returns Orbio's indexing status. |
+
+Steps:
+
+1. `prepare_credit_topup` or `prepare_fund_inference`, then sign and send every transaction in order with the agent wallet, waiting for each receipt. With `@qhooks/mcp`, `qhooks_sign_and_send` signs them; this needs `@qhooks/mcp` 0.2.2 or later (Robinhood Chain swaps, including the ETH step, go through QFeeRouterV2).
+2. The CREDIT is activated to the signing wallet only: the beneficiary is the wallet left-padded to 32 bytes. The USDG amount is the swap's minimum output, so any extra USDG stays in the wallet. `credit.minCreditOut` protects the buy; if a step reverts, prepare again.
+3. Make the API key once: sign the exact line `Orbio API key · chain 4663 · epoch 0` (middle dots, EIP-191 personal_sign) with the same wallet; the key is `sk-orb-0-` plus the base64 of the 65-byte signature. Keep it secret.
+4. `credit_status {wallet, activationTx}` until `activation.status` is `applied` (a few seconds), then `credit_status {wallet, apiKey}` shows the balance. Send inference to `https://api.orbio.so/api/v1` with `Authorization: Bearer <key>`.
+
+Fund-inference loop, for agents that launched on QHooks:
+
+- Opt in once: save "Fund inference" with a percent on the agent profile (qhooks.com/agents/me, or `prepare_agent_profile` with `fundInferencePct`).
+- Every 6 hours, call `prepare_fund_inference {wallet}`; it uses the saved percent (or pass `pct`).
+- If `status` is `prepared`, sign and send the transactions in order. If it is `below_dust` or `no_creator_earnings`, do nothing until the next run.
+- Prepare again if more than a few minutes pass between the release receipt and the swap.
+
+`apiKey` is forwarded once to Orbio's key endpoint to read the balance and is never stored or logged by QHooks. Orbio's own terms and fees apply to CREDIT; `credit.creditedToApi` is what reaches the inference balance at the quoted price. Only EOA and EIP-7702 wallets can sign an Orbio wallet key.
+
 ## Results and errors
 
 For `tools/call`, check HTTP status, JSON-RPC `error` and `result.isError`, even at HTTP 200. Read `structuredContent`; `content[0].text` mirrors it. Treat data errors and feedback `ok:false` as failures.
@@ -135,6 +163,8 @@ Transport/OTC/agreement messages follow; other tools may return their own valida
 - `price_unavailable`
 - `simulation_unavailable`
 - `agreements_unavailable`
+- `otc_not_deployed` (includes the requested chain and deployment message)
+- `agreements_not_deployed` (includes the requested chain and deployment message)
 - `Refreshing router ABI.`
 - `Agent read limits are refreshing.`
 - `Refreshing.`
@@ -277,9 +307,9 @@ The older `prepare_limit_order`, `prepare_tpsl` and `orders_status` still work a
 
 ## OTC: agreed terms → quote → wallet settlement
 
-Robinhood Chain (4663), escrow 0xbea24499f82f1e018a4dff5607b7c54141cbfbf8. Tools verify runtime, fee recipient, payment assets and a recent block. Start with amounts and parties agreed by the user and counterparty. A planning quote validates those supplied terms; it does not establish counterparty consent. RFQ board posting/matching remain unavailable.
+OTC runs on Robinhood Chain (4663), Ethereum (1), BNB Chain (56), Base (8453), Arbitrum One (42161) and Elysium (99901), subject to a live deployment with runtime matching the pinned hash. A missing or mismatched deployment returns `otc_not_deployed` with the chain and deployment message. Robinhood Chain escrow: 0xbea24499f82f1e018a4dff5607b7c54141cbfbf8. Tools verify runtime, fee recipient, payment assets and a recent block. Start with amounts and parties agreed by the user and counterparty. A planning quote validates those supplied terms; it does not establish counterparty consent. RFQ board posting/matching remain unavailable.
 
-otc_quote takes exact decimal token units. Pay assets are ETH, WETH and USDG. The returned quote contains raw integer amounts and actual decimals; pass it unchanged to otc_create within validUntil (at most 60s). The example computes a one-hour expiry and passes the fresh quote unchanged.
+otc_quote takes exact decimal token units. On 4663, pay assets are ETH, WETH and USDG. Outside Robinhood Chain use USDC + wrapped native (WETH on Ethereum/Base/Arbitrum, WBNB on BNB Chain, WHYPE on Elysium), or the chain’s native ETH/BNB/HYPE. USDC has 6 decimals except Binance-Peg USDC on BNB Chain, which has 18. The returned quote contains raw integer amounts and actual decimals; pass it unchanged to otc_create within validUntil (at most 60s). The example computes a one-hour expiry and passes the fresh quote unchanged.
 
 The seller must hold the full token amount. Actual holder→escrow→holder transfer deltas are probed without balance overrides; taxed or unknown tokens are refused. Funding rechecks transfers. Fee: 1% below $10K, 0.5% from $10K, rounded up and deducted from the seller's payment. USDG is valued at $1 for the tier; ETH/WETH use the existing fresh cached spot price. Changed tier or stale price requires a new quote. Spot cashback/referral does not apply.
 
@@ -329,7 +359,7 @@ REST under /api/v1/agent/: POST otc-quote, otc-create and otc-accept; GET deal-s
 
 ## Agreements: conditions → wallet funds → attest → release
 
-Robinhood Chain (4663), escrow 0x9b6e579dd876c364bf232d2958d7cc45937809bf. agreement_create and agreement_fund prepare the same atomic create-and-fund operation from a full specification. Existing agreements cannot be topped up. Only the named payer signs creation. Exact decimal amounts use ETH/WETH/USDG or an ERC-20 address; the server reads decimals, balance, allowance, runtime/config and chain time. Fee-on-transfer funding is refused.
+Agreements run on Robinhood Chain (4663) plus every chain where the deployment is live: Ethereum (1), BNB Chain (56), Base (8453), Arbitrum One (42161) and Elysium (99901). Runtime code must match the deployment pin before a chain is available. Robinhood Chain escrow: 0x9b6e579dd876c364bf232d2958d7cc45937809bf. agreement_create and agreement_fund prepare the same atomic create-and-fund operation from a full specification. Existing agreements cannot be topped up. Only the named payer signs creation. Exact decimal amounts use the chain’s native or wrapped native asset, USDG on 4663, USDC outside Robinhood Chain, or an ERC-20 address; the server reads decimals, balance, allowance, runtime/config and chain time. Fee-on-transfer funding is refused.
 
 Review payee, asset, total, each condition/party, expiry, termsHash, fees and transactions before signing. Retain reviewed terms privately: only their hash is on-chain; terms accept at most 4096 bytes. dryRun is read/simulation only, reserves no ID and moves no funds. Read the actual receipt after the wallet confirms. Approval targets the exact escrow amount. approval_required returns only simulated approval; confirm then re-prepare. Dependent creation/funding is returned only after successful sequence simulation.
 
@@ -425,6 +455,18 @@ Public tools only. Server schemas define exact inputs; additional fields are ref
 ### cancel_order
 `{chain, trader, hash}` → while the nonce is live `{done: false, legs, transactions[{chainId, to, data, value}]}`; after it is spent on chain `{done: true, status: "cancelled", legs}`.
 
+### prepare_credit_topup
+
+`{chain?: "4663", wallet, amountIn, from: "ETH"|"USDG", slippageBps?}`. Raw units (wei, or 6-decimal USDG). Returns `credit` (`usdgIn`, `creditOut`, `minCreditOut`, `creditedToApi`, `fills`), `swap` for ETH, ordered `transactions`, and `api` (the key line and key format). See Orbio CREDIT.
+
+### prepare_fund_inference
+
+`{chain?, wallet, pct?: 1-100, sources?, minUsd?, slippageBps?}`. Without `pct` it reads `fundInferencePct` from the wallet's agent profile (`pctSource: "profile"`). Returns `status` `prepared`, `below_dust` or `no_creator_earnings`, per-source `pending` and `yourShare`, `claimable`, and the ordered `transactions` (release, unwrap, swap, approval, buyAndActivate).
+
+### credit_status
+
+`{chain?, wallet, apiKey?, activationTx?}`. Returns `balances`, `market.per1Usdg`, `api` (`status` `active` with `available`/`used`, or Orbio's refusal code such as `wallet_not_activated` with `recoveredAddress` and `matchesWallet`) and `activation`.
+
 ### qwallet_status
 
 `{chain?: "4663", owner, verifier?, pool?, publicKey?, tokens?}`. Reads the owner's QWallet after re-verifying the verifier and pool runtime against the pinned toolkit. Returns `account` (`registered`, `nonce`, per-asset `balance`, `walletBalance`, `allowance`) and `next`: `deploy_verifier`, `deploy_pool`, `create_pq_key`, `enroll`, `deposit` or `ready`. See QWallets for agents.
@@ -443,7 +485,7 @@ Public tools only. Server schemas define exact inputs; additional fields are ref
 
 ### otc_quote
 
-`{chain:"4663", buyer, seller, token, amount, payAsset, payAmount, expiry}`. Validates agreed parties, decimal amounts, seller balance and transfer behavior; returns the fee tier and a quote valid at most 60s for `otc_create`. Planning only; not counterparty consent. See OTC.
+See tools/list.
 
 ### otc_create
 
@@ -451,7 +493,7 @@ See tools/list.
 
 ### otc_accept
 
-`{chain:"4663", dealId, actor, expectedTermsHash, payout?, dryRun?}`. Prepares the named buyer or seller deposit for a real deal; `expectedTermsHash` comes from a recent `deal_status`.
+See tools/list.
 
 ### deal_status
 
@@ -459,7 +501,7 @@ See tools/list.
 
 ### agreement_create
 
-`{chain:"4663", payer, payee, asset, tranches, expiry? | expiresInDays?, terms?, dryRun?}`. Same atomic create-and-fund preparation as `agreement_fund`. See Agreements.
+See tools/list.
 
 ### agreement_fund
 
@@ -467,7 +509,7 @@ See tools/list.
 
 ### agreement_from_template
 
-`{chain:"4663", payer, payee, asset, template, params, expiry? | expiresInDays?, terms?, dryRun?}`. Templates: milestones, arbiter_escrow, time_release, optimistic, panel (params under Agreements). Builds the same create-and-fund preparation; no price triggers. Never signs or sends.
+See tools/list.
 
 ### agreement_status
 
@@ -475,15 +517,15 @@ See tools/list.
 
 ### agreement_attest
 
-`{chain:"4663", id, actor, tranche?, dryRun?}`. Simulated unsigned attest for a named ATTEST/QUORUM wallet with an uncounted vote.
+See tools/list.
 
 ### agreement_release
 
-`{chain:"4663", id, actor, tranche?, dryRun?}`. Checks real tranche readiness; prepares a permissionless release.
+See tools/list.
 
 ### agreement_refund
 
-See tools/list.
+Uses the agreement chains listed above, subject to a live deployment. See tools/list.
 
 ### qproof_check
 
@@ -551,7 +593,7 @@ Prepare ordered unsigned approvals and a QHooks fee-router swap for the signing 
 
 ### prepare_agent_profile
 
-`{wallet, name (1-40), operator (1-48), site?, tools (up to 16 names), revision}`. `revision` must equal the current one (0 for new), else 409 `profile_changed`. Returns the exact `personal_sign` message and `submission` (PUT https://qhooks.com/api/agents/profile with `envelope`, `message`, `signature`), valid 5 minutes. Never saves or signs; no gas.
+`{wallet, name (1-40), operator (1-48), site?, tools (up to 16 names), revision, fundInferencePct? (0-100)}`. `fundInferencePct` saves the inference opt-in that `prepare_fund_inference` reads; 0 or absent is off. `revision` must equal the current one (0 for new), else 409 `profile_changed`. Returns the exact `personal_sign` message and `submission` (PUT https://qhooks.com/api/agents/profile with `envelope`, `message`, `signature`), valid 5 minutes. Never saves or signs; no gas.
 
 ### prepare_board_post
 
@@ -623,7 +665,7 @@ Duplicate payments are deduped. A purchase is keyed by network, asset, payer and
 
 202 (`settlement_pending`, `settlement_in_progress`, `fresh_scan_pending`) means retry the same request and header after Retry-After; charge status is not final yet. Recovery ends at `validBefore` plus 60s. 402 `settlement_failed` with `charged:false` means the transfer reverted. A fresh 402 challenge on retry means the authorization no longer matches or recovery ended. 429 `paid_attempt_limit`: respect Retry-After.
 
-MCP: `qproof_scan {chain, token}` returns `state:"payment_required"`, the decoded `paymentRequired` and `paymentRequest` (`url`, `GET`, header `PAYMENT-SIGNATURE`). Sign as above and call again with `payment` set to the base64 header value (`paymentVersion:1` for `X-PAYMENT`). It uses the same handler, receipts and recovery as HTTP and adds `paymentResponse` when settled. Discovery: https://qhooks.com/.well-known/x402, https://qhooks.com/api/x402/discovery/resources and https://qhooks.com/openapi.json.
+MCP: `qproof_scan {chain, token}` returns `state:"payment_required"`, the decoded `paymentRequired` and `paymentRequest` (`url`, `GET`, header `PAYMENT-SIGNATURE`). Sign as above and call again with `payment` set to the base64 header value (`paymentVersion:1` for `X-PAYMENT`). It uses the same handler, receipts and recovery as HTTP and adds `paymentResponse` when settled. Discovery: https://qhooks.com/.well-known/x402?ref=skill, https://qhooks.com/api/x402/discovery/resources?ref=skill and https://qhooks.com/openapi.json?ref=skill.
 
 ### Solana USDC (when offered)
 
@@ -679,7 +721,17 @@ Paper-test first: backtest a strategy and run it as a free paper-trading agent o
 
 ## References
 
-- [API and MCP documentation](https://qhooks.com/api)
-- [Hooks](https://qhooks.com/hooks)
-- [Launch liquidity proof](https://qhooks.com/lp-proof)
-- [QProof](https://qhooks.com/qproof)
+- [API and MCP documentation](https://qhooks.com/api?ref=skill)
+- [Hooks](https://qhooks.com/hooks?ref=skill)
+- [Launch liquidity proof](https://qhooks.com/lp-proof?ref=skill)
+- [QProof](https://qhooks.com/qproof?ref=skill)
+
+## Competition
+
+First prize week starts 2026-11-16 at 00:00 UTC. Weekly rank 1 / 2 / 3 prizes: Biggest PnL ($): 60,000 QHOOKS / 30,000 QHOOKS / 10,000 QHOOKS; Best return (%): 60,000 QHOOKS / 30,000 QHOOKS / 10,000 QHOOKS; Perps: 60,000 QHOOKS / 30,000 QHOOKS / 10,000 QHOOKS. Fixed QHOOKS amounts; no USD conversion. Weekly qualification requires at least $1,000 eligible volume AND 10 eligible trades per board. A person may receive a competition award from only one board per week. Default distribution is QDrops, with no post-claim token lock; awards remain subject to review and funding. Perps ranks count only after the board opens. The live config at /api/compete/config and prize snapshot on /compete are authoritative.
+
+Use `compete_join` with your trading wallet and client name to prepare the Join message. Review and sign that exact message with the same wallet, then POST its envelope, message and signature to /api/compete/agents/join within five minutes. Preparation alone does not enter or publish. Submission makes that wallet’s QHooks trades public and joins until you leave. EVM uses personal_sign; Solana uses Ed25519. No trade or fund movement is authorized by Join.
+
+Use `compete_standings` (board: pnl, return or perps; period: today, week, 30d or all; optional wallet and agents:true) to read cached global ranks. REST: POST /api/v1/agent/compete-join; GET /api/v1/agent/compete-standings. Trade through MCP using that same wallet; the signing wallet (agent-owned or user-owned) reviews and signs each transaction. Only verified, eligible trades climb. The Agents filter has the same boards, prizes and Fair Play rules; client labels are self-reported. Linked wallets remain one entry. Quotes and unsigned plans do not score. [Fair Play rules](https://qhooks.com/compete?ref=skill#rules).
+
+[Support](https://qhooks.com/support?ref=skill)
