@@ -12,12 +12,14 @@
   "setup": [
     "API: https://api.proofofdev.xyz",
     "Site: https://www.proofofdev.xyz",
-    "User needs a Bankr-linked wallet on Base with write API (/wallet/submit)",
+    "Chains: Base (8453) and Robinhood Chain (4663)",
+    "User needs a Bankr-linked wallet with write API (/wallet/submit) on the target chain",
     "Validate lock transactions per references/TX-VALIDATION.md before submit",
     "Repo claims: only .proofofdev/claim.json per references/CLAIM-SCHEMA.json + user confirmation",
-    "Format replies locally — do not paste API replyText/tweetReply verbatim",
+    "Format replies locally \u2014 do not paste API replyText/tweetReply verbatim",
     "Install GitHub App when lock flow returns allowlisted installUrl",
-    "On-chain escrow: 0x76dd4C6ea986684CDf822eC0832e142A2D5C8165 (Base) — see references/TRUST-ONCHAIN.md"
+    "On-chain escrow Base: 0x71A9848e7Cbd70cB7B660e61B4cAEDd224a16eC5 (GitEscrowV3)",
+    "On-chain escrow Robinhood: 0x706038b47ba6d0CC69479bB286d064137B50f6Ae \u2014 see references/TRUST-ONCHAIN.md"
   ],
   "install": {
     "type": "bankr",

@@ -22,9 +22,23 @@ Linked Bankr wallet → header `x-wallet-address: 0x…` on every call.
 ## Lock flow (terminal + X)
 
 ```
+0. POST {API}/api/launch/verify-github  — ALWAYS FIRST, this session
+   Body: { "githubLogin": "their-login", "repo": "owner/repo", "wallet": "0x…", "chain": "base" }
+   (githubLogin, repo, wallet are ALL required in the body.) Save the
+   returned verificationToken (~15 min, bound to login+repo+wallet+chain).
+   On refusal, fix by code, then re-verify:
+   - LAUNCH_APP_NOT_INSTALLED → user installs the app
+     (https://github.com/apps/bankr-vesting/installations/new) and selects the repo
+   - LAUNCH_WALLET_NOT_LINKED → POST {API}/api/agent/link-github
+     { "wallet": "0x…", "githubLogin": "their-login" } → user opens the
+     returned linkUrl once
+   - LAUNCH_VERIFY_BAD_INPUT → a required field is missing/malformed
+   NEVER call step 1 without this token. If any later step answers
+   LAUNCH_VERIFICATION_REQUIRED, come back here — never resend the same call.
+
 1. POST {API}/api/agent/lock
    Header: x-wallet-address: 0x…
-   Body: { "repo": "owner/repo", "token": "Space", "amount": "3.49M", "totalPushes": 10 }
+   Body: { "repo": "owner/repo", "token": "Space", "amount": "3.49M", "totalPushes": 10, "verificationToken": "<token from step 0>" }
 
 2. If installUrl → allowlist-check (github.com/apps/bankr-vesting/installations/new), retry step 1
 
@@ -34,8 +48,9 @@ Linked Bankr wallet → header `x-wallet-address: 0x…` on every call.
    POST https://api.bankr.bot/wallet/submit
    { "transaction": { "to", "data", "value": "0", "chainId": 8453 }, "waitForConfirmation": true }
 
-5. POST {API}/api/agent/confirm-lock
-   Body: { "repo": "owner/repo", "lockTxHash": "0x…" }
+5. Re-run step 0 for a FRESH verificationToken, then:
+   POST {API}/api/agent/confirm-lock
+   Body: { "repo": "owner/repo", "lockTxHash": "0x…", "verificationToken": "<fresh token>" }
 
 6. Format reply locally (references/RESPONSE-SAFETY.md) — lock URL on its own line
 ```
@@ -84,6 +99,7 @@ Claim pushes **do not** count toward vesting milestones. Then proceed with lock 
 - Web UI fallback after Bankr `untrusted_address` block
 - Pushing repo claim files without schema check + user confirmation
 - Skipping `confirm-lock` after on-chain lock (grant won't track pushes)
+- Calling `lock` / `prepare-lock` / `confirm-lock` without a `verificationToken` obtained from `verify-github` in THIS session (403 `LAUNCH_VERIFICATION_REQUIRED` — verify first, never resend the same call)
 
 ## Example curl
 

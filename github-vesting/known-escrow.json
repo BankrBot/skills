@@ -1,13 +1,31 @@
 {
-  "escrowAddress": "0x76dd4C6ea986684CDf822eC0832e142A2D5C8165",
+  "escrowAddress": "0x71A9848e7Cbd70cB7B660e61B4cAEDd224a16eC5",
+  "escrowContract": "GitEscrowV3",
   "chain": "base",
   "chainId": 8453,
-  "explorerUrl": "https://basescan.org/address/0x76dd4C6ea986684CDf822eC0832e142A2D5C8165",
+  "explorerUrl": "https://basescan.org/address/0x71A9848e7Cbd70cB7B660e61B4cAEDd224a16eC5",
   "sourceRepo": "https://github.com/anondevv69/github-vesting",
-  "sourcePath": "contracts/GitEscrow.sol",
+  "sourcePath": "contracts/GitEscrowV3.sol",
   "verifiedOnExplorer": true,
-  "oracleAddress": "0x252b98b9fA80D3644Ebcea6CceAB6293430e64a0",
-  "ownerAddress": "0x252b98b9fA80D3644Ebcea6CceAB6293430e64a0",
+  "oracleAddress": "0x6dfc5fc9fD6E87957AA060c64006cf52b6c034aB",
+  "ownerAddress": "0x6dfc5fc9fD6E87957AA060c64006cf52b6c034aB",
+  "escrowHistory": [
+    {
+      "address": "0x894e36CbCD183BF5ad79Eba7B988529f0FA769c3",
+      "contract": "GitEscrowV2",
+      "status": "SUPERSEDED \u2014 existing grants only (2026-11-26 \u2192 2026-11-27). Releases continue for grants locked into it; never valid for a new prepare-lock response (new Base locks use GitEscrowV3, which allows multiple grants per repo)."
+    },
+    {
+      "address": "0x3625F879C678306E92E2C27F61b9BcD8015E81A7",
+      "contract": "GitEscrow (v1)",
+      "status": "SUPERSEDED \u2014 legacy grants only (2026-11-24 \u2192 2026-11-26). Never valid for a new prepare-lock response."
+    },
+    {
+      "address": "0x76dd4C6ea986684CDf822eC0832e142A2D5C8165",
+      "contract": "GitEscrow (v1)",
+      "status": "SUPERSEDED \u2014 legacy grants only (June 2026; oracle key lost). Never valid for a new prepare-lock response."
+    }
+  ],
   "allowedTransactionSelectors": {
     "erc20Approve": "0x095ea7b3",
     "lock": "0xc9c2dca6",
@@ -17,16 +35,45 @@
   "allowedUrlHosts": {
     "magicLinkHost": "www.proofofdev.xyz",
     "magicLinkPathPrefix": "/link-github",
-    "siteHosts": ["www.proofofdev.xyz"],
+    "siteHosts": [
+      "www.proofofdev.xyz"
+    ],
     "apiHost": "api.proofofdev.xyz"
   },
   "anyErc20OnBase": true,
-  "tokenPolicy": "NO ALLOWLIST. Any ERC-20 on Base can be locked via GitHub vesting. The supportedTokens map below is ONLY for streaming-lock detection (Space → lockAllowance). Never tell users a token is unsupported without calling POST /api/agent/lock.",
+  "anyErc20OnRobinhood": true,
+  "tokenPolicy": "NO ALLOWLIST. Any ERC-20 on Base (8453) or Robinhood Chain (4663) can be locked via GitHub vesting. The supportedTokens map below is ONLY for streaming-lock detection (Space \u2192 lockAllowance). Never tell users a token is unsupported without calling POST /api/agent/lock.",
   "supportedTokens": {
     "Space": {
       "symbol": "Space",
       "address": "0xef703b860a6d422fa00cc67bbbb2662297cb6ba3",
       "streaming": true
+    }
+  },
+  "chains": {
+    "8453": {
+      "chain": "base",
+      "chainId": 8453,
+      "escrowAddress": "0x71A9848e7Cbd70cB7B660e61B4cAEDd224a16eC5",
+      "escrowContract": "GitEscrowV3",
+      "explorerUrl": "https://basescan.org/address/0x71A9848e7Cbd70cB7B660e61B4cAEDd224a16eC5",
+      "oracleAddress": "0x6dfc5fc9fD6E87957AA060c64006cf52b6c034aB",
+      "ownerAddress": "0x6dfc5fc9fD6E87957AA060c64006cf52b6c034aB",
+      "supportedTokens": {
+        "Space": {
+          "symbol": "Space",
+          "address": "0xef703b860a6d422fa00cc67bbbb2662297cb6ba3",
+          "streaming": true
+        }
+      }
+    },
+    "4663": {
+      "chain": "robinhood",
+      "chainId": 4663,
+      "escrowAddress": "0x706038b47ba6d0CC69479bB286d064137B50f6Ae",
+      "explorerUrl": "https://robinhoodchain.blockscout.com/address/0x706038b47ba6d0CC69479bB286d064137B50f6Ae",
+      "oracleAddress": "0x252b98b9fA80D3644Ebcea6CceAB6293430e64a0",
+      "supportedTokens": {}
     }
   },
   "setupPath": "/create",
