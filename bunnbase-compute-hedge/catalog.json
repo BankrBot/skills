@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "bunnbase-compute-hedge",
+  "provider": "BunnBase",
+  "providerUrl": "https://bunnvault.xyz/stocks",
+  "logo": "logo.png",
+  "demo": {
+    "title": "demo.sh",
+    "language": "bash",
+    "code": "# 1. Free: inspect BunnBase's live on-chain B20 stock holdings & Chainlink 24/5 status\nnode scripts/bunnbase.mjs console\n\n# 2. Free: check Morpho VaultV2 live USDC APY on Base Mainnet\nnode scripts/bunnbase.mjs vault\n\n# 3. Paid ($0.02 USDC x402): calculate a B20 compute-hedge basket for $50/mo Anthropic spend\nnode scripts/bunnbase.mjs hedge anthropic 50\n\n# 4. Paid ($0.02 USDC x402): scan NVDAc, GOOGLc, ANTc, MSFTc, AAPLc, METAc spreads on Base\nnode scripts/bunnbase.mjs scanner NVDA,GOOGL,ANT,MSFT,AAPL,META 10"
+  },
+  "setup": [
+    "Install the bunnbase-compute-hedge skill in your agent",
+    "Run free telemetry checks (`console`, `vault`, `balance`) with zero setup",
+    "For paid x402 endpoints (`hedge`, `scanner`, `preflight`, `lend-route`, `verify`), settle the Base USDC challenge via your x402 client or Bankr wallet"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "bunnbase-compute-hedge",
+    "command": "install the bunnbase-compute-hedge skill from https://github.com/BankrBot/skills/tree/main/bunnbase-compute-hedge"
+  }
+}
