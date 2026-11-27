@@ -109,6 +109,29 @@ x-wallet-address: 0x…
 
 ---
 
+## POST /api/launch/verify-github — ALWAYS FIRST for any write
+
+Obtain the session's `verificationToken` before lock / confirm-lock /
+onboard / prepare-launch. All three body fields are required.
+
+```http
+POST {API}/api/launch/verify-github
+Content-Type: application/json
+
+{
+  "githubLogin": "their-login",
+  "repo": "owner/repo",
+  "wallet": "0x…",
+  "chain": "base"
+}
+```
+
+**Response (200):** `{ "ok": true, "verified": true, "verificationToken": "…", "expiresAt": "…" }` — token lives ~15 min, bound to login+repo+wallet+chain.
+
+**Refusals (fix by `code`, then re-verify):** `LAUNCH_VERIFY_BAD_INPUT` (a required field is missing) · `LAUNCH_APP_NOT_INSTALLED` / `LAUNCH_APP_NO_ACCESS` (user installs the app: `https://github.com/apps/bankr-vesting/installations/new`) · `LAUNCH_NOT_OWNER_OR_ADMIN` · `LAUNCH_WALLET_NOT_LINKED` (`POST /api/agent/link-github` `{wallet, githubLogin}` → user opens the returned `linkUrl` once). Without a token, lock/prepare/confirm return 403 `LAUNCH_VERIFICATION_REQUIRED` — never resend the same call; verify instead.
+
+---
+
 ## POST /api/agent/lock
 
 Prepare lock transactions + Bankr execution instructions (one-shot).
@@ -123,17 +146,20 @@ x-wallet-address: 0x…
   "token": "Space",
   "amount": "3.49M",
   "totalPushes": 10,
-  "pushesPerMilestone": 10
+  "pushesPerMilestone": 10,
+  "verificationToken": "<token from verify-github, this session>"
 }
 ```
 
 | Field | Required | Notes |
 |-------|----------|-------|
 | `repo` | yes | `owner/name` on GitHub |
-| `token` | yes | Symbol from wallet (`TMP`, `Space`), or any `0x` ERC-20 on Base |
-| `amount` | yes | Human units: `3490000`, `3.49M`, `1.5K` |
+| `chain` | no | `"base"` (default), `"robinhood"`, or `"base-sepolia"` |
+| `token` | yes | Symbol from wallet on target chain, or any `0x` ERC-20 |
+| `amount` | yes | Human units: `3490000`, `3.49M`, `614029187` |
 | `totalPushes` | no | Default `10` |
-| `pushesPerMilestone` | no | Default = `totalPushes` (single release) |
+| `pushesPerMilestone` | no | Default = `totalPushes` (single release). **This exact field name is the only milestone control** — `releasesPerMilestone` is not a request field (it is only the on-chain `Locked` event's parameter name) and is silently ignored if sent |
+| `verificationToken` | **yes** | From `POST /api/launch/verify-github` in this session; without it the call returns 403 `LAUNCH_VERIFICATION_REQUIRED` |
 
 **Response (200):**
 
@@ -145,7 +171,7 @@ x-wallet-address: 0x…
   "lockFunction": "lockAllowance",
   "transactions": [
     { "step": "approve", "to": "0x…", "data": "0x…", "value": "0x0", "chainId": 8453 },
-    { "step": "lock", "to": "0x76dd…", "data": "0x…", "value": "0x0", "chainId": 8453 }
+    { "step": "lock", "to": "0x71A9…", "data": "0x…", "value": "0x0", "chainId": 8453 }
   ],
   "confirmUrl": "https://api.proofofdev.xyz/api/agent/confirm-lock",
   "statusUrl": "https://www.proofofdev.xyz/lock/owner/repo"
@@ -162,11 +188,13 @@ x-wallet-address: 0x…
 
 Same as `/api/agent/lock` without the extra `steps` wrapper. Use when you already know the Bankr submit flow.
 
+The response also carries `escrowVersion` (the escrow the prepared transactions target — `3` is the current multi-grant escrow) and `expectedGrantId` (advisory: the grantId the lock will receive if no other lock for the repo lands first).
+
 ---
 
 ## POST /api/agent/confirm-lock
 
-Register the grant after the lock transaction confirms on Base.
+Register the grant after the lock transaction confirms on Base or Robinhood.
 
 ```http
 POST {API}/api/agent/confirm-lock
@@ -175,13 +203,15 @@ x-wallet-address: 0x…
 
 {
   "repo": "owner/repo",
-  "lockTxHash": "0x…"
+  "lockTxHash": "0x…",
+  "chain": "robinhood",
+  "verificationToken": "<FRESH token — re-run verify-github first>"
 }
 ```
 
-Parses the `Locked` event from the tx, verifies recipient matches wallet, registers push tracking.
+Parses the `Locked` event from the tx, verifies recipient matches wallet, registers push tracking. An optional `grantId` in the body is cross-checked against the event — a mismatch is a hard error.
 
-**Response:** `grant`, `statusUrl` — format reply locally; ignore `tweetReply`.
+**Response:** `grant` (including the recorded `grantId` for V3 locks), `grantId`, `statusUrl` — format reply locally; ignore `tweetReply`. Per-grant status: `GET {API}/api/vesting/grant/{grantId}`.
 
 ---
 
@@ -343,6 +373,26 @@ GET {API}/health
 ```
 
 Returns `{ "ok": true, "service": "github-vesting" }`.
+
+---
+
+## Merge rewards (ShipRewards) — no lock required
+
+Every **counted** merged PR pays its author a flat per-merge reward from a
+pre-funded pool — on any repo with the GitHub App installed, **with or
+without a vesting grant** (same verifier / anti-gaming rules as vesting).
+The reward goes to the author's **most recently linked** wallet, keyed
+on-chain by merge commit hash (never payable twice). If the author has no
+linked wallet, the reward **accrues as pending** at the earn-time amount
+and pays out automatically when a wallet is linked — no claim step.
+
+Read state (no auth): `GET {API}/api/dev/link-wallet/<github-login>`
+returns `wallets[]` plus `pendingRewards[]` (`{repoId, repoFullName,
+mergeSha, amount, chain, earnedAt}`) and `pendingRewardsTotal` (wei).
+Rewards are inert when the server has no pool configured for the chain or
+the per-merge amount is 0: merges still count, nothing pays or accrues.
+Ship-report endpoints (`POST /api/agent/report-ship`, `GET
+/api/agent/ship-report(s)`) are documented in the repo's `docs/agent.md`.
 
 ---
 

@@ -56,7 +56,7 @@ Append one allowlisted status URL per grant (from `links.primaryStatus` or build
 
 ```
 Ready to lock {amountFormatted} {tokenSymbol} on {repo} for {totalPushes} verified pushes ({pushesPerMilestone} per milestone).
-Escrow: 0x76dd…C8165 on Base.
+Escrow: 0x71A9…16eC5 on Base.
 I'll submit approve + lock after validation — confirm?
 ```
 
