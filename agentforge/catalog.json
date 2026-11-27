@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "agentforge",
+  "provider": "AgentForge",
+  "providerUrl": "https://agentforge-taupe.vercel.app",
+  "logo": "logo.png",
+  "demo": {
+    "title": "agentforge-preflight.sh",
+    "language": "bash",
+    "code": "# Free: see the price and input schema\nbankr x402 schema https://agentforge-taupe.vercel.app/v1/preflight\n\n# Before /wallet/submit: simulate the exact transaction and screen it ($0.008)\nbankr x402 call https://agentforge-taupe.vercel.app/v1/preflight -X POST \\\n  -d '{\"chain\":\"base\",\"from\":\"0xYourBankrWallet\",\"transactions\":[{\"to\":\"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913\",\"data\":\"0x095ea7b3...\",\"value\":\"0\"}]}' \\\n  --max-payment 0.01\n# -> {\"verdict\":\"proceed|caution|avoid\",\"summary\":\"...\",\"reasons\":[...],\"checksRun\":[...],\"skipped\":[]}\n\n# Before buying a token through a Bankr prompt: rug-check it ($0.012)\nbankr x402 call https://agentforge-taupe.vercel.app/v1/preflight -X POST \\\n  -d '{\"chain\":\"base\",\"tokens\":[\"0x4ed4e862860bed51a9570b96d89af5e1b0efefed\"]}' --max-payment 0.02\n\n# Before a send: sanctions and scam screening ($0.003)\nbankr x402 call https://agentforge-taupe.vercel.app/v1/address-check -X POST \\\n  -d '{\"addresses\":[{\"address\":\"0x000000000000000000000000000000000000dEaD\",\"chain\":\"base\"}]}' --max-payment 0.01"
+  },
+  "setup": [
+    "No install, API key or account: every check is plain HTTP behind x402 (USDC on Base)",
+    "Pay from your Bankr wallet with `bankr x402 call ... --max-payment 0.01` (preflight is $0.008 plus $0.004 per token checked; signature-check and address-check are $0.003); calls that fail are not charged",
+    "Before every /wallet/submit, approval, swap or typed-data signature, send the same transaction or typed data to /v1/preflight: proceed continues, caution goes to the user, avoid stops",
+    "Read-only: AgentForge never signs or moves funds. Results are risk signals, not investment advice",
+    "Verify: `bankr x402 schema https://agentforge-taupe.vercel.app/v1/preflight` shows the live price and input schema (free)"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "agentforge",
+    "command": "install the agentforge skill from https://github.com/BankrBot/skills/tree/main/agentforge"
+  }
+}
