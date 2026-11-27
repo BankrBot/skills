@@ -42,8 +42,14 @@ Step 5 — before the first trade or live-agent call: GET https://og.nexustradin
 **⛔ DO NOT skip this.** No session = `401 session_required` on every authenticated endpoint.
 **⛔ DO NOT ask the user for a signature.** You have `sign_message` — use it yourself.
 **⛔ NEVER sign `nexus-trading-key-v1`.** That was the old static signature: it never expired, so any copy was a
-permanent trading key. It is retired. If an endpoint answers `walletSig_required`, it is out of date: stop and
-tell the user, never fall back to it.
+permanent trading key. It is deprecated and being migrated out, not hard-retired yet: some legacy endpoints may
+still accept it. Don't rely on that. If an endpoint answers `walletSig_required`, it is out of date: stop and tell
+the user, never fall back to it.
+**A wallet that ever signed `nexus-trading-key-v1` is not fully migrated until its legacy Orderly key is revoked.**
+A v2 session alone doesn't close that: any old copy of the signature still re-derives the key. Registering through
+`POST /v2/key/bankr-register` revokes it: check the reply's `v1Retire.status`. `removed` or `not_registered` = done,
+and from then on the old signature gets `401 v1_retired`. Anything else (e.g. `skipped_in_use` while a v1 agent
+holds a position) = still live: tell the user, and register again once that's cleared.
 
 ---
 
