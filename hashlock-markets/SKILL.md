@@ -99,7 +99,7 @@ If you are a chat assistant (Claude, ChatGPT, Grok, Hermes…) helping a person 
 no wallet and must not hold their swap secret. Connecting the server signs the person in on the Hashlock site
 (OAuth); every thread and swap you read carries `dealUrl`, that deal's page on the same site.
 
-- **You do:** read the asset list and the board, read quotes (`list_rfq_threads`, `get_thread`), and post a request
+- **You do:** read the asset list and the board, read quotes (`list_rfq_threads`, `get_thread`; `list_events` says where to look), and post a request
   (`create_rfq`) the person asked for.
 - **Only on the person's explicit instruction**, because each one binds them to a price or sets where they are
   paid: `create_rfq`, `quote_rfq`, `propose_price`, `accept_proposal`, `accept_terms` and `set_swap_address`. Accept only when they are NOT the initiator: if the server
@@ -243,8 +243,11 @@ A token you launched or hold can trade here block-for-block once it is listed �
    does what"). Selling, hold it before you post; buying, hold the quote asset at
    the price you will accept, and check again before `accept_terms`. `create_rfq` checks balances only
    roughly, so passing it does not prove you can fund.
-2. Collect quotes: `list_rfq_threads` / `GET /v1/rfqs/{id}/threads` lists the thread each maker's quote
-   opened. Poll it, or register a `quote.created` webhook if you have a public URL.
+2. Collect quotes: call `list_events` / `GET /v1/events` with the `cursor` you kept from your last call, and
+   keep the one it returns, also when no event came (or register a webhook if you have a public URL). Read
+   the thread any event names (`threadId`) with `get_thread`. Events are hints and one can be missing:
+   `list_rfq_threads` / `GET /v1/rfqs/{id}/threads` is the record, every maker's thread on your RFQ, so read
+   it before you choose a quote.
 3. Negotiate in a thread (`get_thread`): `propose_price` to counter, `accept_proposal` to take the other
    side's pending price. A price you propose is a price you agree to (as the initiator, pass your hashlock
    with it); taking the other side's with `accept: true` (and, as the initiator, your hashlock) agrees the
@@ -288,8 +291,10 @@ with a new one, the first may be the one that counted. Your role is on the swap:
 
 ## 5. Settle
 
-Legs: `a` is funded by the maker, `b` by the taker. Follow progress with `swap_status` /
-`GET /v1/swaps/{id}` (all your deals: `list_swaps`), or with `swap.*` webhooks.
+Legs: `a` is funded by the maker, `b` by the taker. Follow every open swap with `swap_status` /
+`GET /v1/swaps/{id}` (all your deals: `list_swaps`), and check it again before each timelock: the swap, not
+an event, is the record, and an event can be missing. `list_events` (or `swap.*` webhooks) tells you when to
+look sooner: each `swap.*` and `secret.revealed` event names the swap that moved.
 
 **Which wallet does what** — one rule per chain; follow it and the builders line up. "Your wallet" below
 means your login wallet on that chain or one you added with an authorisation (see "Your wallets"):
@@ -382,7 +387,8 @@ again.
 3. `create_rfq { direction: "sell_base", baseAssetId: <token>, baseAmount: <2,000,000 × 10^decimals, from
    the registry — "2000000000000000000000000" for 18 decimals>, quoteAssetId: <USDC on Base>,
    ttlSeconds: 3600 }`.
-4. Poll `list_rfq_threads`; counter weak quotes with `propose_price`, accept the best at a price you computed
+4. Call `list_events` with the cursor you kept and read each thread an event names (`get_thread`); before
+   choosing, read them all with `list_rfq_threads`. Counter weak quotes with `propose_price`, accept the best at a price you computed
    (`accept_terms` with your hashlock).
 5. Settle (§5). Both legs on Base, so set addresses with `leg`. You fund the tokens plus the taker fee on
    top (in the token), and receive the full agreed USDC on Base. If the deal never completes you get the
