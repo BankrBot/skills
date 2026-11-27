@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "maxxagent-baskets",
+  "provider": "MAXXAGENT",
+  "providerUrl": "https://maxxagent.xyz",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "basket.sh",
+    "language": "bash",
+    "code": "curl -s -G \"https://maxxagent.xyz/api/skill/basket\" \\\n  --data-urlencode \"prompt=AI and cloud, anything but Tesla, cap each at 30%, keep 10% in cash\" \\\n  --data-urlencode \"amount=200\""
+  },
+  "setup": [
+    "Install the skill. No API key, account or funds are needed.",
+    "Ask for a basket in plain English, e.g. \"AI and cloud stocks, no Tesla, max 30% each\".",
+    "Open the returned link to review the basket and buy it from your own wallet (eligible non-US persons only)."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "maxxagent-baskets",
+    "command": "install the maxxagent-baskets skill from https://github.com/BankrBot/skills/tree/main/maxxagent-baskets"
+  }
+}
