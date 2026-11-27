@@ -41,7 +41,8 @@ All price + market data for a symbol in one call.
 | HTTP | Meaning |
 |---|---|
 | 400 | Bad request — missing params, validation failed, or Orderly error |
-| 401 | Auth failure — missing walletSig, wallet not registered, or invalid Bankr API key |
+| 401 | Auth failure — missing or expired `session` (`session_required`: sign a fresh one), or an invalid Bankr API key |
+| 409 | `key_required` / `key_expired` — the wallet has no live trading key: run the Registration Flow, then retry |
 | 403 | Forbidden — Bankr key has `allowedRecipients` set |
 | 404 | Not found — symbol, order, or resource doesn't exist |
 | 500 | Worker internal error — do not retry |
@@ -49,7 +50,8 @@ All price + market data for a symbol in one call.
 
 | `error` field | Cause | Fix |
 |---|---|---|
-| `walletSig_required` | Missing walletSig or walletAddress | Call sign_message first |
+| `session_required` | Missing, expired or ended session, or no walletAddress | Mint and sign a fresh session (`GET /v2/session/new`), retry once |
+| `walletSig_required` | An out-of-date endpoint still asking for the retired static signature | Stop and tell the user; never sign `nexus-trading-key-v1` |
 | `wallet_not_registered` | No Orderly account in KV | Run registration flow |
 | `insufficient_margin` | Not enough free collateral | Reduce size, add leverage, or deposit |
 | `below_min_notional` | Order below Orderly minimum (~$10) | Increase notional |
@@ -77,7 +79,7 @@ All price + market data for a symbol in one call.
 | Orderly public API | ~20 req/s |
 | Bankr /wallet/sign | Avoid calling more than once per trade |
 
-**Best practice:** One `sign_message` per session. Reuse walletSig for all endpoints — don't re-sign before each call.
+**Best practice:** One session signature per 24 hours. Reuse the `session` object for all endpoints — don't re-sign before each call. Only the going-live challenge is signed per action.
 
 ---
 
