@@ -2,7 +2,10 @@
 
 Buy, sell, swap and bridge through the agent, or swap directly with the CLI or Wallet API. Limit, stop, DCA and TWAP orders are in [automation.md](automation.md); tokenized equities in [tokenized-stocks.md](tokenized-stocks.md).
 
-Swaps run on Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain and Solana, and across them (bridging is a cross-chain swap).
+Swaps run on Base, Ethereum, Polygon, Unichain, World Chain, Arbitrum, BNB Chain, Robinhood Chain and Solana, and across them (bridging is a cross-chain swap), plus Elysium on its own pools only.
+
+- **Fees:** Bankr charges a 0.5% swap fee, 0.15% with Bankr Club. Some swaps carry none; a Wallet API quote's `feeBps` shows what applies.
+- **Unscanned chains:** no token scanner covers World Chain or Elysium, so Bankr checks a token can be sold back before buying it. A buy with nobody in the turn (an order, automation, webhook, Agent API prompt or Wallet API swap) needs the wallet to have accepted the token's risk, which Bankr asks for when an order for it is placed in chat or on the Trade page; otherwise it's refused (`403` on the Wallet API).
 
 ## Agent
 

@@ -13,7 +13,7 @@ These are enforced where transactions are signed, so they cover chat, the agent,
 | Daily spending limit | $500 per rolling 24h | Rejects a transaction that would push USD outflow past the limit |
 | Per-transaction limit | $500 | Rejects any single transaction priced above the limit |
 | Price impact limit | On, 15% | Rejects a swap whose estimated price impact exceeds the limit (adjustable 1–100%, up to 25% without MFA) |
-| Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown. While on, `/wallet/sign` and `sign_data` sign typed data only as a standard token permit or transfer authorization whose spender or recipient is listed (or your own), and refuse transactions, 32-byte messages and all other typed data (orders and NFT listings included), since their recipient can't be checked; plain messages still sign. Raw calls are checked on their `to` address only when they send native value; one that sends none isn't checked, because Bankr doesn't decode the recipient from calldata. Turn off arbitrary contract calls to block those |
+| Permitted recipients | Off | Only allowlisted addresses (plus your own) can receive funds; new entries wait out a cooldown. While on, `/wallet/sign` and `sign_data` sign typed data only as a standard token permit or transfer authorization whose spender or recipient is listed (or your own), and refuse transactions, 32-byte messages and all other typed data (orders and NFT listings included), since their recipient can't be checked; plain messages still sign. Raw `/wallet/submit` is refused while it's on, for the same reason. The agent's raw calls are checked on their `to` address only when they send native value; one that sends none isn't checked, because Bankr doesn't decode the recipient from calldata. Turn off arbitrary contract calls to block those |
 | Allow NFT transfers | Off | Turns on only for 10, 30, 60 or 1440 minutes. Off blocks NFT sends, direct ERC-721/1155 transfer calls, operator approvals (`setApprovalForAll`, ERC-721 `approve`) and signed NFT permits, raw ones included; on has no count with MFA and allows 5 per rolling 24h without it. Marketplace sales and revocations aren't counted; NFTs moved inside a batch or smart-wallet call (multicall, Safe, ERC-7579) are |
 | Response channels | All on | Per channel (X, Farcaster, Telegram). Bankr stops replying on a disabled channel; Telegram `/start` and wallet linking stay live |
 
@@ -61,8 +61,8 @@ Every key uses the `bk_...` format and carries independent settings, managed at 
 
 | Setting | Gates | New-key default |
 |---------|-------|-----------------|
-| `walletApiEnabled` | `/wallet/swap-quote`, `/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay` and creator-fee claims. `/wallet/me` and `/wallet/portfolio` work with any key | On |
-| `agentApiEnabled` | `/agent/*`: prompt, job status, cancel, project pages | On |
+| `walletApiEnabled` | `/wallet/swap-quote`, `/wallet/swap`, `/wallet/transfer`, `/wallet/bridge*`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay` and creator-fee claims. `/wallet/me` and `/wallet/portfolio` work with any key | On |
+| `agentApiEnabled` | `/agent/*` (prompt, job status, cancel, project pages), plus files, x402 Cloud, webhooks, skills, MCP servers and apps | On |
 | `tokenLaunchApiEnabled` | `/token-launches/deploy` and the agent's launch tool | On |
 | `llmGatewayEnabled` | `llm.bankr.bot` and `/llm/credits/*` | Off |
 | `readOnly` | See [Read-only keys](#read-only-keys) | Off (keys from `bankr login siwe` start read-only) |
@@ -73,9 +73,9 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### Read-only keys
 
-- Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay`), token deploys and fee or vesting claims answer `403`. Reads work, including `/wallet/swap-quote`.
+- Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/bridge/deposit` and `/withdraw`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay`), token deploys, fee or vesting claims and LLM credit transfers answer `403`. Reads work, including `/wallet/swap-quote`.
 - `/agent/prompt` still works, but the agent session gets only read tools (prices, balances, portfolio, research). Asked to transact, it explains that the key is read-only.
-- **Read-only doesn't cover account endpoints.** Bankr Club, LLM credit top-ups, Files, x402 Cloud, Webhooks and project pages don't check it, so a read-only key can still buy a Club subscription or, with the gateway flag, top up credits from the wallet.
+- **Read-only doesn't cover account management.** A read-only key can still buy or cancel a Bankr Club subscription and, with the gateway flag, top up credits from the wallet, auto top-up included. Writes to files, x402 Cloud, webhooks and project pages answer `403`.
 
 ### IP allowlist
 
@@ -83,7 +83,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### Recipient allowlist
 
-`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer`, a deploy's fee recipient, and an x402 Cloud endpoint's payout address (deploying one or changing its payout to an unlisted address answers `403 Restricted API key`). A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the list for the transfer's chain (`solana` on Solana, `evm` otherwise), so a key with only one chain's list can't send on the other. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
+`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer`, `/wallet/x402-pay`, LLM credit transfers, a deploy's fee recipient, and an x402 Cloud endpoint's payout address (deploying one or changing its payout to an unlisted address answers `403 Restricted API key`). A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the list for the transfer's chain (`solana` on Solana, `evm` otherwise), so a key with only one chain's list can't send on the other. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
 
 **A non-empty allowlist on either chain also refuses operations whose recipient can't be checked:**
 
@@ -127,7 +127,7 @@ Max Mode means `maxMode` on the request or a Max Mode model saved on the wallet,
 
 ### Other limits
 
-- Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`) are limited to 10 requests per minute per IP.
+- Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/bridge/deposit` and `/withdraw`, `/wallet/sign`, `/wallet/submit`) share a limit of 10 requests per minute per IP.
 - Minting keys (the dashboard, `bankr login email`, `bankr login siwe`) is limited to 20 attempts per hour per IP.
 - Token launches have their own quotas; see [token-deployment.md](token-deployment.md).
 

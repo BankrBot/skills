@@ -17,6 +17,8 @@ The deploy, quote-token and fee endpoints are in the [OpenAPI spec](https://docs
 - `bankr launch --chain` takes `base`, `robinhood` or `arbitrum`. Launch on Arc through the agent ("launch X on arc"), the web form or the deploy API (`"chain": "arc"`).
 - Launching needs no tokenized-stock location verification — not for a Robinhood Chain memecoin, not for a stock-paired pool; only trading the stock itself does. Launches have their own region gate (see [Limits](#limits-and-eligibility)).
 
+To launch from your own code with your own wallet, or run your own launchpad on Bankr's Uniswap v4 hook, use the Launch SDK (`@bankr/launch-sdk`): [docs](https://docs.bankr.bot/token-launching/launch-sdk/overview).
+
 ## Launching
 
 ```bash
@@ -158,7 +160,7 @@ Both providers share these; the gates run on every launch path (API, web, agent 
 | Simulations | 20 per wallet per 24 h. They never consume a launch slot, but are refused once the wallet's 3 launches are used |
 | Same token name | 3 per account per hour; 10 across all accounts per hour |
 | Fee-recipient address | 20 launches per 24 h across all accounts |
-| Per network (IP) | About 10 successful non-partner deploys per client IP per 24 h (`429` "Too many token deployments from this network") — the ceiling a single deploying host hits first, so pace deploys |
+| Per network (IP) | 10 successful non-partner API or web deploys per client IP per 24 h (`429` "Too many token deployments from this network") — the ceiling a single deploying host hits first, so pace deploys |
 | Email-only wallet | Can't launch until 72 h old; linking an X, Farcaster or Telegram account lifts the wait |
 | Region | Launches are geo-gated |
 | Bankr Club gate | A runtime switch that may be on. When it is, a wallet without Bankr Club gets `403` "Token launches are available to Bankr Club members only."; partner deploys are exempt |
