@@ -17,6 +17,8 @@ The deploy, quote-token and fee endpoints are in the [OpenAPI spec](https://docs
 - `bankr launch --chain` takes `base`, `robinhood` or `arbitrum`. Launch on Arc through the agent ("launch X on arc"), the web form or the deploy API (`"chain": "arc"`).
 - Launching needs no tokenized-stock location verification — not for a Robinhood Chain memecoin, not for a stock-paired pool; only trading the stock itself does. Launches have their own region gate (see [Limits](#limits-and-eligibility)).
 
+To launch from your own code with your own wallet, or run your own launchpad on Bankr's Uniswap v4 hook, use the Launch SDK (`@bankr/launch-sdk`): [docs](https://docs.bankr.bot/token-launching/launch-sdk/overview).
+
 ## Launching
 
 ```bash

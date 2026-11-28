@@ -64,7 +64,7 @@ curl -X POST "https://api.bankr.bot/wallet/submit" \
 Raw submissions are checked against the wallet's security settings (see [safety.md](safety.md)), and a blocked one is rejected **before** anything is broadcast:
 
 - The native `value` is priced in USD and checked against the **per-transaction** and **daily** limits, and a submitted transaction counts toward the rolling daily total.
-- The wallet's **permitted-recipients** list is enforced on `to`, but only when `value > 0`. Calldata with no native value counts as **$0** and isn't recipient-checked, because the recipient can't be read out of arbitrary calldata.
+- While the wallet's **permitted-recipients** list is on, every raw submission is refused (`RECIPIENT_NOT_PERMITTED`), because calldata can't show who it pays. Send tokens through `/wallet/transfer`, which checks the recipient, or turn the list off. Calldata with no native value counts as **$0** toward the limits.
 - **"Enable arbitrary contract calls" must be on.** While it's off, `/wallet/submit` is blocked outright, and an account without MFA can't turn it on.
 
 **A `403` comes back in one of two shapes, so handle both.** Key checks and the pause and arbitrary-calls switches run at the route, before the safety guard, and answer with a plain `error` and **no `errorCode`**:
@@ -83,8 +83,7 @@ Everything the safety guard rejects carries a machine-readable `errorCode` along
 |-------------|---------|
 | `PER_TX_LIMIT_EXCEEDED` | The transaction's USD value is above the per-transaction limit |
 | `DAILY_LIMIT_EXCEEDED` | It would push rolling-24h outflow past the daily limit |
-| `RECIPIENT_NOT_PERMITTED` | `to` isn't on the permitted-recipients list |
-| `RECIPIENT_COOLDOWN` | `to` was added recently and is still in its cooldown |
+| `RECIPIENT_NOT_PERMITTED` | The permitted-recipients list is on, which refuses every raw submission |
 | `PRICING_UNAVAILABLE` | USD pricing failed while a limit was enabled, so it failed closed |
 
 Branch on `errorCode` where there is one, and don't read its absence as "not a security rejection": a paused wallet is a `403` with no code. Never branch on the message text.
