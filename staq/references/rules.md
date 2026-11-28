@@ -24,7 +24,7 @@ the user, echoing the exact rate, before signing. A misheard "fifty" for
 
 `types` is a non-empty subset of `buy`, `sell`, `send`.
 
-A save below $0.01 is dust and is skipped rather than transferred.
+A save below $0.01 is dust and is skipped rather than saved.
 
 ## The signed message
 
@@ -32,16 +32,47 @@ Exact format. Line order matters, unknown lines are rejected, and a duplicated
 field is rejected rather than last-one-wins.
 
 ```
-STAQ rule update v1
+STAQ rule update v2
 Wallet: 0xYOURWALLET
 Chain: 8453
 Enabled: true
 Mode: percent
 Rate: 1000 bps
 Types: buy,sell,send
+Split: morpho=10000,stocks=0
 Nonce: <64 hex chars from /v1/auth/nonce>
 Issued: 2026-09-18T10:00:00.000Z
 ```
+
+`/v1/auth/nonce` returns this message filled in as `template`, starting from the
+user's current rule. **Never sign the template as it came.** Build every line
+yourself:
+
+- `Nonce` and `Issued` are the only lines you take from the template.
+- `Wallet` is the user's wallet and `Chain` is `8453`.
+- Every other line comes from the rule you hold in `/.staq/rule.json`, with
+  only the change the user asked for.
+- Then compare. Before the user's change, your lines must match the template's
+  line for line. If one differs, the rule was changed somewhere you did not
+  see: sign nothing until you have settled it with "When your copy of the rule
+  is out of date" in `SKILL.md`, then build again.
+- With no rule yet there is nothing to compare: build from the user's choices,
+  with `Types: buy,sell,send` and `Split: morpho=10000,stocks=0` unless they
+  chose otherwise.
+
+The template is a cross-check, never a source. Signed as it came, a template
+that widened the rate, the types or the stocks share would change the rule
+without the user asking.
+
+**`Split` is how much of each save goes into stocks**, in basis points of the
+save: `morpho=` the USDC part, `stocks=` the stocks part. The two must add up
+to `10000`. `morpho=10000,stocks=0` is all USDC, the default; "half in stocks"
+is `morpho=5000,stocks=5000`. It splits the save, not the trade: the rate still
+decides how much is saved. A stocks share is only ever set because the user
+asked for stocks, after the offer in `SKILL.md`, "Buying stocks".
+
+A `STAQ rule update v1` message, which has no `Split` line, is still accepted,
+and means all USDC.
 
 A fixed rule replaces the `Rate` line with an amount in micro-dollars, and
 carrying both lines is rejected:
@@ -56,11 +87,12 @@ places, so money never passes through a float.
 
 ## Flow
 
-**Before step 1, on a first enable: the reserve must already have code.** Derive
-it (below), `eth_getCode` it, and if it is empty run the one-time setup in
-`claiming.md` first, then read `owner()`. If the setup does not complete, sign
-nothing: an enabled rule with no contract behind it would only send savings
-somewhere they cannot yet come back from.
+**On a first enable, sign the rule first, then run the one-time setup.** The
+rule moves no money: every quote for a reserve with no code is a skip, so a
+rule with no contract behind it saves nothing. After the rule, derive the
+reserve (below) and `eth_getCode` it. If it is empty, run the setup in
+`claiming.md`, then read `owner()`. If the setup does not complete, saving has
+not started: tell the user, and nothing is saved until it does.
 
 ```bash
 # 1. Challenge

@@ -7,19 +7,24 @@ curl -s "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/summary"
 ```
 
 Returns the reserve address, live balances read from chain, the vault position,
-and lifetime saved in micro-dollars. Each balance carries `earning`, which is
-true only for an asset with a pinned vault. If any balance is idle, tell the
-user which and why rather than presenting one total as though all of it were
-at work. Divide by 1,000,000 for dollars, and format
-only at the moment you show it to the user.
+the three buckets (savings, stocks and what waits for stocks, see `stocks.md`),
+and lifetime saved in micro-dollars. `balances` is what sits idle in the
+reserve: every entry there is `earning: false`, and `canEarn` says whether its
+asset could go into the vault. `deposited` is what is actually in the vault,
+with its current value. Only `deposited` is earning. (Older API versions marked
+idle USDC `earning: true` because a vault exists for it, and had no `deposited`;
+if you see that shape, read `balanceOf(reserve)` on the pinned vault before
+calling anything earning.) Report idle and earning separately, and say why a
+balance is idle, rather than presenting one total as though all of it were at
+work. Divide by 1,000,000 for dollars, and format only at the moment you show it
+to the user.
 
 If the API is unreachable, say so. "I can't reach STAQ right now" is true;
 reporting zero is not, and the difference matters to someone deciding whether
 something has gone wrong.
 
-Balances come from the chain, so this keeps working whether or not STAQ's
-backend is healthy. Everything is also visible on Basescan at the reserve
-address.
+Balances are read live from the chain, not from STAQ's own records. If the
+API is down, everything is still visible on Basescan at the reserve address.
 
 ## Claiming
 
@@ -64,15 +69,19 @@ Called "activation" by the API, whose endpoint is `/activate`. To a user, say
 **a one-time setup, under a cent**: "activate", "deploy" and "reserve" mean
 nothing to them.
 
-A reserve address is derived on chain before any contract exists at it, and a
-save is a plain transfer, which deploys nothing. Saving first would put real
-money at an address with **no contract**, where a call succeeds and does nothing
-at all. So the setup runs at enable time, before the rule is signed, and no save
-goes into a reserve without code. STAQ enforces the same thing from its side: a
-quote for an undeployed reserve is a `not_deployed` skip, and so is a claim.
+A reserve address is derived on chain before any contract exists at it. Money
+sent there by plain transfer would sit at an address with **no contract**, where
+a call succeeds and does nothing at all. Saves never go that way: they go
+through the hub, and the setup deploys the reserve before the first one. STAQ
+enforces the same thing from its side: a quote for an undeployed reserve is a
+`not_deployed` skip, and so is a claim.
 
-If the setup is refused, by the user, by a revert, or by Bankr's security
-scanner, saving does not start: sign no rule and send nothing.
+The setup runs at enable time, right after the rule is signed (the rule moves no
+money; older API versions refuse `/activate` until a rule exists). It also
+approves the **savings budget** every later save draws on.
+
+If the setup is refused, by the user, by a revert, or by the wallet's security
+scanner, saving does not start: send nothing, and tell the user.
 
 A reserve funded before this ordering existed can still hold savings with no
 code. Run the setup before its claim, in the same contract-call window. The
@@ -85,9 +94,11 @@ curl -s -X POST "https://api.agentstaq.xyz/v1/wallets/0xYOURWALLET/activate" \
 ```
 
 It returns `steps`, in order: an approval for **0.000001 USDC** of that token,
-then `allocate`, which deploys the reserve. `token` is the pinned USDC, which the
-user needs a millionth of a dollar of, since the approval is spent by the
-allocate.
+then `allocate`, which deploys the reserve. `token` is the pinned USDC. You check
+the approval exactly as returned, then send **the savings budget the user agreed
+instead** (step 1 below): an approval for 0.000001 USDC is spent entirely by
+step 2 and leaves nothing for a single save. If the reserve already has code,
+`/activate` answers with a skip and the setup is the budget approval alone.
 
 Only the owner can do this. The hub derives the reserve from `msg.sender`, so
 nobody, STAQ included, can deploy a reserve for someone else.
@@ -97,7 +108,7 @@ and you can rebuild both because you know every argument of both:
 
 | Step | `to` | Calldata, rebuilt and compared byte for byte |
 |---|---|---|
-| 1 | the token being approved | `0x095ea7b3` + pinned hub + `1`, each left-padded to 32 bytes |
+| 1 | the pinned USDC | API's step: `0x095ea7b3` + pinned hub + `1`. What you send: `0x095ea7b3` + pinned hub + the budget in base units ($10 = `10000000`), each left-padded to 32 bytes |
 | 2 | the pinned `StaqHub` | `0x55be7f73` + token + `1` + the `ref` from the response |
 
 - **Compare the whole calldata, not just `to`.** This is the step where a
@@ -108,11 +119,11 @@ and you can rebuild both because you know every argument of both:
   matched.
 - `value` is `"0"` on both. STAQ never asks you to send native value in any flow.
   A non-zero value did not come from STAQ.
-- **The approval is for 0.000001 USDC**, which the allocate then spends. That is
-  `1` in the calldata, since USDC has six decimals. Quote the user the amount, never
-  "one base unit": the unit is meaningless to them and "1 USDC" is a million times
-  too much. A larger or unlimited approval is a refusal even if everything else
-  matches.
+- **The approval is for exactly the budget the user agreed**, with the pinned
+  hub as spender. Never unlimited, and never a figure they did not say. Quote
+  the user the dollar figure, "a $10 savings budget", never base units. The hub
+  can spend it only when this wallet itself calls `allocate`, and only into
+  this wallet's own reserve.
 - **Simulate each step just before submitting it.** Not both up front: step 2
   spends the allowance step 1 creates, so simulating it early reverts with
   `ERC20: transfer amount exceeds allowance`. That is the pair working, and
@@ -168,6 +179,16 @@ invests rather than withdraws:
 Each field is left-padded to 32 bytes, and the comparison is exact and
 case-insensitive. Anything else is refused, including a `redeemAndClaim` naming a
 vault that is not the pinned one.
+
+**Stocks are claimed as a token of their own.** A user with stocks holds the
+STAQ index in the reserve, and "claim my STAQ" covers it too: one more claim
+with `Token:` set to that index, the one `GET /v1/stocks` names, after it passes
+the check in `stocks.md`, "Checking the STAQ index". The instruction is `claim(index,
+shares)`, an amount of one token, with the shares the reserve holds; read
+`balanceOf(reserve)` on the index to know the figure you expect. What arrives in
+the wallet is the index token itself, not USDC: say so before they confirm.
+If they want the stocks themselves, the index's own `redeem` turns the claimed
+shares into them; see `SKILL.md`, "Turning stocks into the stocks themselves".
 
 **A selector of `0x355ad3af` is `investInVault`.** It is addressed to the right
 reserve, carries zero value, and `onlyOwnerOrOperator` accepts the owner's
