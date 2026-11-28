@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "keldrin",
+  "provider": "keldrin",
+  "providerUrl": "https://keldrin.vercel.app",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "keldrin.sh",
+    "language": "bash",
+    "code": "# Free: market session, live Chainlink NAV + freshness, DEX price and gap\ncurl \"https://keldrin.vercel.app/v1/assets/0xb20000000000000000000078ee7ce2fE4908108C/market-context\"\n\n# Free: Chainlink NAV history with the round id behind every point\ncurl \"https://keldrin.vercel.app/v1/assets/0xb20000000000000000000078ee7ce2fE4908108C/nav/history?interval=daily&from=2026-11-01\"\n\n# Paid, x402 ($0.05 USDC on Base): every verified stock in one call\ncurl -i \"https://keldrin.vercel.app/api/snapshot\"   # 402 with the payment terms"
+  },
+  "setup": [
+    "No key needed: the REST API, MCP and CLI are free (300 requests per minute per IP)",
+    "One-call snapshot and report: 3 free a day, then $0.05 USDC on Base per call via x402",
+    "Check the payment terms before signing (amount 50000, eip155:8453, payTo 0x8AEE621035D93Deb3C0C1177fac252dC2dd501a0) and sign once"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "keldrin",
+    "command": "install the keldrin skill from https://github.com/BankrBot/skills/tree/main/keldrin"
+  }
+}
