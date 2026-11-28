@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "skill-shield-audit",
+  "provider": "Skill Shield (three.ws)",
+  "providerUrl": "https://three.ws/marketplace/skills/skill-shield-audit",
+  "demo": {
+    "title": "audit-a-skill.sh",
+    "language": "bash",
+    "code": "# Free: the methodology is IN the skill \u2014 point your agent at any skill file and ask for the verdict.\n# Live managed audit (x402, USDC-Solana, $0.05/call, no API key):\ncurl -s -X POST 'https://three.ws/api/x402/skill-call?skill=skill-shield-audit' \\\n  -H 'Content-Type: application/json' -d '{\"input\": {\"file\": \"<skill content or path>\"}}' -i | head -n 1\n# -> HTTP 402 with an x402 v2 exact-scheme challenge (payTo wallet, bazaar discovery block).\n# A standard x402 client settles it and retries with X-PAYMENT for the 200 verdict."
+  },
+  "setup": [
+    "Install: `install the skill-shield-audit skill from https://github.com/BankrBot/skills/tree/main/skill-shield-audit`",
+    "Ask your agent: 'audit this skill file before install' with the file text or path",
+    "Get the verdict: severity-ranked findings, each with cited line evidence, plus DO-INSTALL / DO-NOT-INSTALL",
+    "Optional live managed audit: POST to https://three.ws/api/x402/skill-call?skill=skill-shield-audit (x402 v2, USDC-Solana, $0.05) \u2014 no key, no signup"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "skill-shield-audit",
+    "command": "install the skill-shield-audit skill from https://github.com/BankrBot/skills/tree/main/skill-shield-audit"
+  }
+}
