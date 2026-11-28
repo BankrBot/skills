@@ -1,15 +1,17 @@
 ---
 name: keldrin
-description: Verified record for Coinbase tokenized stocks on Base (chain 8453). Corporate actions (dividends, splits, multiplier changes) with SEC and onchain evidence, official Chainlink NAV history with round ids, market context (US session, NAV freshness, DEX gap) and live onchain DEX prices. Free API, remote MCP and CLI; one-call snapshot and report with 3 free tries a day, then $0.05 USDC on Base via x402. Facts with provenance, not advice.
+description: Intelligence for programmable equities. The verified record for Coinbase tokenized stocks on Base (chain 8453). Corporate actions (dividends, splits, multiplier changes) with SEC and onchain evidence, official Chainlink NAV history with round ids, market context (US session, NAV freshness, DEX gap) and live onchain DEX prices. Free API, remote MCP and CLI; one-call snapshot and report with 3 free tries a day, then $0.05 USDC on Base via x402. Facts with provenance, not advice.
 ---
 
 # keldrin: the verified record for tokenized stocks on Base
+
+Intelligence for programmable equities. Research once, verify independently, serve many: historical NAV, corporate actions, market intelligence and verifiable financial data through one integration, so you don't rebuild that infrastructure yourself.
 
 keldrin tells you what happened, what is coming and what a Coinbase tokenized stock on Base is worth, and how fresh that is. Every value names its source (a Chainlink round id, an SEC filing, an onchain transaction or a DEX pool at a block). Corporate-action records are independently re-verified before they are served; NAV feeds and DEX pools are served only after an independent check of the feed or pool, and their live values are read onchain at request time (re-check them yourself with `verify-nav` / `verify-dex`).
 
 ## Safety rules for agents
 
-1. **Facts, not advice.** keldrin is a record, not a trading signal, adviser or price oracle. Never present a keldrin value as a recommendation to buy or sell, or as a guaranteed executable price.
+1. **Facts, not advice.** keldrin is a record, not a trading signal, adviser, exchange or execution-critical price oracle, and is not affiliated with Coinbase, Chainlink or Base. Never present a keldrin value as a recommendation to buy or sell, or as a guaranteed executable price.
 2. **`unknown` is never safe.** A `null` value with an `*_unavailable_reason`, a `predicted` event, an `unexpectedly_stale` NAV or any error means "not established". Say so; don't fill the gap.
 3. **Prefer the free routes.** One-stock answers are free and need no wallet. Use a paid call only when the user wants a one-call snapshot or report and has agreed to pay.
 4. **Never ask for, read, print or store a private key, seed phrase or other credential.** Paying is done by the user's own wallet tooling under the user's spending limit.
