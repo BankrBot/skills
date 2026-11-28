@@ -61,7 +61,7 @@ Every key uses the `bk_...` format and carries independent settings, managed at 
 
 | Setting | Gates | New-key default |
 |---------|-------|-----------------|
-| `walletApiEnabled` | `/wallet/swap-quote`, `/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay` and creator-fee claims. `/wallet/me` and `/wallet/portfolio` work with any key | On |
+| `walletApiEnabled` | `/wallet/swap-quote`, `/wallet/swap`, `/wallet/transfer`, `/wallet/bridge*`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay` and creator-fee claims. `/wallet/me` and `/wallet/portfolio` work with any key | On |
 | `agentApiEnabled` | `/agent/*` (prompt, job status, cancel, project pages), plus files, x402 Cloud, webhooks, skills, MCP servers and apps | On |
 | `tokenLaunchApiEnabled` | `/token-launches/deploy` and the agent's launch tool | On |
 | `llmGatewayEnabled` | `llm.bankr.bot` and `/llm/credits/*` | Off |
@@ -73,7 +73,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### Read-only keys
 
-- Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay`), token deploys and fee or vesting claims answer `403`. Reads work, including `/wallet/swap-quote`.
+- Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/bridge/deposit` and `/withdraw`, `/wallet/sign`, `/wallet/submit`, `/wallet/x402-pay`), token deploys, fee or vesting claims and LLM credit transfers answer `403`. Reads work, including `/wallet/swap-quote`.
 - `/agent/prompt` still works, but the agent session gets only read tools (prices, balances, portfolio, research). Asked to transact, it explains that the key is read-only.
 - **Read-only doesn't cover account management.** A read-only key can still buy or cancel a Bankr Club subscription and, with the gateway flag, top up credits from the wallet, auto top-up included. Writes to files, x402 Cloud, webhooks and project pages answer `403`.
 
@@ -83,7 +83,7 @@ One key can serve the Agent API, the Wallet API and the LLM gateway. A separate 
 
 ### Recipient allowlist
 
-`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer`, a deploy's fee recipient, and an x402 Cloud endpoint's payout address (deploying one or changing its payout to an unlisted address answers `403 Restricted API key`). A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the list for the transfer's chain (`solana` on Solana, `evm` otherwise), so a key with only one chain's list can't send on the other. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
+`allowedRecipients` limits where this key can send: agent tools with a known recipient, `/wallet/transfer`, `/wallet/x402-pay`, LLM credit transfers, a deploy's fee recipient, and an x402 Cloud endpoint's payout address (deploying one or changing its payout to an unlisted address answers `403 Restricted API key`). A list on either chain restricts both chains; your own addresses still pass, so on a chain with an empty list only they do. `/wallet/transfer` is stricter: it accepts only addresses on the list for the transfer's chain (`solana` on Solana, `evm` otherwise), so a key with only one chain's list can't send on the other. It's independent of the wallet's permitted recipients, and when both are set, both must pass.
 
 **A non-empty allowlist on either chain also refuses operations whose recipient can't be checked:**
 
@@ -127,7 +127,7 @@ Max Mode means `maxMode` on the request or a Max Mode model saved on the wallet,
 
 ### Other limits
 
-- Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/sign`, `/wallet/submit`) are limited to 10 requests per minute per IP.
+- Wallet API writes (`/wallet/swap`, `/wallet/transfer`, `/wallet/bridge/deposit` and `/withdraw`, `/wallet/sign`, `/wallet/submit`) share a limit of 10 requests per minute per IP.
 - Minting keys (the dashboard, `bankr login email`, `bankr login siwe`) is limited to 20 attempts per hour per IP.
 - Token launches have their own quotas; see [token-deployment.md](token-deployment.md).
 
