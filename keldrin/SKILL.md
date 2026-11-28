@@ -24,7 +24,7 @@ keldrin tells you what happened, what is coming and what a Coinbase tokenized st
 |---|---|---|
 | REST API | `https://keldrin.vercel.app/v1/...` (below) | free, fair use |
 | Remote MCP | `claude mcp add --transport http keldrin https://keldrin.vercel.app/mcp` | free |
-| CLI | `npx -y keldrin@0.7.0 context NVDAc` (no dependencies, Node 20+) | free |
+| CLI | `npx -y keldrin@0.7.1 context NVDAc` (no dependencies, Node 20+) | free |
 | Snapshot / report on keldrin | `GET /v1/snapshot`, `GET /v1/report?token=NVDAc` | 3 free complete answers per client per day, then 402 |
 | Snapshot / report via x402 | `https://x402.bankr.bot/0xb98f0de777eea8c481b64e33d3e0066cea38fa91/keldrin-snapshot` and `.../keldrin-report` (also `https://keldrin.vercel.app/api/snapshot` and `/api/report`, which forward to them) | $0.05 USDC on Base per call |
 
