@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "helmswap",
+  "provider": "HelmSwap",
+  "providerUrl": "https://helmswap.com",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "helmswap-quote.sh",
+    "language": "bash",
+    "code": "# Add HelmSwap to your agent (hosted MCP, no key for EVM chains)\nopenclaw mcp add helmswap --url https://helmswap.com/mcp --transport streamable-http\n\n# Or quote over plain HTTP: 0.01 ETH -> USDC on Base\ncurl -s \"https://helmswap.com/api/v1/quote?chainId=8453&tokenIn=ETH&tokenOut=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&amountIn=10000000000000000\"\n\n# The response includes the net output, the minimum output, the disclosed fee and a quote ticket.\n# build_swap then returns an unsigned transaction. Your wallet signs it; HelmSwap never holds keys."
+  },
+  "setup": [
+    "Add the MCP server: `openclaw mcp add helmswap --url https://helmswap.com/mcp --transport streamable-http`",
+    "Run `openclaw mcp probe helmswap` to confirm get_quote and build_swap are listed",
+    "EVM chains need no key. For Solana builds, create a free API key at https://helmswap.com/developers and send it as an X-Helm-Key header (an API key, not a wallet key)",
+    "Quote first, confirm with the user, then build. The user's wallet signs; HelmSwap never holds keys",
+    "Source: https://github.com/BankrBot/skills/tree/main/helmswap"
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "helmswap",
+    "command": "install the helmswap skill from https://github.com/BankrBot/skills/tree/main/helmswap"
+  }
+}
