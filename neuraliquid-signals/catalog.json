@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "slug": "neuraliquid-signals",
+  "provider": "NeuraLiquid by FutureCast",
+  "providerUrl": "https://futurecast.ml85.xyz/quickstart?utm_source=bankr",
+  "logo": null,
+  "demo": {
+    "title": "inspect-offer.sh",
+    "language": "bash",
+    "code": "# Inspect one BTC/ETH snapshot for free. An empty window returns no offer.\ncurl -q -sS 'https://futurecast.ml85.xyz/api/v1/x402/signals/btc-eth-snapshot?utm_source=bankr' | jq '{accepts, detail}'"
+  },
+  "setup": [
+    "For one frozen BTC/ETH snapshot, inspect availability free. An approved x402 purchase costs 0.05 USDC. MCP v1.4.0 supports inspect_btc_eth_snapshot and buy_or_resume_btc_eth_snapshot.",
+    "Inspect the unsigned day-pass offer using Python 3 or the unsigned curl example.",
+    "Use an existing private pass file to read snapshots. A new 24-hour pass costs 5 USDC on Base.",
+    "Filter by token and direction. Track detection times to suppress duplicate alerts.",
+    "For revisioned events or budgeted MCP checkout, see https://github.com/Marcolist/neuraliquid-mcp. Use buy_or_resume_pass and read_agent_events."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "neuraliquid-signals",
+    "command": "install the neuraliquid-signals skill from https://github.com/BankrBot/skills/tree/main/neuraliquid-signals"
+  }
+}
