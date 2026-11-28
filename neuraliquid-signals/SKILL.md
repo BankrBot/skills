@@ -1,9 +1,26 @@
 ---
 name: neuraliquid-signals
-description: Inspect the price of NeuraLiquid's x402 crypto research feed or filter observations with a day pass, or connect an MCP client for budgeted checkout and revisioned watchlist events.
+description: Check a one-time BTC/ETH snapshot for 0.05 USDC on Base, use the 5 USDC day pass for continuous watchlist events, or recover an approved x402 purchase with MCP.
 ---
 
 # NeuraLiquid Signals
+
+## One BTC/ETH observation set for 0.05 USDC
+
+Use a single snapshot when a research agent already has a price quote and wants to check the direction and observation time of a BTC or ETH alert. The signal comes from a paper-trading engine. Either market can appear alone. The 5 USDC day pass below is for continuous updates.
+
+Inspect the snapshot with an unsigned GET:
+
+```bash
+curl -q -sS 'https://futurecast.ml85.xyz/api/v1/x402/signals/btc-eth-snapshot?utm_source=bankr' | jq '{accepts, detail}'
+```
+
+An available snapshot returns HTTP 402 with exactly 50,000 atomic USDC units on Base (eip155:8453). HTTP 409 means there is no active eligible observation. HTTP 503 indicates unavailability. Neither response asks for payment.
+
+In [NeuraLiquid MCP v1.4.0](https://github.com/Marcolist/neuraliquid-mcp/releases/tag/v1.4.0), use `inspect_btc_eth_snapshot` and `check_purchase_readiness(product="btc_eth_snapshot")`. After operator approval, `buy_or_resume_btc_eth_snapshot` uses a dedicated snapshot receipt file. Reuse the same file if confirmation is pending. Once finalized, the receipt retrieves the same token, direction and UTC observation time for 24 hours. [Snapshot checkout](https://futurecast.ml85.xyz/quickstart?utm_source=bankr#btc-eth-snapshot)
+
+## Continuous watchlist access
+
 
 Use this skill when someone wants a directional research alert, wants to check the price, or already has a NeuraLiquid pass. One 5 USDC payment on Base buys 24 hours of repeated reads. An observation contains `direction` (`long` or `short`), `time` (UTC detection time) and `token` (asset symbol). A dryrun observation records a detection. An empty `signals` array is a valid snapshot. Use detection times to suppress repeated alerts about the same asset, direction and time.
 
@@ -41,4 +58,4 @@ Get the wallet owner's authorization for the 5 USDC spend. The [provider quickst
 
 If a purchase is interrupted before a bearer token is saved, use the provider client's `--resume` with the original URL and `--access-file` to recover that authorization. Never initiate a second payment to resolve an uncertain first attempt.
 
-For referral distribution, open the [partner page](https://futurecast.ml85.xyz/partners?utm_source=bankr). From 26 November 2026 at 22:00 UTC until 26 December 2026 at 22:00 UTC, a wallet signature creates a personal link without a purchase. That link stays eligible after enrollment closes. The live feed requires a paid pass. Each eligible direct sale earns 34% after the incoming USDC payment is finalized (1.70 USDC for a 5 USDC pass). Disclose the commission when recommending the feed.
+For referral distribution, open the [partner page](https://futurecast.ml85.xyz/partners?utm_source=bankr). From 26 November 2026 at 22:00 UTC until 26 December 2026 at 22:00 UTC, a wallet signature creates a personal link without a purchase. That link stays eligible after enrollment closes. The live feed requires a paid pass. Each eligible direct sale earns 34% after the incoming USDC payment is finalized (0.017 USDC for a snapshot or 1.70 USDC for a day pass). Disclose the commission when recommending the feed.
