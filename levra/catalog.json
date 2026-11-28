@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "slug": "levra",
+  "provider": "Levra",
+  "providerUrl": "https://app.levra.finance",
+  "logo": "logo.png",
+  "demo": {
+    "title": "positions.sh",
+    "language": "bash",
+    "code": "curl -s https://api.levra.finance/v1/8453/accounts/0xYourWallet"
+  },
+  "setup": ["No key needed: the skill reads Levra's public API.", "Actions come back as a link you open in the Levra app to review and sign."],
+  "install": {
+    "type": "bankr",
+    "repoPath": "levra",
+    "command": "install the levra skill from https://github.com/BankrBot/skills/tree/main/levra"
+  }
+}
