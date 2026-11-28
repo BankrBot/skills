@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "slug": "afterbook",
+  "provider": "Afterbook",
+  "providerUrl": "https://afterbook.app",
+  "logo": "logo.svg",
+  "demo": {
+    "title": "get-tape.sh",
+    "language": "bash",
+    "code": "# Every tracked stock token on Base vs the real stock (free, no key)\ncurl -s -X POST https://afterbook.app/api/mcp \\\n  -H 'content-type: application/json' \\\n  -H 'accept: application/json, text/event-stream' \\\n  -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"get_tape\",\"arguments\":{}}}'"
+  },
+  "setup": [
+    "Install the skill. No API key, account or funds are needed for the free MCP server or the short index at afterbook.app/llms.txt.",
+    "Ask something like: \"which Coinbase stock token on Base has the biggest gap right now?\"",
+    "For a buy, open the plan or basket link Afterbook returns and sign in your own wallet (not available in the US or its territories)."
+  ],
+  "install": {
+    "type": "bankr",
+    "repoPath": "afterbook",
+    "command": "install the afterbook skill from https://github.com/BankrBot/skills/tree/main/afterbook"
+  }
+}
